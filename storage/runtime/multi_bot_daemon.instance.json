@@ -1,6 +1,6 @@
 {
-  "pid": 19644,
-  "started_at": "2026-09-03T10:11:39.666529-04:00",
+  "pid": 33232,
+  "started_at": "2026-09-03T11:30:41.999068-04:00",
   "project_root": "C:\\TradingBoot\\smc_synthetic_bot",
   "command": "C:\\TradingBoot\\smc_synthetic_bot\\app\\main.py --mode multi-bot-daemon --execute --interval 30 --position-monitor-interval 2 --risk-percent 1.0 --min-rr 1.5 --dashboard --dashboard-port 8765",
   "version": "v100-entry-quality-recoverable-quarantine-winrate-audit",

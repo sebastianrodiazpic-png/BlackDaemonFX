@@ -79,6 +79,10 @@ class TradeAuditExcelExporter:
             ("Pierna", trade.get("leg") or trade.get("execution_mode")),
             ("Entrada", self._local_time(trade.get("entry_time"))),
             ("Salida", self._local_time(trade.get("exit_time"))),
+            ("Motivo salida exacto", self._first(
+                (trade.get("details") or {}).get("metadata", {}).get("analysis_exit_reason"),
+                trade.get("exit_reason"),
+            )),
             ("RR plan", trade.get("planned_rr")),
             ("RR real", trade.get("realized_rr")),
             ("PnL neto", trade.get("net_pnl")),
@@ -145,6 +149,10 @@ class TradeAuditExcelExporter:
                 "Estado ahora": current.get("state"),
                 "Análisis actual válido": current.get("valid"),
                 "Motivo análisis actual": current.get("reason"),
+                "Motivo salida exacto": self._first(
+                    (snap.get("metadata") or {}).get("analysis_exit_reason"),
+                    snap.get("exit_reason"),
+                ),
                 "Dirección ahora": current.get("direction"),
                 "Score ahora": self._first(current.get("score"), current.get("trade_score")),
                 "Confirmación ahora %": current.get("confirmation_percentage"),

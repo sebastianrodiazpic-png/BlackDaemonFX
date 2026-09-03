@@ -159,6 +159,10 @@ class LiveTradingConfig:
     # hasta el SL completo mientras la tesis actual siga inválida.
     analysis_recovery_mfe_rr: float = 0.20
     analysis_recovery_exit_rr: float = -0.10
+    # FLIP: protege el capital después de una extensión moderada sólo cuando
+    # el análisis M1 confirma la reversión.
+    flip_reversal_protection_enabled: bool = True
+    flip_reversal_protection_trigger_rr: float = 0.50
 
     # v69: scheduler Forex por nueva vela cerrada M5.
     forex_event_scheduler_enabled: bool = True
@@ -1746,9 +1750,9 @@ class LiveTradingEngine:
     ) -> dict:
         """Cierra una pérdida controlada cuando la tesis ACTUAL ya no es válida.
 
-        Cuenta sólo reevaluaciones distintas (`evaluated_at`), no las lecturas del
-        monitor cada dos segundos. Así evitamos cerrar por ruido o por repetir la
-        misma respuesta del analizador.
+        Cuenta sólo velas M5 cerradas distintas, no las lecturas del monitor ni
+        las reevaluaciones del mismo candle. La antigüedad de una señal bloquea
+        entradas nuevas, pero no invalida una posición abierta.
         """
         result = {"managed": False, "closed": False, "reason": None}
         if str(metadata.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME:
@@ -1770,23 +1774,64 @@ class LiveTradingEngine:
 
         view_direction = str(current_view.get("direction") or "").upper()
         state = str(current_view.get("state") or current_view.get("decision") or "").upper()
+        reason = str(current_view.get("reason") or "").upper()
+        freshness_only = state in {
+            "STALE_M5_SIGNAL",
+            "WAITING_NEW_M5_BAR",
+        } or reason in {
+            "M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY",
+            "WAITING_NEW_M5_BAR",
+        }
         opposite_direction = bool(
             direction in {"BUY", "SELL"}
             and view_direction in {"BUY", "SELL"}
             and view_direction != direction
         )
-        invalid_now = (
-            not bool(current_view.get("valid", False))
-            or opposite_direction
+        structure_break = str(
+            current_view.get("structure_break")
+            or current_view.get("bos_choch")
+            or ""
+        ).upper()
+        opposite_structure = (
+            direction == "BUY"
+            and any(token in structure_break for token in ("BEARISH", "SELL", "DOWN"))
+        ) or (
+            direction == "SELL"
+            and any(token in structure_break for token in ("BULLISH", "BUY", "UP"))
+        )
+        structural_state = state in {
+            "NO_H1_CONTEXT",
+            "DIRECTION_POLICY_BLOCKED",
+            "INVALID_DIRECTION",
+        }
+        invalid_now = not freshness_only and bool(
+            opposite_direction
+            or opposite_structure
             or bool(current_view.get("htf_blocked", False))
             or bool(current_view.get("critical_failures") or [])
+            or structural_state
         )
 
-        previous_evaluation = str(metadata.get("analysis_exit_last_evaluated_at") or "")
-        if evaluated_at != previous_evaluation:
+        diagnostics = current_view.get("diagnostics")
+        diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
+        signal_age = diagnostics.get("signal_age")
+        signal_age = signal_age if isinstance(signal_age, dict) else {}
+        candle_key = str(
+            current_view.get("latest_closed_candle_time")
+            or signal_age.get("latest_closed_candle_time")
+            or current_view.get("signal_time")
+            or signal_age.get("signal_time")
+            or ""
+        )
+        evaluation_key = candle_key or evaluated_at
+        previous_evaluation = str(metadata.get("analysis_exit_last_candle_key") or "")
+        if evaluation_key != previous_evaluation:
             previous_streak = int(metadata.get("analysis_exit_invalid_streak", 0) or 0)
             streak = previous_streak + 1 if invalid_now else 0
+            if freshness_only:
+                streak = 0
             metadata["analysis_exit_invalid_streak"] = streak
+            metadata["analysis_exit_last_candle_key"] = evaluation_key
             metadata["analysis_exit_last_evaluated_at"] = evaluated_at
             metadata["analysis_exit_last_state"] = state or None
             metadata["analysis_exit_last_reason"] = current_view.get("reason")
@@ -1893,7 +1938,7 @@ class LiveTradingEngine:
         return result
 
     def _arps_time_stop_exit(self, *, trade, metadata, current_rr, close_position):
-        """Invalidación M1 persistente + time stop escalonado 1/3/5 minutos."""
+        """Cierra ARPS sólo ante invalidación M1 estructural confirmada."""
         result = {"managed": False, "closed": False, "reason": None}
         if str(metadata.get("strategy_name") or "").upper() != ARPS_STRATEGY_NAME:
             return result
@@ -1934,11 +1979,6 @@ class LiveTradingEngine:
         early_limit = max(1.0, float(self.config.arps_early_exit_minutes))
         early_required = max(0.0, float(self.config.arps_early_exit_required_mfe_rr))
         invalid_required = max(1, int(self.config.arps_early_invalidation_confirmations))
-        mid_limit = max(early_limit, float(self.config.arps_mid_exit_minutes))
-        mid_required = max(early_required, float(self.config.arps_mid_exit_required_mfe_rr))
-        final_limit = max(mid_limit, float(self.config.arps_time_stop_minutes))
-        final_required = max(mid_required, float(self.config.arps_time_stop_required_mfe_rr))
-
         if (
             elapsed + 1e-9 >= early_limit
             and mfe + 1e-9 < early_required
@@ -1949,14 +1989,6 @@ class LiveTradingEngine:
             exit_code = "ARPS_EARLY_M1_INVALIDATION_EXIT"
             broker_reason = "arps_early_m1_invalidation"
             required = early_required
-        elif elapsed + 1e-9 >= mid_limit and mfe + 1e-9 < mid_required:
-            exit_code = "ARPS_3M_NO_EXPANSION_EXIT"
-            broker_reason = "arps_3m_no_expansion"
-            required = mid_required
-        elif elapsed + 1e-9 >= final_limit and mfe + 1e-9 < final_required:
-            exit_code = "ARPS_5M_TIME_STOP_EXIT"
-            broker_reason = "arps_5m_time_stop_no_expansion"
-            required = final_required
         else:
             return result
         ticket = str(trade.get("broker_position_ticket") or "")
@@ -2802,23 +2834,6 @@ class LiveTradingEngine:
                 if gold_after_ny and current_rr_snapshot is not None:
                     rr_now = float(current_rr_snapshot)
                     if (
-                        rr_now >= float(self.config.gold_take_profit_at_new_york_rr)
-                        and callable(close_position)
-                    ):
-                        close_result = close_position(
-                            position_ticket=str(ticket),
-                            reason="gold_new_york_open_take_profit",
-                        )
-                        gold_transition_updates.append({
-                            "trade_id": trade.get("id"),
-                            "ticket": str(ticket),
-                            "symbol": trade.get("instrument"),
-                            "action": "GOLD_NY_PROFIT_TAKEN",
-                            "current_rr": rr_now,
-                            "close_result": close_result,
-                        })
-                        continue
-                    if (
                         rr_now > 0.0
                         and bool(self.config.gold_break_even_positive_at_new_york)
                         and not bool(metadata.get("gold_ny_transition_protected", False))
@@ -2875,6 +2890,57 @@ class LiveTradingEngine:
 
                 if bool(self.config.split_entries_enabled) and trade_leg == "TP1":
                     continue
+
+                # FLIP: una reversión M1 confirmada después de +0.50R protege
+                # entrada/costes antes de que actúe el BE estándar de +1R.
+                flip_view = (
+                    (getattr(self, "_current_strategy_view_cache", {}) or {}).get(
+                        str(trade.get("instrument") or "")
+                    ) or {}
+                )
+                flip_protection = (
+                    str(self.config.bot_profile or "").upper() == "FLIP"
+                    and bool(getattr(self.config, "flip_reversal_protection_enabled", True))
+                    and current_rr_snapshot is not None
+                    and float(current_rr_snapshot) >= float(
+                        getattr(self.config, "flip_reversal_protection_trigger_rr", 0.50)
+                    )
+                    and bool(flip_view.get("m1_reversal_confirmed", False))
+                    and not bool(metadata.get("flip_reversal_protected", False))
+                )
+                if flip_protection:
+                    flip_be_price, flip_offset = self._break_even_target_stop(
+                        str(trade.get("instrument") or ""), direction, entry_price
+                    )
+                    modification = move_stop(
+                        position_ticket=str(ticket),
+                        stop_loss=flip_be_price,
+                        take_profit=float(tp_value),
+                        reason="flip_m1_reversal_protection",
+                    )
+                    if modification.get("modified", False):
+                        metadata["flip_reversal_protected"] = True
+                        metadata["flip_reversal_protection_rr"] = round(
+                            float(current_rr_snapshot), 4
+                        )
+                        metadata["flip_reversal_protection_at"] = datetime.now(
+                            timezone.utc
+                        ).isoformat()
+                        metadata["break_even_price"] = flip_be_price
+                        metadata["break_even_offset"] = flip_offset
+                        metadata["break_even_activation_reason"] = (
+                            "FLIP_M1_REVERSAL_CONFIRMED"
+                        )
+                        details = dict(trade.get("details") or {})
+                        details["metadata"] = metadata
+                        self.repository.update_trade(
+                            int(trade["id"]),
+                            {
+                                "stop_loss": flip_be_price,
+                                "details": details,
+                            },
+                        )
+                        continue
 
                 # Idempotencia: si el broker ya tiene SL en BE+offset, solo persistimos
                 # el estado local y no enviamos otra modificación. La tolerancia usa
@@ -3460,63 +3526,9 @@ class LiveTradingEngine:
         status = self._forex_rollover_status()
         if not status.get("force_flat_now"):
             return result
-
-        trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
-        close_position = getattr(trade_executor, "close_position", None)
-        if not callable(close_position):
-            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_FOREX_ROLLOVER_CLOSE")
-            return result
-
-        for trade in self.repository.open_trades(source=self.config.source) or []:
-            if not self._trade_owned_by_current_bot(trade):
-                continue
-            symbol = str(trade.get("instrument") or "")
-            if not self._is_forex_symbol(symbol):
-                continue
-
-            ticket = trade.get("broker_position_ticket")
-            if not ticket:
-                continue
-
-            result["checked"] += 1
-            try:
-                close_result = close_position(
-                    position_ticket=str(ticket),
-                    reason="forex_rollover_protection",
-                )
-                closed = bool((close_result or {}).get("closed", False))
-                if closed:
-                    result["closed"] += 1
-                    details = dict(trade.get("details") or {})
-                    metadata = dict((details.get("metadata") or {}) if isinstance(details, dict) else {})
-                    metadata["forex_rollover_exit"] = True
-                    metadata["forex_rollover_exit_reason"] = "PROTECCION_SPREAD_ROLLOVER"
-                    metadata["forex_rollover_exit_requested_at"] = datetime.now(timezone.utc).isoformat()
-                    metadata["forex_rollover_status"] = status
-                    details["metadata"] = metadata
-                    self.repository.update_trade(int(trade["id"]), {"details": details})
-                else:
-                    result["errors"].append({
-                        "trade_id": trade.get("id"),
-                        "symbol": symbol,
-                        "ticket": str(ticket),
-                        "error": (close_result or {}).get("error") or "FOREX_ROLLOVER_CLOSE_REJECTED",
-                    })
-                result["positions"].append({
-                    "trade_id": trade.get("id"),
-                    "symbol": symbol,
-                    "ticket": str(ticket),
-                    "closed": closed,
-                    "result": close_result,
-                })
-            except Exception as exc:
-                result["errors"].append({
-                    "trade_id": trade.get("id"),
-                    "symbol": symbol,
-                    "ticket": str(ticket),
-                    "error": str(exc),
-                })
-
+        # El rollover sólo bloquea nuevas entradas. Las posiciones abiertas
+        # deben salir por SL/TP del broker o por invalidación estructural.
+        result["skipped_reason"] = "ROLLOVER_NO_ESTRUCTURAL_INVALIDATION"
         return result
 
     @staticmethod
@@ -5104,6 +5116,9 @@ class LiveTradingEngine:
             "chart_pattern_conflict_level": pick("chart_pattern_conflict_level"),
             "chart_pattern_conflict_reason": pick("chart_pattern_conflict_reason"),
             "chart_pattern_conflict_strength_delta": pick("chart_pattern_conflict_strength_delta"),
+            "m1_reversal_confirmed": bool(
+                pick("m1_reversal_confirmed", "reversal_m1_confirmed", default=False)
+            ),
             "h1_doji_confirmed": bool(pick("h1_doji_confirmation", "h1_doji_confirmed", default=False)),
             "h1_doji_type": pick("h1_doji_type"),
             "h1_doji_zone": pick("h1_doji_zone"),
@@ -5113,6 +5128,19 @@ class LiveTradingEngine:
                 or m15_setup.get("structure_break_type")
             ),
             "zone": pick("m15_zone", "zone") or m15_setup.get("zone"),
+            "signal_time": pick("signal_time", "m5_confirmation_time"),
+            "latest_closed_candle_time": (
+                pick("latest_closed_candle_time")
+                or (
+                    (analysis.get("diagnostics") or {}).get("signal_age", {}).get(
+                        "latest_closed_candle_time"
+                    )
+                    if isinstance(analysis.get("diagnostics"), dict)
+                    and isinstance((analysis.get("diagnostics") or {}).get("signal_age"), dict)
+                    else None
+                )
+            ),
+            "diagnostics": analysis.get("diagnostics") or {},
             "evaluated_at": datetime.now(timezone.utc).isoformat(),
         }
 

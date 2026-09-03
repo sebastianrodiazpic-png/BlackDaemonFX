@@ -42,6 +42,12 @@ def invalid_view(evaluated_at="2026-09-02T08:00:00+00:00"):
         "state": "STALE_M5_SIGNAL",
         "reason": "M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY",
         "direction": "BUY",
+        "diagnostics": {
+            "signal_age": {
+                "signal_time": "2026-09-02T07:45:00+00:00",
+                "latest_closed_candle_time": "2026-09-02T08:00:00+00:00",
+            }
+        },
     }
 
 
@@ -58,10 +64,10 @@ def test_same_evaluation_does_not_inflate_confirmation_streak():
     )
     assert first["closed"] is False
     assert second["closed"] is False
-    assert metadata["analysis_exit_invalid_streak"] == 1
+    assert metadata.get("analysis_exit_invalid_streak", 0) == 0
 
 
-def test_two_distinct_invalid_analyses_close_at_loss_cap():
+def test_stale_signal_does_not_close_even_on_distinct_evaluations():
     engine = engine_with_view(invalid_view("2026-09-02T08:00:00+00:00"))
     trade = old_trade()
     metadata = trade["details"]["metadata"]
@@ -76,9 +82,30 @@ def test_two_distinct_invalid_analyses_close_at_loss_cap():
     result = engine._analysis_invalidation_exit(
         trade=trade, metadata=metadata, current_rr=-0.36, close_position=close,
     )
-    assert result["closed"] is True
-    assert result["reason"] == "analysis_invalid_loss_cap"
-    assert calls[0]["reason"] == "analysis_invalid_loss_cap"
+    assert result["closed"] is False
+    assert not calls
+
+
+def test_structural_invalidations_count_once_per_closed_m5_candle():
+    view = invalid_view()
+    view["state"] = "INVALID_DIRECTION"
+    view["reason"] = "OPPOSITE_STRUCTURE"
+    view["direction"] = "SELL"
+    engine = engine_with_view(view)
+    trade = old_trade()
+    metadata = trade["details"]["metadata"]
+    close = lambda **kwargs: {"closed": True}
+
+    engine._analysis_invalidation_exit(
+        trade=trade, metadata=metadata, current_rr=-0.20, close_position=close,
+    )
+    view["evaluated_at"] = "2026-09-02T08:00:10+00:00"
+    result = engine._analysis_invalidation_exit(
+        trade=trade, metadata=metadata, current_rr=-0.20, close_position=close,
+    )
+
+    assert result["closed"] is False
+    assert metadata["analysis_exit_invalid_streak"] == 1
 
 
 def test_recovery_protection_closes_after_positive_mfe_is_lost():
@@ -87,7 +114,11 @@ def test_recovery_protection_closes_after_positive_mfe_is_lost():
         "analysis_exit_invalid_streak": 1,
         "analysis_exit_last_evaluated_at": "2026-09-02T08:00:00+00:00",
     }
-    engine = engine_with_view(invalid_view("2026-09-02T08:00:10+00:00"))
+    view = invalid_view("2026-09-02T08:00:10+00:00")
+    view["state"] = "INVALID_DIRECTION"
+    view["reason"] = "OPPOSITE_STRUCTURE"
+    view["direction"] = "SELL"
+    engine = engine_with_view(view)
     trade = old_trade(metadata)
     result = engine._analysis_invalidation_exit(
         trade=trade,

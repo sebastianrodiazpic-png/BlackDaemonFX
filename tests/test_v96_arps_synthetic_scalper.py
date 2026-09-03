@@ -76,7 +76,7 @@ def test_adx_math_returns_finite_values_for_directional_data():
     assert result["strategy_version"] == ARPS_STRATEGY_VERSION
 
 
-def test_arps_three_minute_exit_closes_when_mfe_never_expands():
+def test_arps_three_minute_time_stop_does_not_close_without_structure_invalidation():
     class Repo:
         def update_trade(self, *args, **kwargs):
             return True
@@ -98,6 +98,5 @@ def test_arps_three_minute_exit_closes_when_mfe_never_expands():
         current_rr=-0.10,
         close_position=lambda **kwargs: closed.append(kwargs) or {"closed": True},
     )
-    assert result["closed"] is True
-    assert result["reason"] == "ARPS_3M_NO_EXPANSION_EXIT"
-    assert closed
+    assert result["closed"] is False
+    assert not closed
