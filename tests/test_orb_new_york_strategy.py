@@ -72,6 +72,10 @@ def test_orb_symbol_scope_is_limited_to_requested_markets():
     assert classify_orb_market("Wall Street 30") == "WALL_STREET_30"
     assert classify_orb_market("USTEC") == "US_TECH_100"
     assert classify_orb_market("US500") == "US_500"
+    assert classify_orb_market("SPX500") == "US_500"
+    assert classify_orb_market("S&P 500") == "US_500"
+    assert classify_orb_market("SandP500") == "US_500"
+    assert classify_orb_market("US SP 500") == "US_500"
     assert not is_orb_eligible_symbol("Volatility 75 Index")
 
 

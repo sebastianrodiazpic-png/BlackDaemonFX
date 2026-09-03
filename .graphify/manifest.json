@@ -1,0 +1,894 @@
+{
+  "c:/TradingBoot/smc_synthetic_bot/app/__init__.py": {
+    "mtime": 1788440924237.3918,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/app/main.py": {
+    "mtime": 1788440924226.3596,
+    "hash": "3b4e43b81e073742b4de187941377dd1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/backtesting/__init__.py": {
+    "mtime": 1788440924258.456,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/backtesting/backtest_money_management.py": {
+    "mtime": 1788440924293.7473,
+    "hash": "90e9c99a350ffb9c7d69aaafe722e4cb"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/backtesting/backtest_pipeline.py": {
+    "mtime": 1788440924307.0676,
+    "hash": "4e02f66e36559496a9f6828027f68c02"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/backtesting/backtest_storage.py": {
+    "mtime": 1788440924281.9995,
+    "hash": "1a1cde94778bf619dc89c22442e21285"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/backtesting/trade_simulator.py": {
+    "mtime": 1788440924268.9265,
+    "hash": "2e1f15a47354470dec60a5bcca1953da"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/__init__.py": {
+    "mtime": 1788440924337.2466,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_connection.py": {
+    "mtime": 1788440924405.5452,
+    "hash": "c01d1fb3642dee431cb6723989a33883"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_connector.py": {
+    "mtime": 1788440924360.4292,
+    "hash": "f7f857c33df2be0a364b0da178526dc3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_data.py": {
+    "mtime": 1788440924349.756,
+    "hash": "a29531f1e96e7943c34f9c9f6bbaa23e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_execution.back.py": {
+    "mtime": 1788440924428.5615,
+    "hash": "f115825dc33c59147eff9b9b7c7114ca"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_execution.py": {
+    "mtime": 1788440924392.9248,
+    "hash": "dfe72144b2d1b61332418561ce95ccb4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/mt5_trade_executor.py": {
+    "mtime": 1788440924417.0955,
+    "hash": "a467ef14e5f1e459ddc58634f93783da"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/symbol_discovery.py": {
+    "mtime": 1788440924373.3955,
+    "hash": "de20b1626e052ae954bbc970ae2dc4cf"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/brokers/symbols.py": {
+    "mtime": 1788440924325.7249,
+    "hash": "e3d50146cc6cad59ea0462b5aa589737"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/config/__init__.py": {
+    "mtime": 1788440924439.0857,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/config/instruments.py": {
+    "mtime": 1788440924481.7551,
+    "hash": "232f4d19d52c4f4484df48480cc685ec"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/config/settings.py": {
+    "mtime": 1788440924458.3645,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/config/strategy_config.py": {
+    "mtime": 1788440924497.051,
+    "hash": "b4698934108f3183cf19430e467a859a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/config/symbol_policy.py": {
+    "mtime": 1788440924470.1282,
+    "hash": "3a5425e26eb4c63695fcdc5f118906d3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/daemon_version.py": {
+    "mtime": 1788440927346.799,
+    "hash": "2011154a3381bd18694db9ce71e9bbb5"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/__init__.py": {
+    "mtime": 1788440924520.4011,
+    "hash": "e07bdefbcac1cf97817af5e375f48194"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/account_metrics.py": {
+    "mtime": 1788440924560.9065,
+    "hash": "e86422f9585bc58818ace906d8a4e4c0"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/account_page.py": {
+    "mtime": 1788440924582.0247,
+    "hash": "70f4b34df06a53695f276dee3416f024"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/realtime_dashboard.py": {
+    "mtime": 1788440924600.1604,
+    "hash": "5394feb0c0b87aaad5f4926e1a4eda14"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/smc_visual_context.py": {
+    "mtime": 1788440924548.1445,
+    "hash": "54b242b59d35e1071934f291bd3a0c18"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/dashboard/trade_audit_page.py": {
+    "mtime": 1788440924535.0718,
+    "hash": "b7cb5689911a7b7c4cb0098603664625"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/data/collector.py": {
+    "mtime": 1788382486443.2554,
+    "hash": "495b372b8a7a16ca557a74c679e8ac81"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/data/instruments.py": {
+    "mtime": 1788382486425.5046,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/data/market_data.py": {
+    "mtime": 1788382486451.928,
+    "hash": "855330fc44b538b5d5ab27d8100c9f89"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/database/__init__.py": {
+    "mtime": 1788440924656.1133,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/database/database.py": {
+    "mtime": 1788440924636.0562,
+    "hash": "a348395f7daa579706dc6875e1e9e7f4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/database/models.py": {
+    "mtime": 1788440924683.6404,
+    "hash": "1fe47cc0baf75d24e16a66d5dfc75c3a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/database/reporting.py": {
+    "mtime": 1788440924696.3923,
+    "hash": "ce353f1a55d3d1d64fdab2f5a2440289"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/database/repository.py": {
+    "mtime": 1788440924670.1587,
+    "hash": "6bf3a0a82e3fa74e72221218e4ce9eb9"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/monitoring/__init__.py": {
+    "mtime": 1788440924716.8,
+    "hash": "3d18c34bb4441508bd720c4309407dae"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/monitoring/position_monitoring_service.py": {
+    "mtime": 1788440924730.8286,
+    "hash": "b0b88c3420493239749fbbdbce759d6e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/monitoring/trade_monitor.py": {
+    "mtime": 1788440924744.121,
+    "hash": "3996dad5b9871cda05d4a257d7954151"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/position_manager.py": {
+    "mtime": 1788440928349.6858,
+    "hash": "8cb4fee14e64605fbc9805d5970de1de"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/__init__.py": {
+    "mtime": 1788440943439.3694,
+    "hash": "5da2a60ddbd2ca3c12c9448d6c0dba38"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/console_reporting_service.py": {
+    "mtime": 1788440943475.527,
+    "hash": "abf1d781d95b51d37b3134410907ffcd"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/strategy_evaluation.py": {
+    "mtime": 1788440943449.1582,
+    "hash": "02d505200215b42399560660a7a36b4e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/trade_audit_excel_exporter.py": {
+    "mtime": 1788440943428.1929,
+    "hash": "bf583c019d4fe1baae3d3093a4d7bf34"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/trade_report_exporter.py": {
+    "mtime": 1788440943461.3872,
+    "hash": "3167e92ea3de9a38def87e1e3abb8695"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/reporting/trade_reporting_service.py": {
+    "mtime": 1788440943493.1199,
+    "hash": "6ef72e3d843dc2e0f1f33aea8dabc6bf"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/risk/__init__.py": {
+    "mtime": 1788440924757.5498,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/risk/money_manager.py": {
+    "mtime": 1788440924772.785,
+    "hash": "6de96a697a2dc7f53a7b984ae1702ab1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/services/__init__.py": {
+    "mtime": 1788440924792.664,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/services/execution_preflight_service.py": {
+    "mtime": 1788440924819.1357,
+    "hash": "e04c4de4b6a583e0cb70ed3c4e88e51a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/services/live_demo_smoke_test_service.py": {
+    "mtime": 1788440924805.3777,
+    "hash": "446e2975401b6630607b9a65258b19c6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/storage/account_page_syntax_test.js": {
+    "mtime": 1788366525791.7712,
+    "hash": "50c1874290a6f90bec5d3585848782eb"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/__init__.py": {
+    "mtime": 1788440924832.7944,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/backtest/__init__.py": {
+    "mtime": 1788440924853.7566,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/backtest/backtest_metric.py": {
+    "mtime": 1788440924867.6904,
+    "hash": "49063b2532920cfaa6225f2978f9e877"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/__init__.py": {
+    "mtime": 1788440924935.2324,
+    "hash": "5e9d20369435103f64ab68222e61cf62"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/live_paper_trading_engine.py": {
+    "mtime": 1788440925035.1794,
+    "hash": "21b15a1c5baeed293c418a28924e04b6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/live_trading_engine.py": {
+    "mtime": 1788440924953.0586,
+    "hash": "798bc44986e3ca298e87ddb9f9e7bb58"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/multi_timeframe.py": {
+    "mtime": 1788440925055.7217,
+    "hash": "dd78ee8b62296067497b667be90371ef"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/paper_trade_executor.py": {
+    "mtime": 1788440924919.2236,
+    "hash": "e9db907cc02191273d4b55f554e9fc39"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/runner_extension_manager.py": {
+    "mtime": 1788440925021.6562,
+    "hash": "c97da2cdec99d1484179d5352fea858a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/trade_executor.py": {
+    "mtime": 1788440924966.575,
+    "hash": "d83b0993d0b93d5a15dbb55ae539cabd"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/trade_outcome_policy.py": {
+    "mtime": 1788440924992.4783,
+    "hash": "57f15094804a907d16cf0fc8307cf50a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/execution/trade_pipeline.py": {
+    "mtime": 1788440925008.3105,
+    "hash": "30edc298ca7679287c89f3fa73a3680a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/orb/__init__.py": {
+    "mtime": 1788440925424.2249,
+    "hash": "670293cf6b639f91b2347c0f78a5280d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/orb/new_york_orb.py": {
+    "mtime": 1788440925436.2585,
+    "hash": "a0e132c5a16b2e82f258c91cabf6cd50"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/risk/__init__.py": {
+    "mtime": 1788440925386.2527,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/risk/money_management.py": {
+    "mtime": 1788440925368.5232,
+    "hash": "2d643112a272293c3ebcadd39924a062"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/risk/position_sizing.py": {
+    "mtime": 1788440925398.8108,
+    "hash": "bf0850bf59e60f013fad57c7285254a6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/risk/risk_manager.py": {
+    "mtime": 1788440925410.4866,
+    "hash": "c2f1ef469ccfe0bfb2e6bf08fee48a78"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/scalping/__init__.py": {
+    "mtime": 1788440924898.8508,
+    "hash": "8f0f43e4877a249d859738457fb734e7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/scalping/adaptive_regime_pullback.py": {
+    "mtime": 1788440924880.8486,
+    "hash": "9fe8b7b57b588f0a8ac371fa2911ba53"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/__init__.py": {
+    "mtime": 1788440925100.1797,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/chart_patterns.py": {
+    "mtime": 1788440925318.9182,
+    "hash": "a137fe5619f697b163d88ea0e3ecee25"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/choch_bos.py": {
+    "mtime": 1788440925285.0476,
+    "hash": "0c22a7deec27104a4b71f60a6c3b33fa"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/confirmation_engine.py": {
+    "mtime": 1788440925344.4282,
+    "hash": "37d2480c24a651ce05632157557b394b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/entry_confirmation.py": {
+    "mtime": 1788440925086.726,
+    "hash": "b934a969667f30776792dcd3a15f0daf"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/h1_doji_extremes.py": {
+    "mtime": 1788440925355.791,
+    "hash": "3dfc64daf5eff94a297574bcf7ae8ab3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/harmonic_patterns.py": {
+    "mtime": 1788440925139.0073,
+    "hash": "822916829a93f00bd536ed189df95054"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/liquidity.py": {
+    "mtime": 1788440925332.6584,
+    "hash": "5700508c0f95232e4c8836b277d92cdf"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/liquidity_sweeps.py": {
+    "mtime": 1788440925194.235,
+    "hash": "145814e7eb26f1f18f360a230ae617fb"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/market_structure.py": {
+    "mtime": 1788440925170.596,
+    "hash": "731dd3530c179c3ae46c899fa73144b9"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/micro_confirmation.py": {
+    "mtime": 1788440925071.3562,
+    "hash": "d10c2343953e2473132fadea5a047157"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/ob_quality.py": {
+    "mtime": 1788440925154.777,
+    "hash": "d81f207a8c7eb20a1ac2319a593abb87"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/order_blocks.py": {
+    "mtime": 1788440925233.826,
+    "hash": "f1674f40b8ed4adb79d6cac10b8fb331"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/premium_discount.py": {
+    "mtime": 1788440925270.4973,
+    "hash": "d28c52be1e6bbe63cd90261692280926"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/risk_reward.py": {
+    "mtime": 1788440925298.5156,
+    "hash": "840e83e1aedcca498f3cc0f0544299f3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/setup_detector.py": {
+    "mtime": 1788440925212.7969,
+    "hash": "4737b5c7a07b8f724a4dd6c75bc733f1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/swings.py": {
+    "mtime": 1788440925256.5288,
+    "hash": "09e7950078389dd24f7cd2c7a228f6b5"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/strategy/smc/trade_simulator.py": {
+    "mtime": 1788440925124.0125,
+    "hash": "f05994a92e32e859dedf357bf4a448d2"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_backtest.py": {
+    "mtime": 1788440925933.2085,
+    "hash": "d4b1b5a20677dc7901fa06651fe52595"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_backtest_metric.py": {
+    "mtime": 1788440926493.8044,
+    "hash": "ca7fc31378bc27a4c8b22239c24130e3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_backtest_money_management.py": {
+    "mtime": 1788440926760.486,
+    "hash": "ae9d3926aea83ddf94adb9974be6c05b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_backtest_storage.py": {
+    "mtime": 1788440926077.1394,
+    "hash": "c16f9fe02c592d74233a46baa1dd6b4a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_chile_timezone_reporting.py": {
+    "mtime": 1788440926543.619,
+    "hash": "44f546f6152d4ecb0e771faa263199d1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_choch_bos.py": {
+    "mtime": 1788440926136.3374,
+    "hash": "fcffd33b3663b253bd1dd4a40d0ab09d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_confirmation_engine.py": {
+    "mtime": 1788440926975.4048,
+    "hash": "2bd0428dbd0f823e249e1b11c8276ce9"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_console_reporting_service.py": {
+    "mtime": 1788440926447.627,
+    "hash": "a04507d679c041b737238e78006ce6ce"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_break_even_live.py": {
+    "mtime": 1788440926198.188,
+    "hash": "411e277976aea26c9188c2a496f18311"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_explainable_report.py": {
+    "mtime": 1788440925971.7341,
+    "hash": "218993f190d3585973d74121d6ea3a55"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_progress.py": {
+    "mtime": 1788440926825.0415,
+    "hash": "74967685cbd2b367b20312234fd53a4c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_risk_target_policy.py": {
+    "mtime": 1788440926177.7896,
+    "hash": "0ff309b0f8aca9310d778a024514f15b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_runner_extension.py": {
+    "mtime": 1788440926274.058,
+    "hash": "f945a7515c32e6389da797ff42dd52f5"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_single_entry_fallback.py": {
+    "mtime": 1788440925740.559,
+    "hash": "f8f4f7f67b3211805dd5a0ee48d23fa7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_daemon_split_risk_management.py": {
+    "mtime": 1788440926211.0142,
+    "hash": "55da59b170b8721024b6d0e91ed5222c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_demo_daemon_integration.py": {
+    "mtime": 1788440925488.617,
+    "hash": "e611abbc9934636cdfe4ce64e97af804"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_deriv_symbols.py": {
+    "mtime": 1788440926260.4102,
+    "hash": "ba4a45ec4fa0f25802ca88430fa83888"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_divergence_confirmation.py": {
+    "mtime": 1788440926652.8333,
+    "hash": "3fdb192b7a4b65febc51edbae366d991"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_entry_confirmation.py": {
+    "mtime": 1788440925990.7207,
+    "hash": "374395e094c3fd0e9870a817340c9967"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_execution_preflight_service.py": {
+    "mtime": 1788440925519.2139,
+    "hash": "a63df3b7091aec941d1fe58a74531a18"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_forex_rollover_guard.py": {
+    "mtime": 1788440925691.3352,
+    "hash": "ced65c68b0a21eafc9e0df3336bf5cd8"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_full_backtest_pipeline.py": {
+    "mtime": 1788440925623.8599,
+    "hash": "41b109030f42cbb04f812cc2572ff8d4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_h1_extreme_doji_confirmation.py": {
+    "mtime": 1788440926906.439,
+    "hash": "751989f74935a8935a1c77894f52df16"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_harmonic_patterns.py": {
+    "mtime": 1788440925670.0215,
+    "hash": "66e3666d694f4e6034263c30af0c399d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_jump_strict_quality_gate.py": {
+    "mtime": 1788440926288.7207,
+    "hash": "3c2e4f23181e9161168ce75943efe978"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_liquidity.py": {
+    "mtime": 1788440925657.9197,
+    "hash": "17436644055a2720273acf58ea9ff63b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_liquidity_sweeps.py": {
+    "mtime": 1788440926947.4817,
+    "hash": "044f93205ffb16218b43e13103f4df9d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_demo.py": {
+    "mtime": 1788440926064.3157,
+    "hash": "06bea494d18b9403f1b86ff507aa3f2a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_demo_origin.py": {
+    "mtime": 1788440925826.6897,
+    "hash": "5cd9fef2b4581b469f1ec94914a232d1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_demo_smoke_stops.py": {
+    "mtime": 1788440926029.5684,
+    "hash": "fd6cebcaea2609b9a34c9742934fb157"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_end_to_end_dry_run.py": {
+    "mtime": 1788440927307.191,
+    "hash": "6de4590ea39be0a2b3f423ba81a68956"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_execution_helpers.py": {
+    "mtime": 1788440926360.34,
+    "hash": "c47fdec99e522f5dda80e8f99dae0f85"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_live_paper_trading_engine.py": {
+    "mtime": 1788440926558.0142,
+    "hash": "def72ef45771a72db356084529850dd6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_main_account_stats_reset_cli.py": {
+    "mtime": 1788440925532.0635,
+    "hash": "31f3a407e8dc2b6f91bee45344fd6a76"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_main_symbol_selection.py": {
+    "mtime": 1788440925959.588,
+    "hash": "376e55ddaf23d82056e4c368bd7cede9"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_market_structure.py": {
+    "mtime": 1788440926688.328,
+    "hash": "e2af17327f6441df1ff2d30dfea9d663"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_money_management.py": {
+    "mtime": 1788440926801.7837,
+    "hash": "e3dfc26f46528178a4969a41fb732e7e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_money_manager.py": {
+    "mtime": 1788440927150.5945,
+    "hash": "73ac5e8a9cdd12b2a337798ff258218c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_mt5_connection.py": {
+    "mtime": 1788440926404.889,
+    "hash": "8a7fe8c84ecc7c7fbb915a8a09c4122d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_mt5_data.py": {
+    "mtime": 1788440927101.389,
+    "hash": "82ffe20cdf34ec3f0abeef02dbc8c494"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_mt5_symbol.py": {
+    "mtime": 1788440926391.4783,
+    "hash": "4bb48e1aa23aceab434b96a13f8939ba"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_multi_timeframe_cache.py": {
+    "mtime": 1788440926783.605,
+    "hash": "e5c222a3c1f7ef6cff5eddb80b3906ec"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_multi_timeframe_sequence.py": {
+    "mtime": 1788440926672.2876,
+    "hash": "0502e74cf7855532d84bef9ba6222ac3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_orb_gold_contract_selection.py": {
+    "mtime": 1788440926814.1028,
+    "hash": "0336bfa31904481d7114a0e30771492b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_orb_new_york_strategy.py": {
+    "mtime": 1788440926836.7043,
+    "hash": "6a408e3a5620532d14d69e7973a05e93"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_orb_symbol_discovery.py": {
+    "mtime": 1788440927295.7815,
+    "hash": "1ae87969d08c39e96bb037415fdcf9f2"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_order_blocks.py": {
+    "mtime": 1788440925764.7769,
+    "hash": "fbdffdcba1c01fcb5dac04dcaa9f7bc3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_paper_trade_executor.py": {
+    "mtime": 1788440925918.6445,
+    "hash": "323ea6f3d402a3331f1e6b6eeb5c4043"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_paper_trade_monitoring_integration.py": {
+    "mtime": 1788440926701.981,
+    "hash": "020436c030edbac35dcf2fe735021fdd"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_position_manager.py": {
+    "mtime": 1788440925465.8728,
+    "hash": "0e56f8fb81b12cd8e81437ab1ae1f1d2"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_position_monitoring_service.py": {
+    "mtime": 1788440926892.9343,
+    "hash": "5ff3d39bc102562b8e196ea58344a86c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_position_sizing.py": {
+    "mtime": 1788440926468.7788,
+    "hash": "3ae18fc838d4bc12f12edd8c49b9f82a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_premiun_discount.py": {
+    "mtime": 1788440927164.969,
+    "hash": "afee4a69b44f3bce8432e320bcb830e3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_ambiguous_transition.py": {
+    "mtime": 1788440925635.5725,
+    "hash": "3829544a2f6c1ec4aad283c0a5e0964c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_enter_transition.py": {
+    "mtime": 1788440926302.9492,
+    "hash": "6ce50277708133da708dd171d7d7fbe6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_execution_transition.py": {
+    "mtime": 1788440925701.5771,
+    "hash": "059138fec80a85fc49f045f9d83b9b2d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_no_exit_transition.py": {
+    "mtime": 1788440926003.3462,
+    "hash": "20c395ab739397ff7551601860b2052e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_stop_loss_transition.py": {
+    "mtime": 1788440927031.8613,
+    "hash": "ed3a9e143bf7a6319fd69f274fa7ada7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_ready_to_stop_loss_transition_back.py": {
+    "mtime": 1788440927206.1233,
+    "hash": "3829544a2f6c1ec4aad283c0a5e0964c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_realtime_dashboard.py": {
+    "mtime": 1788440926091.6255,
+    "hash": "c54c8982027d856a1f2bcc864034293c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_risk_integration.py": {
+    "mtime": 1788440925899.2004,
+    "hash": "4687c1c7c51865af1c00da931c22d5c8"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_risk_manager.py": {
+    "mtime": 1788440925453.9656,
+    "hash": "3bd7e169ef5a5fe5315cb2d668638bf4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_risk_reward.py": {
+    "mtime": 1788440926481.0974,
+    "hash": "cff7fb6bd1622dfaa5e23d751b794209"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_runner_extension_manager.py": {
+    "mtime": 1788440927020.1143,
+    "hash": "503c8e834bc80338483245594172a607"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_setup_detector.py": {
+    "mtime": 1788440927075.795,
+    "hash": "e8b52bc3c2af457c1e987ab2c13cc96d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_signal_freshness.py": {
+    "mtime": 1788440926372.833,
+    "hash": "ac2f48ae6da75332f96c4b0a2635fe79"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_storage.py": {
+    "mtime": 1788440926165.6638,
+    "hash": "f06b092a6d77f7fda52bceac6ccdf8d4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_swings.py": {
+    "mtime": 1788440926987.2893,
+    "hash": "f7cbbd0975cc7d0d5dbbce0bcaa1b3bf"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_symbol_direction_policy.py": {
+    "mtime": 1788440927116.147,
+    "hash": "af8e4196eeb9d6a1abbcb34b8a0e4071"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_executor.py": {
+    "mtime": 1788440926123.9556,
+    "hash": "b0ca8415ee2961e7a308824b1bcab0d6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_lifecycle_full_integration.py": {
+    "mtime": 1788440925817.0967,
+    "hash": "ad4d6977175111a87af442823f0b252b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_lifecycle_integration.py": {
+    "mtime": 1788440926935.7517,
+    "hash": "bde55bc1ffd8ec6894eb6734044d95e4"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_lifecycle_manager.py": {
+    "mtime": 1788440927055.339,
+    "hash": "111a4979b0902401caa0453b8d2b81e8"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_lifecycle_paper_integration.py": {
+    "mtime": 1788440926961.1394,
+    "hash": "adf0f45c31645326bf7ff7c9e7304c8f"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_pipeline.py": {
+    "mtime": 1788440926336.5364,
+    "hash": "b7e24e3f528a15e54eef670be4880e3d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_report_exporter.py": {
+    "mtime": 1788440927180.6836,
+    "hash": "8a430ea71967160562c5e4aab53cf410"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_reporting_service.py": {
+    "mtime": 1788440925946.9536,
+    "hash": "a164dee003c68e57b26e66934e9e3d86"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_trade_simulator.py": {
+    "mtime": 1788440926637.736,
+    "hash": "860bde573a19c27904f966541e125821"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v100_entry_quarantine_winrate.py": {
+    "mtime": 1788440919131.4602,
+    "hash": "f3693b63053b881736f1edcfef674620"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v41_critical_gates.py": {
+    "mtime": 1788440925499.8203,
+    "hash": "b1d8981067bfd6000e210b30fd541439"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v45_forex_instrument_catalog.py": {
+    "mtime": 1788440927235.3997,
+    "hash": "5bea3e249fa987d60aee682e04f36c7a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v46_total_persistence.py": {
+    "mtime": 1788440925587.3918,
+    "hash": "2aff8b06a0c4c8ac98ca1764824dbe08"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v47_multi_bot_architecture.py": {
+    "mtime": 1788440925806.7231,
+    "hash": "b68d107cf8c085aad8d9330972445dac"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v48_break_even_winrate.py": {
+    "mtime": 1788440926043.1843,
+    "hash": "bc1828fd83b5a30eb63839b377656f07"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v49_split_synthetic_workers.py": {
+    "mtime": 1788440926323.6567,
+    "hash": "73b873cb0ebd47ee521a71d06c5c017e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v50_compact_audit_log.py": {
+    "mtime": 1788440925873.623,
+    "hash": "515d9727112e27caf8230be56b738618"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v51_multi_bot_dashboard.py": {
+    "mtime": 1788440927087.938,
+    "hash": "c7455e4f40913e182da813d3ef513f87"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v52_worker_family_dashboard.py": {
+    "mtime": 1788440926916.9617,
+    "hash": "0e00dfa308ae5367b5b813049e43c1a5"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v53_runtime_telemetry_utf8.py": {
+    "mtime": 1788440926748.3237,
+    "hash": "f9a4b1b243cf7684e3767147f8093f81"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v54_context_health_visual_audit.py": {
+    "mtime": 1788440926771.0525,
+    "hash": "162040508909148e99c94e01fe2fa2b7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v55_persistent_entry_audit.py": {
+    "mtime": 1788440926880.3818,
+    "hash": "df3190f9e0ae624eef808b345ee63a66"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v56_independent_instrument_profiles.py": {
+    "mtime": 1788440925569.0957,
+    "hash": "ce5c273497edeb02689da85279a9c9c7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v57_forex_persistence_hardening.py": {
+    "mtime": 1788440925837.809,
+    "hash": "31753da656bb2dce5d7d1bdc427c7ff6"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v58_synthetics_split_dashboard.py": {
+    "mtime": 1788440926433.9163,
+    "hash": "72f4e62569ba81bc3a24d624dfda8882"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v59_synthetic_family_multiprocess.py": {
+    "mtime": 1788440925795.2468,
+    "hash": "a3a9f5a4175eee6cc208c279d5ea0d91"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v60_split_enforced.py": {
+    "mtime": 1788440926149.7021,
+    "hash": "0e94d5f969cef52a87027d8237e93323"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v61_orb_m5_retest_risk.py": {
+    "mtime": 1788440925753.9033,
+    "hash": "df823daca6a114fdfa196657063897dc"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v62_chart_pattern_confirmations.py": {
+    "mtime": 1788440925729.5396,
+    "hash": "fe6cf2d18b91aadff6b209f05ec065ae"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v63_account_db_continuity.py": {
+    "mtime": 1788440927043.7805,
+    "hash": "bbbdfa7ef435e3cef6ad0d53cfae1e77"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v64_account_ui_fix.py": {
+    "mtime": 1788440926529.9253,
+    "hash": "97058ef90c7d8c1f3b6c7677a7e6977b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v65_smc_two_leg_tp3_protection.py": {
+    "mtime": 1788440926735.5437,
+    "hash": "58d2c90cf349302bbe94b6124a068431"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v66_smc_tp4_be_plus2.py": {
+    "mtime": 1788440926509.5894,
+    "hash": "7c96ae7e29ec3fad440093bece10073b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v67_live_entry_vs_now.py": {
+    "mtime": 1788440926867.7644,
+    "hash": "59da056346d6020c7d6fe0b583fc897f"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v68_persistent_entry_vs_now_dataset.py": {
+    "mtime": 1788440926714.8748,
+    "hash": "fe20e24d4905c14048a4f7afb6bd3c87"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v69_forex_event_scheduler.py": {
+    "mtime": 1788440926608.3823,
+    "hash": "d49016e826defd68ec0db4a600a88d78"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v70_recent_analysis_all_workers.py": {
+    "mtime": 1788440927137.2456,
+    "hash": "fa52038123a03dc261f9c79d27cc75eb"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v71_balanced_recent_analysis.py": {
+    "mtime": 1788440925886.5005,
+    "hash": "caf0388cec231ffccc1f9be0a036d526"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v72_chart_conflict_explained.py": {
+    "mtime": 1788440926015.7021,
+    "hash": "7d9997bc4f720690de7be60b74c2bd59"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v73_forex_progressive_runner.py": {
+    "mtime": 1788440926593.703,
+    "hash": "0c586d7ea33d2647753e100fa9c5f6b7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v74_fast_navigation.py": {
+    "mtime": 1788440925477.2756,
+    "hash": "84888a608988bdde55858ca0db845f3a"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v75_orb_entry_vs_now.py": {
+    "mtime": 1788440925858.0378,
+    "hash": "94ab8c9f0683b0aa8b1ff8bc9db4786f"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v76_unified_multibot_orb_htf.py": {
+    "mtime": 1788440925782.8496,
+    "hash": "f63a44f2055eadeb600eb5b2d28c7882"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v77_hybrid_multibot_fast_front.py": {
+    "mtime": 1788440927283.1501,
+    "hash": "3a08d18b6e446417eb3ab2549acdbc1d"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v78_account_no_horizontal_scroll.py": {
+    "mtime": 1788440926225.8452,
+    "hash": "e29ff3ad83987ce5371c97cb055d3dae"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v79_universal_open_position_audit.py": {
+    "mtime": 1788440926240.5874,
+    "hash": "6919f0d8ce6faa3b08604fda3364fd6e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v80_trade_audit_detail_tab.py": {
+    "mtime": 1788440926623.0403,
+    "hash": "6fa2abc4e6d163f320ee3d8f12944b0c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v81_trade_audit_excel_export.py": {
+    "mtime": 1788440925598.4775,
+    "hash": "392d6b976d0ca416af342664e62d8282"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v82_synthetic_selection_recovery.py": {
+    "mtime": 1788440925557.723,
+    "hash": "06edaea837dc8a532a3ab7f4564199bb"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v84_entry_quality_and_audit_integrity.py": {
+    "mtime": 1788440926847.6692,
+    "hash": "a7693c51c4116fe8260e369daa0d5c9e"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v85_orb_correlation_synthetic_parity.py": {
+    "mtime": 1788440925719.294,
+    "hash": "87644df8037670e152692ba92069926c"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v86_durable_trade_audit_export.py": {
+    "mtime": 1788440927220.7888,
+    "hash": "7ac3a9dc10932179e8ae48ed025c32df"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v87_gold_asia_new_york_session.py": {
+    "mtime": 1788440927270.8364,
+    "hash": "083ca87af272293c9fb17e57139f1995"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v88_single_launch_multibot_gold.py": {
+    "mtime": 1788440927007.826,
+    "hash": "0bb6e1542b849e5845258819b06dd4b3"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v90_multibot_single_instance.py": {
+    "mtime": 1788440925546.2432,
+    "hash": "36c3dc3eb0a7d2fdf85503bed80771d1"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v91_legacy_multibot_guard.py": {
+    "mtime": 1788440926349.549,
+    "hash": "8a3478bd154322c3363f4b3969e74473"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v92_windows_launcher_guard.py": {
+    "mtime": 1788440926419.254,
+    "hash": "346d4062166d2387c0eca4c84c6f86fe"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v93_latency_optimization.py": {
+    "mtime": 1788440925611.6816,
+    "hash": "3a26dd66c00e2f78b7294761070604a0"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v95_analysis_invalidation_exit.py": {
+    "mtime": 1788440926103.476,
+    "hash": "d64fd8f5667117d56057979f74d38db5"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v96_arps_synthetic_scalper.py": {
+    "mtime": 1788440925680.588,
+    "hash": "2481665ea7d8742d9a29ccedf2f3b66b"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v98_persistence_latency_retention.py": {
+    "mtime": 1788440927250.359,
+    "hash": "811cb5441d158fdc3ffa337ea1291fa7"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/tests/test_v99_persistence_shards_adaptive_regime.py": {
+    "mtime": 1788440926572.1565,
+    "hash": "5add0119a84dc63c7f268405ecef21b9"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/trade_lifecycle_manager.py": {
+    "mtime": 1788440928514.1963,
+    "hash": "99902fef260f8d428b623b86b8087d84"
+  },
+  "c:/TradingBoot/smc_synthetic_bot/trade_outcome_policy.py": {
+    "mtime": 1788440928526.2603,
+    "hash": "57f15094804a907d16cf0fc8307cf50a"
+  }
+}

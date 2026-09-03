@@ -107,7 +107,20 @@ def discover_orb_symbols(data_provider) -> list[str]:
     que productos Deriv no utilizados (por ejemplo Gold BB/MACO) no bloqueen
     todo el arranque del daemon.
     """
-    terms = ("XAUUSD", "Wall Street", "US Tech", "USTEC", "NASDAQ", "US500", "US 500", "SP500")
+    terms = (
+        "XAUUSD",
+        "Wall Street",
+        "US Tech",
+        "USTEC",
+        "NASDAQ",
+        "US500",
+        "US 500",
+        "SP500",
+        "SPX500",
+        "S&P 500",
+        "SandP500",
+        "US SP 500",
+    )
     found = set()
     get_info = getattr(data_provider, "get_symbol_info", None)
 

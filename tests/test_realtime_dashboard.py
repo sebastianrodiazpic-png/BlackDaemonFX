@@ -1,4 +1,5 @@
-from dashboard.realtime_dashboard import RealtimeDashboardService
+from dashboard.realtime_dashboard import RealtimeDashboardService, _enrich_recent_row
+from strategy.execution.live_trading_engine import LiveTradingConfig
 
 
 class Repo:
@@ -56,6 +57,24 @@ def test_dashboard_extracts_realtime_trade_quality():
     assert "Barrido de liquidez" in last["passed"]
     assert "Cierre fuerte" in last["missing"]
     assert state["open_positions"][0]["break_even_confirmed"] is True
+
+
+def test_forex_defaults_to_one_percent_currency_exposure_with_split_entries():
+    config = LiveTradingConfig()
+    assert config.forex_max_currency_exposure_percent == 1.0
+    assert config.split_entries_enabled is True
+    assert config.split_entry_risk_fraction == 0.50
+
+
+def test_waiting_forex_states_are_exposed_in_spanish():
+    row = _enrich_recent_row({
+        "action": "NO_M15_SETUP",
+        "reason": "NO_DIRECTIONAL_M15_SETUP",
+        "state": "NO_M15_SETUP",
+    })
+    assert row["action_es"] == "Esperando setup válido de M15"
+    assert row["state_es"] == "Esperando setup válido de M15"
+    assert "M15" in row["reason_es"]
 
 
 def test_dashboard_position_health_detects_opposite_confirmed_signal():
@@ -229,6 +248,20 @@ def test_dashboard_exposes_separate_instrument_management_route():
         assert "Volver al dashboard" in instruments
     finally:
         dash.stop()
+
+
+def test_dashboard_catalog_exposes_sp500_in_orb_profile():
+    dash = RealtimeDashboardService(repository=Repo(), host="127.0.0.1", port=0)
+    dash.set_instrument_catalog({"orb_ny_us_500": ["US500"]})
+    catalog = dash.snapshot()["instrument_catalog"]
+
+    assert catalog == [{
+        "category": "orb_ny_us_500",
+        "selection_profile": "ORB",
+        "label": "S&P 500",
+        "symbols": ["US500"],
+    }]
+    assert dash.snapshot()["selection_profiles"]["ORB"] == ["US500"]
 
 
 def test_dashboard_preserves_entry_thesis_separately_from_latest_analysis():

@@ -86,6 +86,7 @@ class LiveTradingConfig:
     break_even_offset_points: int = 2
     break_even_confirmation_retries: int = 3
     break_even_confirmation_delay_seconds: float = 0.20
+    orb_correlated_entry_min_break_even_offset_points: int = 2
     # El monitor pesado se ejecuta en un hilo independiente del scanner de
     # señales. Así una sincronización lenta de SQLite/MT5 no envejece M5/M1.
     background_position_monitor_enabled: bool = True
@@ -148,9 +149,9 @@ class LiveTradingConfig:
     excursion_persist_step_rr: float = 0.05
     # v67: reevaluación MTF de posiciones SMC abiertas para "Entrada vs. ahora".
     current_strategy_refresh_seconds: float = 10.0
-    # v95: salida defensiva cuando la reevaluación vigente deja de justificar
-    # una posición que ya está perdiendo. No sustituye el SL estructural: reduce
-    # exposición únicamente después de evaluaciones nuevas y consecutivas.
+    # v95: salida defensiva únicamente cuando la reevaluación vigente invalida
+    # la tesis en velas M5 cerradas distintas y consecutivas. No sustituye el
+    # SL estructural ni cierra por una lectura aislada.
     analysis_invalidation_exit_enabled: bool = True
     analysis_invalidation_exit_rr: float = -0.35
     analysis_invalidation_confirmations: int = 2
@@ -187,7 +188,10 @@ class LiveTradingConfig:
     gold_break_even_positive_at_new_york: bool = True
 
     # Riesgo agregado Forex compartido vía SQLAlchemy.
-    forex_max_currency_exposure_percent: float = 2.0
+    # Una divisa no puede acumular más de 1% de riesgo lógico abierto.
+    # Las dos piernas de una operación (0.50% + 0.50%) se cuentan como una
+    # sola operación lógica para no penalizar la división TP1 + Runner.
+    forex_max_currency_exposure_percent: float = 1.0
     forex_max_total_risk_percent: float = 4.0
     # v85: ORB ya no usa un techo global de 1%. Sólo evita duplicar exposición
     # entre S&P 500 y Nasdaq 100 hasta que la primera operación tenga BE real.
@@ -1860,7 +1864,7 @@ class LiveTradingEngine:
             float(getattr(self.config, "analysis_invalidation_min_open_minutes", 10.0)),
         )
         required = max(
-            1,
+            2,
             int(getattr(self.config, "analysis_invalidation_confirmations", 2)),
         )
         if open_minutes + 1e-9 < min_minutes or streak < required:
@@ -3657,12 +3661,22 @@ class LiveTradingEngine:
         return result
 
     @staticmethod
-    def _trade_has_confirmed_break_even(trade: dict) -> bool:
-        """Confirma BE por metadata o por un SL persistido ya protector."""
+    def _trade_has_confirmed_break_even(
+        trade: dict,
+        minimum_offset_points: int = 0,
+    ) -> bool:
+        """Confirma BE y, opcionalmente, un margen protector mínimo."""
         details = trade.get("details") if isinstance(trade.get("details"), dict) else {}
         meta = details.get("metadata") if isinstance(details.get("metadata"), dict) else {}
+        minimum_offset_points = max(0, int(minimum_offset_points))
+        recorded_offset = meta.get("break_even_offset_points")
         if bool(meta.get("break_even_confirmed", False)):
-            return True
+            try:
+                return float(recorded_offset or 0) >= minimum_offset_points
+            except (TypeError, ValueError):
+                return minimum_offset_points == 0
+        if minimum_offset_points > 0:
+            return False
         try:
             entry = float(trade.get("entry_price") or 0.0)
             stop = float(trade.get("stop_loss") or 0.0)
@@ -3705,7 +3719,12 @@ class LiveTradingEngine:
                 continue
             key = str(meta.get("parent_execution_key") or trade.get("execution_key") or trade.get("id"))
             item = counterpart_setups.setdefault(key, {"trades": [], "all_at_break_even": True})
-            protected = self._trade_has_confirmed_break_even(trade)
+            protected = self._trade_has_confirmed_break_even(
+                trade,
+                minimum_offset_points=int(
+                    getattr(self.config, "orb_correlated_entry_min_break_even_offset_points", 2)
+                ),
+            )
             item["all_at_break_even"] = bool(item["all_at_break_even"] and protected)
             item["trades"].append({
                 "trade_id": trade.get("id"),

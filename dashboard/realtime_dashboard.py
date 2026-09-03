@@ -18,6 +18,7 @@ from dashboard.account_metrics import build_account_payload
 from dashboard.account_page import ACCOUNT_HTML
 from dashboard.trade_audit_page import TRADE_AUDIT_HTML
 from reporting.trade_audit_excel_exporter import TradeAuditExcelExporter
+from services.financial_news_service import FinancialNewsService
 
 
 _LABELS = {
@@ -74,6 +75,25 @@ _ACTION_LABELS_ES = {
     "ARPS_FAMILY_DIRECTION_BLOCKED": "Dirección no permitida para esta familia sintética",
     "ARPS_INSUFFICIENT_DATA": "ARPS sin datos suficientes",
     "ERROR": "Error durante el análisis o la ejecución",
+    "NO_H1_CONTEXT": "Esperando contexto válido de H1",
+    "NO_M15_SETUP": "Esperando setup válido de M15",
+    "NO_M5_CONFIRMATION": "Esperando confirmación de M5",
+    "NO_M5_DATA_OR_SIGNAL": "Esperando datos o señal válida de M5",
+    "WAITING_M5_AFTER_M15": "Esperando confirmación M5 posterior al setup M15",
+    "STALE_M5_SIGNAL": "Señal M5 demasiado antigua; esperando una nueva",
+    "WAITING_NEW_M5_BAR": "Esperando el cierre de una nueva vela M5",
+    "WAITING_NEW_M1_BAR": "Esperando el cierre de una nueva vela M1",
+    "WAITING_FOREX_DATA": "Esperando datos Forex",
+    "NO_DIRECTIONAL_H1_TREND": "Esperando tendencia direccional en H1",
+    "NO_DIRECTIONAL_M15_SETUP": "Esperando setup direccional en M15",
+    "NO_DIRECTIONAL_M5_CONFIRMATION": "Esperando confirmación direccional en M5",
+    "INVALID_DIRECTION": "Esperando una dirección BUY o SELL válida",
+    "WAITING_M5_CONFIRMATION": "Esperando confirmación de M5",
+    "NO_H1_DATA": "Esperando suficientes datos de H1",
+    "NO_M5_DATA_OR_SIGNAL": "Esperando datos o señal válida de M5",
+    "NO_OWNED_OPEN_POSITIONS": "Sin posiciones abiertas propias para gestionar",
+    "FOREX_CURRENCY_EXPOSURE_LIMIT": "Entrada bloqueada: límite de exposición por divisa",
+    "FOREX_TOTAL_RISK_LIMIT": "Entrada bloqueada: límite total de riesgo Forex",
 }
 
 _REASON_LABELS_ES = {
@@ -147,6 +167,10 @@ def _action_label_es(value: Any) -> str:
     key = str(value or "SIN_ACCION").strip().upper()
     return _ACTION_LABELS_ES.get(key, _humanize_code(key))
 
+def _state_label_es(value: Any) -> str:
+    key = str(value or "").strip().upper()
+    return _ACTION_LABELS_ES.get(key, _humanize_code(key))
+
 def _reason_label_es(value: Any) -> str:
     key = str(value or "").strip()
     if not key:
@@ -217,6 +241,7 @@ def _enrich_recent_row(value: Any) -> dict:
         "reason_es": reason_es,
         "decision_es": _decision_label_es(decision),
         "operational_state": _operational_state(action, reason, decision),
+        "state_es": _state_label_es(row.get("state") or action),
     })
     return row
 
@@ -229,6 +254,11 @@ _CATEGORY_LABELS = {
     "flip": "Boom / Crash combinados",
     "forex": "Forex",
     "other": "Otros",
+    "orb_ny_wall_street_30": "Wall Street 30",
+    "orb_ny_us_tech_100": "US Tech 100",
+    "orb_ny_us_500": "S&P 500",
+    "orb_ny_xauusd": "XAUUSD",
+    "orb_ny_micro_xauusd": "XAUUSD Micro",
 }
 
 _SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB")
@@ -366,7 +396,18 @@ def _infer_symbol_profile(symbol: str) -> str | None:
     if len(letters) >= 6 and letters[:3] in currencies and letters[3:6] in currencies:
         return "FOREX"
 
-    orb_terms = ("xauusd", "us30", "wall street", "ustec", "nasdaq", "us500", "s&p", "sp500")
+    orb_terms = (
+        "xauusd",
+        "us30",
+        "wall street",
+        "ustec",
+        "nasdaq",
+        "us500",
+        "s&p",
+        "sp500",
+        "spx500",
+        "sandp500",
+    )
     if any(term in name for term in orb_terms):
         return "ORB"
     return None
@@ -649,6 +690,8 @@ class RealtimeDashboardService:
         self._snapshot_aux_cache_ttl_seconds = 2.0
         default_state_path = Path(__file__).resolve().parent.parent / "storage" / "dashboard" / "last_state.json"
         self.state_path = Path(state_path) if state_path else default_state_path
+        news_state_path = self.state_path.parent / "financial_news.json"
+        self.news_service = FinancialNewsService(state_path=news_state_path)
         self._state = {
             "status": "INICIALIZANDO",
             "connection_mode": "OFFLINE",
@@ -672,6 +715,7 @@ class RealtimeDashboardService:
             "selection_version": 0,
             "selection_message": "Catálogo pendiente de cargar",
             "account": {"snapshot": None, "stats": {}, "recent_trades": []},
+            "financial_news": self.news_service.snapshot(),
         }
         self._load_persisted_state()
         with self._lock:
@@ -955,6 +999,7 @@ class RealtimeDashboardService:
                 "selection_message": self._state.get("selection_message"),
                 "updated_at": self._state.get("updated_at"),
                 "daemon_version": DAEMONBLACKFX_VERSION,
+                "financial_news": self.news_service.snapshot(),
             }
         payload = _json_safe(payload)
         self._instruments_cache = {"at": now, "payload": payload}
@@ -997,6 +1042,7 @@ class RealtimeDashboardService:
 
     def start(self, live=True):
         service = self
+        self.news_service.start()
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, fmt, *args):
@@ -1170,6 +1216,7 @@ class RealtimeDashboardService:
         return self.url
 
     def stop(self):
+        self.news_service.stop()
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
@@ -1729,6 +1776,7 @@ class RealtimeDashboardService:
         with self._lock:
             # El dashboard operativo sigue refrescando posiciones, pero account y
             # consultas auxiliares usan TTL corto para no bloquear navegación.
+            self._refresh_selection_profiles_from_db_locked()
             self._refresh_open_positions_locked()
             self._refresh_account_locked()
             state = dict(self._state)
@@ -1779,11 +1827,18 @@ class RealtimeDashboardService:
                 for row in state["recent"]
             ]
             visible_worker_states = [
-                row for row in worker_states
+                {
+                    **dict(row or {}),
+                    "last_action_es": _action_label_es((row or {}).get("last_action")),
+                    "last_reason_es": _reason_label_es((row or {}).get("last_reason")),
+                    "status_es": _state_label_es((row or {}).get("status")),
+                }
+                for row in worker_states
                 if str((row or {}).get("status") or "").upper() != "SUPERSEDED"
             ]
             state["worker_states"] = visible_worker_states
             state["worker_candidates"] = worker_candidates
+            state["financial_news"] = self.news_service.snapshot()
             state["multi_bot_mode"] = bool(visible_worker_states)
             state["daemon_version"] = DAEMONBLACKFX_VERSION
             payload = _json_safe(state)
@@ -1830,7 +1885,7 @@ body{background:radial-gradient(circle at 78% 0,rgba(215,155,25,.08),transparent
 <div class="card full"><div class="label">Confirmaciones del último candidato</div><div class="checks" style="margin-top:12px"><div><div class="sub">Cumplidas</div><div class="checklist" id="passed"></div></div><div><div class="sub">Faltantes / críticas</div><div class="checklist" id="missing"></div></div></div></div>
 <div class="card full" id="openPositions"><div class="label">Salud de posiciones abiertas · telemetría por owner/worker</div><div class="sub" style="margin:4px 0 10px">La salud sólo se calcula con telemetría suficiente. Posiciones externas o inconsistentes quedan como NO EVALUABLE.</div><div class="tablebox"><table><thead><tr><th>Instrumento</th><th>Bot / Owner</th><th>Dir.</th><th>Salud</th><th>Recomendación</th><th>R actual</th><th>BE</th><th>Score entrada</th><th>Confirm.</th><th>Precio actual</th><th>Razones</th><th>Gráfico</th></tr></thead><tbody id="openBody"></tbody></table></div></div>
 <div class="card full" id="positionChartCard"><div class="chartHead"><div><div class="label">Auditoría visual SMC de la posición abierta</div><div class="value" id="chartTitle" style="font-size:19px">Selecciona una posición</div><div class="sub" id="chartSubtitle">Navega M1 / M5 / M15 / H1; el gráfico usa todo el ancho y la comparación Entrada vs. Ahora queda debajo.</div></div><div class="chartMeta" id="chartMeta"></div></div><div class="chartCollapsible" id="chartCollapsible"><div class="layerBar" id="chartLayers"><label class="layerToggle"><input type="checkbox" data-layer="trade" checked>Trade / SL / TP / BE</label><label class="layerToggle"><input type="checkbox" data-layer="swings" checked>Swings HH/HL/LH/LL</label><label class="layerToggle"><input type="checkbox" data-layer="structure" checked>CHOCH / BOS</label><label class="layerToggle"><input type="checkbox" data-layer="liquidity" checked>Liquidez · BSL / SSL / Sweeps</label><label class="layerToggle"><input type="checkbox" data-layer="orderblock" checked>Order Blocks</label><label class="layerToggle"><input type="checkbox" data-layer="fvg" checked>FVG / Imbalances*</label><label class="layerToggle"><input type="checkbox" data-layer="premiumdiscount" checked>Premium / Discount</label><label class="layerToggle"><input type="checkbox" data-layer="confluence" checked>Divergencia / Doji / Armónico</label><label class="layerToggle"><input type="checkbox" data-layer="rsi" checked>RSI 14</label></div><div class="chartLegend"><span><i class="dot" style="background:#53a7ff"></i>Entrada</span><span><i class="dot" style="background:#ef6a6a"></i>SL</span><span><i class="dot" style="background:#31c48d"></i>TP</span><span><i class="dot" style="background:#f5b942"></i>BE / SL actual</span><span>△/▽ eventos · zonas sombreadas = OB/FVG · *FVG es contexto auxiliar</span></div><div class="chartGrid"><div class="chartPlotColumn"><div class="chartViewportShell" id="chartViewportShell"><div class="chartPlotToolbar"><div class="timeframeBar" id="chartTimeframes"><span class="sub">Vista</span><button type="button" class="btn auditModeBtn active" data-audit-mode="ENTRY">ENTRADA</button><button type="button" class="btn auditModeBtn" data-audit-mode="CURRENT">ACTUAL</button><span class="sub">Temporalidad</span><button type="button" class="btn tfBtn" data-tf="M1">M1</button><button type="button" class="btn tfBtn active" data-tf="M5">M5</button><button type="button" class="btn tfBtn" data-tf="M15">M15</button><button type="button" class="btn tfBtn" data-tf="H1">H1</button><span class="pill chartTfMode strategy" id="chartTfMode">ESTRATEGIA</span></div><div class="chartNavTools"><span class="chartManipHint">Scroll ↑/↓ = escala vertical · arrastrar = mover gráfico completo X/Y · Ctrl+scroll = zoom de velas · doble clic = autoescala · M1 = contexto SMC auxiliar</span><span class="pill chartZoomBadge" id="chartZoomBadge">Y 1.0× · X 1.0×</span><button type="button" class="btn" id="chartZoomOutBtn" title="Reducir escala vertical">−</button><button type="button" class="btn" id="chartZoomInBtn" title="Ampliar escala vertical">+</button><button type="button" class="btn" id="chartResetViewBtn" title="Restaurar autoescala y velas recientes">Autoescala</button><button type="button" class="btn" id="chartFullscreenBtn" title="Ampliar sólo el gráfico"><span class="icon">⛶</span><span id="chartFullscreenText">Pantalla completa</span></button><button type="button" class="btn" id="chartMinimizeBtn" title="Minimizar sólo el gráfico"><span class="icon">⌃</span><span class="minText">Minimizar</span></button></div></div><div class="chartWrap" id="chartWrap"><div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div></div></div></div><aside class="auditPanel"><h4>Entrada vs. ahora</h4><div id="chartAudit" class="sub">Sin posición seleccionada.</div></aside></div></div></div>
-<div class="card full" id="recentAnalysis"><div class="label">Análisis recientes</div><div class="sub" style="margin:4px 0 10px">Los textos principales están traducidos a lenguaje operativo. El código técnico se conserva debajo para auditoría. La vista se equilibra por worker para que ORB, FOREX y sintéticos tengan representación.</div><div class="tablebox"><table><thead><tr><th>Bot</th><th>Instrumento</th><th>Estado</th><th>Acción</th><th>Score</th><th>% confirm.</th><th>Grado</th><th>Dirección</th><th>Divergencia</th><th>Armónico</th><th>Tiempo</th><th>Motivo explicado</th></tr></thead><tbody id="recentBody"></tbody></table></div></div>
+<div class="card full" id="financialNews"><div class="label">Noticias financieras relevantes</div><div class="sub" style="margin:4px 0 10px">Fuente RSS en español · se priorizan noticias de impacto alto.</div><div id="dashboardNews" class="sub">Cargando noticias…</div></div><div class="card full" id="recentAnalysis"><div class="label">Análisis recientes</div><div class="sub" style="margin:4px 0 10px">Los textos principales están traducidos a lenguaje operativo. El código técnico se conserva debajo para auditoría. La vista se equilibra por worker para que ORB, FOREX y sintéticos tengan representación.</div><div class="tablebox"><table><thead><tr><th>Bot</th><th>Instrumento</th><th>Estado</th><th>Acción</th><th>Score</th><th>% confirm.</th><th>Grado</th><th>Dirección</th><th>Divergencia</th><th>Armónico</th><th>Tiempo</th><th>Motivo explicado</th></tr></thead><tbody id="recentBody"></tbody></table></div></div>
 </div></div><script>
 const $=id=>document.getElementById(id);const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function pct(v){return v==null?'—':Number(v).toFixed(1)+'%'}function n(v,d=1){return v==null?'—':Number(v).toFixed(d)}function scoreClass(v){return v>=75?'good':v>=60?'warn':'bad'}
@@ -1962,13 +2017,14 @@ function renderWorkers(s){
       <div><span>Ciclo</span><b>${esc(w.cycle_number||0)}</b></div>
       <div><span>Progreso</span><b>${done} / ${total}</b></div>
       <div><span>Instrumento</span><b>${esc(w.current_symbol||'En espera')}</b></div>
-      <div><span>Última acción</span><b>${esc(w.last_action||'—')}</b></div>
+      <div><span>Última acción</span><b>${esc(w.last_action_es||'—')}</b><span class="technical">${esc(w.last_action||'')}</span></div>
     </div>
     <div class="workerProgress"><div style="width:${pctv}%"></div></div>
-    <div class="workerReason">${esc(w.last_reason||'Sin motivo adicional')}<span class="technical">${w.last_event_time?'Actualizado '+new Date(w.last_event_time).toLocaleTimeString():'Sin timestamp'}</span></div>
+    <div class="workerReason">${esc(w.last_reason_es||'Sin motivo adicional')}<span class="technical">${esc(w.last_reason||'')}${w.last_event_time?' · Actualizado '+new Date(w.last_event_time).toLocaleTimeString():' · Sin timestamp'}</span></div>
    </section>`}).join('')||'<div class="empty">Aún no hay workers registrados en SQLAlchemy.</div>';
 }
-function render(s){latestState=s;renderCatalog(s);renderWorkers(s);renderCandidateTabs(s);const ax=(s.account||{}).snapshot||{};const money=v=>v==null?'—':Number(v).toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});$('accountBalance').textContent=money(ax.balance);$('accountEquity').textContent=money(ax.equity);$('accountProfit').textContent=money(ax.profit);$('accountProfit').className='value '+(Number(ax.profit||0)>0?'good':Number(ax.profit||0)<0?'bad':'');$('accountFreeMargin').textContent=money(ax.free_margin);$('status').textContent=(s.status||'—')+' · '+(s.daemon_version||'version ?')+' · '+(s.connection_mode==='LIVE'?'DATOS EN VIVO':'ÚLTIMO ESTADO CONOCIDO')+' · '+new Date(s.updated_at).toLocaleTimeString();const workers=s.worker_states||[];const activeWorkers=workers.filter(w=>String(w.status||'').toUpperCase()!=='STOPPED');$('cycle').textContent=activeWorkers.length;const total=workers.reduce((a,w)=>a+Number(w.symbols_total||0),0),done=workers.reduce((a,w)=>a+Number(w.symbols_processed||0),0);$('progressText').textContent=done+' / '+total;$('progressBar').style.width=(total?Math.min(100,done/total*100):0)+'%';const latestWorker=[...workers].sort((a,b)=>new Date(b.last_event_time||0)-new Date(a.last_event_time||0))[0];$('current').textContent=latestWorker?((latestWorker.bot_profile||'')+' · '+(latestWorker.current_symbol||'En espera')):'En espera';$('openCount').textContent=(s.open_positions||[]).length;let last=selectedCandidate(s);renderCandidateContext(last);const sc=last.score;$('score').textContent=sc==null?'—':Math.round(sc);$('ring').style.setProperty('--p',Math.max(0,Math.min(100,sc||0)));$('lastSymbol').textContent=last.symbol||'Sin datos';$('lastMeta').innerHTML=`<span class="pill ${scoreClass(sc)}">${esc(last.grade||'SIN SCORE')}</span><span class="pill">Confirmaciones ${pct(last.confirmation_percentage)}</span><span class="pill">${esc(last.direction||'SIN DIRECCIÓN')}</span>`;$('decision').innerHTML=`<b>${esc(last.decision_es||'No confirmada')}</b>${last.reason_es?` · ${esc(last.reason_es)}`:''}${last.reason?`<span class="technical">${esc(last.reason)}</span>`:''}`;$('divergence').textContent=last.divergence_confirmed?(last.divergence_type||'Sí'):'No';$('harmonic').textContent=last.harmonic_confirmed?(last.harmonic_pattern||'Sí'):'No';$('h1doji').textContent=last.h1_doji_confirmed?((last.h1_doji_type||'Sí')+(last.h1_doji_zone?' · '+last.h1_doji_zone:'')):'No';$('structure').textContent=last.structure_break||'—';$('zone').textContent=last.zone||'—';renderList($('passed'),last.passed,'ok');const critical=(last.critical_failures||[]).map(x=>'CRÍTICA: '+x);renderList($('missing'),[...(last.missing||[]),...critical],critical.length?'critical':'miss');
+function renderDashboardNews(s){const n=s.financial_news||{},items=n.items||[];const target=$('dashboardNews');if(!target)return;target.innerHTML=items.length?items.slice(0,6).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a></div>`).join(''):`Sin noticias disponibles (${esc(n.status||'SIN DATOS')}).`}
+function render(s){latestState=s;renderDashboardNews(s);renderCatalog(s);renderWorkers(s);renderCandidateTabs(s);const ax=(s.account||{}).snapshot||{};const money=v=>v==null?'—':Number(v).toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});$('accountBalance').textContent=money(ax.balance);$('accountEquity').textContent=money(ax.equity);$('accountProfit').textContent=money(ax.profit);$('accountProfit').className='value '+(Number(ax.profit||0)>0?'good':Number(ax.profit||0)<0?'bad':'');$('accountFreeMargin').textContent=money(ax.free_margin);$('status').textContent=(s.status||'—')+' · '+(s.daemon_version||'version ?')+' · '+(s.connection_mode==='LIVE'?'DATOS EN VIVO':'ÚLTIMO ESTADO CONOCIDO')+' · '+new Date(s.updated_at).toLocaleTimeString();const workers=s.worker_states||[];const activeWorkers=workers.filter(w=>String(w.status||'').toUpperCase()!=='STOPPED');$('cycle').textContent=activeWorkers.length;const total=workers.reduce((a,w)=>a+Number(w.symbols_total||0),0),done=workers.reduce((a,w)=>a+Number(w.symbols_processed||0),0);$('progressText').textContent=done+' / '+total;$('progressBar').style.width=(total?Math.min(100,done/total*100):0)+'%';const latestWorker=[...workers].sort((a,b)=>new Date(b.last_event_time||0)-new Date(a.last_event_time||0))[0];$('current').textContent=latestWorker?((latestWorker.bot_profile||'')+' · '+(latestWorker.current_symbol||'En espera')):'En espera';$('openCount').textContent=(s.open_positions||[]).length;let last=selectedCandidate(s);renderCandidateContext(last);const sc=last.score;$('score').textContent=sc==null?'—':Math.round(sc);$('ring').style.setProperty('--p',Math.max(0,Math.min(100,sc||0)));$('lastSymbol').textContent=last.symbol||'Sin datos';$('lastMeta').innerHTML=`<span class="pill ${scoreClass(sc)}">${esc(last.grade||'SIN SCORE')}</span><span class="pill">Confirmaciones ${pct(last.confirmation_percentage)}</span><span class="pill">${esc(last.direction||'SIN DIRECCIÓN')}</span>`;$('decision').innerHTML=`<b>${esc(last.decision_es||'No confirmada')}</b>${last.reason_es?` · ${esc(last.reason_es)}`:''}${last.reason?`<span class="technical">${esc(last.reason)}</span>`:''}`;$('divergence').textContent=last.divergence_confirmed?(last.divergence_type||'Sí'):'No';$('harmonic').textContent=last.harmonic_confirmed?(last.harmonic_pattern||'Sí'):'No';$('h1doji').textContent=last.h1_doji_confirmed?((last.h1_doji_type||'Sí')+(last.h1_doji_zone?' · '+last.h1_doji_zone:'')):'No';$('structure').textContent=last.structure_break||'—';$('zone').textContent=last.zone||'—';renderList($('passed'),last.passed,'ok');const critical=(last.critical_failures||[]).map(x=>'CRÍTICA: '+x);renderList($('missing'),[...(last.missing||[]),...critical],critical.length?'critical':'miss');
 const hs=s.position_health_summary||{};$('healthSummary').textContent=`Mantener ${hs.mantener||0} · Vigilar ${hs.vigilar||0} · Proteger ${hs.proteger||0} · Salida ${hs.salida||0} · Sin datos ${hs.sin_datos||0} · Visual ${hs.solo_visual||0}`;
 renderOpenRows(s.open_positions||[]);if(selectedTradeId){const selected=(s.open_positions||[]).find(x=>String(x.id)===String(selectedTradeId));if(selected)renderPositionChart(selected);else{selectedTradeId=null;renderPositionChart(null)}}
 $('recentBody').innerHTML=(s.recent||[]).map(r=>{const st=r.operational_state||{};return `<tr><td><span class="pill">${esc(r._bot_profile||'—')}</span></td><td><b>${esc(r.symbol)}</b></td><td><span class="statusPill ${esc(st.severity||'neutral')}">${esc(st.label||'INFORMATIVO')}</span></td><td><b>${esc(r.action_es||r.action||'Sin acción')}</b><span class="technical">${esc(r.action||'')}</span></td><td class="score ${scoreClass(r.score)}">${r.score==null?'—':n(r.score,0)}</td><td>${pct(r.confirmation_percentage)}</td><td>${esc(r.grade)}</td><td>${esc(r.direction)}</td><td>${r.divergence_confirmed?'Sí':'No'}</td><td>${r.harmonic_confirmed?'Sí':'No'}</td><td>${n(r.elapsed_seconds,2)}s</td><td>${esc(r.reason_es||'Sin motivo adicional informado.')} ${r.decision_es?`<span class="technical">Decisión: ${esc(r.decision_es)}</span>`:''}${r.reason?`<span class="technical">Código: ${esc(r.reason)}</span>`:''}</td></tr>`}).join('')||'<tr><td colspan="12" class="empty">Esperando el primer análisis…</td></tr>'}
@@ -1986,13 +2042,15 @@ _INSTRUMENTS_HTML = r'''<!doctype html>
 <section class="card"><div class="head"><div class="actions" id="profileTabs"><button class="btn profileTab active" data-profile="SYNTHETICS" type="button">SINTÉTICOS</button><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button></div><div class="actions"><button class="btn" id="selectAll" type="button">Seleccionar todos</button><button class="btn" id="clearAll" type="button">Limpiar</button><button class="btn primary" id="save" type="button">Aplicar selección</button></div></div><div style="margin-top:12px"><input id="search" class="search" type="search" placeholder="Buscar instrumento…" aria-label="Buscar instrumento"></div>
 <div class="stats"><div class="metric"><span class="sub">Seleccionados</span><b id="selectedCount">0</b></div><div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div><div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div></div>
 <div id="grid" class="instrumentGrid"><div class="sub">Cargando catálogo…</div></div><div id="msg" class="msg"></div>
+<section class="card" style="margin-top:14px"><div class="head"><div><b>Noticias financieras relevantes</b><div class="sub">Fuente RSS en español · prioridad a impacto alto</div></div><span class="sub" id="newsStatus">Cargando…</span></div><div id="newsList" class="msg">Cargando noticias…</div></section>
 <div class="note" id="profileNote"><b>Persistencia independiente:</b> Sintéticos, Forex y ORB se guardan por separado.</div><div class="note"><b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.</div></section>
 </main><script>
 const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));let state=null,dirty=false,activeProfile='SYNTHETICS';
 function groups(s){return (s.instrument_catalog||[]).filter(g=>String(g.selection_profile||'SYNTHETICS').toUpperCase()===activeProfile)}
 function selected(){return [...document.querySelectorAll('input[data-symbol]:checked')].map(x=>x.dataset.symbol).sort((a,b)=>a.localeCompare(b,'es'))}
 function updateCount(){$('selectedCount').textContent=selected().length}
-function render(s){state=s;const chosen=new Set((s.selection_profiles||{})[activeProfile]||[]),q=$('search').value.trim().toLocaleLowerCase('es'),gs=groups(s);$('grid').innerHTML=gs.map(g=>{const items=(g.symbols||[]).filter(x=>x.toLocaleLowerCase('es').includes(q));return items.length?`<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map(sym=>`<label class="item"><input type="checkbox" data-symbol="${esc(sym)}" ${chosen.has(sym)?'checked':''}><span>${esc(sym)}</span></label>`).join('')}</section>`:''}).join('')||'<div class="sub">No se encontraron instrumentos para este perfil.</div>';$('totalCount').textContent=gs.reduce((n,g)=>n+(g.symbols||[]).length,0);$('msg').textContent=s.selection_message||'';$('profileNote').innerHTML=`<b>${activeProfile}:</b> selección persistente independiente.`;document.querySelectorAll('.profileTab').forEach(b=>b.classList.toggle('active',b.dataset.profile===activeProfile));document.querySelectorAll('input[data-symbol]').forEach(cb=>cb.addEventListener('change',()=>{dirty=true;updateCount();$('msg').textContent=`Cambios pendientes para ${activeProfile}.`}));updateCount()}
+function renderNews(s){const n=s.financial_news||{},items=n.items||[];$('newsStatus').textContent=`${n.status||'SIN DATOS'} · ${n.updated_at?new Date(n.updated_at).toLocaleTimeString():'sin actualización'}`;$('newsList').innerHTML=items.length?items.slice(0,8).map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a><div class="sub">${x.published_at?new Date(x.published_at).toLocaleString('es-ES'):''}</div></div>`).join(''):'No hay noticias disponibles; se conserva el último estado conocido.'}
+function render(s){state=s;renderNews(s);const chosen=new Set((s.selection_profiles||{})[activeProfile]||[]),q=$('search').value.trim().toLocaleLowerCase('es'),gs=groups(s);$('grid').innerHTML=gs.map(g=>{const items=(g.symbols||[]).filter(x=>x.toLocaleLowerCase('es').includes(q));return items.length?`<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map(sym=>`<label class="item"><input type="checkbox" data-symbol="${esc(sym)}" ${chosen.has(sym)?'checked':''}><span>${esc(sym)}</span></label>`).join('')}</section>`:''}).join('')||'<div class="sub">No se encontraron instrumentos para este perfil.</div>';$('totalCount').textContent=gs.reduce((n,g)=>n+(g.symbols||[]).length,0);$('msg').textContent=s.selection_message||'';$('profileNote').innerHTML=`<b>${activeProfile}:</b> selección persistente independiente.`;document.querySelectorAll('.profileTab').forEach(b=>b.classList.toggle('active',b.dataset.profile===activeProfile));document.querySelectorAll('input[data-symbol]').forEach(cb=>cb.addEventListener('change',()=>{dirty=true;updateCount();$('msg').textContent=`Cambios pendientes para ${activeProfile}.`}));updateCount()}
 async function load(){try{const r=await fetch('/api/instruments?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const s=await r.json();if(!dirty)render(s)}catch(e){$('msg').textContent='Sin conexión con el daemon: '+e.message}}
 async function save(){const values=selected();$('save').disabled=true;try{const r=await fetch('/api/instruments/selection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selection_profile:activeProfile,selected_symbols:values})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'No se pudo guardar');dirty=false;$('msg').textContent=data.message||`${activeProfile} guardado`;await load()}catch(e){$('msg').textContent='Error: '+e.message}finally{$('save').disabled=false}}
 $('search').addEventListener('input',()=>{if(state)render(state)});document.querySelectorAll('.profileTab').forEach(b=>b.addEventListener('click',()=>{if(dirty&&!confirm('Hay cambios sin guardar. ¿Descartarlos?'))return;dirty=false;activeProfile=b.dataset.profile;if(state)render(state)}));$('selectAll').addEventListener('click',()=>{document.querySelectorAll('input[data-symbol]').forEach(x=>x.checked=true);dirty=true;updateCount()});$('clearAll').addEventListener('click',()=>{document.querySelectorAll('input[data-symbol]').forEach(x=>x.checked=false);dirty=true;updateCount()});$('save').addEventListener('click',save);load();setInterval(load,2500);

@@ -10,7 +10,13 @@ def _engine_with_open_trade(trade):
     return engine
 
 
-def _orb_trade(symbol, *, stop_loss=19900.0, break_even_confirmed=False):
+def _orb_trade(
+    symbol,
+    *,
+    stop_loss=19900.0,
+    break_even_confirmed=False,
+    break_even_offset_points=None,
+):
     return {
         "id": 7,
         "instrument": symbol,
@@ -24,6 +30,10 @@ def _orb_trade(symbol, *, stop_loss=19900.0, break_even_confirmed=False):
             "parent_execution_key": "ORB-NAS",
             "trade_leg": "RUNNER",
             "break_even_confirmed": break_even_confirmed,
+            **(
+                {"break_even_offset_points": break_even_offset_points}
+                if break_even_offset_points is not None else {}
+            ),
         }},
     }
 
@@ -37,14 +47,34 @@ def test_sp500_is_blocked_while_nasdaq_risk_is_not_protected():
 
 def test_sp500_is_allowed_after_nasdaq_break_even_is_confirmed():
     engine = _engine_with_open_trade(
-        _orb_trade("NASDAQ 100", stop_loss=20000.2, break_even_confirmed=True)
+        _orb_trade(
+            "NASDAQ 100",
+            stop_loss=20000.2,
+            break_even_confirmed=True,
+            break_even_offset_points=2,
+        )
     )
     assert engine._orb_exposure_guard("SP500", "ORB-SP", "ORB_NEW_YORK") is None
 
 
 def test_persisted_protective_stop_also_proves_break_even():
-    engine = _engine_with_open_trade(_orb_trade("NAS100", stop_loss=20000.0))
-    assert engine._orb_exposure_guard("US500", "ORB-SP", "ORB_NEW_YORK") is None
+    engine = _engine_with_open_trade(
+        _orb_trade("NAS100", stop_loss=20000.0, break_even_offset_points=2)
+    )
+    assert engine._orb_exposure_guard("US500", "ORB-SP", "ORB_NEW_YORK")["action"] == "ORB_CORRELATED_MARKET_BLOCKED"
+
+
+def test_sp500_remains_blocked_until_break_even_has_two_points():
+    for offset in (0, 1):
+        engine = _engine_with_open_trade(
+            _orb_trade(
+                "US Tech 100",
+                stop_loss=20000.2,
+                break_even_confirmed=True,
+                break_even_offset_points=offset,
+            )
+        )
+        assert engine._orb_exposure_guard("US500", "ORB-SP", "ORB_NEW_YORK")["action"] == "ORB_CORRELATED_MARKET_BLOCKED"
 
 
 def test_gold_and_wall_street_are_not_part_of_sp500_nasdaq_guard():

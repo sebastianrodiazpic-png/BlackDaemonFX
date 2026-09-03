@@ -12,6 +12,8 @@ class FakeProvider:
             "Wall Street 30": {"trade_mode": 4},
             "US Tech 100": {"trade_mode": 4},
             "US500": {"trade_mode": 4},
+            "SPX500": {"trade_mode": 4},
+            "US SP 500": {"trade_mode": 4},
         }
 
     def search_symbols(self, term):
@@ -36,3 +38,10 @@ def test_discovery_excludes_disabled_orb_contracts():
     found = discover_orb_symbols(provider)
     assert "XAUUSD" in found
     assert "XAUUSDmicro" not in found
+
+
+def test_discovery_includes_sp500_broker_aliases():
+    found = discover_orb_symbols(FakeProvider())
+    assert "US500" in found
+    assert "SPX500" in found
+    assert "US SP 500" in found
