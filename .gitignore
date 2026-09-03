@@ -12,3 +12,4 @@ __pycache__/
 logs/*.log
 storage/exports/*.xlsx
 storage/exports/*.csv
+storage/logs/bots/*.log
