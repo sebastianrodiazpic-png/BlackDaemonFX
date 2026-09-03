@@ -1,0 +1,3204 @@
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 10000.0, 'equity': 10000.0, 'margin': 0.0, 'free_margin': 10000.0, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 19, 30, 168901, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 10000.0, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Multi Step 2 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 96}
+[OK] SYMBOL:Multi Step 3 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 60}
+[OK] SYMBOL:Multi Step 4 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 109}
+[OK] SYMBOL:Skew Step Index 4 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 4 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Step Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 8}
+[OK] SYMBOL:Step Index 200 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 11}
+[OK] SYMBOL:Step Index 300 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 9}
+[OK] SYMBOL:Step Index 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 12}
+[OK] SYMBOL:Step Index 500 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_STEP | MAGIC=26082304 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=12 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 10000.00 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 12
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=12
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:19:46 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 1.52s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 1.97s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 1.73s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 1.48s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.89s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 1.83s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.77s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.78s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 15.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 14.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:20:16 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.06s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.07s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.06s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.52s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.48s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:20:46 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:21:16 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.30s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.70s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:21:46 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:22:16 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:22:46 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:23:16 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9999.39, 'equity': 9999.39, 'margin': 0.0, 'free_margin': 9999.39, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 24, 52, 954783, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9999.39, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Multi Step 2 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 96}
+[OK] SYMBOL:Multi Step 3 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 60}
+[OK] SYMBOL:Multi Step 4 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 109}
+[OK] SYMBOL:Skew Step Index 4 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 4 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Step Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 8}
+[OK] SYMBOL:Step Index 200 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 11}
+[OK] SYMBOL:Step Index 300 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 9}
+[OK] SYMBOL:Step Index 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 12}
+[OK] SYMBOL:Step Index 500 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_STEP | MAGIC=26082304 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=12 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9999.39 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 12
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=12
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:25:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 1.73s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 1.62s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 2.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 1.60s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.84s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.74s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.86s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.98s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 14.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 15.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:25:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:26:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:26:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:27:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.35s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.65s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:27:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:28:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:28:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-03 13:29:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-03 13:29:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-03 13:30:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.34s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.66s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-03 13:30:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-03 13:31:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_pullback,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-03 13:31:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-03 13:32:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_pullback
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-03 13:32:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-03 13:33:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_pullback,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-03 13:33:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-03 13:34:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-03 13:34:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-03 13:35:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-03 13:35:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-03 13:36:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-03 13:36:37 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.38s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.62s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-03 13:37:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.35s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.65s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0026 | 2026-09-03 13:37:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0027 | 2026-09-03 13:38:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0028 | 2026-09-03 13:38:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0029 | 2026-09-03 13:39:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0029
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.30s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.70s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0030 | 2026-09-03 13:39:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0031 | 2026-09-03 13:40:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0032 | 2026-09-03 13:40:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0032
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0033 | 2026-09-03 13:41:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0034 | 2026-09-03 13:41:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0034
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0035 | 2026-09-03 13:42:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0035
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0036 | 2026-09-03 13:42:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0036
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0037 | 2026-09-03 13:43:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0038 | 2026-09-03 13:43:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0038
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0039 | 2026-09-03 13:44:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0039
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.21s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.79s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0040 | 2026-09-03 13:44:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0040
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0041 | 2026-09-03 13:45:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0041
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0042 | 2026-09-03 13:45:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0042
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 16.47s
+Intervalo objetivo: 30s
+Próximo ciclo en: 13.53s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0043 | 2026-09-03 13:46:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0043
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0044 | 2026-09-03 13:46:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0044
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0045 | 2026-09-03 13:47:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0045
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0046 | 2026-09-03 13:47:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0046
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0047 | 2026-09-03 13:48:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0047
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0048 | 2026-09-03 13:48:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0048
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0049 | 2026-09-03 13:49:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0049
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0050 | 2026-09-03 13:49:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0050
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0051 | 2026-09-03 13:50:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0051
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.34s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.66s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0052 | 2026-09-03 13:50:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0052
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0053 | 2026-09-03 13:51:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0053
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0054 | 2026-09-03 13:51:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0054
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0055 | 2026-09-03 13:52:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0055
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0056 | 2026-09-03 13:52:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0056
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0057 | 2026-09-03 13:53:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0057
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0058 | 2026-09-03 13:53:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0058
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0059 | 2026-09-03 13:54:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0059
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.21s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.79s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0060 | 2026-09-03 13:54:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0060
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0061 | 2026-09-03 13:55:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0061
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0062 | 2026-09-03 13:55:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0063 | 2026-09-03 13:56:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.20s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.80s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0064 | 2026-09-03 13:56:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0064
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0065 | 2026-09-03 13:57:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0065
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.22s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.78s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0066 | 2026-09-03 13:57:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0066
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0067 | 2026-09-03 13:58:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0067
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.22s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.78s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0068 | 2026-09-03 13:58:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0068
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0069 | 2026-09-03 13:59:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0069
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.22s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.78s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0070 | 2026-09-03 13:59:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0070
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0071 | 2026-09-03 14:00:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0071
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.29s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.71s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0072 | 2026-09-03 14:00:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0072
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0073 | 2026-09-03 14:01:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0073
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.18s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.82s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0074 | 2026-09-03 14:01:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0074
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0075 | 2026-09-03 14:02:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0075
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.20s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.80s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0076 | 2026-09-03 14:02:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0076
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0077 | 2026-09-03 14:03:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0077
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0078 | 2026-09-03 14:03:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0078
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0079 | 2026-09-03 14:04:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0079
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.21s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.79s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0080 | 2026-09-03 14:04:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0080
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0081 | 2026-09-03 14:05:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.04s | ARPS WAITING SETUP
+    Motivo: m1_rejection
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0081
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0082 | 2026-09-03 14:05:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0082
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0083 | 2026-09-03 14:06:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.02s | ARPS WAITING SETUP
+    Motivo: m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0083
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.19s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.81s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0084 | 2026-09-03 14:06:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0084
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0085 | 2026-09-03 14:07:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0085
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0086 | 2026-09-03 14:07:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0086
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0087 | 2026-09-03 14:08:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0087
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.24s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.76s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0088 | 2026-09-03 14:08:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0088
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0089 | 2026-09-03 14:09:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0089
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0090 | 2026-09-03 14:09:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0090
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0091 | 2026-09-03 14:10:07 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.03s | ARPS WAITING SETUP
+    Motivo: m1_rejection,m1_follow_through,m1_strong_close
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0091
+Símbolos analizados: 8
+Sin señal: 0
+Esperando/otros: 8
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0092 | 2026-09-03 14:10:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0092
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.

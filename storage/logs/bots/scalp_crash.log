@@ -1,0 +1,3506 @@
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 10000.0, 'equity': 10000.0, 'margin': 0.0, 'free_margin': 10000.0, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 19, 30, 162240, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 10000.0, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash 100 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22986}
+[OK] SYMBOL:Crash 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 7620}
+[OK] SYMBOL:Crash 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 1000}
+[OK] SYMBOL:Crash 200 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 23402}
+[OK] SYMBOL:Crash 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2205}
+[OK] SYMBOL:Crash 50 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 21161}
+[OK] SYMBOL:Crash 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 927}
+[OK] SYMBOL:Crash 600 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2394}
+[OK] SYMBOL:Crash 900 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1740}
+[OK] SYMBOL:Crash 99 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22480}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_CRASH | MAGIC=26082302 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=10 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 10000.00 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 10
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=10
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:19:43 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 1.87s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 1.46s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 1.71s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 1.77s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 1.72s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 1.61s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.55s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.55s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.78s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.59s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 17.40s
+Intervalo objetivo: 30s
+Próximo ciclo en: 12.60s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:20:13 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.05s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.07s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.06s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.65s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.35s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:20:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:21:13 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.41s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.59s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:21:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:22:13 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:22:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:23:13 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9999.39, 'equity': 9999.39, 'margin': 0.0, 'free_margin': 9999.39, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 24, 52, 966030, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9999.39, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash 100 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22986}
+[OK] SYMBOL:Crash 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 7620}
+[OK] SYMBOL:Crash 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 1000}
+[OK] SYMBOL:Crash 200 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 23402}
+[OK] SYMBOL:Crash 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2205}
+[OK] SYMBOL:Crash 50 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 21161}
+[OK] SYMBOL:Crash 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 927}
+[OK] SYMBOL:Crash 600 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2394}
+[OK] SYMBOL:Crash 900 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1740}
+[OK] SYMBOL:Crash 99 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22480}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_CRASH | MAGIC=26082302 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=10 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9999.39 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 10
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=10
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:25:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 1.69s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 2.61s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 1.79s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 2.17s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.95s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.66s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.86s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.82s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.99s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.62s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 17.54s
+Intervalo objetivo: 30s
+Próximo ciclo en: 12.46s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:25:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:26:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.34s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.66s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:26:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:27:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:27:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:28:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.34s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.66s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:28:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-03 13:29:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-03 13:29:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-03 13:30:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.37s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.63s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-03 13:30:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-03 13:31:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_strong_close
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.36s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.64s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-03 13:31:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-03 13:32:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.35s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.65s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-03 13:32:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-03 13:33:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-03 13:33:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-03 13:34:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.30s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.70s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-03 13:34:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-03 13:35:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-03 13:35:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-03 13:36:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-03 13:36:35 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.37s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.63s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-03 13:37:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.04s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.42s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.58s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0026 | 2026-09-03 13:37:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0027 | 2026-09-03 13:38:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.38s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.62s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0028 | 2026-09-03 13:38:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0029 | 2026-09-03 13:39:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0029
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0030 | 2026-09-03 13:39:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0031 | 2026-09-03 13:40:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.29s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.71s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0032 | 2026-09-03 13:40:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0032
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0033 | 2026-09-03 13:41:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0034 | 2026-09-03 13:41:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0034
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0035 | 2026-09-03 13:42:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0035
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0036 | 2026-09-03 13:42:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0036
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0037 | 2026-09-03 13:43:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0038 | 2026-09-03 13:43:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0038
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0039 | 2026-09-03 13:44:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0039
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0040 | 2026-09-03 13:44:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0040
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0041 | 2026-09-03 13:45:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0041
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.30s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.70s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0042 | 2026-09-03 13:45:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0042
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 19.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 10.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0043 | 2026-09-03 13:46:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0043
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0044 | 2026-09-03 13:46:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0044
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0045 | 2026-09-03 13:47:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0045
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0046 | 2026-09-03 13:47:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0046
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0047 | 2026-09-03 13:48:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0047
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0048 | 2026-09-03 13:48:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0048
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0049 | 2026-09-03 13:49:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0049
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.30s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.70s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0050 | 2026-09-03 13:49:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0050
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0051 | 2026-09-03 13:50:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0051
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0052 | 2026-09-03 13:50:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0052
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0053 | 2026-09-03 13:51:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0053
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0054 | 2026-09-03 13:51:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0054
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0055 | 2026-09-03 13:52:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0055
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0056 | 2026-09-03 13:52:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0056
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0057 | 2026-09-03 13:53:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_strong_close
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0057
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0058 | 2026-09-03 13:53:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0058
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0059 | 2026-09-03 13:54:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0059
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.29s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.71s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0060 | 2026-09-03 13:54:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0060
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0061 | 2026-09-03 13:55:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0061
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.36s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.64s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0062 | 2026-09-03 13:55:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0063 | 2026-09-03 13:56:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0064 | 2026-09-03 13:56:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0064
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0065 | 2026-09-03 13:57:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0065
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0066 | 2026-09-03 13:57:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0066
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0067 | 2026-09-03 13:58:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0067
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0068 | 2026-09-03 13:58:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0068
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0069 | 2026-09-03 13:59:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0069
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0070 | 2026-09-03 13:59:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0070
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0071 | 2026-09-03 14:00:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_strong_close
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0071
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0072 | 2026-09-03 14:00:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0072
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0073 | 2026-09-03 14:01:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0073
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0074 | 2026-09-03 14:01:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0074
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0075 | 2026-09-03 14:02:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0075
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0076 | 2026-09-03 14:02:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0076
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0077 | 2026-09-03 14:03:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0077
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0078 | 2026-09-03 14:03:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0078
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0079 | 2026-09-03 14:04:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0079
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0080 | 2026-09-03 14:04:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0080
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0081 | 2026-09-03 14:05:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0081
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.37s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.63s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0082 | 2026-09-03 14:05:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0082
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0083 | 2026-09-03 14:06:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0083
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0084 | 2026-09-03 14:06:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0084
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0085 | 2026-09-03 14:07:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0085
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.29s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.71s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0086 | 2026-09-03 14:07:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0086
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0087 | 2026-09-03 14:08:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0087
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0088 | 2026-09-03 14:08:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0088
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0089 | 2026-09-03 14:09:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,spread_vs_atr,m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0089
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0090 | 2026-09-03 14:09:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0090
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0091 | 2026-09-03 14:10:05 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 300 Index_NO_PERMITE_BUY
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 600 Index_NO_PERMITE_BUY
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 99 Index_NO_PERMITE_BUY
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0091
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.33s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.67s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0092 | 2026-09-03 14:10:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0092
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.

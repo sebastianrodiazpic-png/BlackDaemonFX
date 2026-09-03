@@ -1,0 +1,3242 @@
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 10000.0, 'equity': 10000.0, 'margin': 0.0, 'free_margin': 10000.0, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 19, 18, 386558, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 10000.0, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:US Tech 100 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 150}
+[OK] SYMBOL:Wall Street 30 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 300}
+[OK] SYMBOL:XAUUSD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 20}
+[OK] SYMBOL:XAUUSDmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: ORB | MAGIC=26082028 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 10000.00 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:19:20 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.04s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.21s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.79s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:19:50 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 1.18s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.81s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.78s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.70s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 3.91s
+Intervalo objetivo: 30s
+Próximo ciclo en: 26.09s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:20:20 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:20:50 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:21:20 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:21:50 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:22:20 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:22:50 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-03 13:23:20 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9999.39, 'equity': 9999.39, 'margin': 0.0, 'free_margin': 9999.39, 'profit': 0.0, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 3, 13, 24, 40, 294494, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9999.39, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:US Tech 100 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 150}
+[OK] SYMBOL:Wall Street 30 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 300}
+[OK] SYMBOL:XAUUSD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 20}
+[OK] SYMBOL:XAUUSDmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: ORB | MAGIC=26082028 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9999.39 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-03 13:24:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.04s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.03s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-03 13:25:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 1.20s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.61s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.86s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 1.78s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 4.86s
+Intervalo objetivo: 30s
+Próximo ciclo en: 25.14s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-03 13:25:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-03 13:26:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-03 13:26:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-03 13:27:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-03 13:27:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-03 13:28:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-03 13:28:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-03 13:29:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-03 13:29:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING NEW YORK OPEN
+    Motivo: ANTES_DE_09_30_NEW_YORK
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-03 13:30:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.05s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.04s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.28s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.72s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-03 13:30:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.03s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-03 13:31:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-03 13:31:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-03 13:32:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-03 13:32:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-03 13:33:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-03 13:33:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-03 13:34:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-03 13:34:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-03 13:35:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-03 13:35:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-03 13:36:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-03 13:36:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0026 | 2026-09-03 13:37:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0027 | 2026-09-03 13:37:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0028 | 2026-09-03 13:38:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0029 | 2026-09-03 13:38:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0029
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0030 | 2026-09-03 13:39:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.06s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.04s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.83s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0031 | 2026-09-03 13:39:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0032 | 2026-09-03 13:40:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0032
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0033 | 2026-09-03 13:40:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0034 | 2026-09-03 13:41:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0034
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0035 | 2026-09-03 13:41:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0035
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0036 | 2026-09-03 13:42:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0036
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.07s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.93s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0037 | 2026-09-03 13:42:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0038 | 2026-09-03 13:43:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0038
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0039 | 2026-09-03 13:43:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0039
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0040 | 2026-09-03 13:44:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0040
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0041 | 2026-09-03 13:44:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | BUILDING OPENING RANGE
+    Motivo: FORMANDO_RANGO_PRIMEROS_15_MINUTOS
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0041
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0042 | 2026-09-03 13:45:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0042
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0043 | 2026-09-03 13:45:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.10s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0043
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 11.55s
+Intervalo objetivo: 30s
+Próximo ciclo en: 18.45s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0044 | 2026-09-03 13:46:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0044
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0045 | 2026-09-03 13:46:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0045
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.07s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.93s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0046 | 2026-09-03 13:47:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0046
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.07s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.93s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0047 | 2026-09-03 13:47:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0047
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0048 | 2026-09-03 13:48:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0048
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0049 | 2026-09-03 13:48:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0049
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0050 | 2026-09-03 13:49:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0050
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0051 | 2026-09-03 13:49:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING BREAKOUT
+    Motivo: RANGO_COMPLETO_ESPERANDO_PRIMERA_VELA_CERRADA_POST_09_45
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0051
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0052 | 2026-09-03 13:50:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0052
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0053 | 2026-09-03 13:50:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0053
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0054 | 2026-09-03 13:51:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0054
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0055 | 2026-09-03 13:51:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0055
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0056 | 2026-09-03 13:52:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0056
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0057 | 2026-09-03 13:52:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0057
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0058 | 2026-09-03 13:53:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0058
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0059 | 2026-09-03 13:53:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0059
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0060 | 2026-09-03 13:54:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0060
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.07s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.93s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0061 | 2026-09-03 13:54:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ESPERANDO_SECUENCIA_M5_BREAKOUT_MAS_RETEST
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0061
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0062 | 2026-09-03 13:55:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0063 | 2026-09-03 13:55:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0064 | 2026-09-03 13:56:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0064
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0065 | 2026-09-03 13:56:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0065
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0066 | 2026-09-03 13:57:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0066
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0067 | 2026-09-03 13:57:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0067
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0068 | 2026-09-03 13:58:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0068
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0069 | 2026-09-03 13:58:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0069
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0070 | 2026-09-03 13:59:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0070
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0071 | 2026-09-03 13:59:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0071
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0072 | 2026-09-03 14:00:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0072
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.83s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0073 | 2026-09-03 14:00:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0073
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0074 | 2026-09-03 14:01:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0074
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0075 | 2026-09-03 14:01:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0075
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0076 | 2026-09-03 14:02:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0076
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0077 | 2026-09-03 14:02:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0077
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0078 | 2026-09-03 14:03:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0078
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0079 | 2026-09-03 14:03:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0079
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0080 | 2026-09-03 14:04:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0080
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0081 | 2026-09-03 14:04:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0081
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0082 | 2026-09-03 14:05:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0082
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0083 | 2026-09-03 14:05:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0083
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0084 | 2026-09-03 14:06:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0084
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0085 | 2026-09-03 14:06:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0085
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0086 | 2026-09-03 14:07:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0086
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0087 | 2026-09-03 14:07:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0087
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0088 | 2026-09-03 14:08:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0088
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0089 | 2026-09-03 14:08:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0089
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0090 | 2026-09-03 14:09:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0090
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.10s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.90s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0091 | 2026-09-03 14:09:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.01s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0091
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0092 | 2026-09-03 14:10:12 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | ORB GOLD ALTERNATIVE SELECTED
+    Motivo: OTRO_CONTRATO_DE_ORO_OFRECE_MEJOR_EJECUCION
+[04/04] START XAUUSDmicro
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[04/04] END   XAUUSDmicro | 6.85s | OPERACIÓN ABIERTA EN DOS ENTRADAS
+    Dirección: SELL
+    Entrada: 4462.650
+    Stop Loss: 4475.190
+    Take Profit: 4412.490
+    R:R: 4.00
+    Modalidad de ejecución: DOS ENTRADAS: 0,5% + 0,5%
+    Riesgo objetivo: 99.86
+    Riesgo calculado: 97.80
+    Confirmaciones: 8/8 | 100.0% | calidad=100.00 | decisión=ORB_NY_M5_BREAKOUT_RETEST_CONFIRMED
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0092
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 3
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 1
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 6.99s
+Intervalo objetivo: 30s
+Próximo ciclo en: 23.01s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0093 | 2026-09-03 14:10:42 UTC | símbolos=4
+========================================================================================
+[01/04] START US Tech 100
+[01/04] END   US Tech 100 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO
+[02/04] START Wall Street 30
+[02/04] END   Wall Street 30 | 0.02s | WAITING M5 BREAKOUT RETEST
+    Motivo: BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB
+[03/04] START XAUUSD
+[03/04] END   XAUUSD | 0.00s | ORB GOLD ALTERNATIVE SELECTED
+    Motivo: OTRO_CONTRATO_DE_ORO_OFRECE_MEJOR_EJECUCION
+[04/04] START XAUUSDmicro
+[04/04] END   XAUUSDmicro | 0.03s | ALREADY EXECUTED
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0093
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 3
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 1
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.14s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.86s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+Bot detenido por el usuario.

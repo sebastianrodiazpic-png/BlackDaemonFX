@@ -1,0 +1,63 @@
+{
+  "Volatility 30 (1s) Index": {
+    "symbol": "Volatility 30 (1s) Index",
+    "quarantined_at": "2026-09-02T18:30:16.470850+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "TP1",
+    "target_risk_amount": 12.5,
+    "hard_risk_cap": 12.75,
+    "actual_risk_amount": 12.79,
+    "position_ticket": "4714738335",
+    "direction": "SELL"
+  },
+  "Jump 75 Index": {
+    "symbol": "Jump 75 Index",
+    "quarantined_at": "2026-09-03T03:52:08.959992+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "TP1",
+    "target_risk_amount": 12.408737499999999,
+    "hard_risk_cap": 12.65691225,
+    "actual_risk_amount": 12.75,
+    "position_ticket": "4715022087",
+    "direction": "SELL"
+  },
+  "Volatility 25 Index": {
+    "symbol": "Volatility 25 Index",
+    "quarantined_at": "2026-09-03T08:19:27.189349+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "RUNNER",
+    "target_risk_amount": 12.28035,
+    "hard_risk_cap": 12.525957,
+    "actual_risk_amount": 12.54,
+    "position_ticket": "4715193535",
+    "direction": "BUY"
+  },
+  "Volatility 100 Index": {
+    "symbol": "Volatility 100 Index",
+    "quarantined_at": "2026-09-03T09:25:45.217461+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "RUNNER",
+    "target_risk_amount": 49.10755,
+    "hard_risk_cap": 50.089701000000005,
+    "actual_risk_amount": 50.31,
+    "position_ticket": "4715240976",
+    "direction": "BUY"
+  },
+  "Volatility 5 Index": {
+    "symbol": "Volatility 5 Index",
+    "quarantined_at": "2026-09-03T13:22:04.903649+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "TP1",
+    "target_risk_amount": 12.5,
+    "hard_risk_cap": 12.75,
+    "actual_risk_amount": 13.15,
+    "risk_excess_ratio": 0.052000000000000046,
+    "recoverable_execution_granularity_breach": false,
+    "position_ticket": "4715474285",
+    "direction": "BUY",
+    "recoverable": false,
+    "recoverable_risk_limit_ratio": 0.03,
+    "expires_at": null,
+    "quarantine_policy": "MANUAL_REVIEW_REQUIRED"
+  }
+}

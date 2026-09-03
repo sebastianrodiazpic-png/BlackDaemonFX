@@ -1,0 +1,1577 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+import threading
+import time
+
+import pandas as pd
+
+from config.symbol_policy import get_symbol_direction_policy
+from strategy.execution.trade_pipeline import PipelineConfig, run_trade_pipeline
+from strategy.smc.market_structure import get_current_trend
+from strategy.smc.h1_doji_extremes import H1ExtremeDojiConfig, detect_h1_extreme_doji
+
+
+@dataclass
+class MultiTimeframeConfig:
+    """
+    Configuración del flujo:
+
+        H1  -> contexto / tendencia
+        M15 -> setup
+        M5  -> confirmación / entrada
+    """
+
+    structure_timeframe: str = "H1"
+    confirmation_timeframe: str = "M15"
+    entry_timeframe: str = "M5"
+
+    structure_candles: int = 500
+    confirmation_candles: int = 500
+    entry_candles: int = 350
+
+    require_h1_trend: bool = True
+    require_m15_setup: bool = True
+    require_m5_confirmation: bool = True
+
+    require_m5_after_m15: bool = True
+    require_latest_m15_setup: bool = True
+
+    max_m5_signal_age_candles: int = 2
+    max_m5_signal_age_minutes: float | None = None
+
+    # Optimización del demonio: H1/M15/M5 se recalculan solamente cuando puede
+    # existir una nueva vela cerrada. La entrada sigue consultando el tick actual
+    # cuando aparece una señal válida.
+    stage_cache_enabled: bool = True
+    cache_grace_seconds: float = 2.0
+
+
+class MultiTimeframeAnalyzer:
+    """
+    Analizador multi-temporal H1 -> M15 -> M5.
+
+    Estados principales:
+
+        START
+          |
+          +--> H1_CONTEXT_READY
+                  |
+                  +--> DIRECTION_VALIDATED
+                          |
+                          +--> M15_SETUP_READY
+                                  |
+                                  +--> WAITING_M5_CONFIRMATION
+                                          |
+                                          +--> M5_CONFIRMATION_READY
+                                                  |
+                                                  +--> M5_SIGNAL_FRESH
+                                                          |
+                                                          +--> READY_TO_ENTER
+
+    Estados terminales posibles:
+
+        NO_H1_CONTEXT
+        DIRECTION_POLICY_BLOCKED
+        NO_M15_SETUP
+        WAITING_M5_AFTER_M15
+        NO_M5_CONFIRMATION
+        STALE_M5_SIGNAL
+        INVALID_DIRECTION
+        READY_TO_ENTER
+    """
+
+    def __init__(
+        self,
+        data_provider,
+        config: MultiTimeframeConfig | None = None,
+        pipeline_config: PipelineConfig | None = None,
+    ):
+        self.data_provider = data_provider
+        self.config = config or MultiTimeframeConfig()
+        self.pipeline_config = pipeline_config or PipelineConfig()
+
+        # (symbol, timeframe) -> datos y resultado del pipeline de la última
+        # vela cerrada analizada.
+        self._stage_cache = {}
+        # El monitor de posiciones puede leer la caché mientras el scanner M5
+        # la renueva. El lock protege únicamente el mapa; las lecturas de MT5 y
+        # el pipeline siguen fuera de la sección crítica para no frenar señales.
+        self._stage_cache_lock = threading.RLock()
+
+    _TIMEFRAME_SECONDS = {
+        "M1": 60,
+        "M2": 120,
+        "M3": 180,
+        "M4": 240,
+        "M5": 300,
+        "M6": 360,
+        "M10": 600,
+        "M12": 720,
+        "M15": 900,
+        "M20": 1200,
+        "M30": 1800,
+        "H1": 3600,
+        "H2": 7200,
+        "H3": 10800,
+        "H4": 14400,
+        "H6": 21600,
+        "H8": 28800,
+        "H12": 43200,
+        "D1": 86400,
+    }
+
+    def clear_stage_cache(self, symbol=None, timeframe=None):
+        """Invalida la caché completa o una etapa concreta."""
+        with self._stage_cache_lock:
+            if symbol is None and timeframe is None:
+                self._stage_cache.clear()
+                return
+
+            keys = list(self._stage_cache.keys())
+            for key in keys:
+                key_symbol, key_timeframe = key
+                if symbol is not None and key_symbol != symbol:
+                    continue
+                if timeframe is not None and key_timeframe != str(timeframe).upper():
+                    continue
+                self._stage_cache.pop(key, None)
+
+    def cached_stage(self, symbol, timeframe):
+        """Devuelve un snapshot seguro de una etapa para auditoría visual."""
+        key = (str(symbol), str(timeframe).upper())
+        with self._stage_cache_lock:
+            cached = self._stage_cache.get(key)
+            return dict(cached) if isinstance(cached, dict) else {}
+
+    def _next_refresh_at(self, timeframe, now):
+        seconds = self._TIMEFRAME_SECONDS.get(str(timeframe).upper(), 0)
+        if seconds <= 0:
+            return now
+        epoch = now.timestamp()
+        next_epoch = (int(epoch // seconds) + 1) * seconds
+        return (
+            pd.Timestamp(next_epoch, unit="s", tz="UTC")
+            + pd.Timedelta(seconds=float(self.config.cache_grace_seconds))
+        ).to_pydatetime()
+
+    def _get_stage_result(self, symbol, timeframe, count):
+        """Obtiene una etapa H1/M15/M5 usando caché hasta la próxima vela cerrada."""
+        key = (str(symbol), str(timeframe).upper())
+        now = datetime.now(timezone.utc)
+        with self._stage_cache_lock:
+            cached = self._stage_cache.get(key)
+
+        if (
+            bool(self.config.stage_cache_enabled)
+            and cached is not None
+            and now < cached["refresh_at"]
+        ):
+            return (
+                cached["data"],
+                cached["result"],
+                {
+                    "cache_hit": True,
+                    "data_fetch_seconds": 0.0,
+                    "pipeline_seconds": 0.0,
+                    "refresh_at": cached["refresh_at"].isoformat(),
+                },
+            )
+
+        fetch_started = time.monotonic()
+        data = self._get_closed_candles(symbol, timeframe, count)
+        fetch_seconds = time.monotonic() - fetch_started
+
+        pipeline_started = time.monotonic()
+        result = self._run_pipeline(data, symbol)
+        pipeline_seconds = time.monotonic() - pipeline_started
+
+        refresh_at = self._next_refresh_at(timeframe, now)
+        if bool(self.config.stage_cache_enabled):
+            with self._stage_cache_lock:
+                self._stage_cache[key] = {
+                    "data": data,
+                    "result": result,
+                    "refresh_at": refresh_at,
+                }
+
+        return (
+            data,
+            result,
+            {
+                "cache_hit": False,
+                "data_fetch_seconds": fetch_seconds,
+                "pipeline_seconds": pipeline_seconds,
+                "refresh_at": refresh_at.isoformat(),
+            },
+        )
+
+    # ============================================================
+    # TRANSICIONES
+    # ============================================================
+
+    @staticmethod
+    def _new_transitions():
+        return [
+            {
+                "state": "START",
+                "reason": "MULTI_TIMEFRAME_ANALYSIS_STARTED",
+            }
+        ]
+
+    @staticmethod
+    def _add_transition(transitions, state, reason=None, **details):
+        transition = {
+            "state": state,
+            "reason": reason,
+        }
+
+        if details:
+            transition["details"] = details
+
+        transitions.append(transition)
+
+    # ============================================================
+    # DATOS
+    # ============================================================
+
+    def _get_closed_candles(self, symbol, timeframe, count):
+        df = self.data_provider.get_candles(
+            symbol=symbol,
+            timeframe=timeframe,
+            count=count,
+        )
+
+        if df is None or df.empty:
+            return pd.DataFrame()
+
+        df = df.copy()
+
+        df["time"] = pd.to_datetime(
+            df["time"],
+            utc=True,
+        )
+
+        df = (
+            df.sort_values("time")
+            .drop_duplicates("time")
+            .reset_index(drop=True)
+        )
+
+        # Eliminar la vela posiblemente abierta.
+        if len(df) > 1:
+            df = df.iloc[:-1].copy()
+
+        return df.reset_index(drop=True)
+
+    def _run_pipeline(self, df, symbol):
+        if df is None or df.empty:
+            return {
+                "data": pd.DataFrame(),
+                "setups": pd.DataFrame(),
+                "confirmations": pd.DataFrame(),
+                "summary": {},
+                "diagnostics": {},
+            }
+
+        return run_trade_pipeline(
+            df=df,
+            config=self.pipeline_config,
+            symbol=symbol,
+        )
+
+    # ============================================================
+    # UTILIDADES
+    # ============================================================
+
+    @staticmethod
+    def _as_time(value):
+        if value is None:
+            return None
+
+        try:
+            if pd.isna(value):
+                return None
+        except (TypeError, ValueError):
+            pass
+
+        return pd.to_datetime(
+            value,
+            utc=True,
+        )
+
+    def _pipeline_diagnostics(self, result, stage_timing=None):
+        data = result.get("data")
+        setups = result.get("setups")
+        confirmations = result.get("confirmations")
+
+        diagnostics = dict(
+            result.get("diagnostics") or {}
+        )
+
+        if stage_timing:
+            diagnostics["cache"] = dict(stage_timing)
+
+        diagnostics.update(
+            {
+                "candles": (
+                    int(len(data))
+                    if data is not None
+                    else 0
+                ),
+                "setups": (
+                    int(len(setups))
+                    if setups is not None
+                    else 0
+                ),
+                "confirmations": (
+                    int(len(confirmations))
+                    if confirmations is not None
+                    else 0
+                ),
+                "first_candle_time": (
+                    self._as_time(
+                        data["time"].iloc[0]
+                    ).isoformat()
+                    if data is not None
+                    and not data.empty
+                    else None
+                ),
+                "last_candle_time": (
+                    self._as_time(
+                        data["time"].iloc[-1]
+                    ).isoformat()
+                    if data is not None
+                    and not data.empty
+                    else None
+                ),
+            }
+        )
+
+        return diagnostics
+
+    @staticmethod
+    def _trend_direction(trend):
+        if trend == "BULLISH":
+            return "BUY"
+
+        if trend == "BEARISH":
+            return "SELL"
+
+        return None
+
+    # ============================================================
+    # H1 CONTEXT
+    # ============================================================
+
+    def _get_h1_context(self, result):
+        """Obtiene un contexto H1 direccional sin exigir que el proveedor
+        controlado haya pasado previamente por classify_market_structure().
+
+        El pipeline real puede traer ``structure`` (HH/HL/LH/LL). Las pruebas
+        controladas pueden traer solamente eventos BOS/CHOCH. Esta función
+        soporta ambos contratos y nunca delega a ``get_current_trend`` con una
+        columna ``structure`` inexistente.
+        """
+        data = result.get("data")
+        if data is None or data.empty:
+            return {
+                "trend": "UNKNOWN",
+                "valid": False,
+                "reason": "NO_H1_DATA",
+                "context_time": None,
+            }
+
+        data = data.copy()
+
+        # get_current_trend() exige esta columna. No se debe asumir que todos
+        # los proveedores de datos ya ejecutaron classify_market_structure().
+        if "structure" not in data.columns:
+            data["structure"] = None
+
+        trend = get_current_trend(data)
+
+        # Fallback: inferir dirección a partir del último evento BOS/CHOCH.
+        if trend not in {"BULLISH", "BEARISH"}:
+            bullish = pd.Series(False, index=data.index)
+            bearish = pd.Series(False, index=data.index)
+
+            for column in ("bos_bullish", "choch_bullish"):
+                if column in data.columns:
+                    bullish = bullish | data[column].fillna(False).astype(bool)
+
+            for column in ("bos_bearish", "choch_bearish"):
+                if column in data.columns:
+                    bearish = bearish | data[column].fillna(False).astype(bool)
+
+            bull_positions = [
+                pos for pos, value in enumerate(bullish.to_numpy()) if value
+            ]
+            bear_positions = [
+                pos for pos, value in enumerate(bearish.to_numpy()) if value
+            ]
+
+            last_bull = bull_positions[-1] if bull_positions else -1
+            last_bear = bear_positions[-1] if bear_positions else -1
+
+            if last_bull > last_bear:
+                trend = "BULLISH"
+            elif last_bear > last_bull:
+                trend = "BEARISH"
+
+        # Último fallback: el pipeline puede haber resumido explícitamente la
+        # tendencia aunque su DataFrame de diagnóstico no contenga estructura.
+        if trend not in {"BULLISH", "BEARISH"}:
+            summary_trend = (result.get("summary") or {}).get("trend")
+            if summary_trend in {"BULLISH", "BEARISH"}:
+                trend = summary_trend
+
+        valid = trend in {"BULLISH", "BEARISH"}
+        context_time = self._as_time(data["time"].iloc[-1])
+
+        return {
+            "trend": trend,
+            "valid": valid,
+            "reason": "VALID_TREND" if valid else "NO_DIRECTIONAL_H1_TREND",
+            "context_time": context_time.isoformat() if context_time is not None else None,
+        }
+
+    def _m15_setups(self, result, expected_direction):
+        setups = result.get("setups")
+
+        if (
+            setups is None
+            or setups.empty
+            or expected_direction not in {"BUY", "SELL"}
+        ):
+            return pd.DataFrame()
+
+        if "setup_type" not in setups.columns:
+            return pd.DataFrame()
+
+        if "setup_time" not in setups.columns:
+            return pd.DataFrame()
+
+        expected_type = (
+            "long"
+            if expected_direction == "BUY"
+            else "short"
+        )
+
+        setups = setups.copy()
+
+        setups = setups[
+            setups["setup_type"]
+            .astype(str)
+            .str.lower()
+            == expected_type
+        ]
+
+        if setups.empty:
+            return setups.reset_index(drop=True)
+
+        setups["setup_time"] = pd.to_datetime(
+            setups["setup_time"],
+            utc=True,
+        )
+
+        return (
+            setups.sort_values("setup_time")
+            .reset_index(drop=True)
+        )
+
+    # ============================================================
+    # M5 CONFIRMATIONS
+    # ============================================================
+
+    def _m5_confirmations(self, result, expected_direction):
+        confirmations = result.get("confirmations")
+
+        if confirmations is None or confirmations.empty:
+            return pd.DataFrame()
+
+        confirmations = confirmations.copy()
+
+        if "entry_time" not in confirmations.columns:
+            return pd.DataFrame()
+
+        if "valid" in confirmations.columns:
+            confirmations = confirmations[
+                confirmations["valid"]
+                .fillna(False)
+                .astype(bool)
+            ]
+
+        if (
+            expected_direction in {"BUY", "SELL"}
+            and "direction" in confirmations.columns
+        ):
+            confirmations = confirmations[
+                confirmations["direction"]
+                .astype(str)
+                .str.upper()
+                == expected_direction
+            ]
+
+        if confirmations.empty:
+            return confirmations.reset_index(drop=True)
+
+        confirmations["entry_time"] = pd.to_datetime(
+            confirmations["entry_time"],
+            utc=True,
+        )
+
+        return (
+            confirmations.sort_values("entry_time")
+            .reset_index(drop=True)
+        )
+
+    # ============================================================
+    # SECUENCIA M15 -> M5
+    # ============================================================
+
+    def _select_ordered_pair(
+        self,
+        m15_setups,
+        m5_confirmations,
+    ):
+        sequence_diag = {
+            "m15_setups_total": (
+                0
+                if m15_setups is None
+                else int(len(m15_setups))
+            ),
+            "m5_confirmations_total": (
+                0
+                if m5_confirmations is None
+                else int(len(m5_confirmations))
+            ),
+            "require_latest_m15_setup": bool(
+                self.config.require_latest_m15_setup
+            ),
+            "require_m5_after_m15": bool(
+                self.config.require_m5_after_m15
+            ),
+            "selected_setup_time": None,
+            "selected_confirmation_time": None,
+            "eligible_confirmations": 0,
+        }
+
+        if m15_setups is None or m15_setups.empty:
+            return (
+                None,
+                None,
+                "NO_M15_SETUP",
+                sequence_diag,
+            )
+
+        ordered_setups = (
+            m15_setups.sort_values("setup_time")
+            .reset_index(drop=True)
+        )
+
+        latest_setup = ordered_setups.iloc[-1]
+
+        latest_setup_time = self._as_time(
+            latest_setup["setup_time"]
+        )
+
+        sequence_diag["selected_setup_time"] = (
+            latest_setup_time.isoformat()
+            if latest_setup_time is not None
+            else None
+        )
+
+        if (
+            m5_confirmations is None
+            or m5_confirmations.empty
+        ):
+            return (
+                latest_setup.to_dict(),
+                None,
+                "NO_M5_CONFIRMATION",
+                sequence_diag,
+            )
+
+        confirmations = (
+            m5_confirmations.sort_values("entry_time")
+            .reset_index(drop=True)
+        )
+
+        if self.config.require_latest_m15_setup:
+            candidate_setups = [
+                ordered_setups.iloc[-1]
+            ]
+        else:
+            candidate_setups = [
+                ordered_setups.iloc[index]
+                for index in range(
+                    len(ordered_setups) - 1,
+                    -1,
+                    -1,
+                )
+            ]
+
+        for setup in candidate_setups:
+            setup_time = self._as_time(
+                setup["setup_time"]
+            )
+
+            if self.config.require_m5_after_m15:
+                eligible = confirmations[
+                    confirmations["entry_time"] >= setup_time
+                ]
+            else:
+                eligible = confirmations
+
+            if eligible.empty:
+                continue
+
+            signal = eligible.iloc[-1]
+
+            signal_time = self._as_time(
+                signal["entry_time"]
+            )
+
+            sequence_diag.update(
+                {
+                    "selected_setup_time": (
+                        setup_time.isoformat()
+                        if setup_time is not None
+                        else None
+                    ),
+                    "selected_confirmation_time": (
+                        signal_time.isoformat()
+                        if signal_time is not None
+                        else None
+                    ),
+                    "eligible_confirmations": int(
+                        len(eligible)
+                    ),
+                }
+            )
+
+            return (
+                setup.to_dict(),
+                signal.to_dict(),
+                "VALID_SEQUENCE",
+                sequence_diag,
+            )
+
+        return (
+            latest_setup.to_dict(),
+            None,
+            "STALE_M5_CONFIRMATIONS",
+            sequence_diag,
+        )
+
+    # ============================================================
+    # ANTIGÜEDAD M5
+    # ============================================================
+
+    def _signal_age_diagnostics(
+        self,
+        m5_data,
+        signal,
+    ):
+        base = {
+            "valid": False,
+            "reason": "NO_M5_DATA_OR_SIGNAL",
+            "signal_time": None,
+            "latest_closed_candle_time": None,
+            "signal_found_in_m5": False,
+            "signal_bar_index": None,
+            "latest_bar_index": None,
+            "age_candles": None,
+            "age_minutes": None,
+            "max_age_candles": int(
+                self.config.max_m5_signal_age_candles
+            ),
+            "max_age_minutes": (
+                self.config.max_m5_signal_age_minutes
+            ),
+            "is_stale": False,
+            "stale_by_candles": False,
+            "stale_by_minutes": False,
+        }
+
+        if (
+            m5_data is None
+            or m5_data.empty
+            or signal is None
+        ):
+            return base
+
+        signal_time = self._as_time(
+            signal.get("entry_time")
+        )
+
+        if signal_time is None:
+            base["reason"] = "M5_SIGNAL_TIME_INVALID"
+            return base
+
+        data = m5_data.copy()
+
+        data["time"] = pd.to_datetime(
+            data["time"],
+            utc=True,
+        )
+
+        data = (
+            data.sort_values("time")
+            .drop_duplicates("time")
+            .reset_index(drop=True)
+        )
+
+        latest_time = self._as_time(
+            data["time"].iloc[-1]
+        )
+
+        latest_index = len(data) - 1
+
+        exact_indexes = data.index[
+            data["time"] == signal_time
+        ]
+
+        signal_found = len(exact_indexes) > 0
+
+        signal_index = (
+            int(exact_indexes[-1])
+            if signal_found
+            else None
+        )
+
+        if signal_found:
+            age_candles = max(
+                0,
+                latest_index - signal_index,
+            )
+        else:
+            age_candles = int(
+                (data["time"] > signal_time).sum()
+            )
+
+        age_minutes = max(
+            0.0,
+            (
+                latest_time - signal_time
+            ).total_seconds() / 60.0,
+        )
+
+        stale_by_candles = (
+            age_candles
+            > int(
+                self.config.max_m5_signal_age_candles
+            )
+        )
+
+        max_minutes = (
+            self.config.max_m5_signal_age_minutes
+        )
+
+        stale_by_minutes = (
+            max_minutes is not None
+            and age_minutes > float(max_minutes)
+        )
+
+        is_stale = bool(
+            stale_by_candles
+            or stale_by_minutes
+        )
+
+        return {
+            **base,
+            "valid": not is_stale,
+            "reason": (
+                "M5_SIGNAL_TOO_OLD"
+                if is_stale
+                else "M5_SIGNAL_FRESH"
+            ),
+            "signal_time": signal_time.isoformat(),
+            "latest_closed_candle_time": (
+                latest_time.isoformat()
+                if latest_time is not None
+                else None
+            ),
+            "signal_found_in_m5": signal_found,
+            "signal_bar_index": signal_index,
+            "latest_bar_index": latest_index,
+            "age_candles": age_candles,
+            "age_minutes": age_minutes,
+            "is_stale": is_stale,
+            "stale_by_candles": stale_by_candles,
+            "stale_by_minutes": stale_by_minutes,
+        }
+
+    # ============================================================
+    # RESPUESTA BASE
+    # ============================================================
+
+    def _build_result(
+        self,
+        *,
+        symbol,
+        valid,
+        action,
+        state,
+        direction,
+        reason,
+        transitions,
+        policy_diag,
+        h1=None,
+        m15=None,
+        m5=None,
+        diagnostics=None,
+        extra=None,
+    ):
+        result = {
+            "symbol": symbol,
+            "valid": valid,
+
+            # Compatibilidad con el resto del proyecto.
+            "action": action,
+
+            # Nuevo estado explícito.
+            "state": state,
+
+            "direction": direction,
+            "reason": reason,
+
+            "transitions": transitions,
+            "direction_policy": policy_diag,
+
+            "h1": h1,
+            "m15": m15,
+            "m5": m5,
+
+            "diagnostics": diagnostics or {},
+        }
+
+        if extra:
+            result.update(extra)
+
+        return result
+
+    # ============================================================
+    # ANALIZADOR PRINCIPAL
+    # ============================================================
+
+    def analyze_symbol(self, symbol):
+
+        transitions = self._new_transitions()
+
+        # --------------------------------------------------------
+        # POLÍTICA DEL INSTRUMENTO
+        # --------------------------------------------------------
+
+        policy = get_symbol_direction_policy(symbol)
+
+        policy_diag = {
+            "category": policy.category,
+            "allowed_direction": policy.allowed_direction,
+            "reason": policy.reason,
+        }
+
+        # --------------------------------------------------------
+        # H1
+        # --------------------------------------------------------
+
+        h1_data, h1_result, h1_timing = self._get_stage_result(
+            symbol,
+            self.config.structure_timeframe,
+            self.config.structure_candles,
+        )
+
+        h1_context = self._get_h1_context(
+            h1_result
+        )
+
+        h1_diag = self._pipeline_diagnostics(
+            h1_result
+        )
+
+        h1_payload = {
+            "timeframe": self.config.structure_timeframe,
+            "context": h1_context,
+            "summary": h1_result.get("summary", {}),
+        }
+
+        if (
+            self.config.require_h1_trend
+            and not h1_context["valid"]
+        ):
+            self._add_transition(
+                transitions,
+                "NO_H1_CONTEXT",
+                h1_context["reason"],
+            )
+
+            diagnostics = {
+                "failed_stage": "H1",
+                "h1": h1_diag,
+                "direction_policy": policy_diag,
+                "transitions": transitions,
+            }
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="NO_H1_CONTEXT",
+                state="NO_H1_CONTEXT",
+                direction=None,
+                reason=h1_context["reason"],
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=None,
+                m5=None,
+                diagnostics=diagnostics,
+            )
+
+        h1_trend = h1_context["trend"]
+
+        h1_direction = self._trend_direction(
+            h1_trend
+        )
+
+        self._add_transition(
+            transitions,
+            "H1_CONTEXT_READY",
+            h1_context["reason"],
+            trend=h1_trend,
+            direction=h1_direction,
+            context_time=h1_context.get(
+                "context_time"
+            ),
+        )
+
+        # --------------------------------------------------------
+        # DIRECCIÓN
+        # --------------------------------------------------------
+
+        expected_direction = (
+            policy.allowed_direction
+            or h1_direction
+        )
+
+        # Confluencia opcional: Doji H1 reciente en un extremo compatible con
+        # la dirección. No bloquea ninguna entrada si está ausente.
+        h1_doji = detect_h1_extreme_doji(
+            h1_result.get("data"),
+            direction=expected_direction,
+            config=H1ExtremeDojiConfig(
+                enabled=bool(getattr(self.pipeline_config, "h1_doji_enabled", True)),
+                lookback_candles=int(getattr(self.pipeline_config, "h1_doji_lookback_candles", 100)),
+                max_age_candles=int(getattr(self.pipeline_config, "h1_doji_max_age_candles", 2)),
+                max_body_ratio=float(getattr(self.pipeline_config, "h1_doji_max_body_ratio", 0.10)),
+                extreme_fraction=float(getattr(self.pipeline_config, "h1_doji_extreme_fraction", 0.15)),
+                min_rejection_wick_ratio=float(getattr(self.pipeline_config, "h1_doji_min_rejection_wick_ratio", 0.35)),
+                bonus_points=float(getattr(self.pipeline_config, "h1_doji_bonus_points", 5.0)),
+            ),
+        )
+        h1_payload["doji_extreme"] = h1_doji
+        if h1_doji.get("h1_doji_confirmation"):
+            self._add_transition(
+                transitions,
+                "H1_EXTREME_DOJI_CONFIRMED",
+                h1_doji.get("h1_doji_reason") or "DOJI_H1_EXTREMO_CONFIRMADO",
+                doji_type=h1_doji.get("h1_doji_type"),
+                doji_time=h1_doji.get("h1_doji_time"),
+                zone=h1_doji.get("h1_doji_zone"),
+                direction=expected_direction,
+            )
+
+        if (
+            policy.allowed_direction
+            and h1_direction != policy.allowed_direction
+        ):
+            reason = (
+                f"{policy.reason}_REQUIRES_"
+                f"{policy.allowed_direction}_H1_CONTEXT"
+            )
+
+            self._add_transition(
+                transitions,
+                "DIRECTION_POLICY_BLOCKED",
+                reason,
+                h1_direction=h1_direction,
+                required_direction=(
+                    policy.allowed_direction
+                ),
+            )
+
+            diagnostics = {
+                "failed_stage": "DIRECTION_POLICY",
+                "h1": h1_diag,
+                "direction_policy": policy_diag,
+                "transitions": transitions,
+            }
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="DIRECTION_POLICY_BLOCKED",
+                state="DIRECTION_POLICY_BLOCKED",
+                direction=h1_direction,
+                reason=reason,
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=None,
+                m5=None,
+                diagnostics=diagnostics,
+            )
+
+        self._add_transition(
+            transitions,
+            "DIRECTION_VALIDATED",
+            "DIRECTION_POLICY_ACCEPTED",
+            h1_direction=h1_direction,
+            expected_direction=expected_direction,
+            allowed_direction=(
+                policy.allowed_direction
+            ),
+        )
+
+        # --------------------------------------------------------
+        # M15
+        # --------------------------------------------------------
+
+        m15_data, m15_result, m15_timing = self._get_stage_result(
+            symbol,
+            self.config.confirmation_timeframe,
+            self.config.confirmation_candles,
+        )
+
+        m15_setups = self._m15_setups(
+            m15_result,
+            expected_direction,
+        )
+
+        m15_diag = self._pipeline_diagnostics(
+            m15_result
+        )
+
+        m15_payload = {
+            "timeframe": (
+                self.config.confirmation_timeframe
+            ),
+            "setup": None,
+            "summary": (
+                m15_result.get("summary", {})
+            ),
+        }
+
+        if (
+            self.config.require_m15_setup
+            and m15_setups.empty
+        ):
+            self._add_transition(
+                transitions,
+                "NO_M15_SETUP",
+                "NO_DIRECTIONAL_M15_SETUP",
+                expected_direction=expected_direction,
+            )
+
+            diagnostics = {
+                "failed_stage": "M15",
+                "h1": h1_diag,
+                "m15": m15_diag,
+                "direction_policy": policy_diag,
+                "transitions": transitions,
+            }
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="NO_M15_SETUP",
+                state="NO_M15_SETUP",
+                direction=expected_direction,
+                reason="NO_DIRECTIONAL_M15_SETUP",
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=None,
+                diagnostics=diagnostics,
+            )
+
+        latest_m15_setup = (
+            m15_setups.iloc[-1].to_dict()
+            if not m15_setups.empty
+            else None
+        )
+
+        m15_payload["setup"] = latest_m15_setup
+
+        latest_setup_time = None
+
+        if latest_m15_setup is not None:
+            parsed_setup_time = self._as_time(
+                latest_m15_setup.get("setup_time")
+            )
+
+            if parsed_setup_time is not None:
+                latest_setup_time = (
+                    parsed_setup_time.isoformat()
+                )
+
+        self._add_transition(
+            transitions,
+            "M15_SETUP_READY",
+            "DIRECTIONAL_M15_SETUP_FOUND",
+            expected_direction=expected_direction,
+            total_setups=int(len(m15_setups)),
+            latest_setup_time=latest_setup_time,
+        )
+
+        # --------------------------------------------------------
+        # ESPERA DE M5
+        # --------------------------------------------------------
+
+        self._add_transition(
+            transitions,
+            "WAITING_M5_CONFIRMATION",
+            "M15_SETUP_READY_WAITING_FOR_M5_CONFIRMATION",
+            expected_direction=expected_direction,
+        )
+
+        # --------------------------------------------------------
+        # M5
+        # --------------------------------------------------------
+
+        m5_data, m5_result, m5_timing = self._get_stage_result(
+            symbol,
+            self.config.entry_timeframe,
+            self.config.entry_candles,
+        )
+
+        m5_confirmations = self._m5_confirmations(
+            m5_result,
+            expected_direction,
+        )
+
+        m5_diag = self._pipeline_diagnostics(
+            m5_result
+        )
+
+        (
+            m15_setup,
+            m5_signal,
+            sequence_status,
+            sequence_diag,
+        ) = self._select_ordered_pair(
+            m15_setups,
+            m5_confirmations,
+        )
+
+        # El Doji H1 suma calidad solamente cuando existe una señal M5 ya
+        # confirmada. No entra en el denominador del 80% y su ausencia nunca
+        # invalida la operación.
+        if m5_signal is not None:
+            m5_signal = dict(m5_signal)
+            m5_signal.update(h1_doji)
+            confirmations = dict(m5_signal.get("confirmations") or {})
+            confirmations["h1_extreme_doji_confirmation"] = bool(h1_doji.get("h1_doji_confirmation"))
+            m5_signal["confirmations"] = confirmations
+            if h1_doji.get("h1_doji_confirmation"):
+                bonus = float(getattr(self.pipeline_config, "h1_doji_bonus_points", 5.0))
+                score = self._safe_float(m5_signal.get("trade_score")) or 0.0
+                score = min(100.0, score + bonus)
+                m5_signal["trade_score"] = round(score, 2)
+                m5_signal["trade_grade"] = "A+" if score >= 90 else "A" if score >= 80 else "B" if score >= 70 else "REJECT"
+
+        age_diag = self._signal_age_diagnostics(
+            m5_data,
+            m5_signal,
+        )
+
+        m15_payload["setup"] = m15_setup
+
+        m5_payload = {
+            "timeframe": self.config.entry_timeframe,
+            "signal": m5_signal,
+            "summary": m5_result.get("summary", {}),
+        }
+
+        common_diagnostics = {
+            "h1": h1_diag,
+            "m15": m15_diag,
+            "m5": m5_diag,
+            "sequence_status": sequence_status,
+            "sequence": sequence_diag,
+            "signal_age": age_diag,
+            "direction_policy": policy_diag,
+            "h1_extreme_doji": h1_doji,
+            "transitions": transitions,
+        }
+
+        # --------------------------------------------------------
+        # M5 EXISTE, PERO ES ANTERIOR AL SETUP M15
+        # --------------------------------------------------------
+
+        if sequence_status == "STALE_M5_CONFIRMATIONS":
+            reason = (
+                "M5_CONFIRMATIONS_EXIST_BUT_ALL_"
+                "PRECEDE_LATEST_M15_SETUP"
+            )
+
+            self._add_transition(
+                transitions,
+                "WAITING_M5_AFTER_M15",
+                reason,
+                selected_setup_time=(
+                    sequence_diag.get(
+                        "selected_setup_time"
+                    )
+                ),
+                total_m5_confirmations=(
+                    sequence_diag.get(
+                        "m5_confirmations_total"
+                    )
+                ),
+            )
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="WAITING_M5_AFTER_M15",
+                state="WAITING_M5_AFTER_M15",
+                direction=expected_direction,
+                reason=reason,
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=m5_payload,
+                diagnostics=common_diagnostics,
+            )
+
+        # --------------------------------------------------------
+        # NO HAY CONFIRMACIÓN M5
+        # --------------------------------------------------------
+
+        if (
+            self.config.require_m5_confirmation
+            and m5_signal is None
+        ):
+            self._add_transition(
+                transitions,
+                "NO_M5_CONFIRMATION",
+                "NO_DIRECTIONAL_M5_CONFIRMATION",
+                expected_direction=expected_direction,
+                sequence_status=sequence_status,
+            )
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="NO_M5_CONFIRMATION",
+                state="NO_M5_CONFIRMATION",
+                direction=expected_direction,
+                reason="NO_DIRECTIONAL_M5_CONFIRMATION",
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=m5_payload,
+                diagnostics=common_diagnostics,
+            )
+
+        # --------------------------------------------------------
+        # CONFIRMACIÓN M5 ENCONTRADA
+        # --------------------------------------------------------
+
+        self._add_transition(
+            transitions,
+            "M5_CONFIRMATION_READY",
+            "VALID_M5_CONFIRMATION_FOUND",
+            selected_setup_time=(
+                sequence_diag.get(
+                    "selected_setup_time"
+                )
+            ),
+            confirmation_time=(
+                sequence_diag.get(
+                    "selected_confirmation_time"
+                )
+            ),
+            eligible_confirmations=(
+                sequence_diag.get(
+                    "eligible_confirmations"
+                )
+            ),
+        )
+
+        # --------------------------------------------------------
+        # SEÑAL M5 ANTIGUA
+        # --------------------------------------------------------
+
+        if age_diag.get("is_stale"):
+            self._add_transition(
+                transitions,
+                "STALE_M5_SIGNAL",
+                "M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY",
+                signal_time=age_diag.get(
+                    "signal_time"
+                ),
+                age_candles=age_diag.get(
+                    "age_candles"
+                ),
+                age_minutes=age_diag.get(
+                    "age_minutes"
+                ),
+                max_age_candles=age_diag.get(
+                    "max_age_candles"
+                ),
+                max_age_minutes=age_diag.get(
+                    "max_age_minutes"
+                ),
+            )
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="STALE_M5_SIGNAL",
+                state="STALE_M5_SIGNAL",
+                direction=expected_direction,
+                reason=(
+                    "M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY"
+                ),
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=m5_payload,
+                diagnostics=common_diagnostics,
+            )
+
+        # --------------------------------------------------------
+        # SEÑAL M5 FRESCA
+        # --------------------------------------------------------
+
+        self._add_transition(
+            transitions,
+            "M5_SIGNAL_FRESH",
+            "M5_CONFIRMATION_IS_FRESH",
+            signal_time=age_diag.get(
+                "signal_time"
+            ),
+            age_candles=age_diag.get(
+                "age_candles"
+            ),
+            age_minutes=age_diag.get(
+                "age_minutes"
+            ),
+        )
+
+        # --------------------------------------------------------
+        # VALIDACIÓN FINAL DE DIRECCIÓN
+        # --------------------------------------------------------
+
+        direction = str(
+            m5_signal.get("direction", "")
+        ).upper()
+
+        if direction not in {"BUY", "SELL"}:
+            self._add_transition(
+                transitions,
+                "INVALID_DIRECTION",
+                "M5_DIRECTION_NOT_BUY_OR_SELL",
+                signal_direction=direction,
+            )
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="INVALID_DIRECTION",
+                state="INVALID_DIRECTION",
+                direction=direction,
+                reason="M5_DIRECTION_NOT_BUY_OR_SELL",
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=m5_payload,
+                diagnostics=common_diagnostics,
+            )
+
+        if (
+            policy.allowed_direction
+            and direction != policy.allowed_direction
+        ):
+            reason = (
+                f"{policy.reason}_REJECTED_SIGNAL_DIRECTION"
+            )
+
+            self._add_transition(
+                transitions,
+                "DIRECTION_POLICY_BLOCKED",
+                reason,
+                signal_direction=direction,
+                required_direction=(
+                    policy.allowed_direction
+                ),
+            )
+
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="DIRECTION_POLICY_BLOCKED",
+                state="DIRECTION_POLICY_BLOCKED",
+                direction=direction,
+                reason=reason,
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h1=h1_payload,
+                m15=m15_payload,
+                m5=m5_payload,
+                diagnostics=common_diagnostics,
+            )
+
+        # --------------------------------------------------------
+        # READY TO ENTER
+        # --------------------------------------------------------
+
+        self._add_transition(
+            transitions,
+            "READY_TO_ENTER",
+            "MULTI_TIMEFRAME_SIGNAL_VALIDATED",
+            direction=direction,
+            entry_time=m5_signal.get(
+                "entry_time"
+            ),
+            entry_price=m5_signal.get(
+                "entry_price"
+            ),
+        )
+
+        common_diagnostics["transitions"] = transitions
+
+        extra = {
+            "entry_time": m5_signal["entry_time"],
+            "entry_price": float(
+                m5_signal["entry_price"]
+            ),
+            "stop_loss": float(
+                m5_signal["stop_loss"]
+            ),
+            "take_profit": float(
+                m5_signal["take_profit"]
+            ),
+            "risk_reward_ratio": float(
+                m5_signal["risk_reward_ratio"]
+            ),
+            "signal": m5_signal,
+
+            "h1_timeframe": (
+                self.config.structure_timeframe
+            ),
+            "h1_trend": h1_trend,
+
+            "m15_timeframe": (
+                self.config.confirmation_timeframe
+            ),
+            "m15_setup_time": (
+                m15_setup.get("setup_time")
+            ),
+            "m15_setup_type": (
+                m15_setup.get("setup_type")
+            ),
+            "m15_ob_high": self._safe_float(
+                m15_setup.get("ob_high")
+            ),
+            "m15_ob_low": self._safe_float(
+                m15_setup.get("ob_low")
+            ),
+            "m15_zone": m15_setup.get(
+                "zone"
+            ),
+            "m15_sweep_time": m15_setup.get(
+                "sweep_time"
+            ),
+            "m15_structure_break_type": (
+                m15_setup.get(
+                    "structure_break_type"
+                )
+            ),
+
+            "m5_timeframe": (
+                self.config.entry_timeframe
+            ),
+            "m5_confirmation_time": (
+                m5_signal.get("entry_time")
+            ),
+            "m5_confirmation_type": (
+                m5_signal.get(
+                    "confirmation_type"
+                )
+            ),
+            "m5_trade_score": self._safe_float(m5_signal.get("trade_score")),
+            "m5_trade_grade": m5_signal.get("trade_grade"),
+            "m5_confirmation_decision": m5_signal.get("confirmation_decision"),
+            "m5_confirmation_percentage": self._safe_float(m5_signal.get("confirmation_percentage")),
+            "m5_confirmations_passed": m5_signal.get("confirmations_passed"),
+            "m5_confirmations_total": m5_signal.get("confirmations_total"),
+            "m5_missing_confirmations": m5_signal.get("missing_confirmations", []),
+            "m5_critical_confirmations_ok": m5_signal.get("critical_confirmations_ok"),
+            "m5_critical_confirmation_failures": m5_signal.get("critical_confirmation_failures", []),
+            "m5_confirmation_reasons": m5_signal.get("rejection_reasons", []),
+            "m5_ob_touches": m5_signal.get("ob_touches"),
+            "m5_confirmation_details": m5_signal.get("confirmations", {}),
+            "m5_divergence_confirmation": m5_signal.get("divergence_confirmation", False),
+            "m5_divergence_type": m5_signal.get("divergence_type"),
+            "m5_divergence_reason": m5_signal.get("divergence_reason"),
+            "h1_doji_confirmation": m5_signal.get("h1_doji_confirmation", False),
+            "h1_doji_type": m5_signal.get("h1_doji_type"),
+            "h1_doji_time": m5_signal.get("h1_doji_time"),
+            "h1_doji_zone": m5_signal.get("h1_doji_zone"),
+            "h1_doji_reason": m5_signal.get("h1_doji_reason"),
+
+            "config": asdict(self.config),
+        }
+
+        return self._build_result(
+            symbol=symbol,
+            valid=True,
+
+            # Mantener para compatibilidad.
+            action="MULTI_TIMEFRAME_SIGNAL",
+
+            # Nuevo estado explícito.
+            state="READY_TO_ENTER",
+
+            direction=direction,
+            reason="MULTI_TIMEFRAME_SIGNAL_VALIDATED",
+
+            transitions=transitions,
+            policy_diag=policy_diag,
+
+            h1=h1_payload,
+            m15=m15_payload,
+            m5=m5_payload,
+
+            diagnostics=common_diagnostics,
+            extra=extra,
+        )
+
+    # ============================================================
+    # CONVERSIÓN SEGURA
+    # ============================================================
+
+    @staticmethod
+    def _safe_float(value):
+        if value is None:
+            return None
+
+        try:
+            if pd.isna(value):
+                return None
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
