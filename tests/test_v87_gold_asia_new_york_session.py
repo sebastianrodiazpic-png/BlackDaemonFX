@@ -31,6 +31,13 @@ def test_gold_window_respects_new_york_winter_dst():
     assert engine._gold_smc_session_state(datetime(2026, 12, 1, 14, 30, tzinfo=timezone.utc))["active"] is False
 
 
+def test_gold_london_window_runs_from_0800_to_1200_london():
+    engine = _engine()
+    assert engine._gold_smc_session_state(datetime(2026, 9, 1, 7, 0, tzinfo=timezone.utc))["london_active"] is True
+    assert engine._gold_smc_session_state(datetime(2026, 9, 1, 10, 59, tzinfo=timezone.utc))["london_active"] is True
+    assert engine._gold_smc_session_state(datetime(2026, 9, 1, 11, 0, tzinfo=timezone.utc))["london_active"] is False
+
+
 def test_gold_entry_gate_does_not_affect_forex_or_synthetics():
     gold = _engine("GOLD")
     assert gold._gold_smc_entry_gate("XAUUSD", datetime(2026, 9, 1, 13, 29, tzinfo=timezone.utc)) is None

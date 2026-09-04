@@ -44302,3 +44302,2445 @@ Intervalo objetivo: 10s
 Próximo ciclo en: 9.98s
 ----------------------------------------------------------------------------------------
 Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9729.56, 'equity': 9616.48, 'margin': 69.28, 'free_margin': 9547.2, 'profit': -113.08, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 17, 54, 45, 494921, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9547.2, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:AUDCHF {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:AUDNZD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:AUDUSDmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:EURAUD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:EURCHF {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:EURHKD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 200}
+[OK] SYMBOL:EURNOK {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 300}
+[OK] SYMBOL:EURSEK {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 300}
+[OK] SYMBOL:EURUSD RSI Rebound Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1000}
+[OK] SYMBOL:EURZAR {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 1000}
+[OK] SYMBOL:GBPCHFmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:GBPNZD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:GBPUSD RSI Pullback Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1000}
+[OK] SYMBOL:GBPUSDmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:NZDJPY {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 20}
+[OK] SYMBOL:SGDJPY {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 30}
+[OK] SYMBOL:USDCHFmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 20}
+[OK] SYMBOL:USDJPY RSI Pullback Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1000}
+[OK] SYMBOL:USDJPYmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 20}
+[OK] SYMBOL:USDSEK {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 1e-05, 'stops_level_points': 500}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: FOREX_3 | MAGIC=26082203 | ESTRATEGIA=SMC/ORB | instrumentos=20 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9729.56 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 10s | Símbolos: 20
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=10s | monitor posiciones/BE=2s | símbolos=20
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 10, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 17:55:04 UTC | símbolos=6
+========================================================================================
+[01/06] START AUDCHF
+[01/06] END   AUDCHF | 2.51s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[02/06] START AUDNZD
+[02/06] END   AUDNZD | 7.42s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[03/06] START EURAUD
+[03/06] END   EURAUD | 4.68s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/06] START EURCHF
+[04/06] END   EURCHF | 7.33s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 9/13 | 69.2% | calidad=73.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5, cierre fuerte
+    Críticas faltantes: BOS REQUIRES REJECTION, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: bos rejection not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, cierre fuerte no confirmado, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%, calidad inferior al mínimo viable
+[05/06] START GBPNZD
+[05/06] END   GBPNZD | 3.43s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[06/06] START NZDJPY
+[06/06] END   NZDJPY | 4.10s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=98.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: desplazamiento no confirmado, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 6
+Sin señal: 0
+Esperando/otros: 6
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 30.37s
+Intervalo objetivo: 10s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 20.37s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 17:55:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 17:55:45 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 17:55:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 17:56:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 17:56:15 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 17:56:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 17:56:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 17:56:45 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 17:56:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 17:57:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 17:57:15 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 17:57:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 17:57:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-04 17:57:45 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-04 17:57:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-04 17:58:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-04 17:58:15 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-04 17:58:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-04 17:58:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-04 17:58:45 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-04 17:58:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-04 17:59:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-04 17:59:15 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-04 17:59:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0026 | 2026-09-04 17:59:35 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0027 | 2026-09-04 17:59:45 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0028 | 2026-09-04 17:59:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0029 | 2026-09-04 18:00:05 UTC | símbolos=6
+========================================================================================
+[01/06] START AUDCHF
+[01/06] END   AUDCHF | 1.73s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[02/06] START AUDNZD
+[02/06] END   AUDNZD | 6.25s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[03/06] START EURAUD
+[03/06] END   EURAUD | 4.26s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/06] START EURCHF
+[04/06] END   EURCHF | 7.54s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 9/13 | 69.2% | calidad=73.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5, cierre fuerte
+    Críticas faltantes: BOS REQUIRES REJECTION, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: bos rejection not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, cierre fuerte no confirmado, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%, calidad inferior al mínimo viable
+[05/06] START GBPNZD
+[05/06] END   GBPNZD | 4.16s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[06/06] START NZDJPY
+[06/06] END   NZDJPY | 4.95s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=98.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: desplazamiento no confirmado, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0029
+Símbolos analizados: 6
+Sin señal: 0
+Esperando/otros: 6
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 28.94s
+Intervalo objetivo: 10s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 18.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0030 | 2026-09-04 18:00:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0031 | 2026-09-04 18:00:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0032 | 2026-09-04 18:00:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0032
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0033 | 2026-09-04 18:01:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0034 | 2026-09-04 18:01:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0034
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0035 | 2026-09-04 18:01:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0035
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0036 | 2026-09-04 18:01:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0036
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0037 | 2026-09-04 18:01:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0038 | 2026-09-04 18:01:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0038
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0039 | 2026-09-04 18:02:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0039
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0040 | 2026-09-04 18:02:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0040
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0041 | 2026-09-04 18:02:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0041
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0042 | 2026-09-04 18:02:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0042
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0043 | 2026-09-04 18:02:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0043
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0044 | 2026-09-04 18:02:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0044
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0045 | 2026-09-04 18:03:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0045
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0046 | 2026-09-04 18:03:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0046
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0047 | 2026-09-04 18:03:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0047
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0048 | 2026-09-04 18:03:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0048
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0049 | 2026-09-04 18:03:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0049
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0050 | 2026-09-04 18:03:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0050
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0051 | 2026-09-04 18:04:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0051
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0052 | 2026-09-04 18:04:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0052
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0053 | 2026-09-04 18:04:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0053
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0054 | 2026-09-04 18:04:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0054
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0055 | 2026-09-04 18:04:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0055
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0056 | 2026-09-04 18:04:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0056
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0057 | 2026-09-04 18:05:04 UTC | símbolos=6
+========================================================================================
+[01/06] START AUDCHF
+[01/06] END   AUDCHF | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[02/06] START AUDNZD
+[02/06] END   AUDNZD | 1.21s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[03/06] START EURAUD
+[03/06] END   EURAUD | 1.60s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/06] START EURCHF
+[04/06] END   EURCHF | 1.44s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 9/13 | 69.2% | calidad=73.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5, cierre fuerte
+    Críticas faltantes: BOS REQUIRES REJECTION, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: bos rejection not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, cierre fuerte no confirmado, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%, calidad inferior al mínimo viable
+[05/06] START GBPNZD
+[05/06] END   GBPNZD | 1.21s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[06/06] START NZDJPY
+[06/06] END   NZDJPY | 0.69s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=98.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: desplazamiento no confirmado, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0057
+Símbolos analizados: 6
+Sin señal: 0
+Esperando/otros: 6
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 6.23s
+Intervalo objetivo: 10s
+Próximo ciclo en: 3.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0058 | 2026-09-04 18:05:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0058
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0059 | 2026-09-04 18:05:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0059
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0060 | 2026-09-04 18:05:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0060
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0061 | 2026-09-04 18:05:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0061
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0062 | 2026-09-04 18:05:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0063 | 2026-09-04 18:06:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0064 | 2026-09-04 18:06:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0064
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0065 | 2026-09-04 18:06:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0065
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0066 | 2026-09-04 18:06:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0066
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0067 | 2026-09-04 18:06:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0067
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0068 | 2026-09-04 18:06:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0068
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0069 | 2026-09-04 18:07:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0069
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0070 | 2026-09-04 18:07:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0070
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0071 | 2026-09-04 18:07:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0071
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0072 | 2026-09-04 18:07:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0072
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0073 | 2026-09-04 18:07:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0073
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0074 | 2026-09-04 18:07:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0074
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0075 | 2026-09-04 18:08:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0075
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0076 | 2026-09-04 18:08:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0076
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0077 | 2026-09-04 18:08:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0077
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0078 | 2026-09-04 18:08:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0078
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0079 | 2026-09-04 18:08:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0079
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0080 | 2026-09-04 18:08:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0080
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0081 | 2026-09-04 18:09:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0081
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0082 | 2026-09-04 18:09:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0082
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0083 | 2026-09-04 18:09:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0083
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0084 | 2026-09-04 18:09:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0084
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0085 | 2026-09-04 18:09:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0085
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0086 | 2026-09-04 18:09:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0086
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0087 | 2026-09-04 18:10:04 UTC | símbolos=6
+========================================================================================
+[01/06] START AUDCHF
+[01/06] END   AUDCHF | 0.05s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[02/06] START AUDNZD
+[02/06] END   AUDNZD | 0.99s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[03/06] START EURAUD
+[03/06] END   EURAUD | 1.36s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/06] START EURCHF
+[04/06] END   EURCHF | 1.15s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 9/13 | 69.2% | calidad=73.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5, cierre fuerte
+    Críticas faltantes: BOS REQUIRES REJECTION, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: bos rejection not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, cierre fuerte no confirmado, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%, calidad inferior al mínimo viable
+[05/06] START GBPNZD
+[05/06] END   GBPNZD | 0.97s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[06/06] START NZDJPY
+[06/06] END   NZDJPY | 0.56s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=98.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: desplazamiento no confirmado, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0087
+Símbolos analizados: 6
+Sin señal: 0
+Esperando/otros: 6
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 5.13s
+Intervalo objetivo: 10s
+Próximo ciclo en: 4.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0088 | 2026-09-04 18:10:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0088
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0089 | 2026-09-04 18:10:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0089
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0090 | 2026-09-04 18:10:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0090
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0091 | 2026-09-04 18:10:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0091
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0092 | 2026-09-04 18:10:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0092
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0093 | 2026-09-04 18:11:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0093
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0094 | 2026-09-04 18:11:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0094
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0095 | 2026-09-04 18:11:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0095
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0096 | 2026-09-04 18:11:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0096
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0097 | 2026-09-04 18:11:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0097
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0098 | 2026-09-04 18:11:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0098
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0099 | 2026-09-04 18:12:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0099
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0100 | 2026-09-04 18:12:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0100
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0101 | 2026-09-04 18:12:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0101
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0102 | 2026-09-04 18:12:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0102
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0103 | 2026-09-04 18:12:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0103
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0104 | 2026-09-04 18:12:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0104
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0105 | 2026-09-04 18:13:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0105
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0106 | 2026-09-04 18:13:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0106
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0107 | 2026-09-04 18:13:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0107
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0108 | 2026-09-04 18:13:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0108
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0109 | 2026-09-04 18:13:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0109
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0110 | 2026-09-04 18:13:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0110
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0111 | 2026-09-04 18:14:04 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0111
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0112 | 2026-09-04 18:14:14 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0112
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0113 | 2026-09-04 18:14:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0113
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0114 | 2026-09-04 18:14:34 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0114
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0115 | 2026-09-04 18:14:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0115
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0116 | 2026-09-04 18:14:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0116
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0117 | 2026-09-04 18:15:04 UTC | símbolos=6
+========================================================================================
+[01/06] START AUDCHF
+[01/06] END   AUDCHF | 1.32s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[02/06] START AUDNZD
+[02/06] END   AUDNZD | 4.75s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[03/06] START EURAUD
+[03/06] END   EURAUD | 3.39s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/06] START EURCHF
+[04/06] END   EURCHF | 3.20s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION
+    Rechazo técnico: bos rejection not confirmed, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[05/06] START GBPNZD
+[05/06] END   GBPNZD | 2.56s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[06/06] START NZDJPY
+[06/06] END   NZDJPY | 2.80s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=98.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: desplazamiento no confirmado, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0117
+Símbolos analizados: 6
+Sin señal: 0
+Esperando/otros: 6
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 18.09s
+Intervalo objetivo: 10s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 8.09s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0118 | 2026-09-04 18:15:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0118
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0119 | 2026-09-04 18:15:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0119
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 10s
+Próximo ciclo en: 9.97s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.

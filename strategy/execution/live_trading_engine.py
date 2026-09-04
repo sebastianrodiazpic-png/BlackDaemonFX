@@ -119,16 +119,15 @@ class LiveTradingConfig:
     single_entry_fallback_enabled: bool = True
     single_entry_target_rr: float = 2.0
 
-    # v41: RUNNER dinámico. El riesgo inicial NO cambia: sólo se amplía el
-    # objetivo de la pierna RUNNER y se protege ganancia por etapas.
+    # Los perfiles SMC sintéticos cierran el runner en TP2. Las extensiones
+    # siguientes se reservan para estrategias que las habiliten explícitamente.
     runner_extension_enabled: bool = False
     runner_extension_first_trigger_rr: float = 2.0
     runner_extension_first_lock_rr: float = 1.0
     runner_extension_second_trigger_rr: float = 3.0
     runner_extension_second_lock_rr: float = 2.0
-    runner_extension_max_target_rr: float = 4.0
-    # v66: SMC puede extender hasta TP4, siempre con profit locks escalonados.
-    smc_runner_max_target_rr: float = 4.0
+    runner_extension_max_target_rr: float = 2.0
+    smc_runner_max_target_rr: float = 2.0
     # Protección intermedia mientras busca TP3.
     smc_runner_tp3_guard_trigger_rr: float = 2.5
     smc_runner_tp3_guard_lock_rr: float = 2.0
@@ -142,8 +141,8 @@ class LiveTradingConfig:
     forex_runner_tp3_lock_rr: float = 1.0
     forex_runner_tp4_pre_eval_lock_rr: float = 2.0
     forex_runner_tp4_lock_rr: float = 2.5
-    forex_runner_max_target_rr: float = 4.0
-    forex_runner_broker_safety_target_rr: float = 4.0
+    forex_runner_max_target_rr: float = 2.0
+    forex_runner_broker_safety_target_rr: float = 2.0
 
     runner_extension_timeframe: str = "M5"
     runner_extension_candle_count: int = 80
@@ -182,6 +181,9 @@ class LiveTradingConfig:
     gold_asia_timezone: str = "Asia/Tokyo"
     gold_asia_open_hour: int = 9
     gold_asia_open_minute: int = 0
+    gold_london_timezone: str = "Europe/London"
+    gold_london_open_hour: int = 8
+    gold_london_close_hour: int = 12
     gold_new_york_timezone: str = "America/New_York"
     gold_new_york_open_hour: int = 9
     gold_new_york_open_minute: int = 30
@@ -1095,7 +1097,7 @@ class LiveTradingEngine:
         }
 
     def _gold_smc_session_state(self, now_utc=None) -> dict:
-        """Ventana DST-safe: Tokio 09:00 hasta la siguiente NY 09:30 hábil."""
+        """Ventanas DST-safe: Tokio->NY 09:30 y Londres 08:00->12:00."""
         now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
         if now.tzinfo is None:
             now = now.tz_localize("UTC")
@@ -1103,7 +1105,9 @@ class LiveTradingEngine:
             now = now.tz_convert("UTC")
         asia_tz = ZoneInfo(str(self.config.gold_asia_timezone))
         ny_tz = ZoneInfo(str(self.config.gold_new_york_timezone))
+        london_tz = ZoneInfo(str(self.config.gold_london_timezone))
         asia_now = now.tz_convert(asia_tz)
+        london_now = now.tz_convert(london_tz)
 
         latest_asia_open = None
         for days_back in range(0, 8):
@@ -1137,17 +1141,35 @@ class LiveTradingEngine:
                     next_ny_open = candidate
                     break
 
-        active = bool(
+        asia_active = bool(
             latest_asia_open is not None
             and next_ny_open is not None
             and latest_asia_open.tz_convert("UTC") <= now < next_ny_open.tz_convert("UTC")
         )
+        london_open = london_now.replace(
+            hour=int(self.config.gold_london_open_hour),
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        london_close = london_now.replace(
+            hour=int(self.config.gold_london_close_hour),
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        london_active = bool(
+            london_now.weekday() < 5 and london_open <= london_now < london_close
+        )
+        active = bool(asia_active or london_active)
         return {
             "active": active,
             "now_utc": now.isoformat(),
             "asia_open": latest_asia_open.isoformat() if latest_asia_open is not None else None,
             "new_york_open": next_ny_open.isoformat() if next_ny_open is not None else None,
-            "entry_window": "ASIA_OPEN_TO_NEW_YORK_OPEN",
+            "asia_active": asia_active,
+            "london_active": london_active,
+            "entry_window": "ASIA_09_TOKYO_TO_NY_0930_OR_LONDON_08_TO_12",
         }
 
     def _gold_smc_entry_gate(self, symbol: str, now_utc=None):
@@ -1161,7 +1183,7 @@ class LiveTradingEngine:
         return {
             "symbol": symbol,
             "action": "GOLD_SMC_SESSION_CLOSED",
-            "reason": "XAUUSD_NUEVAS_ENTRADAS_SOLO_ASIA_HASTA_APERTURA_NEW_YORK",
+            "reason": "XAUUSD_ENTRADAS_SOLO_ASIA_HASTA_NY_0930_O_LONDRES_08_A_12",
             "gold_session": state,
         }
 
@@ -1463,13 +1485,19 @@ class LiveTradingEngine:
         return None
 
     def _forex_high_impact_news_entry_gate(self, symbol: str) -> dict | None:
-        if (
-            not bool(self.config.forex_high_impact_news_guard_enabled)
-            or not str(self.config.bot_profile or "").upper().startswith("FOREX")
-        ):
+        profile = str(self.config.bot_profile or "").upper()
+        if not bool(self.config.forex_high_impact_news_guard_enabled):
             return None
-        base, quote = self._forex_pair_currencies(symbol)
-        if not base or not quote:
+        if profile.startswith("FOREX"):
+            base, quote = self._forex_pair_currencies(symbol)
+            affected_currencies = {base, quote} if base and quote else set()
+        elif profile == "GOLD" and is_orb_gold_symbol(symbol):
+            affected_currencies = {"USD"}
+        elif profile == "ORB" and classify_orb_market(symbol) in {
+            "WALL_STREET_30", "US_500", "US_TECH_100",
+        }:
+            affected_currencies = {"USD"}
+        else:
             return None
         now = datetime.now(timezone.utc)
         before = timedelta(minutes=max(0, int(self.config.forex_high_impact_news_before_minutes)))
@@ -1478,7 +1506,7 @@ class LiveTradingEngine:
         for event in calendar["events"]:
             if not isinstance(event, dict) or str(event.get("impact") or "").upper() != "ALTO":
                 continue
-            if str(event.get("country") or "").upper() not in {base, quote}:
+            if str(event.get("country") or "").upper() not in affected_currencies:
                 continue
             try:
                 event_at = datetime.fromisoformat(
@@ -1489,8 +1517,12 @@ class LiveTradingEngine:
             if event_at - before <= now <= event_at + after:
                 return {
                     "symbol": str(symbol),
-                    "action": "FOREX_HIGH_IMPACT_NEWS_ENTRY_BLOCKED",
-                    "reason": "FOREX_HIGH_IMPACT_NEWS_WINDOW",
+                    "action": (
+                        "FOREX_HIGH_IMPACT_NEWS_ENTRY_BLOCKED"
+                        if profile.startswith("FOREX")
+                        else "MARKET_HIGH_IMPACT_NEWS_ENTRY_BLOCKED"
+                    ),
+                    "reason": "HIGH_IMPACT_USD_NEWS_WINDOW",
                     "news_window": {
                         "event": event,
                         "event_at": event_at.isoformat(),
@@ -1705,7 +1737,7 @@ class LiveTradingEngine:
         return None
 
     def _break_even_target_stop(self, symbol: str, direction: str, entry_price: float) -> tuple[float, float]:
-        """Calcula BE+offset en puntos, siempre hacia el lado favorable del trade."""
+        """Calcula BE neto de spread más offset, hacia el lado favorable del trade."""
         offset_points = max(0, int(self.config.break_even_offset_points))
         point = 0.0
         digits = None
@@ -1720,6 +1752,18 @@ class LiveTradingEngine:
                 digits = None
 
         offset = point * offset_points
+        get_tick = getattr(self.provider, "get_current_tick", None)
+        if callable(get_tick):
+            try:
+                tick = get_tick(symbol) or {}
+                spread = max(
+                    0.0,
+                    float(tick.get("ask") or 0.0) - float(tick.get("bid") or 0.0),
+                )
+                offset += spread
+            except (TypeError, ValueError, RuntimeError):
+                # Conserva el offset mínimo protector si el tick puntual no está disponible.
+                pass
         target = float(entry_price) + offset if str(direction).upper() == "BUY" else float(entry_price) - offset
         if digits is not None:
             target = round(target, max(0, int(digits)))
@@ -2157,6 +2201,14 @@ class LiveTradingEngine:
         # debe evaluar con las reglas defensivas del pipeline SMC H1/M15/M5.
         if str(metadata.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME:
             result["reason"] = "ARPS_FIXED_SCALP_TARGET"
+            return result
+        synthetic_profile = str(
+            metadata.get("bot_profile") or self.config.bot_profile or ""
+        ).upper()
+        if synthetic_profile.startswith("VOLATILITY") or synthetic_profile in {
+            "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
+        }:
+            result["reason"] = "SYNTHETICS_FIXED_TP2_TARGET"
             return result
         if str(metadata.get("bot_profile") or self.config.bot_profile or "").upper().startswith("FOREX"):
             result["reason"] = "FOREX_FIXED_TP2_TARGET"

@@ -378,16 +378,19 @@ def run_demo_bot(
         second_target_rr=(1.5 if str(bot_profile).upper().startswith("SCALP_") else 2.0),
         single_entry_target_rr=(1.5 if str(bot_profile).upper().startswith("SCALP_") else 2.0),
 
-        # v41 experimental: mantener riesgo inicial, pero permitir que el RUNNER
-        # gestione 2R -> 3R -> 4R con profit lock estructural.
         runner_extension_enabled=(
-            not str(bot_profile).upper().startswith(("SCALP_", "FOREX"))
+            not str(bot_profile).upper().startswith(
+                ("SCALP_", "FOREX", "VOLATILITY")
+            )
+            and str(bot_profile).upper() not in {
+                "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
+            }
         ),
         runner_extension_first_trigger_rr=2.0,
         runner_extension_first_lock_rr=1.0,
         runner_extension_second_trigger_rr=3.0,
         runner_extension_second_lock_rr=2.0,
-        runner_extension_max_target_rr=4.0,
+        runner_extension_max_target_rr=2.0,
 
         # Jump sigue operativo, pero necesita confirmaciones reforzadas.
         jump_strict_filter_enabled=True,
@@ -1382,13 +1385,15 @@ def run_unified_multibot_daemon(args, profiles=None):
                 second_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
                 single_entry_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
                 runner_extension_enabled=bool(
-                    spec.get("strategy") != "ARPS" and not profile.startswith("FOREX")
+                    spec.get("strategy") != "ARPS"
+                    and not profile.startswith(("FOREX", "VOLATILITY"))
+                    and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP"}
                 ),
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
                 runner_extension_second_trigger_rr=3.0,
                 runner_extension_second_lock_rr=2.0,
-                runner_extension_max_target_rr=4.0,
+                runner_extension_max_target_rr=2.0,
                 jump_strict_filter_enabled=True,
                 jump_min_confirmation_ratio=0.90,
                 jump_min_trade_score=90.0,

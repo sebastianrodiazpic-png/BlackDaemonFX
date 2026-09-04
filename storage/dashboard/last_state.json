@@ -2,8 +2,8 @@
   "status": "COORDINADOR MULTI-BOT ACTIVO",
   "connection_mode": "LIVE",
   "data_freshness": "LIVE",
-  "last_live_update": "2026-09-04T17:54:29.896793+00:00",
-  "updated_at": "2026-09-04T17:54:29.896793+00:00",
+  "last_live_update": "2026-09-04T18:16:56.576576+00:00",
+  "updated_at": "2026-09-04T18:16:56.576576+00:00",
   "cycle": 1,
   "cycle_started_at": "2026-09-04T16:53:06.648766+00:00",
   "cycle_elapsed_seconds": null,
@@ -2420,12 +2420,12 @@
       "managed_by_daemon": false,
       "owner_inferred": false,
       "worker_status": "STOPPED",
-      "worker_pid": 28608,
-      "worker_last_event_time": "2026-09-04T17:53:01.851074",
+      "worker_pid": 25476,
+      "worker_last_event_time": "2026-09-04T18:15:42.241226",
       "management_label": "MT5 EXTERNA · SOLO VISUALIZACIÓN",
-      "persistence_status": "LIVE",
-      "broker_verification": "VERIFICADO EN ESTA SESIÓN",
-      "last_live_update": "2026-09-04T17:54:23.251823+00:00",
+      "persistence_status": "PERSISTED",
+      "broker_verification": "PENDIENTE DE RECONCILIAR CON MT5",
+      "last_live_update": "2026-09-04T17:54:29.896793+00:00",
       "symbol": "GBPCHF",
       "direction": "BUY",
       "entry_price": 1.09542,
@@ -2448,6 +2448,7 @@
       "distance_to_sl_r": 0.007135575942916558,
       "distance_to_tp_r": 1.997621474685674,
       "reasons": [
+        "Último estado conocido: daemon/MT5 sin conexión",
         "Magic asociado a DaemonBlackFx (26082202) pero la fila está persistida como MT5_EXTERNAL",
         "Owner probable: FOREX_2",
         "Requiere reconciliación antes de permitir gestión automática de SL/TP/cierre"
@@ -25904,12 +25905,12 @@
       "managed_by_daemon": false,
       "owner_inferred": false,
       "worker_status": "STOPPED",
-      "worker_pid": 28608,
-      "worker_last_event_time": "2026-09-04T17:53:01.851074",
+      "worker_pid": 25476,
+      "worker_last_event_time": "2026-09-04T18:15:42.241226",
       "management_label": "MT5 EXTERNA · SOLO VISUALIZACIÓN",
-      "persistence_status": "LIVE",
-      "broker_verification": "VERIFICADO EN ESTA SESIÓN",
-      "last_live_update": "2026-09-04T17:54:23.251823+00:00",
+      "persistence_status": "PERSISTED",
+      "broker_verification": "PENDIENTE DE RECONCILIAR CON MT5",
+      "last_live_update": "2026-09-04T17:54:29.896793+00:00",
       "symbol": "GBPCHF",
       "direction": "BUY",
       "entry_price": 1.09542,
@@ -25932,6 +25933,7 @@
       "distance_to_sl_r": 0.0071967100753952806,
       "distance_to_tp_r": 5.0476353666894616,
       "reasons": [
+        "Último estado conocido: daemon/MT5 sin conexión",
         "Magic asociado a DaemonBlackFx (26082202) pero la fila está persistida como MT5_EXTERNAL",
         "Owner probable: FOREX_2",
         "Requiere reconciliación antes de permitir gestión automática de SL/TP/cierre"
@@ -49388,12 +49390,12 @@
       "managed_by_daemon": false,
       "owner_inferred": false,
       "worker_status": "STOPPED",
-      "worker_pid": 26012,
-      "worker_last_event_time": "2026-09-04T17:53:01.868298",
+      "worker_pid": 24612,
+      "worker_last_event_time": "2026-09-04T18:15:42.252594",
       "management_label": "MT5 EXTERNA · SOLO VISUALIZACIÓN",
-      "persistence_status": "LIVE",
-      "broker_verification": "VERIFICADO EN ESTA SESIÓN",
-      "last_live_update": "2026-09-04T17:54:23.251823+00:00",
+      "persistence_status": "PERSISTED",
+      "broker_verification": "PENDIENTE DE RECONCILIAR CON MT5",
+      "last_live_update": "2026-09-04T17:54:29.896793+00:00",
       "symbol": "XAUUSDmicro",
       "direction": "BUY",
       "entry_price": 4434.65,
@@ -49416,6 +49418,7 @@
       "distance_to_sl_r": 0.01709643521133545,
       "distance_to_tp_r": 1.821598900654805,
       "reasons": [
+        "Último estado conocido: daemon/MT5 sin conexión",
         "Magic asociado a DaemonBlackFx (26082028) pero la fila está persistida como MT5_EXTERNAL",
         "Owner probable: ORB",
         "Requiere reconciliación antes de permitir gestión automática de SL/TP/cierre"
@@ -66733,18 +66736,18 @@
     "SYNTHETICS": 6,
     "FOREX": 1
   },
-  "selection_version": 50,
+  "selection_version": 51,
   "selection_message": "Sintéticos: 71 · Forex: 27 · ORB: 5 · selecciones independientes",
   "account": {
     "snapshot": {
-      "id": 241,
-      "snapshot_time": "2026-09-04T17:52:42.732179",
+      "id": 305,
+      "snapshot_time": "2026-09-04T18:15:37.821857",
       "broker": "MT5",
-      "balance": 9729.56,
-      "equity": 9621.45,
-      "margin": 69.28,
-      "free_margin": 9552.17,
-      "profit": -108.11
+      "balance": 9633.82,
+      "equity": 9592.34,
+      "margin": 43.23,
+      "free_margin": 9549.11,
+      "profit": -41.48
     },
     "stats": {
       "total": 7,
@@ -160304,7 +160307,7 @@
       }
     ],
     "data_source": "SQLALCHEMY_LOCAL_ONLY",
-    "generated_at": "2026-09-04T17:54:29.722564+00:00",
+    "generated_at": "2026-09-04T18:16:44.148472+00:00",
     "stats_reset": {
       "id": 8,
       "source": "DEMO",
@@ -160318,8 +160321,8 @@
       "size_bytes": 759099392,
       "trade_journal_rows": 126,
       "trade_rows": 7,
-      "account_snapshot_rows": 241,
-      "total_activity_rows": 374,
+      "account_snapshot_rows": 305,
+      "total_activity_rows": 438,
       "bootstrap": {
         "path": "C:\\Users\\sebas\\AppData\\Local\\BlackDaemonFx\\trading_bot.sqlite3",
         "recovered": false,
@@ -160327,8 +160330,8 @@
         "current_score": [
           126,
           7,
-          241,
-          374
+          305,
+          438
         ],
         "candidates": []
       },
@@ -160359,14 +160362,6 @@
         "description": "<a href=\"https://news.google.com/rss/articles/CBMikwFBVV95cUxPN0pLcy1KWW43T0FydVRvTmhaOVlBOEd0d0tvYTJMMmt6UmVKN0FCbGlZNHFZeVgzdkZPcTRmNlN4Q3NON1JlVm1OeEo0ZEpzY09nVUo0REpkbnU5cGZRRjZORW50NjdDQ2ZHX251Nlh5TnZBX0o3Y1pzOTdaRGlweml5bkRfclhEdzhLeFhDVXR4TzA?oc=5\" target=\"_blank\">Impacto subida tipos Fed y mercados financieros</a> <font color=\"#6f6f6f\">Funds Society</font>",
         "link": "https://news.google.com/rss/articles/CBMikwFBVV95cUxPN0pLcy1KWW43T0FydVRvTmhaOVlBOEd0d0tvYTJMMmt6UmVKN0FCbGlZNHFZeVgzdkZPcTRmNlN4Q3NON1JlVm1OeEo0ZEpzY09nVUo0REpkbnU5cGZRRjZORW50NjdDQ2ZHX251Nlh5TnZBX0o3Y1pzOTdaRGlweml5bkRfclhEdzhLeFhDVXR4TzA?oc=5",
         "published_at": "2026-09-04T11:11:43+00:00",
-        "impact": "ALTO",
-        "language": "es"
-      },
-      {
-        "title": "Un reporte robusto sobre el empleo sacude los mercados financieros. Por qué una buena noticia preocupa a los inversionistas - Telemundo",
-        "description": "<a href=\"https://news.google.com/rss/articles/CBMi3AFBVV95cUxOUWlQaXMwZlJCeVctMTFTNFZxNVlSNjNtaTRUN2s3V3JrVmFRRXprS0Z6UFhsUnJpSVJFbjdVdllyNWxSUnpZN3lSTWdhb2NoOHBNa3Z2RUUzNTdBSGxwb3pZYldjclVOVUlKQUJxMFc5eGhwWURKclFzYjFadG13TFFKdUxxZUFmdjJCamdkUkZKLTRES0xHYklPRVRtbGtWM2xveG8wM0pTbTAtcHMwdG5hYjE4QVdySEpRa0NGU2d2bEN6ZEgzUXJsenE0eTBUaGR6b01RMHJIUlN4?oc=5\" target=\"_blank\">Un reporte robusto sobre el empleo sacude los mercados financieros. Por qué una buena noticia preocupa a los inversionistas</a> <font color=\"#6f6f6f\">Telemundo</font>",
-        "link": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxOUWlQaXMwZlJCeVctMTFTNFZxNVlSNjNtaTRUN2s3V3JrVmFRRXprS0Z6UFhsUnJpSVJFbjdVdllyNWxSUnpZN3lSTWdhb2NoOHBNa3Z2RUUzNTdBSGxwb3pZYldjclVOVUlKQUJxMFc5eGhwWURKclFzYjFadG13TFFKdUxxZUFmdjJCamdkUkZKLTRES0xHYklPRVRtbGtWM2xveG8wM0pTbTAtcHMwdG5hYjE4QVdySEpRa0NGU2d2bEN6ZEgzUXJsenE0eTBUaGR6b01RMHJIUlN4?oc=5",
-        "published_at": "2026-06-05T07:00:00+00:00",
         "impact": "ALTO",
         "language": "es"
       },
@@ -160415,14 +160410,6 @@
         "description": "<a href=\"https://news.google.com/rss/articles/CBMiywFBVV95cUxQdTlzSnd6Uy01SHo5Ny15MUxRRlF2OWRtdHY5WU0xMVlKeGtYRTAyUF9reUVzSDYyZ2hIUWVUOTlVaUhCVkFmNVRKbHVacXNZUi1jX2RIRWhnb2RmWVFYU20tTTZYMDM0cENKbHhuZlBYeFFIamZyQ0FMRV9kOEh2UkxKQTNJa3E4R1lQUkRKaWJ4dTU0Zi0zM3dhM0MxMEdNWTIyRkVNM05zenZLUlVnWVNycXA2cnJmSl8ySXBjMllaRFo1LVp4X2c3VdIB0AFBVV95cUxPX3VmQXBKNGVUZXhtNzZYVHZCdVRqdnFCRmdidjE2Z2FGWkVLcUhVSXhlbkhtWW1uVmp4ZzZBSWlReFV5V0ZBM3NIUWl0dFZFZjlEV0gzWnFOdGlObENhY25vckVkOGdyY0NaWW9uZlR4WDhRUlNXNm5WaTk5Q2pRQ0xGMnpRZmkwenZKakcxQzZPVmRPdU5MT1AzMVRQOFVjWGYzVFlEUzR2N245aXBIZ0lsMHhRZlBVQ1o5NUJCbHFYRWJ2U1RvZ082WlVHcDJO?oc=5\" target=\"_blank\">Dónde invertir en bolsa hoy: valores para aprovechar la continuidad de las subidas</a> <font color=\"#6f6f6f\">El Español</font>",
         "link": "https://news.google.com/rss/articles/CBMiywFBVV95cUxQdTlzSnd6Uy01SHo5Ny15MUxRRlF2OWRtdHY5WU0xMVlKeGtYRTAyUF9reUVzSDYyZ2hIUWVUOTlVaUhCVkFmNVRKbHVacXNZUi1jX2RIRWhnb2RmWVFYU20tTTZYMDM0cENKbHhuZlBYeFFIamZyQ0FMRV9kOEh2UkxKQTNJa3E4R1lQUkRKaWJ4dTU0Zi0zM3dhM0MxMEdNWTIyRkVNM05zenZLUlVnWVNycXA2cnJmSl8ySXBjMllaRFo1LVp4X2c3VdIB0AFBVV95cUxPX3VmQXBKNGVUZXhtNzZYVHZCdVRqdnFCRmdidjE2Z2FGWkVLcUhVSXhlbkhtWW1uVmp4ZzZBSWlReFV5V0ZBM3NIUWl0dFZFZjlEV0gzWnFOdGlObENhY25vckVkOGdyY0NaWW9uZlR4WDhRUlNXNm5WaTk5Q2pRQ0xGMnpRZmkwenZKakcxQzZPVmRPdU5MT1AzMVRQOFVjWGYzVFlEUzR2N245aXBIZ0lsMHhRZlBVQ1o5NUJCbHFYRWJ2U1RvZ082WlVHcDJO?oc=5",
         "published_at": "2026-09-04T05:12:22+00:00",
-        "impact": "MEDIO",
-        "language": "es"
-      },
-      {
-        "title": "La bolsa hoy: Los mercados se congelan antes de Jackson Hole - XTB.com",
-        "description": "<a href=\"https://news.google.com/rss/articles/CBMivwFBVV95cUxNWXFTY2dpa3RDT3RqWDNpRDJSVmdkZldjSWFwNUZLTk9CMXlFY085VUNwVll4MnBaYTdtOEJ0N2pnanVvX3JKM2N4M1JmVVhXbUdtUDd4YnRIV1dRd01yZFNuNUFyeXVpN3I4ZUNCaE9tWnBfWUwzTy1NN0lWNkhfdUxRODRXU1pXME9tMGRnYXA4NmxDdGZteW9DX2dXeEI1UFRneVNSWEFnMDJoblQzNmNTSHIwdWFfcTRoeE1Qbw?oc=5\" target=\"_blank\">La bolsa hoy: Los mercados se congelan antes de Jackson Hole</a> <font color=\"#6f6f6f\">XTB.com</font>",
-        "link": "https://news.google.com/rss/articles/CBMivwFBVV95cUxNWXFTY2dpa3RDT3RqWDNpRDJSVmdkZldjSWFwNUZLTk9CMXlFY085VUNwVll4MnBaYTdtOEJ0N2pnanVvX3JKM2N4M1JmVVhXbUdtUDd4YnRIV1dRd01yZFNuNUFyeXVpN3I4ZUNCaE9tWnBfWUwzTy1NN0lWNkhfdUxRODRXU1pXME9tMGRnYXA4NmxDdGZteW9DX2dXeEI1UFRneVNSWEFnMDJoblQzNmNTSHIwdWFfcTRoeE1Qbw?oc=5",
-        "published_at": "2026-08-28T06:30:36+00:00",
         "impact": "MEDIO",
         "language": "es"
       },
@@ -160491,6 +160478,14 @@
         "language": "es"
       },
       {
+        "title": "Las bolsas de valores de Holanda cerraron con subidas; el AEX ganó un 0.16% - Investing.com México",
+        "description": "<a href=\"https://news.google.com/rss/articles/CBMixwFBVV95cUxPMURuQVNYaGViSnpyMHRmMXlDTFZoQTYxajFGUnBHOHhJVWJfSDkwd0JXakE2ZlhpVkhpZVh4XzRLbk5ocmdpRkhKVXdqbVlZN3ZBNnBRa2dNQjZKWVBtOHZ1WGhvbGxyUkpXN1lmXzVqWG5KWGxoWTlMODZ1NUpKVFJmMVhaZ2pKbmQ0WjZNbkoyNDVyUElBbDlqOFNCb1UtZGY2NzMxZDhxLTBQS0w1MEZDRU9IQloyUl91TDZSeDdEQzlDWXhB?oc=5\" target=\"_blank\">Las bolsas de valores de Holanda cerraron con subidas; el AEX ganó un 0.16%</a> <font color=\"#6f6f6f\">Investing.com México</font>",
+        "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPMURuQVNYaGViSnpyMHRmMXlDTFZoQTYxajFGUnBHOHhJVWJfSDkwd0JXakE2ZlhpVkhpZVh4XzRLbk5ocmdpRkhKVXdqbVlZN3ZBNnBRa2dNQjZKWVBtOHZ1WGhvbGxyUkpXN1lmXzVqWG5KWGxoWTlMODZ1NUpKVFJmMVhaZ2pKbmQ0WjZNbkoyNDVyUElBbDlqOFNCb1UtZGY2NzMxZDhxLTBQS0w1MEZDRU9IQloyUl91TDZSeDdEQzlDWXhB?oc=5",
+        "published_at": "2026-09-02T16:14:46+00:00",
+        "impact": "MEDIO",
+        "language": "es"
+      },
+      {
         "title": "La escalada de los tipos presiona el valor de 780.000 millones en bonos en poder de la gran banca española - Cinco Días",
         "description": "<a href=\"https://news.google.com/rss/articles/CBMigAJBVV95cUxOcFhVdG1Gbm1NaURyMVFCS05FU1FQdjhhUWZOTlVlemFjeE5wNjU1OU9pZFRYOGZuOU1uWFdHaUhzVlhvdXF5akFzVGxVaENsR0ZuaEc3OXcwSlBQV2pWUmpaNjR0azJ3ZEZWaVFIQW1RQU1DWnp5SjdKSFIzTGE4YkluM2tvV0pzc1dqVWY0Yk1WM3hSejMyNmdpUzNGeEJmMHkxbnpUWEN2OUplVURqOHBCMVE1cnpQeDlaZUtIcHdzei1EOGc5MHBTOEtBemk5Q1NFN0xtcDNSUG9ZMUsyVnkzMV9VbmxCX1VUQU9SZ0lwMm1WM201cHpCdDNhVkZx0gGUAkFVX3lxTE5YMXQ2djlwMjUxT3RwUTVxbW52ZklqV09lUmxsM2Jabk1MRm5zanEyUXZpNnp2aTEzN3JReFF3MVNPWWxlTmh1dUN3SGNRcFBFRUVJQlI2NUxkbXJhMG5FVHNGNUhDSXdCSnlHXzFSNFk1QWVXU3k1Z2FUYTVGT0JXeHdDdUI5ZmNzRmVpRHdxRHQzZk1hU1FNd19NVDhQQldZWTB1WUF2LUFfTnZvYjdDZy1pTmdiODR0dmpPREJIeEhfSVhQUEZIODFISmFLRlU2Z2Z0eUt2dXRyM2RieVdEU2VMQmRVUXQ5NHRCZmR4b0pOMmZzX2pLN2t3U2VyelVJZm5CemI0a2EwXzNkRWtFM0FGZg?oc=5\" target=\"_blank\">La escalada de los tipos presiona el valor de 780.000 millones en bonos en poder de la gran banca española</a> <font color=\"#6f6f6f\">Cinco Días</font>",
         "link": "https://news.google.com/rss/articles/CBMigAJBVV95cUxOcFhVdG1Gbm1NaURyMVFCS05FU1FQdjhhUWZOTlVlemFjeE5wNjU1OU9pZFRYOGZuOU1uWFdHaUhzVlhvdXF5akFzVGxVaENsR0ZuaEc3OXcwSlBQV2pWUmpaNjR0azJ3ZEZWaVFIQW1RQU1DWnp5SjdKSFIzTGE4YkluM2tvV0pzc1dqVWY0Yk1WM3hSejMyNmdpUzNGeEJmMHkxbnpUWEN2OUplVURqOHBCMVE1cnpQeDlaZUtIcHdzei1EOGc5MHBTOEtBemk5Q1NFN0xtcDNSUG9ZMUsyVnkzMV9VbmxCX1VUQU9SZ0lwMm1WM201cHpCdDNhVkZx0gGUAkFVX3lxTE5YMXQ2djlwMjUxT3RwUTVxbW52ZklqV09lUmxsM2Jabk1MRm5zanEyUXZpNnp2aTEzN3JReFF3MVNPWWxlTmh1dUN3SGNRcFBFRUVJQlI2NUxkbXJhMG5FVHNGNUhDSXdCSnlHXzFSNFk1QWVXU3k1Z2FUYTVGT0JXeHdDdUI5ZmNzRmVpRHdxRHQzZk1hU1FNd19NVDhQQldZWTB1WUF2LUFfTnZvYjdDZy1pTmdiODR0dmpPREJIeEhfSVhQUEZIODFISmFLRlU2Z2Z0eUt2dXRyM2RieVdEU2VMQmRVUXQ5NHRCZmR4b0pOMmZzX2pLN2t3U2VyelVJZm5CemI0a2EwXzNkRWtFM0FGZg?oc=5",
@@ -160503,6 +160498,14 @@
         "description": "<a href=\"https://news.google.com/rss/articles/CBMi5gFBVV95cUxOSnp3a1lHZWRxRDQtWjBqS3o4MERXYjZKd1RfQldmN1V3S2xkVDMwMl9ha1hOc0ZJbGVDdnk4Wkg4VEdOcU1fdnpNQ19RRUd5VmZFTVhGXzRrdHNuaTZ3TjJ3UUxjMkdtSHBKSWpYdGlSZm9xeVdVTzR0d1IxMnpTaDhCMm9DcGxsbGFRUjY5YW5mZVB5X180OGxDMDVrLVBiMGVscDdLeVpvSHRWSjY3ZEJvRHFncFBpeVEwUWtXc3o5SUJGUHd1bG9ZRUh5empCV01pYU93dmRCalROUV9PUVZkTzBMd9IB-gFBVV95cUxQcS1RNnZpRDJRV01jTXdoUUI1cEJvMWNvOHhxQXlzVTFNaUR4RWdXSG11SWtSNThMQTBJbGh0Yk5iSVo4VkhDdGo3SVM5ZWdaWkdyNDVuVXltTm52a1JSM2JRMnY4bUJuN1dpRG02eFBteGduTkJXUjczaTJHb25iNXlERkpPdElCNnhONHZxNkM3bjdyUGRaeHRJU2FMSkpiTHNYR05MY3l2NGpfVjgxNWM0Tmx6QVpoMDJLSk9pSkRvVWt2NGlCYnJ2ekVhRHNmR0pVeC1LbWc0cGpaY2NVUUdOcDMzQUtuNUhQUjdJWXVYTHdSc0tyTUVB?oc=5\" target=\"_blank\">El fondo soberano noruego propone un fuerte recorte de la deuda pública en su cartera</a> <font color=\"#6f6f6f\">Cinco Días</font>",
         "link": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOSnp3a1lHZWRxRDQtWjBqS3o4MERXYjZKd1RfQldmN1V3S2xkVDMwMl9ha1hOc0ZJbGVDdnk4Wkg4VEdOcU1fdnpNQ19RRUd5VmZFTVhGXzRrdHNuaTZ3TjJ3UUxjMkdtSHBKSWpYdGlSZm9xeVdVTzR0d1IxMnpTaDhCMm9DcGxsbGFRUjY5YW5mZVB5X180OGxDMDVrLVBiMGVscDdLeVpvSHRWSjY3ZEJvRHFncFBpeVEwUWtXc3o5SUJGUHd1bG9ZRUh5empCV01pYU93dmRCalROUV9PUVZkTzBMd9IB-gFBVV95cUxQcS1RNnZpRDJRV01jTXdoUUI1cEJvMWNvOHhxQXlzVTFNaUR4RWdXSG11SWtSNThMQTBJbGh0Yk5iSVo4VkhDdGo3SVM5ZWdaWkdyNDVuVXltTm52a1JSM2JRMnY4bUJuN1dpRG02eFBteGduTkJXUjczaTJHb25iNXlERkpPdElCNnhONHZxNkM3bjdyUGRaeHRJU2FMSkpiTHNYR05MY3l2NGpfVjgxNWM0Tmx6QVpoMDJLSk9pSkRvVWt2NGlCYnJ2ekVhRHNmR0pVeC1LbWc0cGpaY2NVUUdOcDMzQUtuNUhQUjdJWXVYTHdSc0tyTUVB?oc=5",
         "published_at": "2026-09-04T09:10:04+00:00",
+        "impact": "MEDIO",
+        "language": "es"
+      },
+      {
+        "title": "La Bolsa y el Ibex 35 - Cinco Días",
+        "description": "<a href=\"https://news.google.com/rss/articles/CBMipAFBVV95cUxPdjI2bGNKT09KQUtsTkkteGpZOUVhV3ZnLXZicm5uMjFMOFVMV2IyMmxEMjRpTWQ1bWVkZVk4OG9UYXBhbC1iQ1lKTkdocHBUTjcteHFwbC15TGp2OGNGdGZoV1d4QUdLZF84ZkNtSkQ0SnVweUdtc2RnWTRmb282Z3locEdNQUNNNEdEZ0RnU1JhOF9HdEMzaVdEekMtU3dSVWNPZdIBpAFBVV95cUxPdjI2bGNKT09KQUtsTkkteGpZOUVhV3ZnLXZicm5uMjFMOFVMV2IyMmxEMjRpTWQ1bWVkZVk4OG9UYXBhbC1iQ1lKTkdocHBUTjcteHFwbC15TGp2OGNGdGZoV1d4QUdLZF84ZkNtSkQ0SnVweUdtc2RnWTRmb282Z3locEdNQUNNNEdEZ0RnU1JhOF9HdEMzaVdEekMtU3dSVWNPZQ?oc=5\" target=\"_blank\">La Bolsa y el Ibex 35</a> <font color=\"#6f6f6f\">Cinco Días</font>",
+        "link": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPdjI2bGNKT09KQUtsTkkteGpZOUVhV3ZnLXZicm5uMjFMOFVMV2IyMmxEMjRpTWQ1bWVkZVk4OG9UYXBhbC1iQ1lKTkdocHBUTjcteHFwbC15TGp2OGNGdGZoV1d4QUdLZF84ZkNtSkQ0SnVweUdtc2RnWTRmb282Z3locEdNQUNNNEdEZ0RnU1JhOF9HdEMzaVdEekMtU3dSVWNPZdIBpAFBVV95cUxPdjI2bGNKT09KQUtsTkkteGpZOUVhV3ZnLXZicm5uMjFMOFVMV2IyMmxEMjRpTWQ1bWVkZVk4OG9UYXBhbC1iQ1lKTkdocHBUTjcteHFwbC15TGp2OGNGdGZoV1d4QUdLZF84ZkNtSkQ0SnVweUdtc2RnWTRmb282Z3locEdNQUNNNEdEZ0RnU1JhOF9HdEMzaVdEekMtU3dSVWNPZQ?oc=5",
+        "published_at": "2026-09-03T05:24:48+00:00",
         "impact": "MEDIO",
         "language": "es"
       }
@@ -160525,11 +160528,8 @@
       "timezone": "America/Santiago"
     },
     "status": "ACTUALIZADA",
-    "updated_at": "2026-09-04T17:51:34.450107+00:00",
+    "updated_at": "2026-09-04T18:14:29.665181+00:00",
     "source_language": "es",
     "source": "Google News RSS"
-  },
-  "selection_persistence_status": "VERIFICADA",
-  "selection_persistence_error": null,
-  "selection_persistence_checked_at": "2026-09-04T17:54:23.343740+00:00"
+  }
 }
