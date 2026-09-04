@@ -40,3 +40,22 @@ def test_dashboard_html_contains_family_worker_grid():
     assert 'id="workerGrid"' in rd._HTML
     for profile in ("BOOM","CRASH","VOLATILITY","STEP","JUMP","FLIP"):
         assert profile in rd._HTML
+
+
+def test_dashboard_forwards_worker_enablement_to_coordinator(tmp_path):
+    calls = []
+    dashboard = RealtimeDashboardService(
+        repository=None,
+        port=0,
+        state_path=tmp_path / "state.json",
+    )
+    dashboard.set_worker_controller(
+        lambda profile, enabled: calls.append((profile, enabled)) or {
+            "ok": True, "profile": profile, "enabled": enabled,
+        }
+    )
+
+    result = dashboard.update_worker_enabled("orb", False)
+
+    assert result["ok"] is True
+    assert calls == [("ORB", False)]

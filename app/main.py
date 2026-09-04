@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
+import threading
 import time
 
 # Windows puede usar cp1252 en procesos redirigidos. El daemon genera diagnósticos
@@ -1934,9 +1935,17 @@ def run_multi_bot_daemon(args, profiles=None):
 
     workers = {}
     log_handles = {}
+    disabled_profiles = set()
+    worker_lock = threading.RLock()
     shared_db_path = str(Path(repo.db_path).resolve())
 
     def start_worker(profile):
+        with worker_lock:
+            if profile in disabled_profiles:
+                return False
+            existing = workers.get(profile)
+            if existing is not None and existing.poll() is None:
+                return True
         spec = BOT_PROFILES[profile]
         worker_interval = (
             min(int(args.interval), 10)
@@ -1972,8 +1981,9 @@ def run_multi_bot_daemon(args, profiles=None):
             stderr=subprocess.STDOUT,
             env=worker_env,
         )
-        workers[profile] = proc
-        log_handles[profile] = handle
+        with worker_lock:
+            workers[profile] = proc
+            log_handles[profile] = handle
         repo.save_audit_event(
             "BOT_WORKER_STARTED",
             source="DEMO",
@@ -2020,6 +2030,69 @@ def run_multi_bot_daemon(args, profiles=None):
             except Exception:
                 pass
         print(f"{profile:<10} PID={proc.pid} MAGIC={spec['magic']} LOG={log_path}")
+        return True
+
+    def set_worker_enabled(profile, enabled):
+        if profile not in profiles:
+            return {"ok": False, "error": f"Worker no administrado por este coordinador: {profile}"}
+        with worker_lock:
+            if enabled:
+                disabled_profiles.discard(profile)
+                started = start_worker(profile)
+                action = "WORKER_REACTIVATED" if started else "WORKER_ALREADY_RUNNING"
+                reason = "Reactivado desde el dashboard"
+            else:
+                open_positions = []
+                for trade in repo.open_trades(source="DEMO") or []:
+                    details = trade.get("details") if isinstance(trade, dict) else {}
+                    metadata = details.get("metadata") if isinstance(details, dict) else {}
+                    if str(metadata.get("bot_profile") or "").upper() == profile:
+                        open_positions.append(trade)
+                if open_positions:
+                    return {
+                        "ok": False,
+                        "error": (
+                            f"{profile} tiene {len(open_positions)} posición(es) abierta(s). "
+                            "Ciérralas antes de detener su gestión."
+                        ),
+                    }
+                disabled_profiles.add(profile)
+                proc = workers.pop(profile, None)
+                handle = log_handles.pop(profile, None)
+                action = "STRATEGY_DISABLED_FROM_DASHBOARD"
+                reason = "Desactivado manualmente desde el dashboard"
+
+        if not enabled and proc is not None and proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+        if not enabled and handle is not None:
+            handle.close()
+
+        repo.upsert_worker_runtime_state(
+            profile,
+            BOT_PROFILES[profile]["magic"],
+            source="DEMO",
+            status="RUNNING" if enabled else "DISABLED",
+            pid=(workers.get(profile).pid if enabled and workers.get(profile) is not None else None),
+            last_action=action,
+            last_reason=reason,
+            details={"dashboard_controlled": True, "enabled": bool(enabled)},
+        )
+        repo.save_audit_event(
+            "BOT_WORKER_CONTROL_CHANGED",
+            source="DEMO",
+            action=action,
+            reason=profile,
+            payload={"profile": profile, "enabled": bool(enabled)},
+        )
+        return {"ok": True, "profile": profile, "enabled": bool(enabled), "action": action}
+
+    if dashboard_service is not None:
+        dashboard_service.set_worker_controller(set_worker_enabled)
 
     for profile in profiles:
         start_worker(profile)
@@ -2097,7 +2170,9 @@ def run_multi_bot_daemon(args, profiles=None):
                     print(f"[WORKERS DB ERROR] {exc}", file=sys.stderr)
                 last_worker_console = now
 
-            for profile, proc in list(workers.items()):
+            with worker_lock:
+                active_workers = list(workers.items())
+            for profile, proc in active_workers:
                 code = proc.poll()
                 if code is None:
                     try:
@@ -2130,6 +2205,8 @@ def run_multi_bot_daemon(args, profiles=None):
                         )
                     except Exception as exc:
                         print(f"[RUNTIME HEARTBEAT ERROR] {profile}: {exc}", file=sys.stderr)
+                    continue
+                if profile in disabled_profiles:
                     continue
                 repo.save_audit_event(
                     "BOT_WORKER_STOPPED",

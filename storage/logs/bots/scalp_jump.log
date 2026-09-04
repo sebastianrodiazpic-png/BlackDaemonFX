@@ -17810,3 +17810,1514 @@ Intervalo objetivo: 30s
 Próximo ciclo en: 29.86s
 ----------------------------------------------------------------------------------------
 Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9637.19, 'equity': 9577.8, 'margin': 69.28, 'free_margin': 9508.52, 'profit': -59.39, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 17, 0, 27, 580955, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9508.52, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Jump 10 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 870}
+[OK] SYMBOL:Jump 100 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 243}
+[OK] SYMBOL:Jump 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1452}
+[OK] SYMBOL:Jump 50 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1308}
+[OK] SYMBOL:Jump 75 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 726}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_JUMP | MAGIC=26082305 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=5 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9637.19 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 5
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=5
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 17:00:32 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 1.59s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_pullback,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.88s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 1.09s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 1.07s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 2.16s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 10.25s
+Intervalo objetivo: 30s
+Próximo ciclo en: 19.75s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 17:01:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.21s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.79s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 17:01:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 17:02:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.23s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.77s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 17:02:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 17:03:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_pullback,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 17:03:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 17:04:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.14s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.86s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 17:04:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 17:05:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 17:05:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 17:06:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.83s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 17:06:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 17:07:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-04 17:07:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-04 17:08:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-04 17:08:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-04 17:09:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-04 17:09:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-04 17:10:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.28s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.05s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_strong_close
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.05s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.69s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.31s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-04 17:10:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-04 17:11:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.04s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.73s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-04 17:11:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-04 17:12:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.83s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-04 17:12:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0026 | 2026-09-04 17:13:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0027 | 2026-09-04 17:13:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0028 | 2026-09-04 17:14:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m5_pullback,m1_rejection,m1_follow_through
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0029 | 2026-09-04 17:14:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0029
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0030 | 2026-09-04 17:15:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0031 | 2026-09-04 17:15:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0032 | 2026-09-04 17:16:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0032
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.20s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.80s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0033 | 2026-09-04 17:16:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0034 | 2026-09-04 17:17:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0034
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0035 | 2026-09-04 17:17:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0035
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0036 | 2026-09-04 17:18:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0036
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0037 | 2026-09-04 17:18:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0038 | 2026-09-04 17:19:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0038
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0039 | 2026-09-04 17:19:32 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0039
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0040 | 2026-09-04 17:20:02 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0040
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.18s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.82s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9635.88, 'equity': 9654.34, 'margin': 415.44, 'free_margin': 9220.44, 'profit': 18.46, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 17, 21, 50, 614956, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9220.44, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Jump 10 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 870}
+[OK] SYMBOL:Jump 100 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 243}
+[OK] SYMBOL:Jump 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1452}
+[OK] SYMBOL:Jump 50 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 1308}
+[OK] SYMBOL:Jump 75 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 726}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_JUMP | MAGIC=26082305 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=5 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9635.88 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 5
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=5
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 17:21:55 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.86s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.74s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.84s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.90s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.73s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 5.31s
+Intervalo objetivo: 30s
+Próximo ciclo en: 24.69s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 17:22:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.04s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.19s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.81s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 17:22:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 17:23:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 17:23:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 17:24:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.83s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 17:24:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 17:25:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.15s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.85s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 17:25:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 17:26:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.03s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.13s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.87s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 17:26:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 17:27:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.02s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.14s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.86s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 17:27:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 17:28:25 UTC | símbolos=5
+========================================================================================
+[01/05] START Jump 10 Index
+[01/05] END   Jump 10 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_follow_through,m1_strong_close
+[02/05] START Jump 100 Index
+[02/05] END   Jump 100 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/05] START Jump 25 Index
+[03/05] END   Jump 25 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/05] START Jump 50 Index
+[04/05] END   Jump 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[05/05] START Jump 75 Index
+[05/05] END   Jump 75 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15

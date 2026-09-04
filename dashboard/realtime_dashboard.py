@@ -675,6 +675,7 @@ class RealtimeDashboardService:
         self.host = str(host)
         self.port = int(port)
         self._lock = threading.RLock()
+        self._worker_controller = None
         self._server = None
         self._thread = None
         self._recent = deque(maxlen=max(10, int(max_recent)))
@@ -1181,6 +1182,26 @@ class RealtimeDashboardService:
 
             def do_POST(self):
                 path = urlparse(self.path).path
+                worker_control_match = re.fullmatch(
+                    r"/api/workers/([A-Za-z0-9_-]+)/enabled",
+                    path,
+                )
+                if worker_control_match:
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        body = json.loads(self.rfile.read(length).decode("utf-8"))
+                        enabled = body.get("enabled") if isinstance(body, dict) else None
+                        result = service.update_worker_enabled(
+                            worker_control_match.group(1),
+                            enabled,
+                        )
+                        status = HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST
+                    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        result = {"ok": False, "error": f"Solicitud inválida: {exc}"}
+                        status = HTTPStatus.BAD_REQUEST
+                    payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
+                    self._send(payload, "application/json; charset=utf-8", status)
+                    return
                 if path != "/api/instruments/selection":
                     self._send(b"Not found", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
                     return
@@ -1232,6 +1253,20 @@ class RealtimeDashboardService:
                 self._state["last_live_update"] = now
                 self._state["data_freshness"] = "LIVE"
             self._persist_state_locked()
+
+    def set_worker_controller(self, controller):
+        self._worker_controller = controller
+
+    def update_worker_enabled(self, profile, enabled):
+        profile = str(profile or "").upper()
+        if not profile or not isinstance(enabled, bool):
+            return {"ok": False, "error": "Worker o estado inválido"}
+        if self._worker_controller is None:
+            return {
+                "ok": False,
+                "error": "El coordinador no admite controlar workers en esta ejecución",
+            }
+        return self._worker_controller(profile, enabled)
 
     def set_instrument_catalog(self, categorized, selected_symbols=None):
         categorized=categorized or {}; catalog=[]
@@ -1861,7 +1896,7 @@ body{background:radial-gradient(circle at 78% 0,rgba(215,155,25,.08),transparent
 .appShell{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}.brandSidebar{border-right:1px solid #6b4d13;background:linear-gradient(180deg,#050708,#070b0d 65%,#090806);padding:18px 14px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh}.brandLogo{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1px solid #7b5816;box-shadow:0 0 28px rgba(215,155,25,.12)}.brandName{font-size:20px;font-weight:950;letter-spacing:.05em;text-align:center}.brandName span{color:var(--gold2)}.brandTag{text-align:center;color:#c9a34a;font-size:11px;letter-spacing:.18em;text-transform:uppercase}.sideNav{display:grid;gap:7px;margin-top:4px}.sideNav a{color:#d9dde0;text-decoration:none;padding:11px 12px;border:1px solid transparent;border-radius:9px;font-weight:650}.sideNav a:hover,.sideNav a.active{background:linear-gradient(90deg,rgba(215,155,25,.24),rgba(215,155,25,.05));border-color:#6f5015;color:#ffd465}.sideStatus{margin-top:auto;border:1px solid #725116;background:#0d1214;border-radius:12px;padding:12px}.sideStatus b{color:var(--good)}.wrap{max-width:none;margin:0;padding:18px 20px 28px}.top{border-bottom:1px solid #513b12;padding-bottom:14px}.title{font-size:27px;letter-spacing:.02em}.title strong{color:var(--gold2)}.card{background:linear-gradient(145deg,#0b1013,#080b0d);border-color:#564014;box-shadow:inset 0 1px 0 rgba(255,214,111,.025)}.card:hover{border-color:#765719}.label{color:#c8a14a}.btn{border-color:#5b4514;background:#0d1215}.btn:hover{border-color:#b17e18;color:#ffd465}.btn.primary{background:linear-gradient(180deg,#f2c34b,#c58a11);color:#171000}.badge{border-color:#5b4514;background:#0c1114}.metric,.instrumentGroup,.auditPanel,.compareBox{background:#0d1215;border-color:#463711}.progress{background:#171b1d}.bar{background:linear-gradient(90deg,#9b690d,#f4c74c)}.ring{background:conic-gradient(var(--gold2) calc(var(--p)*1%),#202326 0)}.ring:after{background:#0a0e10}.pill{border-color:#4f3d14;background:#12171a}.chartWrap{background:#050809;border-color:#4f3d14}th{background:#0a0e10;color:#c6a14e}td,th{border-bottom-color:#25220f}.selectedRow{background:#18150b}.qualityKpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;grid-column:1/-1}.acctKpi{padding:16px}.acctKpi .value{font-size:26px}.acctKpi .trend{font-size:12px;margin-top:5px;color:var(--muted)}
 @media(max-width:1050px){.appShell{grid-template-columns:1fr}.brandSidebar{position:relative;height:auto;display:grid;grid-template-columns:90px 1fr;align-items:center}.brandLogo{width:90px}.sideNav{grid-column:1/-1;grid-template-columns:repeat(4,1fr)}.sideStatus{display:none}.qualityKpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:620px){.sideNav{grid-template-columns:1fr 1fr}.qualityKpis{grid-template-columns:1fr}.brandSidebar{grid-template-columns:72px 1fr;padding:10px}.brandLogo{width:72px}.wrap{padding:10px}}
-.workerGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.workerCard{border:1px solid #564014;border-radius:12px;background:#0d1215;padding:12px}.workerHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.workerName{font-size:18px;font-weight:900;color:#f6cb57}.workerMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}.workerMeta div{background:#10161a;border-radius:8px;padding:7px}.workerMeta span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}.workerMeta b{display:block;margin-top:2px}.workerProgress{height:7px;background:#171b1d;border-radius:99px;overflow:hidden;margin-top:10px}.workerProgress>div{height:100%;background:linear-gradient(90deg,#9b690d,#f4c74c)}.workerReason{margin-top:8px;color:var(--muted);font-size:11px;min-height:30px}.workerStale{opacity:.58}.botTabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.botTab{border:1px solid #564014;background:#0d1215;color:var(--text);border-radius:999px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:800}.botTab.active{background:#d6a62d;color:#081015;border-color:#d6a62d}.candidateContext{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}@media(max-width:1100px){.workerGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.workerGrid{grid-template-columns:1fr}}
+.workerGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.workerCard{border:1px solid #564014;border-radius:12px;background:#0d1215;padding:12px}.workerHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.workerName{font-size:18px;font-weight:900;color:#f6cb57}.workerMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}.workerMeta div{background:#10161a;border-radius:8px;padding:7px}.workerMeta span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}.workerMeta b{display:block;margin-top:2px}.workerProgress{height:7px;background:#171b1d;border-radius:99px;overflow:hidden;margin-top:10px}.workerProgress>div{height:100%;background:linear-gradient(90deg,#9b690d,#f4c74c)}.workerReason{margin-top:8px;color:var(--muted);font-size:11px;min-height:30px}.workerControl{margin-top:10px;width:100%}.workerStale{opacity:.58}.botTabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.botTab{border:1px solid #564014;background:#0d1215;color:var(--text);border-radius:999px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:800}.botTab.active{background:#d6a62d;color:#081015;border-color:#d6a62d}.candidateContext{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}@media(max-width:1100px){.workerGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.workerGrid{grid-template-columns:1fr}}
 /* v25: visor de auditoría expandible */
 .chartViewerActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}.chartViewerActions .btn{display:inline-flex;align-items:center;gap:6px;font-weight:750}.chartViewerActions .icon{font-size:15px;line-height:1}.chartCollapsible{display:block}.chartCollapsed .chartCollapsible{display:none}.chartCollapsed{padding-bottom:12px}.chartCollapsed .chartHead{align-items:center}.chartCollapsed #chartSubtitle{display:none}.chartCollapsed .chartMeta{margin-top:4px}.chartCollapsed #chartMinimizeBtn .minText:after{content:"Restaurar"}.chartCollapsed #chartMinimizeBtn .minText{font-size:0}.chartCollapsed #chartMinimizeBtn .minText:after{font-size:14px}.chartCollapsed #chartMinimizeBtn .icon{transform:rotate(180deg)}
 .chartFallbackFullscreen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;margin:0!important;border-radius:0!important;padding:16px 18px!important;background:#050708!important;overflow:auto!important;display:flex!important;flex-direction:column!important;z-index:99999}.chartFallbackFullscreen .chartCollapsible{display:flex;flex:1;min-height:0;flex-direction:column}.chartFallbackFullscreen .chartGrid{flex:1;min-height:0;grid-template-columns:1fr}.chartFallbackFullscreen .chartWrap{height:100%;min-height:0;overflow:auto}.chartFallbackFullscreen .chartSvg{width:100%;height:100%;min-height:620px}.chartFallbackFullscreen .auditPanel{overflow:auto;max-height:calc(100vh - 235px)}
@@ -2007,7 +2042,8 @@ function renderWorkers(s){
  grid.innerHTML=sorted.map(w=>{
    const total=Number(w.symbols_total||0),done=Number(w.symbols_processed||0),pctv=total?Math.min(100,done/total*100):0;
    const age=w.last_event_time?Math.max(0,(now-new Date(w.last_event_time).getTime())/1000):999999;
-   const stale=age>120,status=stale?'SIN ACTIVIDAD':(w.status||'RUNNING');
+   const disabled=String(w.status||'').toUpperCase()==='DISABLED';
+   const stale=!disabled&&age>120,status=disabled?'DISABLED':(stale?'SIN ACTIVIDAD':(w.status||'RUNNING'));
    const cls=status==='RUNNING'?'good':status==='STARTING'?'warn':'bad';
    return `<section class="workerCard ${stale?'workerStale':''}">
     <div class="workerHead"><div class="workerName">${esc(w.bot_profile||'WORKER')}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
@@ -2021,7 +2057,9 @@ function renderWorkers(s){
     </div>
     <div class="workerProgress"><div style="width:${pctv}%"></div></div>
     <div class="workerReason">${esc(w.last_reason_es||'Sin motivo adicional')}<span class="technical">${esc(w.last_reason||'')}${w.last_event_time?' · Actualizado '+new Date(w.last_event_time).toLocaleTimeString():' · Sin timestamp'}</span></div>
+    <button class="btn workerControl ${disabled?'primary':''}" data-worker-profile="${esc(w.bot_profile||'')}" data-worker-enabled="${disabled?'true':'false'}">${disabled?'Reactivar worker':'Desactivar worker'}</button>
    </section>`}).join('')||'<div class="empty">Aún no hay workers registrados en SQLAlchemy.</div>';
+  grid.querySelectorAll('[data-worker-profile]').forEach(button=>button.addEventListener('click',async()=>{const profile=button.dataset.workerProfile,enabled=button.dataset.workerEnabled==='true';if(!enabled&&!confirm(`¿Desactivar ${profile}? No se puede desactivar si mantiene posiciones abiertas.`))return;button.disabled=true;try{const response=await fetch(`/api/workers/${encodeURIComponent(profile)}/enabled`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'No se pudo actualizar el worker');await refresh();}catch(error){alert(error.message);button.disabled=false;}}));
 }
 function renderDashboardNews(s){const n=s.financial_news||{},items=n.items||[],calendar=(n.calendar||{}),events=calendar.events||[],agenda=$('economicCalendar'),target=$('dashboardNews');if(agenda){agenda.innerHTML=events.length?events.slice(0,10).map(x=>{const when=x.event_at?new Intl.DateTimeFormat('es-CL',{dateStyle:'short',timeStyle:'short',timeZone:'America/Santiago'}).format(new Date(x.event_at)):'Hora por confirmar';const values=[x.forecast?'Pronóstico: '+x.forecast:'',x.previous?'Anterior: '+x.previous:''].filter(Boolean).join(' · ');return `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <span class="pill">${esc(x.country||'GLOBAL')}</span> <b>${esc(when)} CLT/CLST</b> · ${esc(x.title)}${values?`<div class="sub">${esc(values)}</div>`:''}</div>`}).join(''):`Sin eventos próximos (${esc(calendar.status||n.status||'SIN DATOS')}).`;}if(!target)return;target.innerHTML=items.length?items.slice(0,6).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a></div>`).join(''):`Sin noticias disponibles (${esc(n.status||'SIN DATOS')}).`}
 function render(s){latestState=s;renderDashboardNews(s);renderCatalog(s);renderWorkers(s);renderCandidateTabs(s);const ax=(s.account||{}).snapshot||{};const money=v=>v==null?'—':Number(v).toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});$('accountBalance').textContent=money(ax.balance);$('accountEquity').textContent=money(ax.equity);$('accountProfit').textContent=money(ax.profit);$('accountProfit').className='value '+(Number(ax.profit||0)>0?'good':Number(ax.profit||0)<0?'bad':'');$('accountFreeMargin').textContent=money(ax.free_margin);$('status').textContent=(s.status||'—')+' · '+(s.daemon_version||'version ?')+' · '+(s.connection_mode==='LIVE'?'DATOS EN VIVO':'ÚLTIMO ESTADO CONOCIDO')+' · '+new Date(s.updated_at).toLocaleTimeString();const workers=s.worker_states||[];const activeWorkers=workers.filter(w=>String(w.status||'').toUpperCase()!=='STOPPED');$('cycle').textContent=activeWorkers.length;const total=workers.reduce((a,w)=>a+Number(w.symbols_total||0),0),done=workers.reduce((a,w)=>a+Number(w.symbols_processed||0),0);$('progressText').textContent=done+' / '+total;$('progressBar').style.width=(total?Math.min(100,done/total*100):0)+'%';const latestWorker=[...workers].sort((a,b)=>new Date(b.last_event_time||0)-new Date(a.last_event_time||0))[0];$('current').textContent=latestWorker?((latestWorker.bot_profile||'')+' · '+(latestWorker.current_symbol||'En espera')):'En espera';$('openCount').textContent=(s.open_positions||[]).length;let last=selectedCandidate(s);renderCandidateContext(last);const sc=last.score;$('score').textContent=sc==null?'—':Math.round(sc);$('ring').style.setProperty('--p',Math.max(0,Math.min(100,sc||0)));$('lastSymbol').textContent=last.symbol||'Sin datos';$('lastMeta').innerHTML=`<span class="pill ${scoreClass(sc)}">${esc(last.grade||'SIN SCORE')}</span><span class="pill">Confirmaciones ${pct(last.confirmation_percentage)}</span><span class="pill">${esc(last.direction||'SIN DIRECCIÓN')}</span>`;$('decision').innerHTML=`<b>${esc(last.decision_es||'No confirmada')}</b>${last.reason_es?` · ${esc(last.reason_es)}`:''}${last.reason?`<span class="technical">${esc(last.reason)}</span>`:''}`;$('divergence').textContent=last.divergence_confirmed?(last.divergence_type||'Sí'):'No';$('harmonic').textContent=last.harmonic_confirmed?(last.harmonic_pattern||'Sí'):'No';$('h1doji').textContent=last.h1_doji_confirmed?((last.h1_doji_type||'Sí')+(last.h1_doji_zone?' · '+last.h1_doji_zone:'')):'No';$('structure').textContent=last.structure_break||'—';$('zone').textContent=last.zone||'—';renderList($('passed'),last.passed,'ok');const critical=(last.critical_failures||[]).map(x=>'CRÍTICA: '+x);renderList($('missing'),[...(last.missing||[]),...critical],critical.length?'critical':'miss');

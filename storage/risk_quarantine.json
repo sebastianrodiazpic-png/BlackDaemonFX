@@ -15,5 +15,22 @@
     "recoverable_risk_limit_ratio": 0.03,
     "expires_at": null,
     "quarantine_policy": "MANUAL_REVIEW_REQUIRED"
+  },
+  "Volatility 50 Index": {
+    "symbol": "Volatility 50 Index",
+    "quarantined_at": "2026-09-04T17:18:22.295829+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "TP1",
+    "target_risk_amount": 12.050987500000002,
+    "hard_risk_cap": 12.292007250000001,
+    "actual_risk_amount": 13.14,
+    "risk_excess_ratio": 0.0903670757271966,
+    "recoverable_execution_granularity_breach": false,
+    "position_ticket": "4716741788",
+    "direction": "BUY",
+    "recoverable": false,
+    "recoverable_risk_limit_ratio": 0.03,
+    "expires_at": null,
+    "quarantine_policy": "MANUAL_REVIEW_REQUIRED"
   }
 }
