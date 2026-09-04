@@ -380,7 +380,9 @@ def run_demo_bot(
 
         # v41 experimental: mantener riesgo inicial, pero permitir que el RUNNER
         # gestione 2R -> 3R -> 4R con profit lock estructural.
-        runner_extension_enabled=(not str(bot_profile).upper().startswith("SCALP_")),
+        runner_extension_enabled=(
+            not str(bot_profile).upper().startswith(("SCALP_", "FOREX"))
+        ),
         runner_extension_first_trigger_rr=2.0,
         runner_extension_first_lock_rr=1.0,
         runner_extension_second_trigger_rr=3.0,
@@ -1379,7 +1381,9 @@ def run_unified_multibot_daemon(args, profiles=None):
                 first_target_rr=(0.8 if spec.get("strategy") == "ARPS" else 1.0),
                 second_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
                 single_entry_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
-                runner_extension_enabled=bool(spec.get("strategy") != "ARPS"),
+                runner_extension_enabled=bool(
+                    spec.get("strategy") != "ARPS" and not profile.startswith("FOREX")
+                ),
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
                 runner_extension_second_trigger_rr=3.0,

@@ -36,6 +36,7 @@ from strategy.scalping.adaptive_regime_pullback import (
     AdaptiveRegimePullbackConfig,
     AdaptiveRegimePullbackStrategy,
 )
+from services.financial_news_service import load_economic_calendar_state
 
 
 _QUARANTINE_PROCESS_LOCK = threading.RLock()
@@ -193,6 +194,10 @@ class LiveTradingConfig:
     # sola operación lógica para no penalizar la división TP1 + Runner.
     forex_max_currency_exposure_percent: float = 1.0
     forex_max_total_risk_percent: float = 4.0
+    forex_high_impact_news_guard_enabled: bool = True
+    forex_high_impact_news_before_minutes: int = 15
+    forex_high_impact_news_after_minutes: int = 15
+    forex_high_impact_news_calendar_path: str = "storage/dashboard/financial_news.json"
     # v85: ORB ya no usa un techo global de 1%. Sólo evita duplicar exposición
     # entre S&P 500 y Nasdaq 100 hasta que la primera operación tenga BE real.
     orb_equity_correlation_guard_enabled: bool = True
@@ -1457,6 +1462,96 @@ class LiveTradingEngine:
             }
         return None
 
+    def _forex_high_impact_news_entry_gate(self, symbol: str) -> dict | None:
+        if (
+            not bool(self.config.forex_high_impact_news_guard_enabled)
+            or not str(self.config.bot_profile or "").upper().startswith("FOREX")
+        ):
+            return None
+        base, quote = self._forex_pair_currencies(symbol)
+        if not base or not quote:
+            return None
+        now = datetime.now(timezone.utc)
+        before = timedelta(minutes=max(0, int(self.config.forex_high_impact_news_before_minutes)))
+        after = timedelta(minutes=max(0, int(self.config.forex_high_impact_news_after_minutes)))
+        calendar = load_economic_calendar_state(self.config.forex_high_impact_news_calendar_path)
+        for event in calendar["events"]:
+            if not isinstance(event, dict) or str(event.get("impact") or "").upper() != "ALTO":
+                continue
+            if str(event.get("country") or "").upper() not in {base, quote}:
+                continue
+            try:
+                event_at = datetime.fromisoformat(
+                    str(event.get("event_at") or "").replace("Z", "+00:00")
+                ).astimezone(timezone.utc)
+            except ValueError:
+                continue
+            if event_at - before <= now <= event_at + after:
+                return {
+                    "symbol": str(symbol),
+                    "action": "FOREX_HIGH_IMPACT_NEWS_ENTRY_BLOCKED",
+                    "reason": "FOREX_HIGH_IMPACT_NEWS_WINDOW",
+                    "news_window": {
+                        "event": event,
+                        "event_at": event_at.isoformat(),
+                        "window_start": (event_at - before).isoformat(),
+                        "window_end": (event_at + after).isoformat(),
+                        "phase": "PRE_EVENT" if now < event_at else "POST_EVENT",
+                        "calendar_status": calendar["status"],
+                    },
+                }
+        return None
+
+    def _protect_forex_position_for_high_impact_news(
+        self, *, trade, metadata, position, entry_price, current_sl, direction, move_stop
+    ) -> dict | None:
+        """Protege una posición Forex antes de una noticia con BE neto de spread."""
+        gate = self._forex_high_impact_news_entry_gate(trade.get("instrument"))
+        window = (gate or {}).get("news_window") or {}
+        if not gate or window.get("phase") != "PRE_EVENT":
+            return None
+        get_tick = getattr(self.provider, "get_current_tick", None)
+        if not callable(get_tick):
+            return {"action": "FOREX_NEWS_BREAK_EVEN_UNAVAILABLE", "error": "LIVE_TICK_UNAVAILABLE"}
+        try:
+            tick = get_tick(trade["instrument"]) or {}
+            bid, ask = float(tick["bid"]), float(tick["ask"])
+            constraints = self.executor.get_symbol_constraints(trade["instrument"]) or {}
+            point = max(0.0, float(constraints.get("point") or 0.0))
+            digits = int(constraints.get("digits") or 5)
+        except (KeyError, TypeError, ValueError, RuntimeError):
+            return {"action": "FOREX_NEWS_BREAK_EVEN_UNAVAILABLE", "error": "LIVE_TICK_OR_CONSTRAINTS_UNAVAILABLE"}
+        spread = ask - bid
+        extra = point * 2
+        if direction == "BUY":
+            target, executable = max(float(current_sl), float(entry_price) + spread + extra), bid > float(entry_price) + spread + extra
+        elif direction == "SELL":
+            target, executable = min(float(current_sl), float(entry_price) - spread - extra), ask < float(entry_price) - spread - extra
+        else:
+            return {"action": "FOREX_NEWS_BREAK_EVEN_UNAVAILABLE", "error": f"INVALID_DIRECTION:{direction}"}
+        target = round(target, digits)
+        if not executable:
+            return {"action": "FOREX_NEWS_BREAK_EVEN_DEFERRED", "reason": "PRICE_HAS_NOT_REACHED_NET_BREAK_EVEN"}
+        modification = move_stop(
+            position_ticket=str(trade["broker_position_ticket"]),
+            stop_loss=target,
+            take_profit=float(getattr(position, "tp", 0.0) or 0.0),
+            reason="forex_high_impact_news_break_even",
+        )
+        if not modification.get("modified", False):
+            return {"action": "FOREX_NEWS_BREAK_EVEN_REJECTED", "diagnostic": modification}
+        confirmed = self.executor.get_position(int(trade["broker_position_ticket"]))
+        if confirmed is None or abs(float(getattr(confirmed, "sl", 0.0)) - target) > self._break_even_price_tolerance(trade["instrument"], entry_price):
+            return {"action": "FOREX_NEWS_BREAK_EVEN_NOT_CONFIRMED", "expected_stop_loss": target}
+        metadata["break_even_activated"] = True
+        metadata["break_even_confirmed"] = True
+        metadata["break_even_price"] = target
+        metadata["break_even_activation_reason"] = "FOREX_HIGH_IMPACT_NEWS_NET_SPREAD"
+        details = dict(trade.get("details") or {})
+        details["metadata"] = metadata
+        self.repository.update_trade(int(trade["id"]), {"stop_loss": target, "details": details})
+        return {"action": "FOREX_NEWS_BREAK_EVEN_CONFIRMED", "break_even_price": target, "spread": spread}
+
     def _forex_due_symbols(self, base_symbols):
         """Analiza perfiles SMC una sola vez por cada vela M5 cerrada.
 
@@ -2062,6 +2157,9 @@ class LiveTradingEngine:
         # debe evaluar con las reglas defensivas del pipeline SMC H1/M15/M5.
         if str(metadata.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME:
             result["reason"] = "ARPS_FIXED_SCALP_TARGET"
+            return result
+        if str(metadata.get("bot_profile") or self.config.bot_profile or "").upper().startswith("FOREX"):
+            result["reason"] = "FOREX_FIXED_TP2_TARGET"
             return result
         if not bool(self.config.runner_extension_enabled):
             return result
@@ -2804,6 +2902,26 @@ class LiveTradingEngine:
                     "runner_extension_stage": metadata.get("runner_extension_stage"),
                     "runner_profit_lock_rr": metadata.get("runner_profit_lock_rr"),
                 })
+
+                forex_news_protection = self._protect_forex_position_for_high_impact_news(
+                    trade=trade,
+                    metadata=metadata,
+                    position=position,
+                    entry_price=entry_price,
+                    current_sl=current_sl,
+                    direction=direction,
+                    move_stop=move_stop,
+                )
+                if forex_news_protection is not None:
+                    if forex_news_protection["action"] == "FOREX_NEWS_BREAK_EVEN_CONFIRMED":
+                        activated += 1
+                    updates.append({
+                        "trade_id": trade.get("id"),
+                        "ticket": str(ticket),
+                        "symbol": trade.get("instrument"),
+                        **forex_news_protection,
+                    })
+                    continue
 
                 analysis_exit = self._analysis_invalidation_exit(
                     trade=trade,
@@ -3764,6 +3882,9 @@ class LiveTradingEngine:
         forex_rollover_gate = self._forex_rollover_entry_gate(exact_symbol)
         if forex_rollover_gate is not None:
             return forex_rollover_gate
+        forex_news_gate = self._forex_high_impact_news_entry_gate(exact_symbol)
+        if forex_news_gate is not None:
+            return forex_news_gate
 
         quarantined = self._quarantine_result(exact_symbol)
         if quarantined is not None:
@@ -4193,15 +4314,14 @@ class LiveTradingEngine:
         if bool(self.config.split_entries_enabled):
             is_forex_profile = self._uses_forex_style_smc_management(self.config.bot_profile)
             if is_forex_profile:
-                # Objetivo lógico inicial TP2. El TP4 del broker es un fail-safe,
-                # no una autorización para saltarse las evaluaciones TP2/TP3.
+                # Forex toma siempre ganancias con el runner en TP2.
                 split_specs = [
                     ("TP1", risk_fraction, float(self.config.first_target_rr), float(self.config.first_target_rr)),
                     (
                         "RUNNER",
                         risk_fraction,
-                        float(self.config.forex_runner_initial_target_rr),
-                        float(self.config.forex_runner_broker_safety_target_rr),
+                        float(self.config.second_target_rr),
+                        float(self.config.second_target_rr),
                     ),
                 ]
             else:

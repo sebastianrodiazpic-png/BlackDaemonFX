@@ -165,6 +165,29 @@ def parse_economic_calendar(
     )[:max(1, int(limit))]
 
 
+def load_economic_calendar_state(state_path: str | Path) -> dict:
+    """Lee la agenda persistida para consumidores que no ejecutan el dashboard."""
+    path = Path(state_path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {"events": [], "status": "SIN_ARCHIVO_DE_AGENDA", "updated_at": None}
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as error:
+        return {
+            "events": [],
+            "status": f"AGENDA_NO_LEIBLE:{type(error).__name__}",
+            "updated_at": None,
+        }
+    if not isinstance(payload, dict):
+        return {"events": [], "status": "AGENDA_CONTRATO_INVALIDO", "updated_at": None}
+    events = payload.get("calendar_events")
+    return {
+        "events": list(events) if isinstance(events, list) else [],
+        "status": str(payload.get("calendar_status") or "PENDIENTE"),
+        "updated_at": payload.get("updated_at"),
+    }
+
+
 class FinancialNewsService:
     def __init__(
         self,

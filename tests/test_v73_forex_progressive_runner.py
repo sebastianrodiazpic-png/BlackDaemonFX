@@ -87,16 +87,13 @@ def _trade():
     }
 
 
-def test_forex_runner_config_starts_at_tp2_and_has_tp4_fail_safe():
+def test_forex_runner_config_starts_at_tp2():
     cfg=LiveTradingConfig()
     assert cfg.forex_runner_initial_target_rr == 2.0
-    assert cfg.forex_runner_tp3_lock_rr == 1.0
-    assert cfg.forex_runner_tp4_lock_rr == 2.5
-    assert cfg.forex_runner_max_target_rr == 4.0
-    assert cfg.forex_runner_broker_safety_target_rr == 4.0
+    assert cfg.second_target_rr == 2.0
 
 
-def test_forex_at_tp2_protects_tp1_then_extends_logically_to_tp3(monkeypatch):
+def test_forex_runner_never_extends_past_tp2_even_if_extension_is_enabled(monkeypatch):
     engine,pos,tx=_engine()
     trade=_trade()
     metadata=dict(trade["details"]["metadata"])
@@ -109,89 +106,14 @@ def test_forex_at_tp2_protects_tp1_then_extends_logically_to_tp3(monkeypatch):
         initial_stop_loss=1.09000,current_rr=2.05,
         move_stop=tx.move_stop_loss,
     )
-    assert result["stage"]=="2R_TO_3R"
-    assert result["extended"] is True
-    assert result["target_rr"]==3.0
-    assert result["broker_safety_target_rr"]==4.0
-    assert abs(pos.sl-1.11000)<1e-9
-    assert abs(pos.tp-1.14000)<1e-9
-    assert metadata["runner_logical_target_rr"]==3.0
-    assert metadata["runner_next_evaluation_rr"]==3.0
+    assert result["managed"] is False
+    assert result["reason"] == "FOREX_FIXED_TP2_TARGET"
+    assert tx.moves == []
+    assert tx.closes == []
 
 
-def test_forex_at_tp2_without_continuation_closes_runner_after_tp1_lock(monkeypatch):
-    engine,pos,tx=_engine()
-    trade=_trade()
-    metadata=dict(trade["details"]["metadata"])
-    monkeypatch.setattr(
-        live_mod,"evaluate_runner_continuation",
-        lambda *a,**k: RunnerExtensionDecision(False,"SIN_CONTINUACION_TP3",{})
-    )
-    result=engine._manage_runner_extension(
-        trade=trade,position=pos,metadata=metadata,
-        initial_stop_loss=1.09000,current_rr=2.05,
-        move_stop=tx.move_stop_loss,
-    )
-    assert abs(pos.sl-1.11000)<1e-9
-    assert result["closed"] is True
-    assert tx.closes
-    assert metadata["runner_logical_target_rr"]==2.0
-
-
-def test_forex_at_tp3_if_continuation_protects_2_5r_and_runs_to_tp4(monkeypatch):
-    engine,pos,tx=_engine()
-    pos.price_current=1.13050
-    pos.sl=1.11000
-    trade=_trade()
-    metadata=dict(trade["details"]["metadata"])
-    metadata["runner_logical_target_rr"]=3.0
-    metadata["runner_extension_completed_stages"]=["2R_TO_3R"]
-    monkeypatch.setattr(
-        live_mod,"evaluate_runner_continuation",
-        lambda *a,**k: RunnerExtensionDecision(True,"CONTINUACION_TP4",{})
-    )
-    result=engine._manage_runner_extension(
-        trade=trade,position=pos,metadata=metadata,
-        initial_stop_loss=1.09000,current_rr=3.05,
-        move_stop=tx.move_stop_loss,
-    )
-    assert result["stage"]=="3R_TO_4R"
-    assert result["extended"] is True
-    assert result["target_rr"]==4.0
-    assert abs(pos.sl-1.12500)<1e-9
-    assert abs(pos.tp-1.14000)<1e-9
-    assert metadata["runner_profit_lock_rr"]==2.5
-    assert metadata["runner_logical_target_rr"]==4.0
-
-
-def test_forex_at_tp3_without_continuation_closes_after_profit_protection(monkeypatch):
-    engine,pos,tx=_engine()
-    pos.price_current=1.13050
-    pos.sl=1.11000
-    trade=_trade()
-    metadata=dict(trade["details"]["metadata"])
-    metadata["runner_logical_target_rr"]=3.0
-    metadata["runner_extension_completed_stages"]=["2R_TO_3R"]
-    monkeypatch.setattr(
-        live_mod,"evaluate_runner_continuation",
-        lambda *a,**k: RunnerExtensionDecision(False,"SIN_CONTINUACION_TP4",{})
-    )
-    result=engine._manage_runner_extension(
-        trade=trade,position=pos,metadata=metadata,
-        initial_stop_loss=1.09000,current_rr=3.05,
-        move_stop=tx.move_stop_loss,
-    )
-    assert result["closed"] is True
-    assert tx.closes
-    # Antes de evaluar TP4 ya quedó protegido al menos +2R.
-    assert pos.sl >= 1.12000
-
-
-def test_source_builds_forex_runner_with_logical_tp2_and_broker_tp4():
+def test_source_builds_forex_runner_with_fixed_tp2():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]
     text=(root/"strategy"/"execution"/"live_trading_engine.py").read_text(encoding="utf-8")
-    assert 'float(self.config.forex_runner_initial_target_rr)' in text
-    assert 'float(self.config.forex_runner_broker_safety_target_rr)' in text
-    assert '"runner_logical_target_rr"' in text
-    assert '"runner_broker_safety_target_rr"' in text
+    assert 'result["reason"] = "FOREX_FIXED_TP2_TARGET"' in text
