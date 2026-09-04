@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
 from pathlib import Path
@@ -15,6 +15,9 @@ DEFAULT_NEWS_FEED = (
     "https://news.google.com/rss/search?"
     "q=mercados+financieros+bolsa+economia&hl=es-419&gl=US&ceid=US:es-419"
 )
+DEFAULT_ECONOMIC_CALENDAR_URL = (
+    "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+)
 
 _HIGH_IMPACT_TERMS = (
     "fed", "federal reserve", "banco central", "tipos de interes",
@@ -22,6 +25,37 @@ _HIGH_IMPACT_TERMS = (
     "nominas", "desempleo", "nonfarm", "nfp", "cpi", "fomc",
     "recesion", "guerra", "arancel", "crisis bancaria", "default",
     "petroleo", "opec", "elecciones",
+)
+
+_CALENDAR_IMPACT_LABELS = {
+    "HIGH": "ALTO",
+    "MEDIUM": "MEDIO",
+    "LOW": "BAJO",
+    "HOLIDAY": "FERIADO",
+}
+
+_CALENDAR_TITLE_TRANSLATIONS = (
+    ("Non-Farm Employment Change", "Cambio de empleo no agrícola"),
+    ("Unemployment Rate", "Tasa de desempleo"),
+    ("Average Hourly Earnings", "Ganancias medias por hora"),
+    ("Federal Funds Rate", "Tasa de fondos federales"),
+    ("Interest Rate Decision", "Decisión de tasas de interés"),
+    ("Monetary Policy Statement", "Comunicado de política monetaria"),
+    ("Consumer Price Index", "Índice de precios al consumidor"),
+    ("Core CPI", "IPC subyacente"),
+    ("Inflation Rate", "Tasa de inflación"),
+    ("Gross Domestic Product", "Producto interno bruto"),
+    ("Retail Sales", "Ventas minoristas"),
+    ("Industrial Production", "Producción industrial"),
+    ("Manufacturing PMI", "PMI manufacturero"),
+    ("Services PMI", "PMI de servicios"),
+    ("Consumer Confidence", "Confianza del consumidor"),
+    ("Bank Holiday", "Feriado bancario"),
+    ("Prelim", "Preliminar"),
+    ("Final", "Final"),
+    ("m/m", "mensual"),
+    ("q/q", "trimestral"),
+    ("y/y", "anual"),
 )
 
 
@@ -65,21 +99,91 @@ def parse_rss(xml_payload: bytes, limit: int = 20) -> list[dict]:
     return items
 
 
+def _calendar_time(value: str | None) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def translate_calendar_title(title: str) -> str:
+    translated = _clean(title)
+    for source, target in _CALENDAR_TITLE_TRANSLATIONS:
+        translated = translated.replace(source, target)
+    return translated
+
+
+def parse_economic_calendar(
+    json_payload: bytes,
+    *,
+    now: datetime | None = None,
+    limit: int = 20,
+) -> list[dict]:
+    """Normaliza los próximos eventos macroeconómicos a UTC para el dashboard."""
+    raw_events = json.loads(json_payload.decode("utf-8"))
+    if not isinstance(raw_events, list):
+        raise ValueError("El calendario económico no contiene una lista de eventos")
+    reference = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    cutoff = reference - timedelta(minutes=5)
+    events = []
+    for row in raw_events:
+        if not isinstance(row, dict):
+            continue
+        event_time = _calendar_time(row.get("date"))
+        title = _clean(row.get("title"))
+        if event_time is None or event_time < cutoff or not title:
+            continue
+        impact = _CALENDAR_IMPACT_LABELS.get(
+            str(row.get("impact") or "").upper(),
+            "MEDIO",
+        )
+        events.append({
+            "title": translate_calendar_title(title),
+            "title_original": title,
+            "country": _clean(row.get("country")) or "GLOBAL",
+            "impact": impact,
+            "event_at": event_time.isoformat(),
+            "forecast": _clean(row.get("forecast")),
+            "previous": _clean(row.get("previous")),
+            "language": "es",
+        })
+    return sorted(
+        events,
+        key=lambda event: (
+            event["event_at"],
+            {"ALTO": 0, "MEDIO": 1, "BAJO": 2, "FERIADO": 3}.get(
+                event["impact"],
+                4,
+            ),
+        ),
+    )[:max(1, int(limit))]
+
+
 class FinancialNewsService:
     def __init__(
         self,
         feed_url: str = DEFAULT_NEWS_FEED,
+        calendar_url: str = DEFAULT_ECONOMIC_CALENDAR_URL,
         state_path: str | Path | None = None,
         refresh_seconds: int = 600,
         timeout_seconds: int = 8,
     ):
         self.feed_url = str(feed_url)
+        self.calendar_url = str(calendar_url)
         self.state_path = Path(state_path) if state_path else None
         self.refresh_seconds = max(60, int(refresh_seconds))
         self.timeout_seconds = max(2, int(timeout_seconds))
         self._lock = threading.RLock()
         self._news: list[dict] = []
+        self._calendar_events: list[dict] = []
         self._status = "PENDIENTE"
+        self._calendar_status = "PENDIENTE"
         self._updated_at = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -92,7 +196,11 @@ class FinancialNewsService:
             data = json.loads(self.state_path.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 self._news = list(data.get("news") or [])
+                self._calendar_events = list(data.get("calendar_events") or [])
                 self._status = str(data.get("status") or "PERSISTIDA")
+                self._calendar_status = str(
+                    data.get("calendar_status") or self._status
+                )
                 self._updated_at = data.get("updated_at")
         except (OSError, ValueError, TypeError):
             self._status = "SIN_DATOS"
@@ -103,7 +211,9 @@ class FinancialNewsService:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "news": self._news,
+            "calendar_events": self._calendar_events,
             "status": self._status,
+            "calendar_status": self._calendar_status,
             "updated_at": self._updated_at,
         }
         self.state_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
@@ -112,11 +222,36 @@ class FinancialNewsService:
         request = Request(self.feed_url, headers={"User-Agent": "DaemonBlackFx/1.0"})
         with urlopen(request, timeout=self.timeout_seconds) as response:
             news = parse_rss(response.read())
+        calendar_events = None
+        calendar_status = "ACTUALIZADA"
+        try:
+            calendar_request = Request(
+                self.calendar_url,
+                headers={"User-Agent": "DaemonBlackFx/1.0"},
+            )
+            with urlopen(calendar_request, timeout=self.timeout_seconds) as response:
+                calendar_events = parse_economic_calendar(response.read())
+        except (
+            HTTPError,
+            URLError,
+            TimeoutError,
+            OSError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            ValueError,
+        ) as error:
+            calendar_status = (
+                "NO DISPONIBLE · ÚLTIMO ESTADO "
+                f"({type(error).__name__})"
+            )
         high_impact = [row for row in news if row["impact"] == "ALTO"]
         ordered = high_impact + [row for row in news if row["impact"] != "ALTO"]
         with self._lock:
             self._news = ordered[:20]
+            if calendar_events is not None:
+                self._calendar_events = calendar_events
             self._status = "ACTUALIZADA"
+            self._calendar_status = calendar_status
             self._updated_at = datetime.now(timezone.utc).isoformat()
             self._persist()
             return list(self._news)
@@ -145,6 +280,12 @@ class FinancialNewsService:
         with self._lock:
             return {
                 "items": list(self._news),
+                "calendar": {
+                    "events": list(self._calendar_events),
+                    "status": self._calendar_status,
+                    "source": "Forex Factory calendar",
+                    "timezone": "America/Santiago",
+                },
                 "status": self._status,
                 "updated_at": self._updated_at,
                 "source_language": "es",

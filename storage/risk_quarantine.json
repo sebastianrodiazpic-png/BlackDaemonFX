@@ -1,0 +1,19 @@
+{
+  "Volatility 15 (1s) Index": {
+    "symbol": "Volatility 15 (1s) Index",
+    "quarantined_at": "2026-09-04T16:54:17.901247+00:00",
+    "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+    "trade_leg": "TP1",
+    "target_risk_amount": 11.9802,
+    "hard_risk_cap": 12.219804,
+    "actual_risk_amount": 12.35,
+    "risk_excess_ratio": 0.030867598203702773,
+    "recoverable_execution_granularity_breach": false,
+    "position_ticket": "4716722233",
+    "direction": "BUY",
+    "recoverable": false,
+    "recoverable_risk_limit_ratio": 0.03,
+    "expires_at": null,
+    "quarantine_policy": "MANUAL_REVIEW_REQUIRED"
+  }
+}
