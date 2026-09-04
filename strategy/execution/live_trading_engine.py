@@ -30,12 +30,6 @@ from strategy.orb.new_york_orb import (
     is_orb_gold_symbol,
     score_orb_gold_contract_candidate,
 )
-from strategy.scalping.adaptive_regime_pullback import (
-    ARPS_STRATEGY_NAME,
-    ARPS_STRATEGY_VERSION,
-    AdaptiveRegimePullbackConfig,
-    AdaptiveRegimePullbackStrategy,
-)
 from services.financial_news_service import load_economic_calendar_state
 
 
@@ -260,35 +254,6 @@ class LiveTradingConfig:
 
     strategy_version: str = "smc-v100-volatility-normalized-chart-risk-buffer"
 
-    # v96: estrategia paralela de scalping exclusiva para sintéticos. Se ejecuta
-    # en workers/magic propios y nunca sustituye el análisis SMC del mismo símbolo.
-    arps_scalper_enabled: bool = False
-    arps_strategy_version: str = ARPS_STRATEGY_VERSION
-    arps_risk_percent: float = 0.25
-    arps_regime_timeframe: str = "M15"
-    arps_setup_timeframe: str = "M5"
-    arps_trigger_timeframe: str = "M1"
-    arps_minimum_adx: float = 20.0
-    # v99: el ADX se adapta al régimen histórico reciente de cada sintético,
-    # pero nunca baja del piso de seguridad ni reemplaza tendencia/pediente EMA.
-    arps_adaptive_adx_enabled: bool = True
-    arps_adaptive_adx_floor: float = 16.0
-    arps_adaptive_adx_percentile: float = 0.35
-    arps_adaptive_adx_lookback: int = 160
-    arps_minimum_ema_gap_atr_ratio: float = 0.08
-    arps_minimum_ema_slope_atr_ratio: float = 0.02
-    arps_target_rr: float = 1.5
-    arps_break_even_trigger_rr: float = 0.60
-    # La muestra real mostró dos stops en sintéticos (1s) antes del antiguo
-    # corte de 2 minutos. Desde v100 la invalidación M1 doble puede actuar al
-    # minuto; aún exige pérdida, MFE insuficiente y dos análisis distintos.
-    arps_early_exit_minutes: float = 1.0
-    arps_early_exit_required_mfe_rr: float = 0.05
-    arps_early_invalidation_confirmations: int = 2
-    arps_mid_exit_minutes: float = 3.0
-    arps_mid_exit_required_mfe_rr: float = 0.10
-    arps_time_stop_minutes: float = 5.0
-    arps_time_stop_required_mfe_rr: float = 0.25
 
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
     orb_enabled: bool = True
@@ -431,22 +396,6 @@ class LiveTradingEngine:
                 stop_mode=str(self.config.orb_stop_mode),
                 stop_buffer_fraction=float(self.config.orb_stop_buffer_fraction),
                 candle_count=int(self.config.orb_candle_count),
-            ),
-        )
-        self.arps_strategy = AdaptiveRegimePullbackStrategy(
-            data_provider=provider,
-            config=AdaptiveRegimePullbackConfig(
-                regime_timeframe=str(self.config.arps_regime_timeframe),
-                setup_timeframe=str(self.config.arps_setup_timeframe),
-                trigger_timeframe=str(self.config.arps_trigger_timeframe),
-                minimum_adx=float(self.config.arps_minimum_adx),
-                adaptive_adx_enabled=bool(self.config.arps_adaptive_adx_enabled),
-                adaptive_adx_floor=float(self.config.arps_adaptive_adx_floor),
-                adaptive_adx_percentile=float(self.config.arps_adaptive_adx_percentile),
-                adaptive_adx_lookback=int(self.config.arps_adaptive_adx_lookback),
-                minimum_ema_gap_atr_ratio=float(self.config.arps_minimum_ema_gap_atr_ratio),
-                minimum_ema_slope_atr_ratio=float(self.config.arps_minimum_ema_slope_atr_ratio),
-                minimum_rr=float(self.config.arps_target_rr),
             ),
         )
         # Selección efímera por ciclo entre XAUUSD y microXAUUSD.
@@ -707,8 +656,6 @@ class LiveTradingEngine:
         strategy = str(strategy_name or "SMC").upper()
         if strategy == "ORB_NEW_YORK":
             return f"{self.config.source}:{symbol}:ORB:NY:M1:{stamp}:{direction}"
-        if strategy == ARPS_STRATEGY_NAME:
-            return f"{self.config.source}:{symbol}:ARPS:M15:M5:M1:{stamp}:{direction}"
         return f"{self.config.source}:{symbol}:H1:M15:M5:{stamp}:{direction}"
 
     def _persist_audit_event(
@@ -942,10 +889,6 @@ class LiveTradingEngine:
         )
 
         signal_age = diagnostics.get("signal_age") if isinstance(diagnostics.get("signal_age"), dict) else {}
-        arps_diag = signal.get("arps_diagnostics") if isinstance(signal.get("arps_diagnostics"), dict) else {}
-        if not arps_diag and str(strategy_name).upper() == ARPS_STRATEGY_NAME:
-            arps_diag = diagnostics
-
         risk_metrics = {
             key: row.get(key)
             for key in (
@@ -992,20 +935,6 @@ class LiveTradingEngine:
                     "max_age_candles", "max_age_minutes", "is_stale",
                 )
                 if signal_age.get(key) is not None
-            },
-            "arps_metrics": {
-                key: arps_diag.get(key)
-                for key in (
-                    "direction", "adx", "minimum_adx", "atr", "atr_allowed",
-                    "spread", "spread_atr_ratio", "maximum_spread_atr_ratio",
-                    "configured_minimum_adx", "effective_minimum_adx",
-                    "adaptive_adx_enabled", "adaptive_adx_reference",
-                    "adaptive_adx_floor", "ema_gap_atr_ratio",
-                    "minimum_ema_gap_atr_ratio", "ema_slope_atr_ratio",
-                    "minimum_ema_slope_atr_ratio", "ema_structure_ok",
-                    "rejection_candle_time", "confirmation_candle_time",
-                )
-                if arps_diag.get(key) is not None
             },
             "risk_metrics": risk_metrics,
         }
@@ -1596,15 +1525,13 @@ class LiveTradingEngine:
         smc_event_profiles = {
             "SYNTHETICS", "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP",
         }
-        arps_event_profile = profile.startswith("SCALP_")
         uses_scheduler = (
             profile == "GOLD"
             or profile.startswith("FOREX")
             or family_profile in smc_event_profiles
-            or arps_event_profile
         )
         scheduler_enabled = bool(self.config.forex_event_scheduler_enabled)
-        if family_profile in smc_event_profiles or arps_event_profile:
+        if family_profile in smc_event_profiles:
             scheduler_enabled = scheduler_enabled and bool(
                 getattr(self.config, "smc_event_scheduler_enabled", True)
             )
@@ -1656,7 +1583,6 @@ class LiveTradingEngine:
             profile.startswith("FOREX")
             or profile == "GOLD"
             or family_profile in {"SYNTHETICS", "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
-            or profile.startswith("SCALP_")
         ):
             return
         pending = dict(getattr(self, "_forex_pending_closed_bar", {}) or {})
@@ -1898,9 +1824,6 @@ class LiveTradingEngine:
         entradas nuevas, pero no invalida una posición abierta.
         """
         result = {"managed": False, "closed": False, "reason": None}
-        if str(metadata.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME:
-            result["reason"] = "ARPS_NOT_MANAGED_BY_SMC_INVALIDATION"
-            return result
         if not bool(getattr(self.config, "analysis_invalidation_exit_enabled", True)):
             return result
         if current_rr is None or not callable(close_position):
@@ -2080,97 +2003,6 @@ class LiveTradingEngine:
         })
         return result
 
-    def _arps_time_stop_exit(self, *, trade, metadata, current_rr, close_position):
-        """Cierra ARPS sólo ante invalidación M1 estructural confirmada."""
-        result = {"managed": False, "closed": False, "reason": None}
-        if str(metadata.get("strategy_name") or "").upper() != ARPS_STRATEGY_NAME:
-            return result
-        if current_rr is None or not callable(close_position):
-            return result
-        try:
-            opened_at = pd.to_datetime(trade.get("entry_time"), utc=True, errors="raise").to_pydatetime()
-            elapsed = (datetime.now(timezone.utc) - opened_at).total_seconds() / 60.0
-        except Exception:
-            return result
-        mfe = float(metadata.get("max_favorable_excursion_rr", 0.0) or 0.0)
-        rr_now = float(current_rr)
-
-        current_view = dict(
-            (getattr(self, "_current_strategy_view_cache", {}) or {}).get(
-                str(trade.get("instrument") or "")
-            ) or {}
-        )
-        evaluated_at = str(current_view.get("evaluated_at") or "")
-        reason = str(current_view.get("reason") or "").lower()
-        m1_invalid = bool(
-            current_view
-            and not bool(current_view.get("valid", False))
-            and any(name in reason for name in ("m1_rejection", "m1_follow_through", "m1_strong_close"))
-        )
-        previous_evaluation = str(metadata.get("arps_exit_last_evaluated_at") or "")
-        streak = int(metadata.get("arps_m1_invalid_streak", 0) or 0)
-        if evaluated_at and evaluated_at != previous_evaluation:
-            streak = streak + 1 if m1_invalid else 0
-            metadata["arps_exit_last_evaluated_at"] = evaluated_at
-            metadata["arps_m1_invalid_streak"] = streak
-            metadata["arps_exit_last_reason"] = current_view.get("reason")
-            metadata["arps_exit_last_valid"] = bool(current_view.get("valid", False))
-            details = dict(trade.get("details") or {})
-            details["metadata"] = metadata
-            self.repository.update_trade(int(trade["id"]), {"details": details})
-
-        early_limit = max(1.0, float(self.config.arps_early_exit_minutes))
-        early_required = max(0.0, float(self.config.arps_early_exit_required_mfe_rr))
-        invalid_required = max(1, int(self.config.arps_early_invalidation_confirmations))
-        if (
-            elapsed + 1e-9 >= early_limit
-            and mfe + 1e-9 < early_required
-            and rr_now < 0.0
-            and m1_invalid
-            and streak >= invalid_required
-        ):
-            exit_code = "ARPS_EARLY_M1_INVALIDATION_EXIT"
-            broker_reason = "arps_early_m1_invalidation"
-            required = early_required
-        else:
-            return result
-        ticket = str(trade.get("broker_position_ticket") or "")
-        if not ticket:
-            return result
-        close_result = close_position(
-            position_ticket=ticket,
-            reason=broker_reason,
-        )
-        close_payload = close_result if isinstance(close_result, dict) else {}
-        closed = bool(
-            close_payload.get("closed", False)
-            or str(close_payload.get("status") or "").upper() == "CLOSED"
-        )
-        self._persist_audit_event(
-            "ARPS_DEFENSIVE_EXIT",
-            instrument=str(trade.get("instrument") or ""),
-            action="POSITION_CLOSED_EARLY" if closed else "POSITION_CLOSE_REJECTED",
-            reason=exit_code,
-            broker_position_ticket=ticket,
-            payload={
-                "trade_id": trade.get("id"), "elapsed_minutes": elapsed,
-                "current_rr": rr_now, "mfe_rr": mfe,
-                "required_mfe_rr": required, "m1_invalid_streak": streak,
-                "current_strategy_view": current_view, "close_result": close_result,
-            },
-        )
-        result.update({
-            "managed": True,
-            "closed": closed,
-            "reason": exit_code,
-            "trade_id": trade.get("id"), "ticket": ticket,
-            "elapsed_minutes": elapsed, "current_rr": rr_now,
-            "mfe_rr": mfe, "required_mfe_rr": required,
-            "m1_invalid_streak": streak,
-            "close_result": close_result,
-        })
-        return result
-
     def _manage_runner_extension(
         self,
         *,
@@ -2197,11 +2029,6 @@ class LiveTradingEngine:
             "stage": None,
             "error": None,
         }
-        # ARPS posee una tesis M15/M5/M1 y administración temporal propia. No se
-        # debe evaluar con las reglas defensivas del pipeline SMC H1/M15/M5.
-        if str(metadata.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME:
-            result["reason"] = "ARPS_FIXED_SCALP_TARGET"
-            return result
         synthetic_profile = str(
             metadata.get("bot_profile") or self.config.bot_profile or ""
         ).upper()
@@ -2988,17 +2815,6 @@ class LiveTradingEngine:
                     # debe intentar BE/runner sobre una posición ya cerrada.
                     continue
 
-                arps_time_exit = self._arps_time_stop_exit(
-                    trade=trade,
-                    metadata=metadata,
-                    current_rr=current_rr_snapshot,
-                    close_position=close_position,
-                )
-                if arps_time_exit.get("managed"):
-                    analysis_exit_updates.append(arps_time_exit)
-                if arps_time_exit.get("closed"):
-                    continue
-
                 # v87: al abrir Nueva York no se conserva riesgo nuevo de la
                 # sesión Asia/Londres. >=1R toma ganancias; 0R..1R intenta BE.
                 gold_after_ny = (
@@ -3719,16 +3535,15 @@ class LiveTradingEngine:
             return None
 
         confirmations = signal.get("confirmations") or {}
-        is_arps = str(signal.get("strategy_name") or "").upper() == ARPS_STRATEGY_NAME
         percentage = float(signal.get("confirmation_percentage") or 0.0)
         score = float(signal.get("trade_score") or 0.0)
 
         failures = []
         checks = {
-            "rejection": bool(confirmations.get("m1_rejection" if is_arps else "rejection", False)),
-            "micro_structure": bool(confirmations.get("m5_pullback" if is_arps else "micro_structure", False)),
-            "displacement": bool(confirmations.get("m5_structure_break" if is_arps else "displacement", False)),
-            "strong_close": bool(confirmations.get("m1_strong_close" if is_arps else "strong_close", False)),
+            "rejection": bool(confirmations.get("rejection", False)),
+            "micro_structure": bool(confirmations.get("micro_structure", False)),
+            "displacement": bool(confirmations.get("displacement", False)),
+            "strong_close": bool(confirmations.get("strong_close", False)),
         }
 
         if bool(self.config.jump_require_rejection) and not checks["rejection"]:
@@ -3975,9 +3790,7 @@ class LiveTradingEngine:
                 "gold_contract_selection": self._orb_gold_cycle_diagnostics,
             }
 
-        if bool(self.config.arps_scalper_enabled):
-            analysis = self.arps_strategy.analyze_symbol(exact_symbol)
-        elif bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
+        if bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
             analysis = self.orb_strategy.analyze_symbol(exact_symbol)
             orb_signal = analysis.get("signal") or analysis.get("entry") or {}
             orb_direction = str(orb_signal.get("direction") or analysis.get("direction") or "").upper()
@@ -4196,11 +4009,7 @@ class LiveTradingEngine:
         total_risk_percent = (
             float(self.config.orb_risk_percent)
             if strategy_name == "ORB_NEW_YORK"
-            else (
-                float(self.config.arps_risk_percent)
-                if strategy_name == ARPS_STRATEGY_NAME
-                else float(self.config.risk_percent)
-            )
+            else float(self.config.risk_percent)
         )
         if risk_base_value <= 0 or not (0 < total_risk_percent <= 100):
             return {"symbol": exact_symbol, "action": "INVALID_RISK_CONFIGURATION", "risk_base": risk_base_value, "risk_percent": total_risk_percent}
@@ -4311,11 +4120,7 @@ class LiveTradingEngine:
                     }
 
                 leg_key = f"{key}:{leg_name}" if execution_mode == "SPLIT" else f"{key}:SINGLE"
-                comment_prefix = (
-                    "ORB" if strategy_name == "ORB_NEW_YORK"
-                    else "ARPS" if strategy_name == ARPS_STRATEGY_NAME
-                    else "SMC"
-                )
+                comment_prefix = "ORB" if strategy_name == "ORB_NEW_YORK" else "SMC"
                 comment = f"{comment_prefix}-{signal_id}-{leg_name}"[:31]
                 order_check = None
                 if self.config.execution_enabled or self.config.validate_order_in_dry_run:
@@ -4545,11 +4350,7 @@ class LiveTradingEngine:
                     "stop_loss": sl,
                     "take_profit": leg["take_profit"],
                     "risk_reward_ratio": leg["target_rr"],
-                    "action": (
-                        "ORB_NY_CONFIRMED" if strategy_name == "ORB_NEW_YORK"
-                        else "ARPS_SIGNAL_CONFIRMED" if strategy_name == ARPS_STRATEGY_NAME
-                        else "SMC_HARMONIC_CONFIRMED"
-                    ),
+                    "action": "ORB_NY_CONFIRMED" if strategy_name == "ORB_NEW_YORK" else "SMC_HARMONIC_CONFIRMED",
                 }
                 lifecycle = self.lifecycle_manager.create_from_signal(execution_signal)
                 lifecycle.metadata.update({
@@ -4566,11 +4367,7 @@ class LiveTradingEngine:
                     "actual_risk_amount": leg["actual_risk_amount"],
                     "initial_stop_loss": sl,
                     "break_even_enabled": bool(self.config.break_even_enabled),
-                    "break_even_trigger_rr": (
-                        float(self.config.arps_break_even_trigger_rr)
-                        if strategy_name == ARPS_STRATEGY_NAME
-                        else float(self.config.break_even_trigger_rr)
-                    ),
+                    "break_even_trigger_rr": float(self.config.break_even_trigger_rr),
                     "break_even_offset_points": int(self.config.break_even_offset_points),
                     "strategy_version": strategy_version,
                     "strategy_name": strategy_name,
@@ -4866,11 +4663,7 @@ class LiveTradingEngine:
                 "setup_reason": (
                     "ORB NY M5 breakout + retest ORB + VWAP + POC + SL 50% ORB"
                     if strategy_name == "ORB_NEW_YORK"
-                    else (
-                        "ARPS M15 EMA/ADX + M5 BOS/pullback + M1 rechazo/continuación"
-                        if strategy_name == ARPS_STRATEGY_NAME
-                        else "H1 trend,M15 SMC setup,M5 OB retest + harmonic confluence"
-                    )
+                    else "H1 trend,M15 SMC setup,M5 OB retest + harmonic confluence"
                 ),
                 "details": {
                     "signal": signal,
@@ -4912,11 +4705,7 @@ class LiveTradingEngine:
                             else float(self.config.smc_runner_tp4_guard_lock_rr)
                         ),
                         "break_even_offset_points": int(self.config.break_even_offset_points),
-                        "break_even_trigger_rr": (
-                            float(self.config.arps_break_even_trigger_rr)
-                            if strategy_name == ARPS_STRATEGY_NAME
-                            else float(self.config.break_even_trigger_rr)
-                        ),
+                        "break_even_trigger_rr": float(self.config.break_even_trigger_rr),
                         "strategy_name": strategy_name,
                         "strategy_version": strategy_version,
                         "confirmation_decision": signal.get("confirmation_decision"),
@@ -5383,8 +5172,6 @@ class LiveTradingEngine:
                 strategy_name = strategy_by_symbol.get(symbol, "SMC")
                 if strategy_name == "ORB_NEW_YORK":
                     analysis = self.orb_strategy.analyze_symbol(symbol)
-                elif strategy_name == ARPS_STRATEGY_NAME:
-                    analysis = self.arps_strategy.analyze_symbol(symbol)
                 else:
                     analysis = self.multi_timeframe.analyze_symbol(symbol)
                 view = self._current_strategy_view_from_analysis(analysis)
@@ -5867,7 +5654,7 @@ class LiveTradingEngine:
                     profile = str(self.config.bot_profile or "").upper()
                     family_profile = self._canonical_bot_profile(profile)
                     if (
-                        (profile.startswith("FOREX") or family_profile in event_profiles or profile.startswith("SCALP_"))
+                        (profile.startswith("FOREX") or family_profile in event_profiles)
                         and selected_symbols
                         and not cycle_symbols
                     ):

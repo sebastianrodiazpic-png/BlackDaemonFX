@@ -17,8 +17,6 @@ def _strategy_name(trade):
     if explicit:
         return explicit
     profile = str(meta.get("bot_profile") or "").upper()
-    if profile.startswith("SCALP_"):
-        return "ARPS_SYNTHETIC_SCALPER"
     if profile == "ORB":
         return "ORB_NEW_YORK"
     if profile:
@@ -137,11 +135,13 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
 
     records = [] if frame is None or getattr(frame, "empty", True) else frame.to_dict("records")
 
-    # v62: tesis/confirmaciones de entrada persistidas e inmutables por trade.
-    # Se leen directamente desde SQLAlchemy y sobreviven cierre/reinicio.
     confirmation_audits = {}
     try:
-        if hasattr(repository, "trade_visual_audits"):
+        if hasattr(repository, "trade_visual_audit_entry_contexts"):
+            confirmation_audits = repository.trade_visual_audit_entry_contexts(
+                source=source
+            ) or {}
+        elif hasattr(repository, "trade_visual_audits"):
             for audit in (repository.trade_visual_audits(source=source) or []):
                 tid = audit.get("trade_id")
                 if tid is not None:
@@ -149,21 +149,23 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
     except Exception:
         confirmation_audits = {}
 
-    # v68: serie histórica append-only de Entrada vs. Ahora. Todo se conserva
-    # en SQLAlchemy; Account expone un resumen + últimas observaciones por trade.
-    audit_snapshots_by_trade = {}
-    audit_snapshot_counts = {}
+    audit_snapshot_summaries = {}
     try:
-        if hasattr(repository, "trade_audit_snapshots"):
+        if hasattr(repository, "trade_audit_snapshot_summaries"):
+            audit_snapshot_summaries = repository.trade_audit_snapshot_summaries(
+                source=source
+            ) or {}
+        elif hasattr(repository, "trade_audit_snapshots"):
             for snap in (repository.trade_audit_snapshots(source=source) or []):
                 tid = str(snap.get("trade_id"))
-                audit_snapshot_counts[tid] = audit_snapshot_counts.get(tid, 0) + 1
-                bucket = audit_snapshots_by_trade.setdefault(tid, [])
-                if len(bucket) < 20:
-                    bucket.append(snap)
+                summary = audit_snapshot_summaries.setdefault(
+                    tid, {"count": 0, "latest_snapshot": None}
+                )
+                summary["count"] += 1
+                if summary["latest_snapshot"] is None:
+                    summary["latest_snapshot"] = snap
     except Exception:
-        audit_snapshots_by_trade = {}
-        audit_snapshot_counts = {}
+        audit_snapshot_summaries = {}
 
     stats["total"] = len(records)
     by_strategy = defaultdict(lambda: {
@@ -307,9 +309,16 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             "chart_pattern_conflicting_strength": entry_audit.get("chart_pattern_conflicting_strength"),
             "chart_pattern_conflict_level": entry_audit.get("chart_pattern_conflict_level"),
             "chart_pattern_conflict_reason": entry_audit.get("chart_pattern_conflict_reason"),
-            "entry_vs_now_snapshot_count": audit_snapshot_counts.get(str(source_trade_id), 0),
-            "entry_vs_now_history": audit_snapshots_by_trade.get(str(source_trade_id), []),
-            "entry_vs_now_latest": (audit_snapshots_by_trade.get(str(source_trade_id), []) or [None])[0],
+            "entry_vs_now_snapshot_count": audit_snapshot_summaries.get(
+                str(source_trade_id), {}
+            ).get("count", 0),
+            "entry_vs_now_latest": audit_snapshot_summaries.get(
+                str(source_trade_id), {}
+            ).get("latest_snapshot") or {
+                "snapshot_at": audit_snapshot_summaries.get(
+                    str(source_trade_id), {}
+                ).get("latest_snapshot_at")
+            },
         })
     try:
         db_info = repository.database_diagnostics() if hasattr(repository, "database_diagnostics") else None

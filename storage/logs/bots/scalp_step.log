@@ -23786,3 +23786,70 @@ Intervalo objetivo: 30s
 Próximo ciclo en: 29.97s
 ----------------------------------------------------------------------------------------
 Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9596.68, 'margin': 43.23, 'free_margin': 9553.45, 'profit': -37.14, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 17, 14, 131186, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9553.45, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Multi Step 2 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 96}
+[OK] SYMBOL:Multi Step 3 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 60}
+[OK] SYMBOL:Multi Step 4 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 109}
+[OK] SYMBOL:Skew Step Index 4 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 4 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Down {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Skew Step Index 5 Up {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 200}
+[OK] SYMBOL:Step Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 8}
+[OK] SYMBOL:Step Index 200 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 11}
+[OK] SYMBOL:Step Index 300 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 9}
+[OK] SYMBOL:Step Index 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 12}
+[OK] SYMBOL:Step Index 500 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.1, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_STEP | MAGIC=26082304 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=12 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 12
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=12
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:17:27 UTC | símbolos=8
+========================================================================================
+[01/08] START Multi Step 2 Index
+[01/08] END   Multi Step 2 Index | 1.01s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[02/08] START Multi Step 3 Index
+[02/08] END   Multi Step 3 Index | 2.24s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/08] START Multi Step 4 Index
+[03/08] END   Multi Step 4 Index | 1.19s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[04/08] START Step Index
+[04/08] END   Step Index | 0.94s | ARPS WAITING SETUP
+    Motivo: m5_structure_break
+[05/08] START Step Index 200
+[05/08] END   Step Index 200 | 0.39s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[06/08] START Step Index 300
+[06/08] END   Step Index 300 | 0.52s | ARPS WAITING SETUP
+    Motivo: m1_rejection
+[07/08] START Step Index 400
+[07/08] END   Step Index 400 | 0.53s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[08/08] START Step Index 500
+[08/08] END   Step Index 500 | 0.38s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15

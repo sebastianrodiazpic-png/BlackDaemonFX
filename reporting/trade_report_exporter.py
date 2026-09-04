@@ -421,9 +421,7 @@ class TradeReportExporter:
         }
 
     def _build_entry_reason(self, metadata, decision_es, passed, missing, percentage, score, harmonic_es, divergence_es, doji_es, strategy_name="SMC"):
-        if str(strategy_name).upper() == "ARPS_SYNTHETIC_SCALPER":
-            parts = ["ARPS Synthetic Scalper: régimen M15 + retroceso M5 + gatillo M1"]
-        elif str(strategy_name).upper() == "ORB_NEW_YORK":
+        if str(strategy_name).upper() == "ORB_NEW_YORK":
             parts = ["Opening Range Breakout New York (ORB)"]
         else:
             parts = ["Smart Money Concepts (SMC)"]

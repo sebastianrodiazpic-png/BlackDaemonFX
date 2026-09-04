@@ -223,12 +223,12 @@ def test_account_exposes_leg_and_logical_setup_win_rates():
                 {
                     "id": 1, "status": "CLOSED", "net_pnl": 50.0,
                     "realized_rr": 1.0, "risk_amount": 50.0,
-                    "details": {"metadata": {"strategy_name": "ARPS_SYNTHETIC_SCALPER", "parent_execution_key": "A"}},
+                    "details": {"metadata": {"strategy_name": "ORB_NEW_YORK", "parent_execution_key": "A"}},
                 },
                 {
                     "id": 2, "status": "CLOSED", "net_pnl": 0.0,
                     "realized_rr": 0.0, "risk_amount": 50.0,
-                    "details": {"metadata": {"strategy_name": "ARPS_SYNTHETIC_SCALPER", "parent_execution_key": "A"}},
+                    "details": {"metadata": {"strategy_name": "ORB_NEW_YORK", "parent_execution_key": "A"}},
                 },
                 {
                     "id": 3, "status": "CLOSED", "net_pnl": -40.0,
@@ -251,5 +251,5 @@ def test_account_exposes_leg_and_logical_setup_win_rates():
     assert stats["logical_losses"] == 1
     assert stats["setup_win_rate"] == 50.0
     assert {row["strategy"] for row in stats["by_strategy"]} == {
-        "ARPS_SYNTHETIC_SCALPER", "SMC"
+        "ORB_NEW_YORK", "SMC"
     }

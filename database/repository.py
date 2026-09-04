@@ -657,7 +657,7 @@ class TradingRepository:
         source: str = "DEMO",
         hours: float = 24.0,
     ) -> list[dict]:
-        """Datos compactos para evaluar ARPS/riesgo sin leer toda la auditoría."""
+        """Datos compactos para evaluar riesgo sin leer toda la auditoría."""
         cutoff = datetime.now(timezone.utc) - timedelta(hours=max(0.25, float(hours)))
         with self.Session() as session:
             rows = session.execute(
@@ -1079,6 +1079,48 @@ class TradingRepository:
                 "market": decode(row.market_json),
                 "visual_context": decode(row.visual_context_json),
             } for row in rows]
+
+    def trade_visual_audit_entry_contexts(self, *, source: str = "DEMO") -> dict[str, dict]:
+        """Devuelve sólo el contexto inmutable de entrada para Cuenta activa."""
+        source = str(source or "DEMO").upper()
+        with self.Session() as session:
+            rows = session.execute(
+                select(TradeVisualAudit.trade_id, TradeVisualAudit.entry_context_json)
+                .where(TradeVisualAudit.source == source)
+            ).all()
+        contexts = {}
+        for trade_id, entry_context_json in rows:
+            if trade_id is None or not entry_context_json:
+                continue
+            try:
+                entry_context = json.loads(entry_context_json)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(entry_context, dict):
+                contexts[str(trade_id)] = entry_context
+        return contexts
+
+    def trade_audit_snapshot_summaries(self, *, source: str = "DEMO") -> dict[str, dict]:
+        """Cuenta y fecha más reciente por trade sin cargar snapshots JSON."""
+        source = str(source or "DEMO").upper()
+        with self.Session() as session:
+            rows = session.execute(
+                select(
+                    TradeAuditSnapshot.trade_id,
+                    func.count(TradeAuditSnapshot.id),
+                    func.max(TradeAuditSnapshot.snapshot_at),
+                )
+                .where(TradeAuditSnapshot.source == source)
+                .group_by(TradeAuditSnapshot.trade_id)
+            ).all()
+        return {
+            str(trade_id): {
+                "count": int(count),
+                "latest_snapshot_at": latest_snapshot_at,
+            }
+            for trade_id, count, latest_snapshot_at in rows
+            if trade_id is not None
+        }
 
     def trade_audit_snapshots_dataframe(self, source: str = "DEMO"):
         rows = self.trade_audit_snapshots(source=source)

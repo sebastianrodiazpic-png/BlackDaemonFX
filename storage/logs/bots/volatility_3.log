@@ -18850,3 +18850,1723 @@ Intervalo objetivo: 30s
 Próximo ciclo en: 7.40s
 ----------------------------------------------------------------------------------------
 Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9596.68, 'margin': 43.23, 'free_margin': 9553.45, 'profit': -37.14, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 17, 14, 108930, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9553.45, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:High Frequency Vol 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 2172}
+[OK] SYMBOL:Vol over Boom 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 360}
+[OK] SYMBOL:Vol over Crash 550 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 320}
+[OK] SYMBOL:Volatility 100 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 72}
+[OK] SYMBOL:Volatility 150 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 149}
+[OK] SYMBOL:Volatility 30 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1800}
+[OK] SYMBOL:Volatility 50 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.005, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 6996}
+[OK] SYMBOL:Volatility 90 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22257}
+[OK] SYMBOL:VolSwitch Medium Vol Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 1000}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: VOLATILITY_3 | MAGIC=26082403 | ESTRATEGIA=SMC/ORB | instrumentos=9 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 9
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=9
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:17:23 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 5.20s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 3.46s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 3.22s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 6.58s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 3.20s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 5.02s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 4.50s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 3.63s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 4.52s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 42.34s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 12.34s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 18:18:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 18:18:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 18:19:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 18:19:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 18:20:06 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 0.83s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 0.68s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 0.67s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 0.59s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 1.02s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 0.77s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 4.66s
+Intervalo objetivo: 30s
+Próximo ciclo en: 25.34s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 18:20:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 18:21:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 18:21:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 18:22:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 18:22:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 18:23:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 18:23:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 18:24:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-04 18:24:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-04 18:25:06 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 0.86s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 0.64s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 0.67s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 0.62s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 1.07s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 0.84s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 4.84s
+Intervalo objetivo: 30s
+Próximo ciclo en: 25.16s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-04 18:25:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-04 18:26:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-04 18:26:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-04 18:27:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-04 18:27:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-04 18:28:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-04 18:28:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-04 18:29:06 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0025 | 2026-09-04 18:29:36 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9600.64, 'margin': 43.23, 'free_margin': 9557.41, 'profit': -33.18, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 30, 39, 621730, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9557.41, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:High Frequency Vol 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 2172}
+[OK] SYMBOL:Vol over Boom 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 360}
+[OK] SYMBOL:Vol over Crash 550 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 320}
+[OK] SYMBOL:Volatility 100 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 72}
+[OK] SYMBOL:Volatility 150 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 149}
+[OK] SYMBOL:Volatility 30 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1800}
+[OK] SYMBOL:Volatility 50 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.005, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 6996}
+[OK] SYMBOL:Volatility 90 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22257}
+[OK] SYMBOL:VolSwitch Medium Vol Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 1000}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: VOLATILITY_3 | MAGIC=26082403 | ESTRATEGIA=SMC/ORB | instrumentos=9 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 9
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=9
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:30:44 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 3.81s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 2.94s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 3.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 5.95s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 3.12s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 4.85s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 4.31s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 3.93s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 4.31s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 38.43s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 8.43s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 18:31:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 18:31:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 18:32:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 18:32:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 18:33:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 18:33:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 18:34:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 18:34:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 18:35:22 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 0.76s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 0.52s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 0.53s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 0.49s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 0.82s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 0.69s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 3.90s
+Intervalo objetivo: 30s
+Próximo ciclo en: 26.10s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 18:35:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 18:36:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 18:36:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 18:37:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-04 18:37:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0016 | 2026-09-04 18:38:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0017 | 2026-09-04 18:38:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0018 | 2026-09-04 18:39:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0019 | 2026-09-04 18:39:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0020 | 2026-09-04 18:40:22 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 0.73s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 0.44s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 0.49s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 0.43s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 0.67s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 0.56s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 3.42s
+Intervalo objetivo: 30s
+Próximo ciclo en: 26.58s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0021 | 2026-09-04 18:40:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0022 | 2026-09-04 18:41:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0023 | 2026-09-04 18:41:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0024 | 2026-09-04 18:42:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9605.38, 'margin': 43.23, 'free_margin': 9562.15, 'profit': -28.44, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 43, 20, 70127, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9562.15, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:High Frequency Vol 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 2172}
+[OK] SYMBOL:Vol over Boom 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 360}
+[OK] SYMBOL:Vol over Crash 550 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 320}
+[OK] SYMBOL:Volatility 100 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 72}
+[OK] SYMBOL:Volatility 150 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 149}
+[OK] SYMBOL:Volatility 30 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1800}
+[OK] SYMBOL:Volatility 50 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.005, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 6996}
+[OK] SYMBOL:Volatility 90 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22257}
+[OK] SYMBOL:VolSwitch Medium Vol Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 1000}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: VOLATILITY_3 | MAGIC=26082403 | ESTRATEGIA=SMC/ORB | instrumentos=9 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 9
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=9
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:43:24 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 4.72s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 2.83s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 2.74s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 5.60s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 2.80s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 3.92s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 4.05s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 3.71s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 4.12s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 36.43s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 6.43s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 18:44:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 18:44:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-04 18:45:01 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 0.01s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 0.01s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.89s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-04 18:45:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-04 18:46:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-04 18:46:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-04 18:47:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-04 18:47:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-04 18:48:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-04 18:48:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-04 18:49:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-04 18:49:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-04 18:50:01 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 2.70s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 2.10s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 2.18s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 5.51s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 1.11s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 3.33s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 2.40s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 1.81s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 2.62s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 9
+Sin señal: 0
+Esperando/otros: 9
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 23.86s
+Intervalo objetivo: 30s
+Próximo ciclo en: 6.14s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-04 18:50:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9601.12, 'margin': 96.82, 'free_margin': 9504.3, 'profit': -32.7, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 52, 52, 414443, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9504.3, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:High Frequency Vol 25 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 2172}
+[OK] SYMBOL:Vol over Boom 400 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 360}
+[OK] SYMBOL:Vol over Crash 550 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 320}
+[OK] SYMBOL:Volatility 100 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 72}
+[OK] SYMBOL:Volatility 150 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 1.0, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 149}
+[OK] SYMBOL:Volatility 30 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1800}
+[OK] SYMBOL:Volatility 50 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.005, 'volume_step': 0.001, 'point': 0.01, 'stops_level_points': 6996}
+[OK] SYMBOL:Volatility 90 (1s) Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22257}
+[OK] SYMBOL:VolSwitch Medium Vol Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 1000}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: VOLATILITY_3 | MAGIC=26082403 | ESTRATEGIA=SMC/ORB | instrumentos=9 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 9
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=9
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:52:58 UTC | símbolos=9
+========================================================================================
+[01/09] START High Frequency Vol 25 Index
+[01/09] END   High Frequency Vol 25 Index | 4.82s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 11/13 | 84.6% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento
+    Críticas faltantes: DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: desplazamiento no confirmado, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[02/09] START Vol over Boom 400
+[02/09] END   Vol over Boom 400 | 3.14s | WAITING M5 AFTER M15
+    Motivo: M5_CONFIRMATIONS_EXIST_BUT_ALL_PRECEDE_LATEST_M15_SETUP
+[03/09] START Vol over Crash 550
+[03/09] END   Vol over Crash 550 | 2.82s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[04/09] START Volatility 100 (1s) Index
+[04/09] END   Volatility 100 (1s) Index | 5.84s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[05/09] START Volatility 150 (1s) Index
+[05/09] END   Volatility 150 (1s) Index | 3.05s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[06/09] START Volatility 30 (1s) Index
+[06/09] END   Volatility 30 (1s) Index | 4.76s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 10/13 | 76.9% | calidad=78.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio, desplazamiento, microestructura M5
+    Críticas faltantes: CHOCH REQUIRES MICRO STRUCTURE, DISPLACEMENT REQUIRED FOR LIVE ENTRY
+    Rechazo técnico: choch micro structure not confirmed, desplazamiento no confirmado, rechazo del precio no confirmado, microestructura M5 no confirmada, calidad de la operación insuficiente, falta una confirmación estructural crítica, porcentaje de confirmaciones inferior al 80%
+[07/09] START Volatility 50 (1s) Index
+[07/09] END   Volatility 50 (1s) Index | 3.78s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP
+[08/09] START Volatility 90 (1s) Index
+[08/09] END   Volatility 90 (1s) Index | 3.57s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[09/09] START VolSwitch Medium Vol Index
+[09/09] END   VolSwitch Medium Vol Index | 4.38s | NO M15 SETUP
+    Motivo: NO_DIRECTIONAL_M15_SETUP

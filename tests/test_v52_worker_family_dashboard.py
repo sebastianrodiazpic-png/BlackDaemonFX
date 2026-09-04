@@ -35,6 +35,22 @@ def test_dashboard_snapshot_exposes_workers(tmp_path):
     assert snapshot["worker_states"][0]["bot_profile"]=="VOLATILITY"
 
 
+def test_dashboard_snapshot_hides_retired_scalping_workers(tmp_path):
+    repo=TradingRepository(db_path=tmp_path/"dash.db")
+    repo.upsert_worker_runtime_state(
+        "BOOM",26082101,source="DEMO",status="RUNNING",
+    )
+    repo.upsert_worker_runtime_state(
+        "SCALP_BOOM",26082107,source="DEMO",status="DISABLED",
+    )
+
+    dashboard=RealtimeDashboardService(repository=repo,port=0,state_path=tmp_path/"state.json")
+    snapshot=dashboard.snapshot()
+
+    assert [row["bot_profile"] for row in snapshot["worker_states"]] == ["BOOM"]
+    assert "SCALP_BOOM" not in snapshot["worker_candidates"]
+
+
 def test_dashboard_html_contains_family_worker_grid():
     from dashboard import realtime_dashboard as rd
     assert 'id="workerGrid"' in rd._HTML

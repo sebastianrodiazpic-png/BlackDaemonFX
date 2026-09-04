@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+import pandas as pd
+
 import database.database as dbmod
 from database.repository import TradingRepository
 from dashboard.account_metrics import build_account_payload
@@ -64,6 +66,51 @@ def test_account_payload_reports_database_diagnostics(tmp_path):
     assert payload["database"]["path"].endswith("account.db")
     assert "trade_rows" in payload["database"]
     assert "account_snapshot_rows" in payload["database"]
+
+
+def test_account_payload_uses_lightweight_audit_summaries():
+    class Repository:
+        def latest_account_snapshot(self):
+            return None
+
+        def latest_account_stats_reset(self, source="DEMO"):
+            return None
+
+        def account_trade_history_dataframe(self, source="DEMO"):
+            return pd.DataFrame([{
+                "id": 7,
+                "source_trade_id": 7,
+                "status": "OPEN",
+                "entry_time": "2026-09-04T18:00:00+00:00",
+                "details": {},
+            }])
+
+        def trade_visual_audit_entry_contexts(self, source="DEMO"):
+            return {"7": {"decision": "STRICT_CONFIRMED"}}
+
+        def trade_audit_snapshot_summaries(self, source="DEMO"):
+            return {
+                "7": {
+                    "count": 321,
+                    "latest_snapshot_at": "2026-09-04T18:01:00+00:00",
+                }
+            }
+
+        def trade_visual_audits(self, source="DEMO"):
+            raise AssertionError("Cuenta activa no debe cargar auditorías visuales completas")
+
+        def trade_audit_snapshots(self, source="DEMO"):
+            raise AssertionError("Cuenta activa no debe cargar timelines completos")
+
+        def database_diagnostics(self):
+            return {}
+
+    row = build_account_payload(Repository())["recent_trades"][0]
+
+    assert row["confirmation_decision"] == "STRICT_CONFIRMED"
+    assert row["entry_vs_now_snapshot_count"] == 321
+    assert row["entry_vs_now_latest"]["snapshot_at"] == "2026-09-04T18:01:00+00:00"
+    assert "entry_vs_now_history" not in row
 
 
 def test_account_page_displays_sqlite_path():

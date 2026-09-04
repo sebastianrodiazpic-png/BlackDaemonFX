@@ -26109,3 +26109,142 @@ Intervalo objetivo: 30s
 Próximo ciclo en: 29.54s
 ----------------------------------------------------------------------------------------
 Bot detenido por el usuario.
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9633.82, 'equity': 9596.68, 'margin': 43.23, 'free_margin': 9553.45, 'profit': -37.14, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 4, 18, 17, 14, 127690, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9553.45, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash 100 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22986}
+[OK] SYMBOL:Crash 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 7620}
+[OK] SYMBOL:Crash 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 1000}
+[OK] SYMBOL:Crash 200 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 23402}
+[OK] SYMBOL:Crash 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.5, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2205}
+[OK] SYMBOL:Crash 50 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 21161}
+[OK] SYMBOL:Crash 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 927}
+[OK] SYMBOL:Crash 600 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 2394}
+[OK] SYMBOL:Crash 900 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.2, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 1740}
+[OK] SYMBOL:Crash 99 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.001, 'stops_level_points': 22480}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: SCALP_CRASH | MAGIC=26082302 | ESTRATEGIA=ARPS_SYNTHETIC_SCALPER | instrumentos=10 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9633.82 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 0.25% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 10
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=10
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-04 18:17:25 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 1.39s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.89s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 1.35s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 150 Index_NO_PERMITE_BUY
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 1.13s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 200 Index_NO_PERMITE_BUY
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 1.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.57s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.49s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.53s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 1.42s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.66s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 10
+Sin señal: 0
+Esperando/otros: 10
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 12.32s
+Intervalo objetivo: 30s
+Próximo ciclo en: 17.68s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-04 18:17:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-04 18:18:25 UTC | símbolos=10
+========================================================================================
+[01/10] START Crash 100 Index
+[01/10] END   Crash 100 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through
+[02/10] START Crash 1000 Index
+[02/10] END   Crash 1000 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[03/10] START Crash 150 Index
+[03/10] END   Crash 150 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 150 Index_NO_PERMITE_BUY
+[04/10] START Crash 200 Index
+[04/10] END   Crash 200 Index | 0.02s | ARPS FAMILY DIRECTION BLOCKED
+    Motivo: Crash 200 Index_NO_PERMITE_BUY
+[05/10] START Crash 300 Index
+[05/10] END   Crash 300 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: ADX_M15_INSUFICIENTE
+[06/10] START Crash 50 Index
+[06/10] END   Crash 50 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[07/10] START Crash 500 Index
+[07/10] END   Crash 500 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_structure_break,m1_rejection,m1_follow_through
+[08/10] START Crash 600 Index
+[08/10] END   Crash 600 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: m5_atr_regime,m5_structure_break,m1_rejection,m1_follow_through
+[09/10] START Crash 900 Index
+[09/10] END   Crash 900 Index | 0.02s | ARPS REGIME BLOCKED
+    Motivo: SIN_TENDENCIA_M15
+[10/10] START Crash 99 Index
+[10/10] END   Crash 99 Index | 0.03s | ARPS WAITING SETUP
+    Motivo: spread_vs_atr,m5_structure_break,m1_rejection,m1_follow_through,m1_strong_close

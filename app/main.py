@@ -369,19 +369,13 @@ def run_demo_bot(
         min_actual_risk_ratio=0.97,
         execution_enabled=execute,
         orb_enabled=(str(bot_profile).upper() == "ORB"),
-        arps_scalper_enabled=(str(bot_profile).upper().startswith("SCALP_")),
-        arps_risk_percent=0.25,
-        forex_event_timeframe=(
-            "M1" if str(bot_profile).upper().startswith("SCALP_") else "M5"
-        ),
-        first_target_rr=(0.8 if str(bot_profile).upper().startswith("SCALP_") else 1.0),
-        second_target_rr=(1.5 if str(bot_profile).upper().startswith("SCALP_") else 2.0),
-        single_entry_target_rr=(1.5 if str(bot_profile).upper().startswith("SCALP_") else 2.0),
+        forex_event_timeframe="M5",
+        first_target_rr=1.0,
+        second_target_rr=2.0,
+        single_entry_target_rr=2.0,
 
         runner_extension_enabled=(
-            not str(bot_profile).upper().startswith(
-                ("SCALP_", "FOREX", "VOLATILITY")
-            )
+            not str(bot_profile).upper().startswith(("FOREX", "VOLATILITY"))
             and str(bot_profile).upper() not in {
                 "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
             }
@@ -501,7 +495,7 @@ def run_demo_bot(
         print(f"DAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
         print(
             f"BOT ACTIVO: {str(bot_profile).upper()} | MAGIC={int(magic)} | "
-            f"ESTRATEGIA={'ARPS_SYNTHETIC_SCALPER' if config.arps_scalper_enabled else 'SMC/ORB'} | "
+            "ESTRATEGIA=SMC/ORB | "
             f"instrumentos={len(symbols)} | auto_export={bool(auto_export)}"
         )
         console_reporter.print_startup(
@@ -509,7 +503,7 @@ def run_demo_bot(
             execute=execute,
             symbols=symbols,
             interval=interval_seconds,
-            risk_percent=(config.arps_risk_percent if config.arps_scalper_enabled else risk_percent),
+            risk_percent=risk_percent,
             min_rr=min_rr,
             report_path=reporting_service.exporter.output_path,
         )
@@ -873,14 +867,6 @@ BOT_PROFILES = {
         "magic": 26082106,
         "categories": ["flip"],
     },
-    # v96: ARPS corre en paralelo a SMC. Cada familia conserva proceso y magic
-    # independientes para impedir colisiones de ejecución, monitor y auditoría.
-    "SCALP_BOOM": {"mode": "scalp-boom-daemon", "magic": 26082301, "categories": ["boom"], "strategy": "ARPS"},
-    "SCALP_CRASH": {"mode": "scalp-crash-daemon", "magic": 26082302, "categories": ["crash"], "strategy": "ARPS"},
-    "SCALP_VOLATILITY": {"mode": "scalp-volatility-daemon", "magic": 26082303, "categories": ["volatility"], "strategy": "ARPS"},
-    "SCALP_STEP": {"mode": "scalp-step-daemon", "magic": 26082304, "categories": ["step"], "strategy": "ARPS"},
-    "SCALP_JUMP": {"mode": "scalp-jump-daemon", "magic": 26082305, "categories": ["jump"], "strategy": "ARPS"},
-    "SCALP_FLIP": {"mode": "scalp-flip-daemon", "magic": 26082306, "categories": ["flip"], "strategy": "ARPS"},
     "FOREX": {
         "mode": "forex-daemon",
         "magic": 26082027,
@@ -935,11 +921,6 @@ SYNTHETIC_SPLIT_PROFILES = (
     "FLIP",
 )
 
-SYNTHETIC_SCALPER_PROFILES = (
-    "SCALP_BOOM", "SCALP_CRASH", "SCALP_VOLATILITY",
-    "SCALP_STEP", "SCALP_JUMP", "SCALP_FLIP",
-)
-
 VOLATILITY_SHARD_PROFILES = (
     "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
 )
@@ -949,7 +930,6 @@ MULTIBOT_SYNTHETIC_PROFILES = (
 FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
-    *SYNTHETIC_SCALPER_PROFILES,
     *FOREX_SPLIT_PROFILES,
     "GOLD", "ORB",
 )
@@ -1378,15 +1358,12 @@ def run_unified_multibot_daemon(args, profiles=None):
                 min_actual_risk_ratio=0.97,
                 execution_enabled=args.execute,
                 orb_enabled=(profile == "ORB"),
-                arps_scalper_enabled=bool(spec.get("strategy") == "ARPS"),
-                arps_risk_percent=0.25,
-                forex_event_timeframe=("M1" if spec.get("strategy") == "ARPS" else "M5"),
-                first_target_rr=(0.8 if spec.get("strategy") == "ARPS" else 1.0),
-                second_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
-                single_entry_target_rr=(1.5 if spec.get("strategy") == "ARPS" else 2.0),
+                forex_event_timeframe="M5",
+                first_target_rr=1.0,
+                second_target_rr=2.0,
+                single_entry_target_rr=2.0,
                 runner_extension_enabled=bool(
-                    spec.get("strategy") != "ARPS"
-                    and not profile.startswith(("FOREX", "VOLATILITY"))
+                    not profile.startswith(("FOREX", "VOLATILITY"))
                     and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP"}
                 ),
                 runner_extension_first_trigger_rr=2.0,
@@ -2491,12 +2468,6 @@ def main():
             "step-daemon",
             "jump-daemon",
             "flip-daemon",
-            "scalp-boom-daemon",
-            "scalp-crash-daemon",
-            "scalp-volatility-daemon",
-            "scalp-step-daemon",
-            "scalp-jump-daemon",
-            "scalp-flip-daemon",
             "forex-daemon",
             "forex-split-daemon",
             "forex-1-daemon",
@@ -2812,12 +2783,6 @@ def main():
         "step-daemon": "STEP",
         "jump-daemon": "JUMP",
         "flip-daemon": "FLIP",
-        "scalp-boom-daemon": "SCALP_BOOM",
-        "scalp-crash-daemon": "SCALP_CRASH",
-        "scalp-volatility-daemon": "SCALP_VOLATILITY",
-        "scalp-step-daemon": "SCALP_STEP",
-        "scalp-jump-daemon": "SCALP_JUMP",
-        "scalp-flip-daemon": "SCALP_FLIP",
         "forex-1-daemon": "FOREX_1",
         "forex-2-daemon": "FOREX_2",
         "forex-3-daemon": "FOREX_3",

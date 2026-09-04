@@ -37,8 +37,6 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
     strategy_actions = defaultdict(Counter)
     missing = defaultdict(Counter)
     elapsed = defaultdict(list)
-    arps_adx = []
-    arps_spread_atr = []
     risk_reachability = []
     detail_rows = []
 
@@ -55,11 +53,6 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
             elapsed[strategy].append(elapsed_value)
         for key in result.get("missing_confirmations") or []:
             missing[strategy][str(key)] += 1
-
-        arps_metrics = result.get("arps_metrics") if isinstance(result.get("arps_metrics"), dict) else {}
-        if strategy == "ARPS_SYNTHETIC_SCALPER":
-            arps_adx.append(arps_metrics.get("adx"))
-            arps_spread_atr.append(arps_metrics.get("spread_atr_ratio"))
 
         risk_metrics = result.get("risk_metrics") if isinstance(result.get("risk_metrics"), dict) else {}
         if risk_metrics or action in {
@@ -95,7 +88,6 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
             "missing_confirmations": result.get("missing_confirmations") or [],
             "elapsed_seconds": elapsed_value,
             "signal_age": result.get("signal_age") or {},
-            "arps_metrics": arps_metrics,
             "risk_metrics": risk_metrics,
         })
 
@@ -108,7 +100,6 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
         "configuration_guardrails": {
             "m5_freshness_changed": False,
             "structural_gates_changed": False,
-            "arps_thresholds_changed": False,
             "minimum_risk_threshold_changed": False,
         },
         "actions": dict(actions.most_common()),
@@ -124,10 +115,6 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
         "elapsed_seconds": {
             strategy: _distribution(values)
             for strategy, values in elapsed.items()
-        },
-        "arps_metrics": {
-            "adx": _distribution(arps_adx),
-            "spread_atr_ratio": _distribution(arps_spread_atr),
         },
         "risk_reachability": {
             "events": len(risk_reachability),
@@ -148,7 +135,7 @@ def write_strategy_evaluation(report: dict, output_path) -> Path:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Resume filtros ARPS, latencia y alcance de riesgo desde auditoría compacta."
+        description="Resume latencia y alcance de riesgo desde auditoría compacta."
     )
     parser.add_argument("--hours", type=float, default=24.0)
     parser.add_argument("--source", default="DEMO")

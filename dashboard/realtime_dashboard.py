@@ -70,10 +70,6 @@ _ACTION_LABELS_ES = {
     "MAX_OPEN_POSITIONS_PER_SYMBOL_REACHED": "Se alcanzó el máximo de posiciones para este instrumento",
     "ALREADY_EXECUTED": "Esta oportunidad ya fue ejecutada anteriormente",
     "MARKET_INVALIDATED_SIGNAL": "El mercado invalidó la señal antes de ejecutar",
-    "ARPS_REGIME_BLOCKED": "ARPS esperando un régimen M15 válido",
-    "ARPS_WAITING_SETUP": "ARPS esperando confirmaciones M5/M1",
-    "ARPS_FAMILY_DIRECTION_BLOCKED": "Dirección no permitida para esta familia sintética",
-    "ARPS_INSUFFICIENT_DATA": "ARPS sin datos suficientes",
     "ERROR": "Error durante el análisis o la ejecución",
     "NO_H1_CONTEXT": "Esperando contexto válido de H1",
     "NO_M15_SETUP": "Esperando setup válido de M15",
@@ -138,7 +134,6 @@ _REASON_LABELS_ES = {
     "MAX_TOTAL_OPEN_POSITIONS": "No se abre la entrada porque ya se alcanzó el máximo de posiciones simultáneas.",
     "ADX_M15_INSUFICIENTE": "El ADX de M15 todavía no acredita fuerza direccional suficiente para operar.",
     "SIN_TENDENCIA_M15": "Las EMA de M15 todavía no tienen separación y pendiente suficientes para definir una tendencia operable.",
-    "M5_ATR_REGIME": "La volatilidad M5 está fuera del rango histórico permitido para ARPS.",
     "SPREAD_VS_ATR": "El spread actual es demasiado grande respecto del ATR M5.",
     "M5_STRUCTURE_BREAK": "Todavía no existe ruptura estructural BOS en M5.",
     "M5_PULLBACK": "Todavía no se confirmó el pullback M5 hacia la zona dinámica.",
@@ -199,10 +194,6 @@ def _operational_state(action: Any, reason: Any, decision: Any) -> dict:
         return {"key": "CONFIRMED", "label": "CONFIRMADO", "severity": "good"}
     if a.startswith("REJECT") or a in {"REJECTED", "EXECUTION_REJECTED", "MARKET_INVALIDATED_SIGNAL", "DIRECTION_POLICY_BLOCKED", "ALREADY_EXECUTED"}:
         return {"key": "REJECTED", "label": "DESCARTADO", "severity": "warn"}
-    if a == "ARPS_REGIME_BLOCKED":
-        return {"key": "WAITING_REGIME", "label": "ESPERANDO RÉGIMEN", "severity": "neutral"}
-    if a in {"ARPS_WAITING_SETUP", "ARPS_INSUFFICIENT_DATA"}:
-        return {"key": "WAITING", "label": "ESPERANDO SETUP", "severity": "neutral"}
     if a in {"NO_SIGNAL", "NO_TRADE", "NO_NEW_ORDER", "SIN ACCIÓN", "SIN_ACCION"} or "NO_" in r:
         return {"key": "WAITING", "label": "ESPERANDO", "severity": "neutral"}
     if a == "ERROR" or "ERROR" in r:
@@ -215,24 +206,7 @@ def _enrich_recent_row(value: Any) -> dict:
     row = dict(value) if isinstance(value, dict) else {}
     action = row.get("action") or row.get("_action") or "SIN_ACCION"
     reason = row.get("reason") or row.get("error")
-    metrics = row.get("arps_metrics") if isinstance(row.get("arps_metrics"), dict) else {}
     reason_es = _reason_label_es(reason)
-    if str(reason or "").upper() == "ADX_M15_INSUFICIENTE":
-        adx = metrics.get("adx")
-        threshold = metrics.get("effective_minimum_adx", metrics.get("minimum_adx"))
-        if adx is not None and threshold is not None:
-            reason_es = (
-                f"ADX M15={float(adx):.2f}, por debajo del umbral adaptativo "
-                f"{float(threshold):.2f}. Se espera mayor fuerza antes de entrar."
-            )
-    elif str(reason or "").upper() == "SIN_TENDENCIA_M15":
-        gap = metrics.get("ema_gap_atr_ratio")
-        slope = metrics.get("ema_slope_atr_ratio")
-        if gap is not None and slope is not None:
-            reason_es = (
-                f"M15 sin tendencia estructural: separación EMA/ATR={float(gap):.3f} "
-                f"y pendiente/ATR={float(slope):.3f}."
-            )
     decision = row.get("confirmation_decision") or row.get("decision")
     row.update({
         "action": action,
@@ -665,6 +639,11 @@ def _extract_quality(result: dict) -> dict:
         "h1_trend": pick("h1_trend"),
         "zone": pick("m15_zone", "premium_discount_zone"),
     }
+
+
+def _is_retired_worker_profile(profile):
+   """Identifica perfiles cuya estrategia ya no forma parte del daemon."""
+   return str(profile or "").upper().startswith("SCALP_")
 
 
 class RealtimeDashboardService:
@@ -1416,7 +1395,6 @@ class RealtimeDashboardService:
             "reason": reason,
             "elapsed_seconds": round(float(elapsed_seconds or 0.0), 3),
             **quality,
-            "arps_metrics": (result.get("arps_metrics") or (result.get("diagnostics") or {})),
         })
         with self._lock:
             self._recent.appendleft(_json_safe(row))
@@ -1506,7 +1484,7 @@ class RealtimeDashboardService:
         worker_by_profile = {
             str(row.get("bot_profile") or "").upper(): row
             for row in worker_rows
-            if row.get("bot_profile")
+            if row.get("bot_profile") and not _is_retired_worker_profile(row.get("bot_profile"))
         }
 
         charts = monitor.get("charts") if isinstance(monitor, dict) else {}
@@ -1847,6 +1825,15 @@ class RealtimeDashboardService:
                         worker_candidates = self.repository.latest_worker_process_results(source="DEMO")
                     except Exception:
                         worker_candidates = {}
+                worker_states = [
+                    row for row in worker_states
+                    if not _is_retired_worker_profile((row or {}).get("bot_profile"))
+                ]
+                worker_candidates = {
+                    profile: candidate
+                    for profile, candidate in worker_candidates.items()
+                    if not _is_retired_worker_profile(profile)
+                }
                 self._snapshot_aux_cache = {
                     "at": now,
                     "recent": persisted_recent,
@@ -1860,6 +1847,7 @@ class RealtimeDashboardService:
             state["recent"] = [
                 _enrich_recent_row(row)
                 for row in state["recent"]
+                if not _is_retired_worker_profile((row or {}).get("bot_profile"))
             ]
             visible_worker_states = [
                 {
@@ -1869,7 +1857,10 @@ class RealtimeDashboardService:
                     "status_es": _state_label_es((row or {}).get("status")),
                 }
                 for row in worker_states
-                if str((row or {}).get("status") or "").upper() != "SUPERSEDED"
+                if (
+                    str((row or {}).get("status") or "").upper() != "SUPERSEDED"
+                    and not _is_retired_worker_profile((row or {}).get("bot_profile"))
+                )
             ]
             state["worker_states"] = visible_worker_states
             state["worker_candidates"] = worker_candidates
