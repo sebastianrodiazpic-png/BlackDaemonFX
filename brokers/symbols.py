@@ -1,7 +1,21 @@
+"""Script de diagnostico: lista los simbolos que ofrece el terminal MT5.
+
+ESTADO: herramienta manual, sin consumidores en el codigo. Sirve para averiguar
+el nombre EXACTO de un instrumento en el broker, que suele diferir del nombre
+comercial y es fuente habitual de errores de configuracion.
+
+El descubrimiento que si usa el bot esta en `brokers.symbol_discovery`.
+"""
+
 import MetaTrader5 as mt5
 
 
 def list_symbols():
+    """Imprime cuenta, servidor y el nombre de todos los simbolos disponibles.
+
+    Abre y cierra su propia sesion MT5. No devuelve nada: es puramente de
+    consola.
+    """
     print("=" * 70)
     print("DETECCIÓN DE SÍMBOLOS DISPONIBLES EN METATRADER 5")
     print("=" * 70)

@@ -1,3 +1,21 @@
+"""Gestor de riesgo SMC de alto nivel: límites de cuenta y validaciones.
+
+Reune sobre `position_sizing` y `money_management` las reglas de proteccion
+de la cuenta: riesgo maximo por operacion, perdida diaria, drawdown, rachas
+de perdidas consecutivas, numero de posiciones abiertas y riesgo agregado.
+
+ESTADO: sin consumidores en produccion. El motor en vivo
+(`strategy.execution.live_trading_engine`) implementa su propio dimensionado
+y sus propios topes de riesgo, incluida la validacion posterior al fill. Este
+paquete se mantiene cubierto por tests y sirve de referencia, pero NO
+interviene en la operativa real.
+
+Vinculaciones:
+- Importa `strategy.risk.position_sizing` y `strategy.risk.money_management`.
+- Solo lo consumen `tests/test_risk_manager.py` y
+  `tests/test_risk_integration.py`.
+"""
+
 import pandas as pd
 import numpy as np
 

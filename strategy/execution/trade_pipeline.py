@@ -1,3 +1,27 @@
+"""Pipeline SMC completo: de las velas OHLC a los setups confirmados.
+
+Encadena en orden los diez pasos del analisis Smart Money Concepts. Cada paso
+ANOTA columnas nuevas sobre el mismo DataFrame, de modo que al final cada
+vela lleva todo su contexto estructural.
+
+Orden real del encadenamiento:
+
+    validacion OHLC -> swings -> estructura de mercado -> liquidez ->
+    barridos -> CHOCH/BOS -> order blocks -> premium/discount ->
+    construccion de setups -> confirmacion M5 -> riesgo/beneficio
+
+`build_setups` es el embudo: exige que SIETE condiciones se cumplan a la vez
+y descarta el resto. Lo que sobrevive pasa por el motor de confirmacion M5,
+que es quien puntua la calidad de la entrada.
+
+Vinculaciones:
+- Consume casi todo `strategy.smc`.
+- `config.symbol_policy` restringe la direccion en simbolos como Boom y
+  Crash, donde solo tiene sentido operar hacia un lado.
+- Lo invoca `strategy.execution.multi_timeframe`, y a traves de el el motor
+  en vivo.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -18,6 +42,33 @@ from strategy.smc.risk_reward import calculate_risk_reward
 
 @dataclass
 class PipelineConfig:
+    """Todos los parámetros del pipeline SMC en un único objeto reproducible.
+
+    Los valores son EXPLICITOS a proposito: guardando esta configuracion se
+    puede reproducir exactamente por que una entrada fue aceptada o
+    rechazada, tanto en backtest como en vivo.
+
+    Bloques:
+    - Deteccion estructural: `swing_*`, `liquidity_tolerance`,
+      `order_block_lookback`, `premium_discount_lookback`, `sweep_lookback`.
+    - Confirmacion M5: umbral de score, requisitos obligatorios
+      (`require_*`), proporciones minimas de cuerpo y mecha.
+    - Confluencias que SUMAN puntos pero no son obligatorias: armonicos,
+      patrones chartistas, divergencias RSI, doji H1 en extremos.
+
+    Distincion clave: los `require_*` son VETOS, mientras que los
+    `*_bonus_points` solo suman al score. Los patrones chartistas son la
+    excepcion, porque ademas pueden RESTAR mediante
+    `chart_pattern_secondary_conflict_penalty` cuando existe un patron
+    contrario, o bloquear del todo con
+    `block_material_chart_pattern_conflict`.
+
+    Vinculaciones:
+    - Sus campos de confirmacion se trasladan a
+      `strategy.smc.confirmation_engine.M5ConfirmationConfig` dentro de
+      `run_trade_pipeline`.
+    """
+
     swing_left: int = 3
     swing_right: int = 3
     liquidity_tolerance: float = 0.0015
@@ -89,6 +140,11 @@ CHECKLIST_COLUMNS = [
 
 
 def _empty_setups() -> pd.DataFrame:
+    """DataFrame vacío con el esquema completo de setups.
+
+    Devolverlo en lugar de `None` permite que los consumidores encadenen
+    operaciones de pandas sin comprobar nulos.
+    """
     columns = [
         'time', 'setup_time', 'break_time', 'setup_type', 'ob_high', 'ob_low',
         'ob_type', 'zone', 'equilibrium', 'trend', 'sweep_time', 'sweep_level',
@@ -98,6 +154,18 @@ def _empty_setups() -> pd.DataFrame:
 
 
 def _validate_price_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Normaliza y valida las velas antes de analizarlas.
+
+    Trabaja sobre una COPIA. Convierte `time` a UTC, ordena
+    cronologicamente, elimina marcas duplicadas y reinicia el indice.
+
+    Ese saneamiento es imprescindible: todos los pasos posteriores usan
+    indices posicionales, y un DataFrame desordenado o con duplicados
+    produciria estructuras de mercado falsas.
+
+    Raises:
+        ValueError: si faltan columnas OHLC o no queda ninguna vela.
+    """
     required = ['time', 'open', 'high', 'low', 'close']
     missing = [column for column in required if column not in df.columns]
     if missing:
@@ -111,6 +179,22 @@ def _validate_price_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _latest_sweep(data: pd.DataFrame, direction: str, break_index: int, lookback: int):
+    """Busca el último barrido de liquidez ANTERIOR a la ruptura estructural.
+
+    El orden temporal es lo esencial: la secuencia SMC valida exige que
+    primero se barra liquidez y despues se rompa la estructura. Por eso la
+    ventana termina en `break_index`, sin incluirlo.
+
+    Args:
+        data: velas ya anotadas con las columnas de barrido.
+        direction: `long` busca `bullish_sweep`; cualquier otro valor,
+            `bearish_sweep`.
+        break_index: posicion de la ruptura.
+        lookback: cuantas velas mirar hacia atras.
+
+    Returns:
+        La fila del barrido mas reciente, o `None` si no hay ninguno.
+    """
     column = 'bullish_sweep' if direction == 'long' else 'bearish_sweep'
     start = max(0, break_index - lookback)
     candidates = data.iloc[start:break_index]
@@ -121,10 +205,37 @@ def _latest_sweep(data: pd.DataFrame, direction: str, break_index: int, lookback
 
 
 def _trend_at(data: pd.DataFrame, break_index: int) -> str:
+    """Tendencia vigente en el momento de la ruptura, sin mirar el futuro.
+
+    Recorta el DataFrame hasta `break_index` inclusive antes de clasificar.
+    Ese recorte es lo que evita el sesgo de anticipacion: la tendencia se
+    evalua con la informacion que existia entonces, no con la posterior.
+    """
     return get_current_trend(data.iloc[: break_index + 1])
 
 
 def build_setups(data: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
+    """Construye los setups válidos a partir de los order blocks detectados.
+
+    Es el EMBUDO del pipeline. Para cada order block comprueba SIETE
+    condiciones y descarta el setup si falla una sola:
+
+    1. `trend_ok`: la tendencia acompana a la direccion.
+    2. `swing_ok`: existen swings altos y bajos previos.
+    3. `liquidity_ok`: el barrido tiene nivel de liquidez conocido.
+    4. `sweep_ok`: hubo barrido antes de la ruptura.
+    5. `structure_break_ok`: el BOS/CHOCH va en la direccion correcta.
+    6. `order_block_ok`: el order block tiene limites definidos.
+    7. `premium_discount_ok`: las compras nacen en descuento y las ventas en
+       premium.
+
+    `retest_ok` y `confirmation_ok` salen SIEMPRE en `False`: son etapas
+    posteriores que rellena el motor de confirmacion.
+
+    Returns:
+        DataFrame de setups ordenado por tiempo y sin duplicados, o el
+        esquema vacio de `_empty_setups` si no sobrevive ninguno.
+    """
     rows = []
     ob_rows = data[data['ob_type'].notna()].copy()
 
@@ -183,6 +294,15 @@ def _filter_by_policy(frame: pd.DataFrame, column: str, allowed_direction: str |
     las confirmaciones después de convertirlas a BUY/SELL. Normalizamos ambos
     formatos antes de comparar para que la política sea consistente en todas
     las etapas del pipeline.
+
+    Args:
+        frame: setups o confirmaciones a filtrar.
+        column: `setup_type` o `direction`.
+        allowed_direction: unica direccion permitida, o `None` para no
+            filtrar.
+
+    Returns:
+        El DataFrame filtrado; el original si no hay politica que aplicar.
     """
     if frame is None or frame.empty or not allowed_direction or column not in frame.columns:
         return frame
@@ -200,7 +320,29 @@ def run_trade_pipeline(
     config: PipelineConfig | None = None,
     symbol: str | None = None,
 ) -> dict:
-    """Ejecuta la cadena SMC completa. Si symbol es Boom/Crash, aplica la política de dirección del activo."""
+    """Ejecuta la cadena SMC completa. Si symbol es Boom/Crash, aplica la política de dirección del activo.
+
+    Punto de entrada del pipeline. Encadena los diez pasos del analisis y
+    devuelve tanto el resultado final como los productos intermedios, lo que
+    permite auditar en que etapa se perdio una oportunidad.
+
+    La politica de simbolo se aplica DOS VECES: sobre los setups y de nuevo
+    sobre las confirmaciones, porque en el camino la direccion cambia de
+    vocabulario (`long`/`short` a `BUY`/`SELL`).
+
+    Args:
+        df: velas OHLC con columna `time`.
+        config: parametros del pipeline; usa los de fabrica si se omite.
+        symbol: instrumento, necesario para aplicar la politica de direccion.
+
+    Returns:
+        Dict con las velas anotadas, los setups antes y despues de la
+        politica, las confirmaciones y las operaciones con su riesgo
+        calculado.
+
+    Raises:
+        ValueError: si las velas no superan `_validate_price_data`.
+    """
     config = config or PipelineConfig()
     policy = get_symbol_direction_policy(symbol or '') if symbol else None
     allowed_direction = policy.allowed_direction if policy else None

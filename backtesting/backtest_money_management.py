@@ -1,3 +1,15 @@
+"""Gestión monetaria del backtest: convierte resultados en R a curva de capital.
+
+Aplica secuencialmente los resultados de cada operacion sobre un capital
+inicial, calculando el importe arriesgado en cada paso y acumulando el
+balance resultante. De ahi salen la curva de capital y las metricas de
+rendimiento del backtest.
+
+Vinculaciones:
+- Lo consume `backtesting.backtest_pipeline`.
+- Es el equivalente para backtesting de `strategy.risk.money_management`.
+"""
+
 import pandas as pd
 
 

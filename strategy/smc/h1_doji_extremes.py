@@ -1,3 +1,17 @@
+"""Deteccion de Doji H1 en extremos de rango como confluencia opcional.
+
+Un Doji (vela de cuerpo minimo) en el extremo del rango horario indica
+indecision y posible agotamiento del movimiento. Solo suma confluencia: nunca
+genera una entrada por si mismo ni invalida un setup.
+
+Vinculaciones:
+- Lo importa `strategy.execution.multi_timeframe`, que llama a
+  `detect_h1_extreme_doji` (~linea 960) con las velas H1 ya descargadas.
+- La configuracion procede de los campos `h1_doji_*` de
+  `strategy.execution.trade_pipeline.PipelineConfig`.
+- Las claves `h1_doji_*` viajan en el analisis hasta el dashboard y la
+  bitacora.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +22,19 @@ import pandas as pd
 
 @dataclass(frozen=True)
 class H1ExtremeDojiConfig:
+    """Parametros del detector de Doji H1 en extremos.
+
+    Campos:
+    - `lookback_candles`: ventana H1 sobre la que se mide el rango.
+    - `max_age_candles`: antiguedad maxima del doji para seguir siendo
+      relevante.
+    - `max_body_ratio`: cuerpo maximo respecto al rango para considerarlo
+      doji (0.10 = el cuerpo no puede superar el 10% de la vela).
+    - `extreme_fraction`: que porcion del rango cuenta como "extremo"
+      (0.15 = el 15% superior o inferior).
+    - `min_rejection_wick_ratio`: mecha minima de rechazo exigida.
+    - `bonus_points`: puntos de confluencia que aporta.
+    """
     enabled: bool = True
     lookback_candles: int = 100
     max_age_candles: int = 2
@@ -18,6 +45,7 @@ class H1ExtremeDojiConfig:
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Convierte a float tolerando `None`, texto invalido y NaN."""
     try:
         number = float(value)
         return number if pd.notna(number) else default
@@ -26,6 +54,15 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def _empty(reason: str = "SIN_DOJI_EXTREMO_H1") -> dict[str, Any]:
+    """Construye el resultado negativo con el motivo indicado.
+
+    Garantiza que el consumidor siempre reciba el mismo juego de claves,
+    detecte o no un doji, de modo que no haya que comprobar existencia de
+    claves aguas abajo.
+
+    Args:
+        reason: codigo del motivo, que acaba en `h1_doji_reason`.
+    """
     return {
         "h1_doji_enabled": True,
         "h1_doji_confirmation": False,
@@ -54,6 +91,28 @@ def detect_h1_extreme_doji(
     SELL -> Doji en extremo superior/Premium con mecha superior significativa.
 
     La detección es una confluencia opcional. No genera entradas ni invalida setups.
+
+    Proceso: mide el rango de las ultimas `lookback_candles`, comprueba que la
+    vela tenga cuerpo pequeno, que este situada en el extremo del rango que
+    corresponde a la direccion, que muestre mecha de rechazo suficiente y que
+    no sea demasiado antigua.
+
+    Args:
+        data: DataFrame de velas H1.
+        direction: `"BUY"` o `"SELL"` (se normaliza a mayusculas).
+        config: parametros; si es `None` usa los de fabrica.
+
+    Returns:
+        Dict con `h1_doji_confirmation` y el detalle de la medicion
+        (`h1_doji_body_ratio`, mechas, `h1_doji_extreme_position`,
+        `h1_doji_age_candles`) o, si no hay deteccion, el motivo en
+        `h1_doji_reason`: `DETECCION_DOJI_H1_DESACTIVADA`,
+        `DIRECCION_H1_DOJI_INVALIDA`, `DATOS_H1_INSUFICIENTES` o
+        `SIN_DOJI_EXTREMO_H1`.
+
+    Vinculaciones:
+    - La llama `strategy.execution.multi_timeframe` al construir el contexto
+      H1 del analisis.
     """
     config = config or H1ExtremeDojiConfig()
     if not config.enabled:

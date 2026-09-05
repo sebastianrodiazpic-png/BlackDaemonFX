@@ -1,3 +1,22 @@
+"""Agregacion de metricas de cuenta para la pantalla Account del dashboard.
+
+Convierte las operaciones almacenadas en el repositorio en el payload que
+consume la interfaz: totales, desglose por tipo de cierre, win rate y resumen
+por estrategia.
+
+Distingue dos formas de contar:
+    - por PIERNA (`tp1`, `tp2`, ...): cada ejecucion parcial cuenta aparte;
+    - por SETUP LOGICO (`logical_*`): TP1 y runner de una misma idea cuentan
+      como una sola operacion. Esta es la cifra honesta de acierto, porque
+      contar TP1 y runner por separado infla artificialmente el win rate.
+
+Vinculaciones:
+    - `trade_outcome_policy`: `decisive_outcome` e `is_break_even_rr` definen
+      que se considera ganancia, perdida o zona neutra.
+    - `database.repository.TradingRepository`: origen de los datos.
+    - `dashboard.account_page` / `dashboard.realtime_dashboard`: consumidores.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -7,11 +26,21 @@ from trade_outcome_policy import decisive_outcome, is_break_even_rr
 
 
 def _metadata(trade):
+    """Extrae `details.metadata` de una operacion de forma defensiva.
+
+    Devuelve `{}` ante cualquier forma inesperada: los registros recuperados
+    desde MT5 pueden no traer el bloque completo.
+    """
     details = trade.get("details") if isinstance(trade, dict) else {}
     return details.get("metadata", {}) if isinstance(details, dict) else {}
 
 
 def _strategy_name(trade):
+    """Deduce la estrategia de origen de una operacion.
+
+    Prioridad: nombre explicito -> perfil del bot (ORB o SMC) -> operacion
+    reconstruida desde el historial del broker (`RECUPERADA_MT5`).
+    """
     meta = _metadata(trade)
     explicit = str(meta.get("strategy_name") or "").upper()
     if explicit:
@@ -25,6 +54,21 @@ def _strategy_name(trade):
 
 
 def classify_close(trade):
+    """Clasifica el cierre de una operacion en una etiqueta legible.
+
+    Orden de decision (importa, porque las reglas se solapan):
+        1. ABIERTA / EMERGENCIA.
+        2. BREAK EVEN: la zona neutra de RR se evalua ANTES del signo del PnL,
+           para que unos pocos centimos no se cuenten como ganancia o perdida.
+        3. Razon del deal de MT5 (`SL` / `TP`): fuente mas fiable en
+           operaciones historicas reconstruidas sin RR planificado local.
+        4. PnL positivo combinado con la pierna (`TP1` / runner).
+        5. RR realizado por tramos (>=3.75 TP4, >=2.75 TP3, >=1.5 TP2, ...).
+
+    Returns:
+        str: ABIERTA, EMERGENCIA, TP1..TP4, TAKE PROFIT, STOP LOSS,
+        BREAK EVEN / OTRO, GANANCIA/PERDIDA PARCIAL u OTRO.
+    """
     status = str(trade.get("status") or "").upper()
     if status == "OPEN":
         return "ABIERTA"
@@ -34,6 +78,7 @@ def classify_close(trade):
         return "EMERGENCIA"
 
     def num(value):
+        """Convierte a float devolviendo `None` si no es numerico."""
         try:
             return float(value) if value is not None else None
         except (TypeError, ValueError):
@@ -96,6 +141,22 @@ def classify_close(trade):
 
 
 def build_account_payload(repository, source="DEMO", recent_limit=None):
+    """Construye el payload completo de la pantalla Account.
+
+    Recorre las operaciones del repositorio, las clasifica con
+    `classify_close`, acumula estadisticas por pierna y por setup logico, y
+    agrega un desglose por estrategia.
+
+    Args:
+        repository: `TradingRepository` con los datos persistidos.
+        source: origen a reportar (DEMO / REAL).
+        recent_limit: numero de operaciones recientes a incluir en la tabla.
+
+    Returns:
+        dict con `snapshot`, `stats`, `recent_trades`, `database` y metadatos
+        de persistencia. Si el repositorio falla, devuelve la estructura vacia
+        en lugar de propagar el error: el dashboard no debe caerse.
+    """
     stats = {
         "total": 0, "open": 0, "closed": 0, "tp1": 0, "tp2": 0, "tp3": 0, "tp4": 0,
         "stop_loss": 0, "take_profit": 0, "break_even": 0, "emergency": 0,

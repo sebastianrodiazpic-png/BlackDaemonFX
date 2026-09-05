@@ -1,3 +1,26 @@
+"""Simulador de resultado de operaciones sobre velas historicas.
+
+Recorre las velas posteriores a la entrada y determina si se alcanzo antes el
+Take Profit o el Stop Loss. Es la base de los backtests y de los tests del
+ciclo de vida de una operacion.
+
+ATENCION, hay DOS simuladores homonimos en el proyecto:
+- Este (`strategy.smc.trade_simulator`): version compacta, usada por los tests
+  de ciclo de vida y de metricas.
+- `backtesting.trade_simulator`: version extendida (690 lineas) con gestion de
+  parciales y trailing.
+Ninguno de los dos lo importa el motor en vivo: en produccion el resultado lo
+determina el broker real a traves de
+`strategy.execution.live_trading_engine`.
+
+Vinculaciones:
+- Consume las operaciones producidas por
+  `strategy.smc.risk_reward.calculate_risk_reward`.
+- Sin llamadores de produccion; lo usan los tests
+  `test_trade_simulator.py`, `test_trade_lifecycle_*.py` y
+  `test_ready_to_*_transition.py`.
+"""
+
 import pandas as pd
 
 
@@ -24,6 +47,28 @@ def simulate_trade(
     ambiguous
         La misma vela tocó TP y SL. Con datos OHLC no es posible
         saber cuál ocurrió primero.
+
+    El estado `ambiguous` es una decision de honestidad estadistica: en lugar
+    de suponer arbitrariamente que gano el TP (lo que inflaria los resultados
+    del backtest), se marca la ambiguedad para que quien analice las metricas
+    sepa que ese caso no es concluyente.
+
+    Args:
+        df: DataFrame OHLC con las velas posteriores a la entrada.
+        trade: fila con `entry_time`, `entry_price`, `stop_loss` y
+            `take_profit`.
+        max_bars: numero maximo de velas a recorrer antes de declarar
+            `expired`.
+
+    Returns:
+        Dict con el resultado de la simulacion: estado alcanzado, precio y
+        momento de salida.
+
+    Raises:
+        ValueError: si faltan columnas obligatorias en `trade`.
+
+    Vinculaciones:
+    - Lo llama `simulate_trades` en este mismo modulo.
     """
 
     required_trade_columns = [
@@ -301,6 +346,24 @@ def simulate_trades(
     """
     Simula múltiples operaciones y agrega el resultado
     de cada una al DataFrame original.
+
+    Aplica `simulate_trade` a cada fila y fusiona los campos originales de la
+    operacion con los del resultado, de modo que el DataFrame devuelto
+    conserva todo el contexto de la senal ademas del desenlace.
+
+    Args:
+        df: DataFrame OHLC de referencia.
+        trades: DataFrame de operaciones a simular.
+        max_bars: velas maximas por operacion.
+
+    Returns:
+        DataFrame ordenado por `entry_time`. Si `trades` esta vacio devuelve
+        una copia vacia sin fallar.
+
+    Vinculaciones:
+    - Llama a `simulate_trade` de este mismo modulo.
+    - Lo usan los tests de metricas y de gestion monetaria para producir
+      series de resultados.
     """
 
     if trades.empty:

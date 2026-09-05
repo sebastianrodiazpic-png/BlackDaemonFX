@@ -1,3 +1,27 @@
+"""Punto de entrada y orquestador de procesos de BlackDaemonFX.
+
+Expone la CLI del proyecto (`main()`), que selecciona uno de los modos de
+ejecucion: recoleccion de datos, analisis historico, backtest, bot demo, papel
+en vivo, preflight, prueba de humo, reinicio de base de datos y el daemon
+multibot que lanza un worker por perfil de estrategia.
+
+Cada worker es un PROCESO INDEPENDIENTE: un fallo en una estrategia no arrastra
+a las demas. Un guardia de instancia unica (`_MultibotInstanceGuard`) impide que
+dos daemons operen la misma cuenta a la vez.
+
+Vinculaciones:
+    - `brokers.mt5_connector` / `brokers.mt5_data` / `brokers.mt5_execution`:
+      acceso al terminal.
+    - `strategy.execution.live_trading_engine`: motor de operativa en vivo.
+    - `strategy.execution.trade_pipeline`: pipeline de senal a orden.
+    - `backtesting.backtest_pipeline`: modo backtest.
+    - `database.repository.TradingRepository`: persistencia.
+    - `dashboard.realtime_dashboard`: interfaz web.
+    - `services.execution_preflight_service` /
+      `services.live_demo_smoke_test_service`: verificaciones previas.
+    - `config.instruments` / `config.strategy_config`: universo y parametros.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -42,6 +66,14 @@ from strategy.orb.new_york_orb import discover_orb_symbols, classify_orb_market
 
 
 def _validate_timeframes():
+    """Comprueba que `TIMEFRAMES` define structure, confirmation y entry.
+
+    Se ejecuta al arrancar: sin los tres marcos la logica multi-timeframe
+    quedaria a medias y es preferible fallar antes de conectar con el broker.
+
+    Raises:
+        ValueError: si falta alguna clave.
+    """
     required = {"structure", "confirmation", "entry"}
     missing = required.difference(TIMEFRAMES)
 
@@ -53,6 +85,14 @@ def _validate_timeframes():
 
 
 def _normalize_categories(categories):
+    """Normaliza el filtro de categorias de instrumentos de la CLI.
+
+    Acepta lista o cadena separada por comas y devuelve nombres en minusculas.
+
+    Returns:
+        list[str] | None: `None` significa "sin filtro", y aguas abajo activa
+        el descubrimiento completo (sinteticos + Forex + ORB).
+    """
     if categories is None:
         return None
 
@@ -99,6 +139,14 @@ def _resolve_symbols(provider, symbol=None, categories=None):
 
 
 def _require_symbol_for_offline_mode(symbol, mode):
+    """Exige `--symbol` en los modos que no abren conexion con MT5.
+
+    Sin terminal no hay descubrimiento de instrumentos, asi que el simbolo debe
+    darse a mano.
+
+    Raises:
+        ValueError: si no se proporciono simbolo.
+    """
     if not symbol:
         raise ValueError(
             f"El modo '{mode}' requiere --symbol porque no abre "
@@ -109,6 +157,19 @@ def _require_symbol_for_offline_mode(symbol, mode):
 
 
 def collect_once(provider, repo, symbols):
+    """Ejecuta un ciclo de recoleccion: snapshot de cuenta e historicos.
+
+    Cada simbolo se procesa en su propio `try`: un instrumento que falle no
+    interrumpe la recoleccion del resto.
+
+    Args:
+        provider: proveedor de datos MT5.
+        repo: repositorio donde se guarda el snapshot de cuenta.
+        symbols: instrumentos a actualizar.
+
+    Vinculaciones:
+        `data.collector.update_historical_csv` escribe los CSV de velas.
+    """
     account = provider.connector.get_account_info()
     repo.save_account_snapshot(account)
 
@@ -144,6 +205,17 @@ def run_collector(
     symbol=None,
     categories=None,
 ):
+    """Modo `collector`: recolecta historicos en bucle hasta interrumpirlo.
+
+    Args:
+        interval_seconds: espera entre ciclos.
+        once: si es `True` ejecuta un unico ciclo y termina.
+        symbol: instrumento concreto; si se omite, se descubren dinamicamente.
+        categories: filtro de categorias.
+
+    La desconexion se hace en `finally` para no dejar la sesion MT5 colgada, y
+    `KeyboardInterrupt` se trata como parada limpia.
+    """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
 
@@ -191,6 +263,22 @@ def analyze_historical(
     timeframe: str,
     file_path: str,
 ):
+    """Modo `analyze`: aplica el pipeline SMC a un CSV historico y persiste.
+
+    No conecta con el broker ni opera: solo lee velas de disco, extrae los
+    setups y los guarda como senales con `valid=False` para su revision.
+
+    Args:
+        symbol: instrumento a etiquetar en los registros.
+        timeframe: marco temporal del CSV.
+        file_path: ruta del historico.
+
+    Raises:
+        FileNotFoundError: si el CSV no existe.
+
+    Vinculaciones:
+        `strategy.execution.trade_pipeline.run_trade_pipeline`.
+    """
     path = Path(file_path)
 
     if not path.exists():
@@ -299,6 +387,31 @@ def run_demo_bot(
     magic: int = 26082026,
     auto_export: bool = True,
 ):
+    """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
+
+    Monta la cadena de produccion (datos, ejecucion, ciclo de vida, reporting,
+    monitor de posiciones y dashboard opcional) y entrega el control al
+    `LiveTradingEngine`.
+
+    Args:
+        symbols: instrumentos a vigilar.
+        timeframe: marco de entrada.
+        interval_seconds: espera entre ciclos de analisis.
+        once: un solo ciclo y salir.
+        execute: si es `False`, analiza sin enviar ordenes.
+        risk_percent: riesgo por operacion.
+        min_rr: RR minimo exigido para aceptar un setup.
+        verbose / debug: nivel de detalle por consola.
+        position_monitor_interval: cadencia de vigilancia de posiciones.
+        dashboard / dashboard_port: interfaz web.
+        bot_profile: perfil de estrategia (SYNTHETICS, ORB, ...).
+        magic: identificador de las ordenes de este worker; separa las
+            posiciones de cada perfil en el terminal.
+        auto_export: exporta el Excel al cerrar cada operacion.
+
+    Los imports son diferidos para que la CLI arranque sin exigir MetaTrader5
+    en modos que no lo necesitan.
+    """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
 
@@ -548,6 +661,22 @@ def run_live_paper(
     once: bool,
     volume: float,
 ):
+    """Modo `paper`: opera en simulacion con precios reales de MT5.
+
+    Usa `PaperTradeExecutor` en lugar del ejecutor real: lee el mercado en vivo
+    pero NO envia ninguna orden al broker. Sirve para validar la estrategia sin
+    arriesgar capital.
+
+    Args:
+        symbols: instrumentos a analizar.
+        interval_seconds: espera entre ciclos.
+        once: un solo ciclo y salir.
+        volume: tamano nominal de las operaciones simuladas.
+
+    Vinculaciones:
+        `strategy.execution.live_paper_trading_engine`,
+        `strategy.execution.multi_timeframe`.
+    """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
     from strategy.execution.multi_timeframe import (
@@ -671,6 +800,18 @@ def run_live_paper(
 
 
 def run_demo_preflight(symbols):
+    """Modo `preflight`: verifica que el entorno puede operar en DEMO.
+
+    Comprueba terminal conectado, autotrading habilitado, cuenta demo y
+    disponibilidad de cada simbolo, e imprime un informe legible. No envia
+    ordenes.
+
+    Returns:
+        dict con `ready`, `checks` y `failed`.
+
+    Vinculaciones:
+        `services.execution_preflight_service.ExecutionPreflightService`.
+    """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_execution import MT5ExecutionProvider
     from services.execution_preflight_service import ExecutionPreflightService
@@ -717,6 +858,17 @@ def run_demo_preflight(symbols):
 
 
 def run_live_demo_smoke(symbol, direction, volume, auto_close):
+    """Modo `smoke`: envia UNA orden real en DEMO para validar la cadena.
+
+    Args:
+        symbol: instrumento a operar.
+        direction: BUY o SELL.
+        volume: lotes; 0 usa el minimo del simbolo.
+        auto_close: cierra la posicion al terminar (recomendado).
+
+    Vinculaciones:
+        `services.live_demo_smoke_test_service.LiveDemoSmokeTestService`.
+    """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_execution import MT5ExecutionProvider
     from services.live_demo_smoke_test_service import (
@@ -979,6 +1131,11 @@ def _assert_full_multibot_architecture(profiles):
 
 
 def _selection_profile_for_bot(profile: str) -> str:
+    """Traduce el perfil de un worker a su familia de instrumentos.
+
+    Varios perfiles comparten universo (por ejemplo GOLD opera bajo las reglas
+    de ORB), asi que se colapsan a FOREX, ORB o SYNTHETICS.
+    """
     profile = str(profile or "").upper()
     if profile.startswith("FOREX"): return "FOREX"
     if profile in {"ORB", "GOLD"}: return "ORB"
@@ -1597,6 +1754,12 @@ class _MultiBotInstanceGuard:
     """
 
     def __init__(self, project_root: Path):
+        """Prepara el nombre del mutex y la ruta del estado de diagnostico.
+
+        El nombre del mutex se deriva de un hash de la ruta del proyecto, de
+        modo que dos copias del codigo en carpetas distintas puedan convivir,
+        pero nunca dos daemons sobre la misma.
+        """
         self.project_root = Path(project_root).resolve()
         runtime_dir = self.project_root / "storage" / "runtime"
         runtime_dir.mkdir(parents=True, exist_ok=True)
@@ -1608,6 +1771,11 @@ class _MultiBotInstanceGuard:
         self._released = False
 
     def _owner(self):
+        """Lee el JSON de diagnostico del propietario actual.
+
+        Solo informativo: devuelve `{}` ante cualquier error, para que un
+        fichero corrupto jamas impida arrancar.
+        """
         try:
             value = json.loads(self.state_path.read_text(encoding="utf-8"))
             return value if isinstance(value, dict) else {}
@@ -1615,6 +1783,12 @@ class _MultiBotInstanceGuard:
             return {}
 
     def _already_running(self):
+        """Aborta el arranque informando del coordinador que ya tiene el lock.
+
+        Raises:
+            SystemExit: siempre. Se sale ANTES de crear ningun worker, para no
+                dejar procesos huerfanos operando la misma cuenta.
+        """
         owner = self._owner()
         pid = owner.get("pid") or "DESCONOCIDO"
         started_at = owner.get("started_at") or "DESCONOCIDO"
@@ -1627,6 +1801,21 @@ class _MultiBotInstanceGuard:
         )
 
     def acquire(self):
+        """Toma el bloqueo de instancia unica y registra su liberacion.
+
+        Windows: mutex con nombre; `ERROR_ALREADY_EXISTS` (183) indica que otro
+        coordinador esta vivo. POSIX: `flock` no bloqueante.
+
+        Ambos mecanismos los libera el sistema operativo si el proceso muere de
+        golpe, a diferencia de un fichero PID, que quedaria obsoleto.
+
+        Returns:
+            self, para encadenar.
+
+        Raises:
+            SystemExit: si ya hay otro coordinador.
+            OSError: si el mutex no se puede crear.
+        """
         if os.name == "nt":
             import ctypes
             from ctypes import wintypes
@@ -1668,6 +1857,12 @@ class _MultiBotInstanceGuard:
         return self
 
     def release(self):
+        """Libera el bloqueo y marca el estado como inactivo.
+
+        Idempotente (`_released`), porque se invoca tanto de forma explicita
+        como desde `atexit`. Solo actualiza el JSON si el PID registrado es el
+        propio, para no pisar el estado de otro coordinador.
+        """
         if self._released:
             return
         self._released = True
@@ -1697,6 +1892,18 @@ class _MultiBotInstanceGuard:
 
 
 def _acquire_multibot_instance_guard():
+    """Obtiene el bloqueo de coordinador y descarta instancias heredadas.
+
+    Doble control: el mutex protege frente a versiones actuales, y el rastreo
+    de procesos en Windows detecta coordinadores de versiones antiguas que no
+    conocen el mutex. Sin esto, dos daemons podrian operar la misma cuenta.
+
+    Returns:
+        `_MultiBotInstanceGuard` ya adquirido.
+
+    Raises:
+        SystemExit: si se detecta otro coordinador.
+    """
     guard = _MultiBotInstanceGuard(PROJECT_ROOT).acquire()
     legacy = _find_other_multibot_coordinators_windows()
     if legacy:
@@ -1926,6 +2133,18 @@ def run_multi_bot_daemon(args, profiles=None):
     shared_db_path = str(Path(repo.db_path).resolve())
 
     def start_worker(profile):
+        """Lanza (o revive) el subproceso worker de un perfil.
+
+        Closure del daemon multibot: comparte `workers`, `worker_lock` y
+        `disabled_profiles`. Es idempotente: si el proceso sigue vivo no crea
+        otro, y respeta los perfiles deshabilitados desde el dashboard.
+
+        Los perfiles Forex y GOLD reciben un intervalo mas corto porque sus
+        ventanas de entrada son mas breves.
+
+        Returns:
+            bool: `True` si el worker quedo en ejecucion.
+        """
         with worker_lock:
             if profile in disabled_profiles:
                 return False
@@ -2019,6 +2238,14 @@ def run_multi_bot_daemon(args, profiles=None):
         return True
 
     def set_worker_enabled(profile, enabled):
+        """Activa o detiene un worker desde el dashboard.
+
+        Salvaguarda clave: NO permite detener un perfil con posiciones
+        abiertas; matar su proceso dejaria riesgo vivo sin nadie gestionandolo.
+
+        Returns:
+            dict con `ok` y, si falla, `error` explicando el motivo.
+        """
         if profile not in profiles:
             return {"ok": False, "error": f"Worker no administrado por este coordinador: {profile}"}
         with worker_lock:
@@ -2339,6 +2566,22 @@ def run_dashboard_only(dashboard_port: int = 8765):
 
 
 def run_reset_database(confirm: bool, force_open_trades: bool = False):
+    """Modo `reset-db`: vacia la base operativa tras respaldarla.
+
+    Triple proteccion: exige `--confirm-reset-database`, crea siempre un backup
+    consistente previo y se niega a borrar si hay operaciones abiertas salvo
+    que se fuerce. El historial permanente (`trade_journal`) se conserva.
+
+    Args:
+        confirm: confirmacion explicita del usuario.
+        force_open_trades: permite el borrado con posiciones abiertas.
+
+    Returns:
+        dict con los recuentos eliminados y la ruta del respaldo.
+
+    Raises:
+        SystemExit: si no se confirmo la operacion.
+    """
     if not confirm:
         raise SystemExit(
             "BLOQUEADO: reset-db requiere --confirm-reset-database. "
@@ -2461,6 +2704,15 @@ def run_reset_account_stats(confirm: bool = False):
     return result
 
 def main():
+    """CLI del proyecto: interpreta los argumentos y despacha el modo elegido.
+
+    Valida primero los timeframes, construye el parser con todos los modos
+    (collect, daemon, report, analyze, backtest, demo, live-paper,
+    demo-preflight, live-demo-smoke, multi-bot-daemon, reset-db, ...) y delega
+    en la funcion `run_*` correspondiente.
+
+    Es el unico punto de entrada del proyecto: todo proceso arranca aqui.
+    """
     _validate_timeframes()
 
     parser = argparse.ArgumentParser(

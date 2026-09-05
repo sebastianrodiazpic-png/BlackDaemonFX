@@ -1,3 +1,21 @@
+"""Simulador de operaciones históricas: resuelve cada señal contra las velas.
+
+Para cada senal recorre las velas POSTERIORES y decide que habria ocurrido
+primero, si tocar el stop loss o alcanzar el objetivo. Es la pieza que
+convierte una senal en un resultado medible en R.
+
+LIMITACION INHERENTE: cuando una misma vela contiene a la vez el stop y el
+objetivo, con datos OHLC no puede saberse cual se toco antes. El simulador
+adopta un criterio fijo, por lo que sus resultados son una aproximacion, no
+una reproduccion exacta de la ejecucion real.
+
+DUPLICIDAD: existe otro `trade_simulator` dentro de `strategy/smc/`, usado
+solo por tests. El vivo para backtesting es este.
+
+Vinculaciones:
+- Lo consume `backtesting.backtest_pipeline`.
+"""
+
 import pandas as pd
 
 

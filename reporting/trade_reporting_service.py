@@ -1,3 +1,24 @@
+"""Puente entre el ciclo de vida de una operacion y su persistencia/exportacion.
+
+Este modulo NO decide nada de trading: solo escucha los eventos que emite el
+`TradeLifecycleManager` y los traduce a escrituras en SQLite y a una
+regeneracion del Excel.
+
+Flujo de un evento:
+    executor -> TradeLifecycleManager -> TradeReportingService.on_lifecycle_event
+        -> TradingRepository (create_trade_once / update_trade / close_trade)
+        -> TradeReportExporter.export (XLSX)
+
+Principio de resiliencia: la base de datos es la fuente de verdad. Si el Excel
+esta abierto o bloqueado por el usuario, el fallo se registra como evento de
+auditoria pero NUNCA invalida ni revierte una operacion ya persistida.
+
+Vinculaciones:
+    - `reporting.trade_report_exporter.TradeReportExporter`: genera el XLSX.
+    - `database.repository.TradingRepository`: destino de toda escritura.
+    - `strategy.execution.*`: productores de los objetos `lifecycle`.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -40,6 +61,17 @@ class TradeReportingService:
     """
 
     def __init__(self, repository, config: TradeReportingConfig | None = None):
+        """Prepara el servicio y su exportador XLSX asociado.
+
+        Args:
+            repository: `TradingRepository` obligatorio; sin el no hay donde
+                persistir y se lanza `ValueError` de inmediato para no fallar
+                mas tarde, en mitad de un fill.
+            config: `TradeReportingConfig`; si es `None` se usa el perfil PAPER.
+
+        Mantiene ademas una cache `position_ticket/execution_id -> trade_id`
+        que evita releer SQLite en cada actualizacion de una posicion abierta.
+        """
         if repository is None:
             raise ValueError("repository no puede ser None")
 
@@ -65,6 +97,22 @@ class TradeReportingService:
         lifecycle,
         volume: float | None = None,
     ) -> dict[str, Any]:
+        """Punto de entrada unico: traduce un evento del lifecycle a persistencia.
+
+        Args:
+            event: `EXECUTION_FILLED`, `EXECUTION_REJECTED`, `POSITION_UPDATED`
+                o `LIFECYCLE_FINALIZED`. Cualquier otro valor es un error de
+                programacion y lanza `ValueError`.
+            lifecycle: objeto con el estado completo de la operacion.
+            volume: volumen real confirmado por el broker; si es `None` se toma
+                el de `lifecycle.metadata`.
+
+        Returns:
+            dict con `event`, `trade_id` y, en las altas, `created`.
+
+        Nota: `EXECUTION_REJECTED` no escribe nada en `trades` porque no llego a
+        existir una operacion; solo queda en la bitacora de auditoria.
+        """
         event = str(event).upper()
 
         # v46: cada transición del lifecycle queda en una bitácora append-only,
@@ -119,6 +167,16 @@ class TradeReportingService:
     # ============================================================
 
     def _ensure_open_trade(self, lifecycle, volume: float | None):
+        """Da de alta la operacion de forma idempotente.
+
+        Usa `create_trade_once`, que se apoya en `execution_key` para no
+        duplicar filas si el mismo fill se notifica dos veces (reintentos,
+        reconexiones del broker). Si la fila ya existia, refresca los campos
+        dinamicos en lugar de insertar.
+
+        Returns:
+            Tupla `(trade_id, created)`.
+        """
         data = self._build_open_data(lifecycle, volume)
 
         trade_id, created = self.repository.create_trade_once(data)
@@ -134,6 +192,11 @@ class TradeReportingService:
         return trade_id, created
 
     def _sync_open_trade(self, lifecycle, volume: float | None):
+        """Refresca en SQLite una posicion que sigue abierta (SL/TP/volumen).
+
+        Si no encuentra la fila (por ejemplo el arranque perdio la cache), la
+        crea antes de actualizar, de modo que nunca se pierde una posicion viva.
+        """
         trade_id = self._find_trade_id(lifecycle)
 
         if trade_id is None:
@@ -154,6 +217,15 @@ class TradeReportingService:
     # ============================================================
 
     def _close_trade(self, lifecycle, volume: float | None):
+        """Cierra la operacion en SQLite con resultado, salida y PnL.
+
+        Guarda `exit_reason` tal cual lo entrego el motor, para que motivos
+        estructurales concretos no se degraden a un generico en el Excel.
+
+        En lifecycles simulados puede no existir ticket previo; en ese caso se
+        registra primero el alta y despues el cierre, para que la fila quede
+        completa.
+        """
         trade_id = self._find_trade_id(lifecycle)
 
         # En un lifecycle simulado puede no existir ticket. En ese caso
@@ -188,6 +260,13 @@ class TradeReportingService:
     # ============================================================
 
     def _build_open_data(self, lifecycle, volume: float | None):
+        """Construye el diccionario completo del INSERT de una operacion nueva.
+
+        Incluye las claves de idempotencia (`execution_key`, tickets), los datos
+        del plan (entrada, SL, TP, RR) y el contexto de riesgo tomado de
+        `lifecycle.metadata`. `equity` solo se rellena si la base de riesgo
+        declarada fue EQUITY, para no mezclar balance con equity.
+        """
         execution_key = self._execution_key(lifecycle)
         broker = self._broker(lifecycle)
 
@@ -218,6 +297,13 @@ class TradeReportingService:
         }
 
     def _build_open_update(self, lifecycle, volume: float | None):
+        """Igual que `_build_open_data` pero sin `execution_key`.
+
+        La clave de ejecucion es inmutable: identifica la fila y jamas debe
+        reescribirse en un UPDATE. El resto de campos si se refresca porque el
+        SL puede moverse a break-even, el TP escalarse o el volumen reducirse
+        con cierres parciales.
+        """
         return {
             "external_ticket": lifecycle.execution_id or lifecycle.position_ticket,
             "broker_position_ticket": lifecycle.position_ticket,
@@ -244,6 +330,12 @@ class TradeReportingService:
         }
 
     def _build_details(self, lifecycle):
+        """Empaqueta el contexto no consultable en el JSON `details`.
+
+        Sigue el criterio general del proyecto: columnas para lo que se filtra
+        o agrega, y un JSON para conservar el resto integro sin migrar el
+        esquema cada vez que aparece un metadato nuevo.
+        """
         return {
             "lifecycle_state": lifecycle.state,
             "execution_status": lifecycle.execution_status,
@@ -254,6 +346,11 @@ class TradeReportingService:
         }
 
     def _broker(self, lifecycle) -> str:
+        """Resuelve el broker por prioridad: configuracion, metadatos, defecto.
+
+        El ultimo recurso deduce PAPER cuando la fuente es PAPER y MT5 en
+        cualquier otro caso, de modo que la columna nunca queda vacia.
+        """
         configured = self.config.broker
         if configured:
             return str(configured)
@@ -266,6 +363,12 @@ class TradeReportingService:
 
     @staticmethod
     def _volume(lifecycle, volume):
+        """Prioriza el volumen confirmado por el broker sobre el planificado.
+
+        El parametro `volume` viene del fill real; solo si falta se recurre al
+        valor guardado en metadatos, que es la intencion previa y puede diferir
+        por normalizacion de lotes del broker.
+        """
         if volume is not None:
             return float(volume)
 
@@ -278,6 +381,15 @@ class TradeReportingService:
     # ============================================================
 
     def _find_trade_id(self, lifecycle):
+        """Localiza el `trade_id` en tres niveles, del mas barato al mas caro.
+
+        1. Cache en memoria por ticket / execution_id.
+        2. SQLite por `execution_key` (clave de idempotencia).
+        3. SQLite por `broker_position_ticket`.
+
+        Returns:
+            El id encontrado, o `None` si la operacion aun no existe.
+        """
         for key in self._lookup_keys(lifecycle):
             if key in self._trade_ids:
                 return self._trade_ids[key]
@@ -301,11 +413,18 @@ class TradeReportingService:
         return None
 
     def _remember_trade(self, lifecycle, trade_id: int):
+        """Indexa el id bajo todas las claves conocidas del lifecycle."""
         for key in self._lookup_keys(lifecycle):
             self._trade_ids[key] = int(trade_id)
 
     @staticmethod
     def _lookup_keys(lifecycle):
+        """Claves de cache utilizables: ticket de posicion e id de ejecucion.
+
+        Se indexan ambas porque el ticket definitivo puede llegar despues del
+        id de ejecucion, y asi la operacion se encuentra con cualquiera de los
+        dos identificadores.
+        """
         values = [
             lifecycle.position_ticket,
             lifecycle.execution_id,
@@ -318,6 +437,13 @@ class TradeReportingService:
 
     @staticmethod
     def _execution_key(lifecycle) -> str:
+        """Calcula la clave de idempotencia de la operacion.
+
+        Prioridad: `metadata['execution_key']` explicito, id de ejecucion,
+        ticket de posicion y, como ultimo recurso, una clave sintetica
+        `LIFECYCLE|simbolo|tf|direccion|entrada` para los lifecycles simulados
+        que no tienen identificadores de broker.
+        """
         metadata = lifecycle.metadata or {}
         explicit_key = metadata.get("execution_key")
         if explicit_key not in (None, ""):
@@ -344,9 +470,17 @@ class TradeReportingService:
     # ============================================================
 
     def export_now(self):
+        """Fuerza la regeneracion del XLSX ignorando `auto_export`."""
         return self.exporter.export(source=self.source)
 
     def _export_if_enabled(self):
+        """Exporta el XLSX si esta habilitado, absorbiendo cualquier fallo.
+
+        Un Excel abierto por el usuario provoca `PermissionError`. Ese error se
+        registra como evento `REPORT_EXPORT_ERROR` y se devuelve un dict con
+        `exported: False`, pero jamas se propaga: la operacion ya esta
+        persistida en SQLite y eso es lo que cuenta.
+        """
         if not self.config.auto_export:
             return None
         try:
@@ -369,6 +503,13 @@ class TradeReportingService:
             return {"exported": False, "error": str(exc), "path": str(self.exporter.output_path)}
 
     def _audit_lifecycle_event(self, event, lifecycle, volume):
+        """Deja constancia append-only de la transicion en la bitacora (v46).
+
+        Se ejecuta ANTES de tocar `trades`, para que quede rastro incluso si la
+        persistencia posterior falla. Es totalmente tolerante a fallos: si el
+        repositorio no expone `save_audit_event`, o si la escritura revienta,
+        devuelve `None` en silencio para no bloquear un fill ni un cierre.
+        """
         saver = getattr(self.repository, "save_audit_event", None)
         if not callable(saver):
             return None
@@ -397,6 +538,12 @@ class TradeReportingService:
 
     @classmethod
     def _safe_value(cls, value):
+        """Convierte recursivamente cualquier valor en algo serializable a JSON.
+
+        Escalares se dejan igual, las fechas pasan a ISO-8601, diccionarios y
+        secuencias se recorren en profundidad y todo lo demas cae a `str`. Asi
+        un metadato exotico nunca rompe el guardado de `details`.
+        """
         if value is None or isinstance(value, (str, int, float, bool)):
             return value
 

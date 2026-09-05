@@ -37,6 +37,16 @@ FEATURE_NAMES: tuple[str, ...] = (
 
 
 def _to_float(value: Any, default: float = 0.0) -> float:
+    """Convierte cualquier valor a float seguro para el modelo.
+
+    Blindaje imprescindible: un solo NaN o infinito en el vector de
+    caracteristicas contamina el producto escalar y devuelve una
+    probabilidad invalida. Los booleanos pasan a 1.0/0.0.
+
+    Returns:
+        El numero convertido, o `default` si el valor es nulo, no numerico,
+        NaN o infinito.
+    """
     if value is None:
         return default
     if isinstance(value, bool):
@@ -51,12 +61,26 @@ def _to_float(value: Any, default: float = 0.0) -> float:
 
 
 def _to_bool_float(value: Any) -> float:
+    """Convierte un booleano —o su representación textual— a 1.0 / 0.0.
+
+    Acepta cadenas en ingles y espanol (`true`, `1`, `yes`, `si`, `sí`)
+    porque los flags llegan desde origenes heterogeneos: dicts del pipeline,
+    JSON del journal y campos de configuracion.
+    """
     if isinstance(value, str):
         return 1.0 if value.strip().lower() in {"true", "1", "yes", "si", "sí"} else 0.0
     return 1.0 if bool(value) else 0.0
 
 
 def _first(*values, default=None):
+    """Devuelve el primer valor presente, saltando `None` y cadenas vacías.
+
+    Permite leer una misma caracteristica desde varias claves alternativas,
+    ya que el nombre del campo varia segun la estrategia que genere la senal.
+
+    ATENCION: el cero SI se considera presente, de modo que un valor
+    legitimamente nulo no se sustituye por la alternativa.
+    """
     for value in values:
         if value not in (None, ""):
             return value
@@ -64,6 +88,25 @@ def _first(*values, default=None):
 
 
 def _structure_alignment(direction: str, structure_break: Any) -> float:
+    """Mide si la estructura de mercado apoya o contradice la dirección.
+
+    Traduce el texto del BOS/CHOCH (`bos_bullish`, `choch_bearish`, …) a un
+    valor comparable entre estrategias. Es una de las caracteristicas mas
+    informativas: recoge justo la contradiccion estructural que provoco el
+    cierre prematuro que dio origen a este motor.
+
+    Args:
+        direction: `BUY` o `SELL`.
+        structure_break: descripcion textual de la ruptura estructural.
+
+    Returns:
+        `1.0` si la estructura acompana, `-1.0` si contradice, `0.0` si es
+        ambigua o falta el dato.
+
+    Vinculaciones:
+    - Alimenta la caracteristica `structure_alignment` de `FEATURE_NAMES`.
+    - El texto lo produce `strategy.smc.choch_bos.detect_choch_bos`.
+    """
     direction = str(direction or "").upper()
     text = str(structure_break or "").upper()
     if direction not in {"BUY", "SELL"} or not text:

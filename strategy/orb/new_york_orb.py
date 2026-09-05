@@ -1,3 +1,27 @@
+"""Estrategia Opening Range Breakout (ORB) de la sesión cash de Nueva York.
+
+Estrategia INDEPENDIENTE del pipeline SMC: no usa order blocks ni confirmacion
+M5 de `strategy.smc`. Se apoya en un concepto distinto — el rango de apertura
+de Nueva York — y produce su propio dict de senal.
+
+Idea: el rango que el precio marca en los primeros 15 minutos de la sesion
+cash (09:30-09:45 NY) delimita el equilibrio inicial del dia. Romperlo con
+cierre M5 confirmado, y volver a superarlo tras un retesteo, indica
+continuacion direccional.
+
+Alcance restringido a proposito: solo opera contratos concretos y conocidos
+(Oro, indices US), porque el concepto de sesion cash de Nueva York carece de
+sentido en sinteticos que cotizan 24/7.
+
+Vinculaciones:
+- La orquesta `strategy.execution.live_trading_engine`, que la invoca para
+  los simbolos elegibles.
+- Depende de un `data_provider` con `get_candles` y `get_current_tick`,
+  normalmente el proveedor MT5 de `brokers/`.
+- El motor pasa sus senales por `strategy.ai.meta_labeling` igual que las
+  demas estrategias, con su propio modelo por worker.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +37,11 @@ NEW_YORK = ZoneInfo("America/New_York")
 
 
 def _norm_symbol(symbol: str) -> str:
+    """Reduce el símbolo a minúsculas y sólo caracteres alfanuméricos.
+
+    Neutraliza las variantes de nomenclatura entre brokers (`US-30`, `US 30`,
+    `us30`) para poder compararlas con los alias conocidos.
+    """
     return re.sub(r"[^a-z0-9]", "", str(symbol or "").lower())
 
 
@@ -22,6 +51,17 @@ def classify_orb_market(symbol: str) -> str | None:
     Importante: no usamos el término genérico ``gold`` porque Deriv publica
     productos distintos (Gold BB, Gold MACO, etc.) que no son XAUUSD y algunos
     tienen trading deshabilitado.
+
+    El ORDEN importa: `xauusdmicro` se evalua antes que `xauusd`, porque la
+    coincidencia por subcadena haria que el micro fuese absorbido por la
+    familia estandar.
+
+    Args:
+        symbol: nombre del simbolo tal y como lo publica el broker.
+
+    Returns:
+        `XAUUSD`, `MICRO_XAUUSD`, `WALL_STREET_30`, `US_TECH_100`, `US_500`,
+        o `None` si el simbolo no es apto para ORB.
     """
     name = _norm_symbol(symbol)
 
@@ -44,6 +84,10 @@ def classify_orb_market(symbol: str) -> str | None:
 
 
 def is_orb_eligible_symbol(symbol: str) -> bool:
+    """Indica si el símbolo puede operarse con ORB.
+
+    Es el filtro que aplica el motor antes de invocar la estrategia.
+    """
     return classify_orb_market(symbol) is not None
 
 
@@ -154,6 +198,22 @@ def discover_orb_symbols(data_provider) -> list[str]:
 
 @dataclass
 class ORBConfig:
+    """Parámetros de la sesión, los filtros y la gestión de riesgo del ORB.
+
+    Los valores por defecto describen la sesion cash estandar de Nueva York:
+    rango 09:30-09:45, operativa hasta las 16:00, analisis en M5.
+
+    Filtros de contexto activables: retesteo obligatorio, alineacion con el
+    VWAP de sesion y con el POC del perfil de volumen. Los tres suman
+    exigencia y reducen el numero de senales.
+
+    `stop_mode` en `MIDPOINT` (v61) coloca el stop en el 50% del rango de
+    apertura en lugar de en el borde opuesto, acortando el riesgo.
+
+    `one_signal_per_session` evita reentrar el mismo dia tras una ruptura ya
+    aprovechada.
+    """
+
     enabled: bool = True
     timezone_name: str = "America/New_York"
     opening_hour: int = 9
@@ -185,11 +245,31 @@ class NewYorkORBStrategy:
     """
 
     def __init__(self, data_provider, config: ORBConfig | None = None):
+        """Enlaza la estrategia con su proveedor de datos y su configuración.
+
+        Args:
+            data_provider: objeto con `get_candles` y `get_current_tick`.
+            config: parametros de sesion y filtros; usa los de fabrica si se
+                omite.
+        """
         self.data_provider = data_provider
         self.config = config or ORBConfig()
         self.tz = ZoneInfo(self.config.timezone_name)
 
     def _session_bounds(self, now_utc: datetime):
+        """Calcula los hitos horarios de la sesión para el día en curso.
+
+        Todo el calculo se hace en hora de Nueva York para que los cambios de
+        horario de verano no desplacen la sesion.
+
+        Args:
+            now_utc: instante actual, con o sin zona horaria; se asume UTC si
+                viene desnudo.
+
+        Returns:
+            Tupla `(ahora_ny, apertura, fin_del_rango, cierre)` como
+            `pd.Timestamp` con zona.
+        """
         now_utc = pd.Timestamp(now_utc)
         if now_utc.tzinfo is None:
             now_utc = now_utc.tz_localize("UTC")
@@ -204,6 +284,16 @@ class NewYorkORBStrategy:
 
     @staticmethod
     def _volume_column(df: pd.DataFrame) -> pd.Series:
+        """Elige la mejor columna de volumen disponible en las velas.
+
+        Preferencia: `real_volume` (solo si su suma es positiva, ya que
+        muchos brokers la publican vacia), luego `tick_volume`, luego
+        `volume`.
+
+        Ultimo recurso: una serie de unos, que convierte el VWAP en un
+        promedio simple y reparte el POC de forma uniforme. Es peor, pero
+        evita que la estrategia falle por falta del dato.
+        """
         if "real_volume" in df.columns:
             rv = pd.to_numeric(df["real_volume"], errors="coerce").fillna(0.0)
             if float(rv.sum()) > 0:
@@ -216,6 +306,18 @@ class NewYorkORBStrategy:
 
     @staticmethod
     def _session_vwap(df: pd.DataFrame) -> float | None:
+        """Precio medio ponderado por volumen de la sesión.
+
+        Usa el precio tipico `(high + low + close) / 3` de cada vela. Sirve
+        de filtro direccional: se compra por encima del VWAP y se vende por
+        debajo.
+
+        Si el volumen total es cero recurre a la media aritmetica del precio
+        tipico, para devolver algo utilizable en vez de `None`.
+
+        Returns:
+            El VWAP, o `None` si no hay velas o el resultado no es finito.
+        """
         if df.empty:
             return None
         volume = NewYorkORBStrategy._volume_column(df)
@@ -232,6 +334,23 @@ class NewYorkORBStrategy:
 
     @staticmethod
     def _session_poc(df: pd.DataFrame, bins: int = 24) -> float | None:
+        """Point of Control: precio donde se concentró más volumen.
+
+        Aproxima el perfil de volumen dividiendo el recorrido de la sesion en
+        `bins` franjas y asignando a cada vela su volumen completo en la
+        franja de su precio tipico. Es una simplificacion: un perfil exacto
+        repartiria el volumen entre todas las franjas que la vela atraviesa.
+
+        Devuelve el CENTRO de la franja mas negociada, no un precio real
+        operado. Se usa como zona de referencia, no como nivel exacto.
+
+        Args:
+            df: velas de la sesion.
+            bins: numero de franjas; se fuerza un minimo de 4.
+
+        Returns:
+            El precio del POC, o `None` si no hay datos utilizables.
+        """
         if df.empty:
             return None
         low = float(pd.to_numeric(df["low"], errors="coerce").min())
@@ -259,6 +378,21 @@ class NewYorkORBStrategy:
         return low + (idx + 0.5) * width
 
     def _prepare_candles(self, symbol: str, now_utc: datetime) -> pd.DataFrame:
+        """Descarga las velas y descarta las que aún no han cerrado.
+
+        FILTRO ANTI-REPINTADO, el punto mas delicado del metodo: solo
+        conserva velas cuyo instante de cierre (`time` + duracion) ya ha
+        pasado. Sin el, la estrategia decidiria sobre la vela en formacion y
+        el backtest arrojaria resultados imposibles de reproducir en vivo.
+
+        Anade la columna `time_ny` con la hora local de Nueva York.
+
+        Returns:
+            DataFrame ordenado por tiempo, con indice reiniciado.
+
+        Raises:
+            ValueError: si las velas no traen columna `time`.
+        """
         df = self.data_provider.get_candles(symbol, self.config.timeframe, count=int(self.config.candle_count)).copy()
         if "time" not in df.columns:
             raise ValueError(f"ORB requiere columna time en las velas {self.config.timeframe}")
@@ -276,6 +410,37 @@ class NewYorkORBStrategy:
         return df.sort_values("time").reset_index(drop=True)
 
     def analyze_symbol(self, symbol: str, now_utc: datetime | None = None) -> dict:
+        """Evalúa un símbolo y devuelve la señal ORB, válida o no.
+
+        Es el PUNTO DE ENTRADA de la estrategia. Secuencia:
+
+        1. Comprueba que el simbolo sea apto y la estrategia este activa.
+        2. Calcula los hitos de la sesion y descarga velas cerradas.
+        3. Delimita el rango de apertura (maximo y minimo de 09:30-09:45).
+        4. Busca una ruptura con cierre M5 fuera del rango.
+        5. Exige el retesteo del borde roto si la configuracion lo pide.
+        6. Aplica los filtros de VWAP y POC.
+        7. Calcula stop y objetivo segun `stop_mode` y `target_rr`.
+
+        SIEMPRE devuelve un dict, nunca lanza por falta de senal: cuando no
+        hay entrada, `valid` es `False` y `action`/`reason` explican en que
+        paso se detuvo. Eso hace que el motor pueda registrar el motivo.
+
+        Args:
+            symbol: instrumento a evaluar.
+            now_utc: instante de referencia; si se omite se toma del tick
+                actual. Pasarlo explicitamente es lo que permite reproducir
+                el analisis en backtest.
+
+        Returns:
+            Dict de senal con `valid`, `strategy_name`, `action`, `reason` y,
+            si es valida, direccion, entrada, stop y objetivo.
+
+        Vinculaciones:
+        - Lo llama `strategy.execution.live_trading_engine`.
+        - El dict resultante se pasa a `strategy.ai.feature_extraction` para
+          el meta-etiquetado.
+        """
         market = classify_orb_market(symbol)
         if not bool(self.config.enabled) or market is None:
             return {

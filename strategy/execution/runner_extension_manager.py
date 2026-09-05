@@ -1,3 +1,22 @@
+"""Decide si un RUNNER que ya va ganando conserva estructura para seguir.
+
+Un RUNNER es la porcion de la posicion que se deja correr tras asegurar
+beneficio parcial en 2R o 3R. La pregunta que responde este modulo no es
+"¿subira mas?", sino "¿sigue habiendo estructura que justifique mantener la
+exposicion?".
+
+Es DECISION ESTRUCTURAL PURA: solo mira swings y eventos BOS/CHOCH en M5. No
+usa antiguedad de senal, ni indicadores, ni tiempo transcurrido. Encaja con
+el principio de que los cierres automaticos deben responder a la estructura
+del trade y no a condiciones ajenas a ella.
+
+Vinculaciones:
+- Usa `strategy.smc.swings.detect_swings` y
+  `strategy.smc.choch_bos.detect_choch_bos`.
+- Lo invoca `strategy.execution.live_trading_engine` al gestionar las
+  posiciones que han superado los objetivos parciales.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,12 +30,38 @@ from strategy.smc.choch_bos import detect_choch_bos
 
 @dataclass(frozen=True)
 class RunnerExtensionDecision:
+    """Veredicto sobre la extensión de un runner, con su justificación.
+
+    `reason` lleva un codigo estable en mayusculas
+    (`CHOCH_CONTRARIO_RECIENTE`, `CONTINUACION_ESTRUCTURAL_CONFIRMADA`, …) y
+    `diagnostics` todos los datos intermedios, para poder reconstruir despues
+    por que se tomo la decision.
+    """
+
     continue_runner: bool
     reason: str
     diagnostics: dict[str, Any]
 
 
 def rr_price(entry_price: float, initial_stop_loss: float, direction: str, rr: float) -> float:
+    """Calcula el precio que corresponde a un múltiplo de R dado.
+
+    El riesgo es la distancia entre entrada y stop INICIAL, no el vigente:
+    usar el stop ya movido a break-even daria riesgo cero y falsearia todos
+    los objetivos.
+
+    Args:
+        entry_price: precio de entrada.
+        initial_stop_loss: stop original de la operacion.
+        direction: `BUY` suma el riesgo, cualquier otro valor lo resta.
+        rr: multiplo de R buscado.
+
+    Returns:
+        El precio correspondiente a ese multiplo.
+
+    Raises:
+        ValueError: si el riesgo inicial es cero o negativo.
+    """
     entry = float(entry_price)
     stop = float(initial_stop_loss)
     risk = abs(entry - stop)
@@ -42,6 +87,31 @@ def evaluate_runner_continuation(
 
     No predice el futuro: decide si merece conservar exposición mientras el SL
     ya protege una parte importante de la ganancia.
+
+    Procedimiento: recorta a las ultimas 80 velas M5, recalcula swings y
+    eventos estructurales, y aplica tres VETOS seguidos de una votacion.
+
+    Vetos, en orden (cualquiera corta la extension):
+    1. CHOCH contrario en las 3 ultimas velas.
+    2. El ultimo evento estructural de las 12 ultimas velas es contrario.
+    3. El cierre ha perdido el ultimo swing protector.
+
+    Si no hay veto, se exige AL MENOS UN voto de continuidad: momentum
+    (cierre por encima del maximo de las 3 velas previas, o por debajo del
+    minimo si es venta) o estructura alineada reciente.
+
+    Ante datos insuficientes —menos de 12 velas o columnas OHLC ausentes—
+    devuelve `False`: la postura por defecto es conservadora, no extender.
+
+    Args:
+        candles: velas M5 con `time`, `open`, `high`, `low` y `close`.
+        direction: `BUY` o `SELL` de la posicion abierta.
+        stage_rr: multiplo de R ya alcanzado; solo informativo, se registra
+            en los diagnosticos y NO altera la decision.
+
+    Returns:
+        `RunnerExtensionDecision` con veredicto, codigo de motivo y
+        diagnosticos.
     """
     if candles is None or candles.empty or len(candles) < 12:
         return RunnerExtensionDecision(

@@ -1,3 +1,20 @@
+"""Prueba de humo de extremo a extremo sobre una cuenta MT5 DEMO.
+
+Envia UNA orden real minima y recorre todo el circuito de produccion
+(ejecucion -> ciclo de vida -> persistencia -> Excel) para confirmar que la
+cadena completa funciona antes de dejar el bot operando solo.
+
+No genera senales ni decide entradas: el instrumento, la direccion y las
+distancias los fija la configuracion. El llamador debe haber pasado el
+preflight y dado su confirmacion explicita.
+
+Vinculaciones:
+    - `brokers.mt5_trade_executor.MT5TradeExecutor`: envio de la orden.
+    - `trade_lifecycle_manager.TradeLifecycleManager`: maquina de estados.
+    - `reporting.trade_reporting_service`: persistencia y exportacion.
+    - `app.main`: unico consumidor.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,6 +27,22 @@ from trade_lifecycle_manager import TradeLifecycleManager
 
 @dataclass
 class LiveDemoSmokeTestConfig:
+    """Parametros de la prueba.
+
+    Attributes:
+        symbol: instrumento a operar.
+        direction: BUY o SELL.
+        volume: lotes; si es 0 se usa el minimo del simbolo.
+        timeframe: marco declarado en el registro de la operacion.
+        rr: relacion riesgo/beneficio con la que se situa el TP.
+        stop_distance_points: distancia del SL respecto a la entrada.
+        stop_safety_points: margen extra sobre la distancia minima que exige el
+            broker, para que la orden no sea rechazada por stop invalido.
+        auto_close: cierra la posicion al terminar; conviene dejarlo en `True`
+            para que la prueba no deje riesgo vivo.
+        output_path: destino del XLSX generado.
+    """
+
     symbol: str
     direction: str = "BUY"
     volume: float = 0.0
@@ -29,6 +62,11 @@ class LiveDemoSmokeTestService:
     """
 
     def __init__(self, execution_provider, repository, config: LiveDemoSmokeTestConfig, magic=26082026, deviation=20):
+        """Monta la misma cadena de componentes que usa el bot en produccion.
+
+        Ejecutor MT5, servicio de reporting con origen DEMO y gestor de ciclo
+        de vida: si la prueba pasa, esa cadena esta verificada de punta a punta.
+        """
         self.execution_provider = execution_provider
         self.repository = repository
         self.config = config
@@ -52,6 +90,20 @@ class LiveDemoSmokeTestService:
         )
 
     def run(self) -> dict:
+        """Ejecuta la prueba completa y devuelve su resultado.
+
+        Vuelve a exigir cuenta DEMO como ultima barrera, calcula SL y TP a
+        partir de `point` y las distancias configuradas, normaliza el volumen
+        al minimo operable, abre la posicion y, si `auto_close` esta activo, la
+        cierra.
+
+        Returns:
+            dict con los datos de la operacion y la ruta del informe generado.
+
+        Raises:
+            ValueError / RuntimeError: si la direccion es invalida o el simbolo
+                no informa un `point` utilizable.
+        """
         self.execution_provider.assert_demo_account()
         symbol = str(self.config.symbol)
         direction = str(self.config.direction).upper()
@@ -156,6 +208,14 @@ class LiveDemoSmokeTestService:
 
     @staticmethod
     def _tick(symbol: str) -> dict:
+        """Precio actual del simbolo (bid/ask/last).
+
+        Importa `MetaTrader5` de forma diferida para que el modulo se pueda
+        importar en entornos sin el terminal.
+
+        Raises:
+            RuntimeError: si la libreria falta o no hay tick disponible.
+        """
         try:
             import MetaTrader5 as mt5
         except ModuleNotFoundError as exc:

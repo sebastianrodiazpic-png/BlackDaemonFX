@@ -1,3 +1,20 @@
+"""Vigilancia de posiciones abiertas: break-even, Stop Loss y Take Profit.
+
+Servicio puro de simulacion/seguimiento: recibe un precio desde fuera y decide
+si la posicion debe pasar a break-even o cerrarse. NO consulta al broker ni
+abre operaciones.
+
+Todos los cierres que produce son ESTRUCTURALES en el sentido del proyecto:
+responden a que el precio alcanzo un nivel definido en el plan (SL, TP o el
+break-even), nunca a la antiguedad de una senal ni a condiciones de entrada.
+
+Vinculaciones:
+    - `position_manager.PositionManager`: estado real de las posiciones.
+    - `strategy.execution.paper_trade_executor`: consumidor principal.
+    - Los callbacks `on_position_updated` / `on_position_closed` permiten al
+      integrador persistir o notificar cada cambio.
+"""
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -34,6 +51,21 @@ class PositionMonitoringService:
         on_position_updated: Optional[Callable[[dict[str, Any]], None]] = None,
         on_position_closed: Optional[Callable[[dict[str, Any]], None]] = None,
     ):
+        """Valida las dependencias y fija el umbral de break-even.
+
+        Args:
+            position_manager: instancia real de `PositionManager`; se exige el
+                tipo exacto para no operar sobre un estado inconsistente.
+            break_even_trigger_rr: RR a partir del cual el SL se mueve a la
+                entrada. Debe ser mayor que cero.
+            on_position_updated: callback opcional en cada actualizacion.
+            on_position_closed: callback opcional en cada cierre.
+
+        Raises:
+            TypeError / ValueError: ante dependencias o umbrales invalidos. Se
+                valida en el constructor para que el fallo aparezca al montar
+                el sistema y no con una posicion ya abierta.
+        """
         if not isinstance(position_manager, PositionManager):
             raise TypeError(
                 "position_manager debe ser una instancia de PositionManager."
@@ -59,6 +91,7 @@ class PositionMonitoringService:
 
     @property
     def break_even_trigger_rr(self) -> float:
+        """RR configurado para activar el break-even (solo lectura)."""
         return self._break_even_trigger_rr
 
     def monitor_position(
@@ -188,6 +221,20 @@ class PositionMonitoringService:
         position: dict[str, Any],
         current_price: float,
     ) -> str | None:
+        """Determina si el precio actual dispara un cierre, y de que tipo.
+
+        Distingue el Stop Loss real del `break_even_stop`: cuando el SL ya se
+        habia movido al precio de entrada, tocarlo no es una perdida sino una
+        salida en tablas. Diferenciarlos es lo que evita contabilizar como
+        derrota lo que en realidad fue un empate protegido.
+
+        Returns:
+            Una de las constantes `MONITOR_ACTION_*`, o `None` si no procede
+            cerrar.
+
+        Raises:
+            ValueError: si la direccion no es BUY ni SELL.
+        """
         direction = str(position["direction"]).upper()
         stop_loss = float(position["stop_loss"])
         take_profit = float(position["take_profit"])

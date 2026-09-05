@@ -1,3 +1,26 @@
+"""Registro en memoria de posiciones abiertas y cerradas, con break-even.
+
+Es la contabilidad interna del bot sobre lo que tiene en mercado. NO habla
+con ningun broker: solo mantiene el estado y calcula PnL en unidades de
+precio (diferencia entre precios, sin volumen ni divisa).
+
+Dos colecciones separadas por ticket: `_open_positions` y
+`_closed_positions`. Cerrar mueve la posicion de la primera a la segunda, y
+un ticket ya cerrado no puede reabrirse.
+
+DECISION DE DISENO IMPORTANTE: todos los metodos devuelven `deepcopy` de las
+posiciones. El exterior nunca recibe una referencia al estado interno, asi
+que no puede corromperlo por accidente; para modificar hay que pasar
+obligatoriamente por los metodos de esta clase.
+
+Vinculaciones:
+- Lo usa `strategy.execution.paper_trade_executor.PaperTradeExecutor` como
+  almacen de sus posiciones simuladas.
+- `monitoring.position_monitoring_service` consulta las posiciones abiertas.
+- Sus datos alimentan a `trade_lifecycle_manager.TradeLifecycleManager` a
+  traves del executor.
+"""
+
 from copy import deepcopy
 
 
@@ -6,9 +29,15 @@ POSITION_CLOSED = "CLOSED"
 
 
 class PositionManager:
+    """Almacén de posiciones con cálculo de PnL flotante y break-even.
+
+    Se apoya en el `ticket` como identificador unico. Las posiciones son
+    dicts sueltos, no objetos, y esta clase les anade los campos de control
+    (`initial_stop_loss`, `break_even_activated`, …) al registrarlas.
+    """
 
     def __init__(self):
-
+        """Crea el almacén vacío, sin posiciones abiertas ni cerradas."""
         self._open_positions = {}
         self._closed_positions = {}
 
@@ -17,7 +46,27 @@ class PositionManager:
     # ============================================================
 
     def register_position(self, position):
+        """Da de alta una posición recién abierta.
 
+        Valida los campos obligatorios y que el ticket no se haya usado
+        antes, ni abierto ni cerrado, para impedir duplicados.
+
+        Guarda una COPIA PROFUNDA e inicializa los campos de control. El mas
+        importante es `initial_stop_loss`: conserva el stop original porque,
+        una vez movido a break-even, el `stop_loss` vigente ya no sirve para
+        calcular el riesgo inicial de la operacion.
+
+        Args:
+            position: dict con `ticket`, `symbol`, `direction`, `volume`,
+                `filled_price`, `stop_loss`, `take_profit` y `status`.
+
+        Returns:
+            Copia de la posicion registrada, ya con los campos de control.
+
+        Raises:
+            ValueError: si faltan campos o el ticket esta repetido.
+            TypeError: si `position` no es un dict.
+        """
         if position is None:
             raise ValueError(
                 "position no puede ser None."
@@ -117,7 +166,11 @@ class PositionManager:
     # ============================================================
 
     def get_position(self, ticket):
+        """Busca una posición por ticket, esté abierta o cerrada.
 
+        Returns:
+            Copia de la posicion, o `None` si el ticket no existe.
+        """
         if ticket in self._open_positions:
 
             return deepcopy(
@@ -137,7 +190,7 @@ class PositionManager:
     # ============================================================
 
     def get_open_positions(self):
-
+        """Lista copias de todas las posiciones actualmente abiertas."""
         return [
             deepcopy(position)
             for position in self._open_positions.values()
@@ -148,7 +201,7 @@ class PositionManager:
     # ============================================================
 
     def get_closed_positions(self):
-
+        """Lista copias de todas las posiciones ya cerradas."""
         return [
             deepcopy(position)
             for position in self._closed_positions.values()
@@ -159,7 +212,11 @@ class PositionManager:
     # ============================================================
 
     def open_positions_count(self):
+        """Número de posiciones abiertas.
 
+        Lo consultan los limites de exposicion antes de permitir una nueva
+        entrada.
+        """
         return len(
             self._open_positions
         )
@@ -169,7 +226,7 @@ class PositionManager:
     # ============================================================
 
     def closed_positions_count(self):
-
+        """Número de posiciones cerradas acumuladas en memoria."""
         return len(
             self._closed_positions
         )
@@ -179,7 +236,7 @@ class PositionManager:
     # ============================================================
 
     def is_open(self, ticket):
-
+        """Indica si el ticket corresponde a una posición viva."""
         return (
             ticket
             in self._open_positions
@@ -194,7 +251,23 @@ class PositionManager:
         ticket,
         current_price,
     ):
+        """Refresca el precio actual y recalcula el PnL flotante.
 
+        El PnL va en unidades de PRECIO, no monetarias: para BUY es
+        `actual - entrada` y para SELL `entrada - actual`. Convertirlo a
+        dinero es responsabilidad de quien conozca volumen y valor de punto.
+
+        Args:
+            ticket: identificador de una posicion abierta.
+            current_price: ultima cotizacion.
+
+        Returns:
+            Copia de la posicion actualizada.
+
+        Raises:
+            ValueError: si el ticket no esta abierto o la direccion no es
+                `BUY` ni `SELL`.
+        """
         if ticket not in self._open_positions:
 
             raise ValueError(
@@ -272,6 +345,28 @@ class PositionManager:
 
         El método es idempotente: una posición que ya está en
         break even no vuelve a modificar su stop loss.
+
+        El riesgo inicial se calcula SIEMPRE contra `initial_stop_loss`, no
+        contra el stop vigente; de otro modo, tras el primer ajuste el
+        riesgo seria cero y el disparador dejaria de tener sentido.
+
+        Requiere que `update_price` se haya llamado antes, ya que compara
+        contra `current_price`.
+
+        Aunque no se cumpla la condicion, deja anotado
+        `break_even_trigger_price` para poder ver a que precio saltaria.
+
+        Args:
+            ticket: identificador de una posicion abierta.
+            trigger_rr: multiplo de R que activa el break-even.
+
+        Returns:
+            Copia de la posicion, con el stop movido si procedia.
+
+        Raises:
+            ValueError: si el ticket no esta abierto, `trigger_rr` no es
+                positivo, la direccion es invalida o el stop inicial esta al
+                lado equivocado de la entrada.
         """
 
         if ticket not in self._open_positions:
@@ -420,7 +515,25 @@ class PositionManager:
         exit_price,
         exit_reason="manual_close",
     ):
+        """Cierra una posición y la traslada al historial de cerradas.
 
+        Calcula el PnL realizado en unidades de precio, anula el flotante y
+        marca el estado como `CLOSED`. La operacion es irreversible: cerrar
+        dos veces el mismo ticket lanza error.
+
+        Args:
+            ticket: identificador de una posicion abierta.
+            exit_price: precio de salida.
+            exit_reason: motivo del cierre, que se conserva tal cual para
+                poder auditar despues por que se cerro cada operacion.
+
+        Returns:
+            Copia de la posicion ya cerrada.
+
+        Raises:
+            ValueError: si el ticket ya estaba cerrado, no existe abierto, o
+                la direccion es invalida.
+        """
         if ticket in self._closed_positions:
 
             raise ValueError(
@@ -508,7 +621,12 @@ class PositionManager:
     # ============================================================
 
     def clear_closed_positions(self):
+        """Vacía el historial de cerradas, sin tocar las posiciones abiertas.
 
+        CUIDADO: tras limpiarlo, los tickets liberados vuelven a poder
+        registrarse, ya que la deteccion de duplicados se apoya en estas dos
+        colecciones.
+        """
         self._closed_positions.clear()
 
     # ============================================================
@@ -516,7 +634,11 @@ class PositionManager:
     # ============================================================
 
     def clear_all(self):
+        """Vacía por completo el almacén, abiertas incluidas.
 
+        Solo para tests o reinicios: borrar posiciones vivas hace que el bot
+        pierda de vista operaciones que siguen abiertas en el broker.
+        """
         self._open_positions.clear()
 
         self._closed_positions.clear()

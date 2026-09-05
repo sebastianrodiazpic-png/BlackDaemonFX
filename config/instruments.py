@@ -1,3 +1,14 @@
+"""Gestor del universo de instrumentos operables.
+
+Envoltura de alto nivel sobre `DerivSymbolDiscovery`: expone el catalogo ya
+filtrado y agrupado por categoria, ocultando los detalles de consulta a MT5.
+
+Vinculaciones:
+    - `brokers.symbol_discovery.DerivSymbolDiscovery`: descubrimiento real.
+    - `app.main`: unico consumidor; construye desde aqui la lista de simbolos
+      de cada ciclo. Los instrumentos de ORB se anaden aparte en `app/main.py`.
+"""
+
 from brokers.symbol_discovery import (
     DerivSymbolDiscovery,
 )
@@ -15,8 +26,14 @@ DEFAULT_CATEGORIES = [
 
 
 class InstrumentManager:
+    """Catalogo de instrumentos operables agrupado por categoria.
+
+    No cachea: cada consulta delega en `DerivSymbolDiscovery`, de modo que un
+    simbolo deshabilitado por el broker deja de aparecer sin reiniciar el bot.
+    """
 
     def __init__(self, connector):
+        """Crea el descubridor de simbolos sobre el conector MT5 recibido."""
         self.discovery = DerivSymbolDiscovery(
             connector
         )
@@ -34,6 +51,15 @@ class InstrumentManager:
         self,
         category,
     ):
+        """Simbolos de UNA categoria, incluidos los no tradeables.
+
+        Lee el agrupamiento crudo de `get_deriv_synthetics()`, por lo que puede
+        contener instrumentos deshabilitados. Para operar en vivo usar
+        `get_active_symbols`, que si filtra.
+
+        Returns:
+            Lista de simbolos, o `[]` si la categoria no existe.
+        """
         category = str(category).lower()
 
         categorized = (

@@ -1,3 +1,31 @@
+"""Modelos ORM: definición de todas las tablas de la base de datos.
+
+Tablas principales:
+- `Trade`: operaciones, abiertas y cerradas, con precios, resultado en R y
+  dinero, tickets del broker y el analisis integro en `details_json`.
+- `Signal`: senales detectadas, con cada criterio SMC en su propia columna
+  para poder consultarlas y con el analisis completo en JSON.
+- `AccountSnapshot`: fotos periodicas del estado de la cuenta.
+- `TradeJournal`: historial permanente e independiente de `trades`.
+- `AccountStatsReset`: marcas de reinicio de estadisticas.
+- `InstrumentSelectionPreference` y su variante por perfil: instrumentos que
+  el operador ha activado.
+- `DaemonAuditEvent` y `WorkerRuntimeState`: auditoria y estado de workers.
+- `PositionVisualAudit`, `TradeVisualAudit`, `TradeAuditSnapshot`: contexto
+  visual y snapshots para revisar las operaciones a posteriori.
+
+CRITERIO DE DISENO: los datos que se consultan o filtran viven en columnas
+propias, mientras que el contexto completo se guarda como JSON. Asi se puede
+buscar en SQL sin perder informacion para auditar o entrenar el modelo.
+
+TIEMPOS EN UTC: todas las marcas temporales usan zona horaria y se generan
+con `utcnow`, evitando ambiguedades entre workers y horarios locales.
+
+Vinculaciones:
+- Heredan de `database.database.Base`; `init_database` crea el esquema.
+- `database.repository` es quien lee y escribe estas tablas.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -7,10 +35,27 @@ from database.database import Base
 
 
 def utcnow():
+    """Instante actual en UTC con zona horaria explícita.
+
+    Se usa como valor por defecto de las columnas temporales. Devolver una
+    fecha consciente de zona evita comparaciones ambiguas entre workers que
+    podrian correr con horarios locales distintos.
+    """
     return datetime.now(timezone.utc)
 
 
 class Trade(Base):
+    """Operación de trading, abierta o cerrada.
+
+    Tabla central del sistema. Guarda la identificacion en el broker (varios
+    tickets, porque una operacion tiene orden, deal y posicion), los precios
+    de entrada, stop y objetivo, y el desenlace tanto en R como en dinero.
+
+    El campo `details_json` conserva el analisis completo que origino la
+    operacion, lo que permite auditar despues por que se entro y alimentar el
+    entrenamiento del modelo de meta-etiquetado.
+    """
+
     __tablename__ = "trades"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -62,6 +107,18 @@ class Trade(Base):
 
 
 class Signal(Base):
+    """Señal detectada por el análisis, se haya ejecutado o no.
+
+    Cada criterio SMC (tendencia, swing, liquidez, barrido, ruptura de
+    estructura, order block, retest, premium/discount y confirmacion) ocupa
+    su propia columna booleana, lo que permite consultar en SQL que condicion
+    falla con mas frecuencia.
+
+    Registrar tambien las senales NO ejecutadas es deliberado: sin ellas el
+    modelo de IA solo veria los casos en que se entro y no podria aprender a
+    distinguir las buenas oportunidades de las descartadas.
+    """
+
     __tablename__ = "signals"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -85,6 +142,13 @@ class Signal(Base):
 
 
 class AccountSnapshot(Base):
+    """Foto puntual del estado de la cuenta en el broker.
+
+    Registra balance, equity, margen usado y libre y beneficio flotante. La
+    serie de snapshots permite reconstruir la curva de capital y calcular el
+    drawdown sin depender de que el broker conserve el historico.
+    """
+
     __tablename__ = "account_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

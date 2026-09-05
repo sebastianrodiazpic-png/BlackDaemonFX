@@ -1,3 +1,23 @@
+"""Pipeline de backtesting: de las señales históricas al informe de resultados.
+
+Orquesta la evaluacion historica completa en tres pasos encadenados:
+
+1. `trade_simulator.simulate_all_trades` recorre las velas posteriores a cada
+   senal y determina si habria tocado antes el stop o el objetivo.
+2. `backtest_money_management.apply_money_management` traduce esos resultados
+   en R a la evolucion monetaria de una cuenta.
+3. `backtest_storage.persist_money_management_results` guarda todo en base de
+   datos y exporta el informe.
+
+ESTE ES EL MOTOR DE BACKTEST VIVO. Lo invoca `app.main` desde la interfaz.
+No confundir con `strategy/backtest/`, que solo aporta un calculador de
+metricas sin consumidores en produccion.
+
+Vinculaciones:
+- Consumido por `app.main`.
+- Consume los tres modulos hermanos del paquete `backtesting`.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

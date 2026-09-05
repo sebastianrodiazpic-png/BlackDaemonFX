@@ -1,3 +1,27 @@
+"""Configuración de la base de datos SQLite: rutas, motor y migraciones ligeras.
+
+Resuelve DONDE vive la base de datos y deja el motor SQLAlchemy listo para
+un uso concurrente por varios workers.
+
+UBICACION ESTABLE: la base no se guarda dentro de la carpeta del proyecto,
+que cambia con cada version, sino en un directorio persistente del usuario
+(`%LOCALAPPDATA%\\BlackDaemonFx` en Windows). Asi el historico sobrevive a
+las actualizaciones. La variable `DAEMONBLACKFX_DB_PATH` permite forzar una
+ruta concreta, y `DAEMONBLACKFX_DATA_DIR` el directorio.
+
+ARRANQUE CON MIGRACION: al resolver la ruta por defecto se buscan bases de
+versiones anteriores y, si la ubicacion estable esta vacia, se adopta la que
+mas actividad tenga, para no perder el historial.
+
+CONCURRENCIA: se configura WAL y unos PRAGMA por conexion, de modo que varios
+workers escriban a la vez sin bloquearse, con espera amplia ante bloqueos.
+
+Vinculaciones:
+- `database.models` define las tablas sobre la `Base` declarada aqui.
+- `database.repository` obtiene de aqui sus sesiones.
+- Todo el proyecto persiste a traves de esta configuracion.
+"""
+
 from __future__ import annotations
 
 from contextlib import closing
@@ -25,6 +49,11 @@ def _stable_data_dir() -> Path:
 
 
 def _explicit_db_path() -> Path | None:
+    """Devuelve la ruta forzada por `DAEMONBLACKFX_DB_PATH`, o `None`.
+
+    Cuando esta definida, tiene prioridad sobre cualquier otra logica y
+    desactiva la migracion automatica desde versiones anteriores.
+    """
     value = os.getenv("DAEMONBLACKFX_DB_PATH")
     return Path(value).expanduser().resolve() if value else None
 
@@ -164,10 +193,28 @@ _DB_BOOTSTRAP_INFO = None
 
 
 class Base(DeclarativeBase):
+    """Clase base declarativa de la que heredan todos los modelos ORM.
+
+    `database.models` la usa para definir las tablas, e `init_database` crea
+    a partir de sus metadatos el esquema completo.
+    """
+
     pass
 
 
 def resolve_db_path(db_path: str | Path | None = None) -> Path:
+    """Resuelve la ruta definitiva de la base de datos y garantiza su carpeta.
+
+    Si no se indica ruta y tampoco hay una forzada por variable de entorno,
+    ejecuta el arranque con migracion: busca bases de versiones anteriores y
+    adopta la de mayor actividad si la ubicacion estable esta vacia.
+
+    Args:
+        db_path: ruta explicita; si falta se usa la ubicacion estable.
+
+    Returns:
+        Ruta absoluta, con el directorio padre ya creado.
+    """
     global _DB_BOOTSTRAP_INFO
     path = Path(db_path).expanduser().resolve() if db_path else Path(DEFAULT_DB_PATH).expanduser().resolve()
     if db_path is None and _EXPLICIT_DB is None:
@@ -177,6 +224,16 @@ def resolve_db_path(db_path: str | Path | None = None) -> Path:
 
 
 def database_diagnostics(db_path: str | Path | None = None) -> dict:
+    """Informa del estado de la base de datos sin modificarla.
+
+    Sirve para responder a la pregunta "¿esta el bot leyendo la base que
+    creo?", habitual tras una actualizacion de version.
+
+    Returns:
+        Dict con la ruta en uso, si existe, su tamano, el recuento de filas
+        de las tablas de actividad, el resultado de la migracion de arranque
+        y las variables de entorno implicadas.
+    """
     path = resolve_db_path(db_path)
     score = _sqlite_activity_score(path)
     return {
@@ -194,6 +251,25 @@ def database_diagnostics(db_path: str | Path | None = None) -> dict:
 
 
 def get_engine(db_path: str | Path | None = None):
+    """Crea el motor SQLAlchemy configurado para acceso concurrente.
+
+    Aplica los ajustes que hacen viable que varios workers escriban a la vez:
+
+    - `journal_mode=WAL`: los lectores no bloquean al escritor.
+    - `busy_timeout=30000`: ante un bloqueo se espera hasta 30 s en lugar de
+      fallar de inmediato.
+    - `synchronous=NORMAL`: equilibrio entre durabilidad y rendimiento.
+    - Limites de checkpoint y tamano de journal, mas cache en memoria.
+
+    Los PRAGMA se aplican mediante un escucha del evento `connect`, de modo
+    que TODA conexion los reciba, sin depender de quien abrio la base.
+
+    Args:
+        db_path: ruta explicita; si falta se usa la ubicacion estable.
+
+    Returns:
+        El motor SQLAlchemy listo para usar.
+    """
     path = resolve_db_path(db_path)
     engine = create_engine(
         f"sqlite:///{path}",
@@ -204,6 +280,7 @@ def get_engine(db_path: str | Path | None = None):
 
     @event.listens_for(engine, "connect")
     def _configure_sqlite_connection(dbapi_connection, _connection_record):
+        """Aplica los PRAGMA de concurrencia a cada conexión nueva."""
         cursor = dbapi_connection.cursor()
         try:
             # PRAGMAs por conexión: todos los workers comparten los mismos
@@ -224,11 +301,28 @@ def get_engine(db_path: str | Path | None = None):
 
 
 def get_session_factory(db_path: str | Path | None = None):
+    """Crea la fábrica de sesiones ORM sobre el motor configurado.
+
+    Desactiva `autoflush` y `autocommit` para que las escrituras sean
+    explicitas: nada llega a disco hasta que se confirma la transaccion.
+    """
     engine = get_engine(db_path)
     return sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
 def _ensure_trade_columns(engine):
+    """Añade a `trades` las columnas que falten, migrando bases antiguas.
+
+    MIGRACION LIGERA sin herramienta externa: el proyecto ha ido sumando
+    columnas (tickets del broker, RR planificado y realizado, motivo de
+    cierre, metricas de drawdown, detalles JSON) y una base creada por una
+    version anterior no las tiene.
+
+    Compara las columnas presentes con las requeridas y emite un `ALTER
+    TABLE` solo por las ausentes, por lo que es idempotente y seguro de
+    ejecutar en cada arranque. No elimina ni modifica columnas existentes,
+    de modo que nunca destruye datos.
+    """
     inspector = inspect(engine)
     if "trades" not in inspector.get_table_names():
         return
@@ -276,6 +370,21 @@ def _ensure_performance_indexes(engine):
 
 
 def init_database(db_path: str | Path | None = None):
+    """Inicializa la base: crea el esquema, migra columnas y crea los índices.
+
+    Punto de entrada de arranque. La importacion de los modelos dentro de la
+    funcion es necesaria para registrarlos en los metadatos de `Base` antes
+    de crear las tablas, y evita ademas un ciclo de importacion.
+
+    Es idempotente: crea solo lo que falte, por lo que puede ejecutarse en
+    cada arranque sin riesgo.
+
+    Args:
+        db_path: ruta explicita; si falta se usa la ubicacion estable.
+
+    Returns:
+        El motor ya inicializado.
+    """
     from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot  # noqa: F401
     engine = get_engine(db_path)
     Base.metadata.create_all(engine)

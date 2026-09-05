@@ -1,3 +1,18 @@
+"""Calculo de Stop Loss, Take Profit y ratio Riesgo/Beneficio.
+
+Traduce una confirmacion de entrada en niveles operables concretos. Es la
+frontera entre el analisis SMC y la gestion de riesgo: a partir de aqui el
+resultado se mide en R (multiplos del riesgo inicial).
+
+Vinculaciones:
+- Lo importa `strategy.execution.trade_pipeline`, que lo aplica sobre las
+  confirmaciones antes de publicar la senal.
+- Recibe la salida de
+  `strategy.smc.entry_confirmation.detect_entry_confirmations`.
+- Los niveles que calcula los consume despues la capa de riesgo
+  (`strategy.risk.position_sizing`) para dimensionar el lote.
+"""
+
 import pandas as pd
 
 
@@ -32,6 +47,27 @@ def calculate_risk_reward(
     -------
     pd.DataFrame
         DataFrame con los cálculos de riesgo y recompensa.
+
+    Raises
+    ------
+    ValueError
+        Si `risk_reward_ratio` no es mayor que 0, o si faltan las columnas
+        `setup_type`, `entry_price` o `stop_loss`.
+
+    Notas
+    -----
+    Con un DataFrame vacio o `None` devuelve un DataFrame vacio sin fallar.
+    El Stop Loss NO se calcula aqui: viene ya definido desde la confirmacion,
+    derivado del extremo del Order Block. Esta funcion solo proyecta el Take
+    Profit a partir de esa distancia de riesgo.
+
+    Vinculaciones
+    -------------
+    - Lo llama `strategy.execution.trade_pipeline` como ultimo paso antes de
+      emitir la senal.
+    - `entry_price`, `stop_loss` y `take_profit` los consume despues la capa
+      de riesgo para calcular el lotaje y, en vivo,
+      `strategy.execution.live_trading_engine` para enviar la orden.
     """
 
     # ==================================================

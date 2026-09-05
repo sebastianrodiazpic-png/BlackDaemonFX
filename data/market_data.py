@@ -1,3 +1,16 @@
+"""Utilidad manual de descarga de historico desde MT5 a CSV.
+
+ESTADO: script auxiliar, NO forma parte del bot en produccion. El mapa de
+dependencias no le encuentra ningun consumidor; se ejecuta a mano cuando se
+quiere un CSV para analisis o backtest.
+
+En produccion los datos de mercado llegan por `brokers.mt5_data`, no por aqui.
+
+Vinculaciones:
+    - `MetaTrader5`: abre y cierra su propia conexion, independiente de la que
+      usa el bot.
+"""
+
 from datetime import datetime, timezone
 import os
 
@@ -71,7 +84,12 @@ def save_historical_data(df, symbol, timeframe_name):
 
 
 def main():
+    """Descarga M5 de `PRIMARY_SYMBOL` y lo guarda en CSV.
 
+    El rango va desde una fecha fija codificada arriba hasta el instante
+    actual. La conexion MT5 se cierra siempre en el `finally`, incluso si la
+    descarga falla.
+    """
     print("=" * 60)
     print("DESCARGA DE DATOS HISTÓRICOS - DERIV MT5")
     print("=" * 60)

@@ -1,3 +1,20 @@
+"""Gestión monetaria: validaciones de capital y estadísticas de drawdown.
+
+Aporta las piezas basicas sobre las que se apoya el gestor de riesgo:
+validacion de balance y de porcentaje de riesgo, conversion de ese porcentaje
+en un importe monetario, y calculo de las estadisticas de drawdown a partir
+de una curva de capital.
+
+El drawdown se mide contra el maximo historico alcanzado, no contra el saldo
+inicial: lo relevante es cuanto se ha devuelto desde el mejor momento.
+
+Vinculaciones:
+- Lo consume `strategy.risk.risk_manager`.
+- `tests/test_money_management.py` cubre su comportamiento.
+- Existe un modulo analogo para backtesting en
+  `backtesting.backtest_money_management`.
+"""
+
 import pandas as pd
 import numpy as np
 

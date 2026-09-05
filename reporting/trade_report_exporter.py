@@ -1,3 +1,27 @@
+"""Exportador XLSX del estado completo del daemon, con auditoria explicable.
+
+Genera el libro principal del proyecto (por defecto
+`reports/deriv_demo_trades.xlsx`) con ocho hojas: Trades, Open Positions,
+Summary, Instruments, Account, Audit Log, "Entrada vs Ahora" y Metadata.
+
+Dos ideas de diseno importantes:
+
+1. **Explicabilidad**: la hoja Trades no se limita a los datos crudos; anade
+   columnas en espanol que reconstruyen POR QUE se entro (confirmaciones
+   cumplidas y faltantes, decision, calidad) y COMO se cerro.
+2. **Historial permanente**: si el repositorio expone
+   `trade_history_dataframe`, el libro se reconstruye desde el journal
+   permanente, de modo que un reinicio de estadisticas no borre el historial
+   ya exportado.
+
+Vinculaciones:
+    - `database.repository.TradingRepository`: origen de todos los DataFrames.
+    - `trade_outcome_policy`: `is_break_even_rr` y `decisive_outcome` deciden
+      la clasificacion del cierre, compartida con el resto del proyecto.
+    - Consumidor: `reporting.trade_reporting_service`, que lo invoca tras cada
+      evento relevante del ciclo de vida.
+"""
+
 from __future__ import annotations
 
 import json
@@ -58,12 +82,35 @@ class TradeReportExporter:
     }
 
     def __init__(self, repository, output_path=None):
+        """Fija repositorio y destino del libro.
+
+        Si no se indica ruta, usa `reports/deriv_demo_trades.xlsx` relativo al
+        directorio de trabajo.
+        """
         self.repository = repository
         if output_path is None:
             output_path = Path("reports") / "deriv_demo_trades.xlsx"
         self.output_path = Path(output_path)
 
     def export(self, source="DEMO"):
+        """Reconstruye el libro completo desde cero para un entorno dado.
+
+        Args:
+            source: DEMO, LIVE o PAPER.
+
+        Returns:
+            dict con `path` absoluto, `total_trades`, `open_positions`,
+            el `summary` agregado y el numero de snapshots Entrada vs Ahora.
+
+        Pasos: lee el historial (journal permanente si existe, tabla operativa
+        si no), convierte marcas de tiempo a hora de Chile, enriquece con las
+        columnas explicables, compacta la bitacora de auditoria (sus payloads
+        JSON completos NO caben en Excel; quedan en la base) y escribe las ocho
+        hojas antes de aplicar el formato.
+
+        Todas las lecturas opcionales se resuelven con `getattr`+`callable`
+        para tolerar repositorios reducidos o dobles de test.
+        """
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # v46: el XLSX se reconstruye desde el journal permanente cuando existe.
@@ -147,6 +194,12 @@ class TradeReportExporter:
 
     @classmethod
     def _audit_payload_dict(cls, value):
+        """Normaliza un payload de auditoria a diccionario.
+
+        Acepta dict, JSON en texto o escalares. Lo que no sea un objeto se
+        envuelve en `{"value": ...}` y un JSON corrupto se conserva como texto
+        en vez de perderse.
+        """
         if isinstance(value, dict):
             return value
         if isinstance(value, str) and value.strip():
@@ -212,6 +265,16 @@ class TradeReportExporter:
 
     @classmethod
     def _compact_audit_dataframe(cls, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """Reduce la bitacora a columnas fijas mas un `resumen` de texto.
+
+        Los payloads completos pueden ser enormes y superar el limite de celda
+        de Excel, asi que se sustituyen por un resumen y se marca
+        `payload_completo_en_db = SI`, dejando claro que el dato integro sigue
+        disponible en SQLite.
+
+        Devuelve un DataFrame vacio pero CON las columnas esperadas si no hay
+        eventos, para que la hoja mantenga su cabecera.
+        """
         if dataframe is None or dataframe.empty:
             return pd.DataFrame(columns=[
                 "id", "event_time", "source", "bot_profile", "daemon_magic",
@@ -267,6 +330,13 @@ class TradeReportExporter:
     # ------------------------------------------------------------------
 
     def _enrich_trades_for_report(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """Anade a cada trade las columnas explicables en espanol.
+
+        Recorre fila a fila extrayendo los metadatos del JSON `details` y
+        construyendo el registro de auditoria legible. Si el DataFrame llega
+        vacio, crea igualmente las columnas de `_report_columns()` para que la
+        hoja conserve su estructura.
+        """
         if dataframe is None:
             return pd.DataFrame()
         df = dataframe.copy()
@@ -288,6 +358,11 @@ class TradeReportExporter:
 
     @classmethod
     def _report_columns(cls):
+        """Nombres de las columnas explicables anadidas a la hoja Trades.
+
+        Es la lista canonica: cualquier columna nueva debe declararse aqui para
+        que aparezca tambien cuando no hay operaciones.
+        """
         return [
             "estrategia_id",
             "version_estrategia",
@@ -318,6 +393,19 @@ class TradeReportExporter:
         ]
 
     def _report_record(self, row, metadata):
+        """Construye el diccionario explicable de UNA operacion.
+
+        Args:
+            row: fila del DataFrame de trades.
+            metadata: `details["metadata"]` ya extraido.
+
+        Returns:
+            dict con exactamente las claves de `_report_columns()`.
+
+        Los trades antiguos que no guardaban decision se etiquetan
+        explicitamente como "NO REGISTRADA (TRADE LEGACY)" en lugar de quedar
+        en blanco, para no confundir un dato ausente con un dato negativo.
+        """
         strategy_name = self._clean(metadata.get("strategy_name")) or "SMC"
         strategy_version = (
             self._clean(metadata.get("strategy_version"))
@@ -421,6 +509,14 @@ class TradeReportExporter:
         }
 
     def _build_entry_reason(self, metadata, decision_es, passed, missing, percentage, score, harmonic_es, divergence_es, doji_es, strategy_name="SMC"):
+        """Redacta en una frase por que se tomo la entrada.
+
+        Encadena estrategia (SMC u ORB), estructura, tendencia H1, zona,
+        porcentaje de confirmaciones, calidad, confirmaciones cumplidas y
+        faltantes, confluencias (divergencia, armonico, doji H1) y la decision
+        final. Solo incluye los fragmentos con dato, de modo que la frase nunca
+        contiene huecos.
+        """
         if str(strategy_name).upper() == "ORB_NEW_YORK":
             parts = ["Opening Range Breakout New York (ORB)"]
         else:
@@ -452,6 +548,23 @@ class TradeReportExporter:
         return "; ".join(parts) + "."
 
     def _classify_close(self, row):
+        """Clasifica el cierre en TP1..TP4, STOP LOSS, break-even u otro.
+
+        Orden de decision:
+        1. Posicion abierta -> "ABIERTA".
+        2. Cierre de emergencia por riesgo -> se aparta como "NO CONTABILIZAR",
+           porque no refleja la calidad de la estrategia sino una intervencion
+           de proteccion.
+        3. `is_break_even_rr` (v48): un RR minusculo como +0.01R o -0.01R es
+           break-even aunque el PnL monetario tenga signo; asi las comisiones
+           no convierten un empate en ganancia o perdida ficticia.
+        4. Resto: se deduce el objetivo alcanzado combinando PnL, RR realizado,
+           RR planificado y la pierna (TP1 / RUNNER / SINGLE).
+
+        Returns:
+            La etiqueta en espanol que alimenta el grafico circular del
+            dashboard.
+        """
         status = self._clean(row.get("status")).upper()
         if status == "OPEN":
             return "ABIERTA"
@@ -498,6 +611,11 @@ class TradeReportExporter:
         return "OTRO"
 
     def _extract_metadata(self, row):
+        """Recupera `details["metadata"]` probando `details_json` y `details`.
+
+        Segun el origen del DataFrame (journal o tabla operativa) el JSON viaja
+        en una columna u otra. Devuelve `{}` si no hay nada utilizable.
+        """
         candidates = []
         if hasattr(row, "get"):
             candidates.extend([row.get("details_json"), row.get("details")])
@@ -511,6 +629,11 @@ class TradeReportExporter:
 
     @staticmethod
     def _parse_details(raw):
+        """Parsea el JSON `details` devolviendo `{}` ante cualquier problema.
+
+        Un `details` corrupto no debe impedir que el resto del informe se
+        exporte.
+        """
         if isinstance(raw, dict):
             return raw
         if not isinstance(raw, str) or not raw.strip():
@@ -522,12 +645,18 @@ class TradeReportExporter:
 
     @classmethod
     def _labels(cls, keys):
+        """Traduce una lista de confirmaciones a texto separado por comas.
+
+        Devuelve "Ninguna" con lista vacia, para distinguir de forma explicita
+        "no falto nada" de una celda en blanco.
+        """
         if not keys:
             return "Ninguna"
         return ", ".join(cls.CONFIRMATION_LABELS.get(str(k), str(k).replace("_", " ")) for k in keys)
 
     @staticmethod
     def _as_list(value):
+        """Normaliza a lista: `None` -> `[]`, escalar -> `[escalar]`."""
         if value is None:
             return []
         if isinstance(value, list):
@@ -538,6 +667,11 @@ class TradeReportExporter:
 
     @staticmethod
     def _clean(value):
+        """Convierte a texto tratando `None` y `NaN` como cadena vacia.
+
+        El `NaN` de pandas es imprescindible controlarlo: sin esto apareceria
+        el literal "nan" en las celdas del informe.
+        """
         if value is None:
             return ""
         if isinstance(value, float) and math.isnan(value):
@@ -546,6 +680,11 @@ class TradeReportExporter:
 
     @staticmethod
     def _safe_number(value):
+        """Convierte a float devolviendo `None` ante fallo o `NaN`.
+
+        Devolver `None` en lugar de 0.0 es intencionado: permite distinguir
+        "no hay dato" de "el valor es cero".
+        """
         if value is None:
             return None
         try:
@@ -560,11 +699,18 @@ class TradeReportExporter:
 
     @classmethod
     def _format_chile_now(cls) -> str:
+        """Momento actual formateado en hora de Chile."""
         local = datetime.now(timezone.utc).astimezone(ZoneInfo(cls.DISPLAY_TIMEZONE))
         return cls._format_local(local)
 
     @staticmethod
     def _format_local(local: datetime) -> str:
+        """Formatea una fecha local anadiendo abreviatura y desfase UTC.
+
+        Deduce CLST (UTC-3, horario de verano) o CLT (UTC-4) a partir del
+        desfase real, de modo que el informe no sea ambiguo en los meses de
+        cambio horario.
+        """
         offset = local.utcoffset()
         hours = int(offset.total_seconds() // 3600) if offset else 0
         abbreviation = "CLST" if hours == -3 else "CLT" if hours == -4 else "CHILE"
@@ -573,6 +719,12 @@ class TradeReportExporter:
 
     @classmethod
     def _format_chile_datetime(cls, value):
+        """Convierte cualquier representacion de fecha a texto en hora chilena.
+
+        Los valores sin zona horaria se asumen UTC, que es como el proyecto
+        persiste todo. Ante un valor no interpretable devuelve el original en
+        lugar de descartarlo.
+        """
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return value
         try:
@@ -593,6 +745,12 @@ class TradeReportExporter:
 
     @classmethod
     def _localize_dataframe_timestamps(cls, dataframe):
+        """Pasa a hora de Chile todas las columnas temporales de un DataFrame.
+
+        Detecta las columnas por nombre exacto (`entry_time`, `exit_time`...) o
+        porque contengan `_time`/`timestamp`, de forma que las tablas nuevas
+        queden cubiertas sin tocar este metodo.
+        """
         if dataframe is None or dataframe.empty:
             return dataframe
         df = dataframe.copy()
@@ -606,6 +764,7 @@ class TradeReportExporter:
         return df
 
     def _get_account_snapshots(self):
+        """Snapshots de cuenta, o DataFrame vacio si el repositorio no los expone."""
         if hasattr(self.repository, "account_snapshots_dataframe"):
             return self.repository.account_snapshots_dataframe()
         return pd.DataFrame()
@@ -615,6 +774,11 @@ class TradeReportExporter:
     # ------------------------------------------------------------------
 
     def _format_workbook(self):
+        """Da formato al libro y construye el dashboard de la hoja Summary.
+
+        Si `openpyxl` no esta instalado sale en silencio: el libro ya contiene
+        los datos y el formato es puramente cosmetico.
+        """
         try:
             from openpyxl import load_workbook
             from openpyxl.chart import PieChart, Reference
@@ -677,6 +841,15 @@ class TradeReportExporter:
         workbook.save(self.output_path)
 
     def _build_summary_dashboard(self, ws, trades_ws, PieChart, Reference, Font, PatternFill, Alignment):
+        """Dibuja el panel de KPIs y el grafico circular sobre la hoja Summary.
+
+        Los tipos de `openpyxl` llegan por parametro porque el import es
+        diferido en `_format_workbook`.
+
+        Es idempotente: limpia primero su area (filas 1-20, columnas D-R) y
+        vacia `ws._charts`, de modo que las exportaciones automaticas repetidas
+        no acumulen graficos superpuestos.
+        """
         blue = "1F4E78"
         white = "FFFFFF"
         header_fill = PatternFill("solid", fgColor=blue)

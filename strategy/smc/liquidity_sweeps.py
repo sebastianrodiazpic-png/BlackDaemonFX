@@ -1,3 +1,18 @@
+"""Deteccion de barridos de liquidez (liquidity sweeps / stop hunts).
+
+Un barrido es la trampa clasica: el precio perfora un nivel donde se acumulan
+stops, los ejecuta, y vuelve a cerrar del lado contrario. Es una senal de
+reversion de alta calidad y en el pipeline actua como DISPARADOR del setup.
+
+Vinculaciones:
+- Es importado por `strategy.execution.trade_pipeline.run_pipeline`, que lo
+  ejecuta inmediatamente despues de
+  `strategy.smc.liquidity.detect_liquidity_levels`.
+- `trade_pipeline._latest_sweep` consulta las columnas `bullish_sweep` /
+  `bearish_sweep` para asociar el barrido mas reciente a cada setup.
+- No importa ningun otro modulo del proyecto: solo depende de pandas.
+"""
+
 import pandas as pd
 
 
@@ -12,6 +27,25 @@ def detect_liquidity_sweeps(df):
     Bullish Sweep:
         - El precio rompe por debajo de Sell-Side Liquidity.
         - La vela cierra nuevamente por encima del nivel.
+
+    Proceso: mantiene dos listas de niveles ACTIVOS que va alimentando segun
+    avanza en el tiempo, de forma que una vela solo puede barrer niveles ya
+    conocidos en ese momento (no hay mirada al futuro). Cuando un nivel se
+    barre se ELIMINA de la lista, asi que cada nivel genera como maximo un
+    barrido. El `break` limita ademas a un barrido por direccion y por vela.
+
+    Args:
+        df: DataFrame con `buy_side_liquidity`, `sell_side_liquidity` y
+            `liquidity_level` ya calculados por
+            `strategy.smc.liquidity.detect_liquidity_levels`.
+
+    Returns:
+        Una COPIA del DataFrame con `bullish_sweep`, `bearish_sweep` y
+        `sweep_level` (el precio del nivel barrido).
+
+    Vinculaciones:
+    - `strategy.execution.trade_pipeline` marca con estas columnas la casilla
+      `sweep_ok` del checklist del setup.
     """
 
     df = df.copy()

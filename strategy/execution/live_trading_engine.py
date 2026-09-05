@@ -1,3 +1,40 @@
+"""Motor de trading en vivo: el bucle central que convierte análisis en órdenes.
+
+Modulo mas grande del proyecto y corazon operativo del bot. Coordina todo lo
+que ocurre entre "hay datos de mercado" y "hay una posicion gestionada":
+
+1. Selecciona que simbolos analizar en cada ciclo (perfiles por worker).
+2. Pide el analisis multi-temporal a `MultiTimeframeAnalyzer`.
+3. Aplica las PUERTAS DE ENTRADA (gates): politica de direccion, noticias de
+   alto impacto, rollover, limites de posiciones, cuarentena de simbolos.
+4. Consulta al motor de IA de meta-etiquetado, que puede puntuar en sombra,
+   filtrar por probabilidad o priorizar entre senales simultaneas.
+5. Dimensiona el riesgo y ejecuta a traves del `TradeExecutor` configurado.
+6. Vigila las posiciones abiertas: break-even, trailing, extension del runner
+   y cierres defensivos.
+
+CONCEPTO CRITICO — CIERRES ESTRUCTURALES: los cierres anticipados deben
+responder a una invalidacion real de la tesis (direccion opuesta, BOS/CHOCH
+contrario, bloqueo HTF o fallo estructural critico). Los estados de
+antiguedad de senal como `STALE_M5_SIGNAL` significan "ya no procede ABRIR
+aqui" y NO se usan para cerrar lo que ya esta abierto.
+
+CUARENTENA: un simbolo que provoca errores repetidos se aparta durante un
+tiempo, guardando el estado en disco para que sobreviva a un reinicio.
+
+MULTI-WORKER: varias instancias pueden correr en paralelo sobre perfiles de
+simbolos distintos, por lo que la cuarentena y los limites de posicion usan
+bloqueos y ficheros compartidos.
+
+Vinculaciones:
+- Consume `strategy.execution.multi_timeframe` para el analisis.
+- Consume `strategy.ai` (meta-etiquetado, ranking) antes de ejecutar.
+- Ejecuta via `strategy.execution.trade_executor` y sus implementaciones.
+- Registra estados en `trade_lifecycle_manager` y persiste en `database`.
+- Usa `config.symbol_policy`, `services.financial_news_service`,
+  `strategy.orb.new_york_orb` y `strategy.execution.runner_extension_manager`.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -43,6 +80,30 @@ _QUARANTINE_PROCESS_LOCK = threading.RLock()
 
 @dataclass
 class LiveTradingConfig:
+    """Configuración completa del motor de trading en vivo.
+
+    Reune en un unico objeto todos los parametros ajustables del bot. Los
+    valores por defecto son los de produccion; cada worker puede sobrescribir
+    los que necesite.
+
+    Bloques principales:
+    - Marcos y numero de velas por temporalidad (H1/M15/M5).
+    - Riesgo: porcentaje, base equity/balance, tolerancias y topes duros de
+      margen. Existe un tope POST-fill: si el riesgo real de la posicion
+      supera el margen, se cierra de inmediato y el simbolo va a cuarentena.
+    - Cuarentena: ruta de persistencia y ventanas de recuperacion para
+      incidentes marginales frente a los que exigen intervencion manual.
+    - Gestion activa: break-even con desplazamiento protector, trailing,
+      extension de runner y cadencias del monitor en segundo plano.
+    - Puertas de entrada: RR minimo, noticias, rollover y limites de posiciones.
+    - Meta-etiquetado de IA: modo (sombra, filtro, ranking) y umbrales.
+
+    Vinculaciones:
+    - La instancia `LiveTradingEngine` la recibe en su constructor.
+    - Parte de sus campos se traducen a `MultiTimeframeConfig` y
+      `PipelineConfig` para configurar el analisis.
+    """
+
     source: str = "DEMO"
     structure_timeframe: str = "H1"
     confirmation_timeframe: str = "M15"
@@ -348,6 +409,30 @@ class LiveTradingEngine:
         console_reporter=None,
         dashboard_service=None,
     ):
+        """Ensambla el motor con sus dependencias e inicializa el estado interno.
+
+        Todas las colaboraciones se inyectan, lo que permite sustituir el
+        ejecutor real por uno simulado sin tocar la logica del motor.
+
+        Args:
+            provider: fuente de datos de mercado (velas, precios, cuenta).
+            repository: capa de persistencia de senales y operaciones.
+            config: `LiveTradingConfig`; si falta, se usan los valores por
+                defecto de produccion.
+            pipeline_config: `PipelineConfig` para el analisis SMC; si falta,
+                se deriva de `config`.
+            executor: implementacion de `TradeExecutor` que envia las ordenes.
+            lifecycle_manager: `TradeLifecycleManager` que registra los
+                estados de cada operacion.
+            reporting_service: exportacion de informes.
+            console_reporter: salida legible por consola.
+            dashboard_service: publicacion de estado hacia el panel.
+
+        Efectos: carga la cuarentena persistida desde disco, prepara los
+        analizadores por temporalidad, crea el motor de meta-etiquetado de IA
+        y deja listos los bloqueos que protegen el estado compartido entre
+        el hilo del scanner y el del monitor de posiciones.
+        """
         self.provider = provider
         self.repository = repository
         self.config = config or LiveTradingConfig()
@@ -454,6 +539,12 @@ class LiveTradingEngine:
         self._meta_label_cycle_decisions = []
 
     def _quarantine_file(self) -> Path:
+        """Resuelve la ruta absoluta del fichero de cuarentena y crea su carpeta.
+
+        Una ruta relativa se ancla al directorio de trabajo actual. El
+        directorio padre se crea si no existe, de modo que el primer guardado
+        nunca falle por falta de carpeta.
+        """
         path = Path(self.config.quarantine_path)
         if not path.is_absolute():
             path = Path.cwd() / path
@@ -494,6 +585,13 @@ class LiveTradingEngine:
                         fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def _load_quarantine_unlocked(self) -> dict:
+        """Lee el fichero de cuarentena SIN tomar el bloqueo.
+
+        Uso interno: solo debe llamarse desde dentro de
+        `_quarantine_storage_lock`. Ante fichero inexistente, JSON corrupto o
+        contenido que no sea un dict devuelve `{}`: una cuarentena ilegible
+        no debe impedir que el bot arranque.
+        """
         path = self._quarantine_file()
         if not path.exists():
             return {}
@@ -504,6 +602,15 @@ class LiveTradingEngine:
             return {}
 
     def _save_quarantine_unlocked(self, payload: dict) -> None:
+        """Escribe la cuarentena de forma atómica SIN tomar el bloqueo.
+
+        Escribe primero en un temporal cuyo nombre incluye PID e identificador
+        de hilo, y luego lo renombra sobre el destino. Asi un corte a mitad de
+        escritura nunca deja el fichero real truncado, y dos escritores
+        simultaneos no se pisan el temporal.
+
+        Uso interno: solo desde dentro de `_quarantine_storage_lock`.
+        """
         path = self._quarantine_file()
         tmp = path.with_name(
             f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
@@ -522,6 +629,25 @@ class LiveTradingEngine:
                 pass
 
     def _recoverable_quarantine_details(self, details: dict) -> dict:
+        """Decide si un incidente de cuarentena puede expirar solo o exige revisión.
+
+        Distingue dos naturalezas muy distintas:
+        - RECUPERABLE: la unica causa fue superar el tope duro de riesgo tras
+          el fill (`POST_FILL_RISK_HARD_CAP_BREACH`) por un exceso pequeno,
+          compatible con la granularidad de lotes y el slippage normal. Se
+          reintentara pasados unos minutos.
+        - NO RECUPERABLE: cualquier otro motivo, o un exceso de riesgo por
+          encima del limite. Queda bloqueado hasta intervencion manual.
+
+        Args:
+            details: datos del incidente, con `reason`, `target_risk_amount` y
+                `actual_risk_amount`.
+
+        Returns:
+            Dict con `recoverable`, el `risk_excess_ratio` calculado y el
+            limite aplicado. Si el exceso no puede calcularse, el incidente se
+            trata como NO recuperable por prudencia.
+        """
         reason = str(details.get("reason") or "").upper()
         target = details.get("target_risk_amount")
         actual = details.get("actual_risk_amount")
@@ -546,6 +672,11 @@ class LiveTradingEngine:
 
     @staticmethod
     def _parse_quarantine_time(value):
+        """Convierte una marca temporal guardada en `datetime` UTC, o `None`.
+
+        Devolver `None` ante un valor ilegible permite a quien llama aplicar
+        su propio criterio de respaldo en lugar de propagar el error.
+        """
         try:
             stamp = pd.to_datetime(value, utc=True, errors="raise")
             return stamp.to_pydatetime()
@@ -553,18 +684,44 @@ class LiveTradingEngine:
             return None
 
     def _load_quarantine(self) -> dict:
+        """Lee la cuarentena completa tomando el bloqueo compartido.
+
+        Returns:
+            Dict `simbolo -> registro`, o `{}` si la cuarentena esta desactivada.
+        """
         if not bool(self.config.quarantine_enabled):
             return {}
         with self._quarantine_storage_lock():
             return self._load_quarantine_unlocked()
 
     def _save_quarantine(self, payload: dict) -> None:
+        """Persiste la cuarentena completa tomando el bloqueo compartido.
+
+        No hace nada si la cuarentena esta desactivada en configuracion.
+        """
         if not bool(self.config.quarantine_enabled):
             return
         with self._quarantine_storage_lock():
             self._save_quarantine_unlocked(payload)
 
     def _quarantine_symbol(self, symbol: str, details: dict) -> None:
+        """Aparta un símbolo de la operativa registrando el motivo del incidente.
+
+        Clasifica el incidente con `_recoverable_quarantine_details` y fija la
+        politica resultante:
+        - Recuperable: `expires_at` a unos minutos vista y politica
+          `TEMPORARY_EXECUTION_GRANULARITY_GUARD`. Volvera solo.
+        - No recuperable: sin caducidad y politica `MANUAL_REVIEW_REQUIRED`.
+          Permanecera bloqueado hasta que alguien lo revise.
+
+        La secuencia leer-modificar-escribir se hace dentro del bloqueo para
+        que dos workers simultaneos no se sobrescriban mutuamente el registro.
+
+        Args:
+            symbol: instrumento a apartar.
+            details: contexto del incidente que se conserva integro en el
+                registro para poder auditarlo despues.
+        """
         if not bool(self.config.quarantine_enabled):
             return
         now = datetime.now(timezone.utc)
@@ -589,6 +746,23 @@ class LiveTradingEngine:
             self._save_quarantine_unlocked(payload)
 
     def _quarantine_result(self, symbol: str):
+        """Consulta si un símbolo está en cuarentena, purgando la ya caducada.
+
+        Ademas de consultar, LIMPIA: si el registro era recuperable y su
+        caducidad ya paso, lo borra del fichero y devuelve `None`, con lo que
+        el simbolo vuelve a estar operable sin intervencion.
+
+        Incluye compatibilidad hacia atras con registros de versiones que no
+        guardaban `recoverable` ni `expires_at`: en ese caso reclasifica el
+        incidente y deriva la caducidad desde `quarantined_at`.
+
+        Args:
+            symbol: instrumento a consultar.
+
+        Returns:
+            El registro de cuarentena si sigue vigente, o `None` si el simbolo
+            esta operable o la cuarentena esta desactivada.
+        """
         if not bool(self.config.quarantine_enabled):
             return None
         key = str(symbol)
@@ -685,6 +859,25 @@ class LiveTradingEngine:
         }
 
     def _execution_key(self, symbol, confirmation_time, direction, strategy_name="SMC"):
+        """Construye la clave única e idempotente de una ejecución.
+
+        Sirve para que la MISMA senal no se ejecute dos veces aunque el ciclo
+        la vuelva a detectar. La clave combina fuente, simbolo, cadena de
+        marcos temporales, instante de confirmacion y direccion, de modo que
+        dos senales distintas nunca colisionan y una repetida siempre coincide.
+
+        El formato depende de la estrategia porque ORB Nueva York confirma en
+        M1 y no usa la cadena H1/M15/M5.
+
+        Args:
+            symbol: instrumento.
+            confirmation_time: instante de la confirmacion, normalizado a UTC.
+            direction: `BUY` o `SELL`.
+            strategy_name: `SMC` por defecto, o `ORB_NEW_YORK`.
+
+        Returns:
+            La clave de ejecucion como cadena.
+        """
         stamp = pd.to_datetime(confirmation_time, utc=True).isoformat()
         strategy = str(strategy_name or "SMC").upper()
         if strategy == "ORB_NEW_YORK":
@@ -904,6 +1097,11 @@ class LiveTradingEngine:
         )
 
         def limited(value, limit=24):
+            """Convierte una colección en lista de cadenas acotada en tamaño.
+
+            Evita que una lista de diagnostico enorme infle el registro de
+            auditoria. Lo que no sea coleccion devuelve lista vacia.
+            """
             if isinstance(value, (list, tuple, set)):
                 return [str(item) for item in list(value)[:limit]]
             return []
@@ -1042,6 +1240,25 @@ class LiveTradingEngine:
 
     @classmethod
     def _symbol_matches_split_profile(cls, symbol: str, profile: str) -> bool:
+        """Comprueba si un símbolo pertenece al perfil de este worker.
+
+        Base del reparto MULTI-WORKER: cada instancia opera solo su familia de
+        instrumentos, de modo que varios bots corren en paralelo sin pisarse
+        los mismos simbolos.
+
+        Las comparaciones son por nombre y excluyentes entre si: `BOOM` exige
+        que aparezca "boom" y NO "crash", y viceversa, porque los indices
+        sinteticos comparten convenciones de nombre facilmente confundibles.
+
+        Args:
+            symbol: nombre del instrumento.
+            profile: perfil del worker, normalizado antes con
+                `_canonical_bot_profile` para agrupar workers divididos como
+                `VOLATILITY_1` y `VOLATILITY_2` bajo la misma familia.
+
+        Returns:
+            `True` si el simbolo corresponde a este worker.
+        """
         name = str(symbol or "").lower()
         profile = cls._canonical_bot_profile(profile)
         if profile == "BOOM":
@@ -1148,6 +1365,24 @@ class LiveTradingEngine:
         }
 
     def _gold_smc_entry_gate(self, symbol: str, now_utc=None):
+        """PUERTA DE ENTRADA: restringe el oro a sus ventanas de sesión válidas.
+
+        XAUUSD solo admite entradas SMC en Asia hasta la apertura de Nueva York
+        (09:30) o durante Londres de 08:00 a 12:00. Fuera de esas franjas el
+        comportamiento del oro no encaja con la logica del sistema.
+
+        Solo aplica al worker con perfil `GOLD` y si la restriccion esta
+        activada en configuracion.
+
+        Args:
+            symbol: instrumento evaluado.
+            now_utc: instante de referencia; util para pruebas.
+
+        Returns:
+            `None` si la entrada esta PERMITIDA (convencion de todas las
+            puertas), o un dict de bloqueo con `action`, `reason` y el estado
+            de sesion cuando debe rechazarse.
+        """
         if str(self.config.bot_profile or "").upper() != "GOLD":
             return None
         if not bool(self.config.gold_smc_session_enabled):
@@ -1219,6 +1454,19 @@ class LiveTradingEngine:
         return False
 
     def _account_and_guard(self):
+        """Obtiene la cuenta y CORTA si no es una cuenta demo.
+
+        Salvaguarda de seguridad: el motor esta configurado exclusivamente
+        para DEMO. Verifica la fuente configurada y ademas exige al ejecutor
+        que confirme contra el broker que la cuenta real es de demostracion,
+        de modo que un error de configuracion no pueda operar dinero real.
+
+        Returns:
+            El snapshot de cuenta, ya persistido.
+
+        Raises:
+            RuntimeError: si la fuente configurada no es DEMO.
+        """
         if self.config.source.upper() != "DEMO":
             raise RuntimeError("Este motor está configurado únicamente para DEMO.")
         account = self.executor.assert_demo_account()
@@ -1226,6 +1474,27 @@ class LiveTradingEngine:
         return account
 
     def _save_signal(self, symbol, signal):
+        """Persiste una señal aplanando sus criterios SMC en columnas propias.
+
+        Cada condicion estructural (tendencia, swing, liquidez, barrido,
+        ruptura, order block, retest, premium/discount y confirmacion) se
+        guarda como campo booleano consultable, y el analisis integro queda en
+        `details`. Esa doble forma permite filtrar por criterio en SQL sin
+        perder el contexto completo, que es justo lo que consume despues el
+        entrenamiento del modelo de IA.
+
+        Args:
+            symbol: instrumento.
+            signal: dict del analisis multi-temporal.
+
+        Returns:
+            Lo que devuelva `save_signal_once`, que es idempotente y no
+            duplica una senal ya registrada.
+
+        Vinculaciones:
+        - `database.repository.save_signal_once` realiza la escritura.
+        - Las filas resultantes alimentan `strategy.ai.training`.
+        """
         payload = {
             "instrument": symbol,
             "timeframe": str(signal.get("timeframe") or self.config.entry_timeframe),
@@ -1246,6 +1515,12 @@ class LiveTradingEngine:
         return self.repository.save_signal_once(payload)
 
     def _total_position_limit(self) -> int:
+        """Devuelve el número máximo de posiciones abiertas simultáneas.
+
+        Prefiere `max_total_open_positions` y recurre a `max_open_positions`
+        si el primero no esta definido. El resultado nunca baja de 1, para que
+        una configuracion a cero no deje el bot incapaz de operar.
+        """
         value = self.config.max_total_open_positions
         if value is None:
             value = self.config.max_open_positions
@@ -1261,6 +1536,7 @@ class LiveTradingEngine:
         ]
 
         def compact(trade):
+            """Reduce una operación a los campos esenciales para diagnóstico."""
             return {
                 "trade_id": trade.get("id"),
                 "instrument": trade.get("instrument"),
@@ -1314,6 +1590,11 @@ class LiveTradingEngine:
 
     @staticmethod
     def _signal_entry_price(signal):
+        """Extrae el precio de entrada de una señal, tolerando ambos nombres de campo.
+
+        Acepta `entry_price` o `entry` segun de que estrategia provenga la
+        senal. Devuelve `None` si falta o no es numerico, nunca 0.0.
+        """
         value = signal.get("entry_price", signal.get("entry")) if signal else None
         try:
             return float(value)
@@ -1376,6 +1657,23 @@ class LiveTradingEngine:
 
     @staticmethod
     def _forex_pair_currencies(symbol: str):
+        """Descompone un símbolo Forex en sus divisas base y cotizada.
+
+        Filtra los caracteres no alfabeticos (sufijos del broker como `.m` o
+        `_raw`) y busca un bloque de seis letras formado por dos divisas
+        conocidas. Asi tolera nombres como `EURUSD.pro` o `fxEURUSD`.
+
+        Args:
+            symbol: nombre del instrumento.
+
+        Returns:
+            Tupla `(base, cotizada)`, o `(None, None)` si no es un par Forex
+            reconocible, lo que permite a quien llama omitir el control.
+
+        Vinculaciones:
+        - La usan `_forex_exposure_guard` para agregar riesgo por divisa y
+          `_forex_high_impact_news_entry_gate` para cruzar con el calendario.
+        """
         letters = "".join(ch for ch in str(symbol or "").upper() if ch.isalpha())
         known = ("USD","EUR","GBP","JPY","CHF","CAD","AUD","NZD","SEK","NOK","DKK","SGD","HKD","ZAR","MXN","TRY","PLN")
         for i in range(max(1, len(letters) - 5)):
@@ -1460,6 +1758,30 @@ class LiveTradingEngine:
         return None
 
     def _forex_high_impact_news_entry_gate(self, symbol: str) -> dict | None:
+        """PUERTA DE ENTRADA: bloquea la operativa en torno a noticias de alto impacto.
+
+        Durante una publicacion macroeconomica relevante el precio se mueve de
+        forma erratica, el spread se dispara y la estructura tecnica deja de
+        ser fiable. La puerta abre una ventana de exclusion que empieza unos
+        minutos ANTES del evento y termina unos minutos DESPUES.
+
+        Determina que divisas afectan al instrumento segun el perfil:
+        - `FOREX*`: las dos divisas del par.
+        - `GOLD` sobre simbolo ORB de oro: USD.
+        - `ORB` sobre indices estadounidenses: USD.
+        - Cualquier otro caso queda fuera del control.
+
+        Args:
+            symbol: instrumento evaluado.
+
+        Returns:
+            `None` si se puede entrar, o un dict de bloqueo con el evento
+            responsable y la ventana aplicada.
+
+        Vinculaciones:
+        - `services.financial_news_service.load_economic_calendar_state`
+          aporta el calendario economico.
+        """
         profile = str(self.config.bot_profile or "").upper()
         if not bool(self.config.forex_high_impact_news_guard_enabled):
             return None
@@ -1685,6 +2007,12 @@ class LiveTradingEngine:
 
     @staticmethod
     def _trade_metadata(trade: dict) -> dict:
+        """Extrae con seguridad el diccionario `metadata` de una operación.
+
+        Navega `trade["details"]["metadata"]` devolviendo `{}` ante cualquier
+        eslabon ausente o con tipo inesperado, de modo que quien llama pueda
+        usar `.get()` sin comprobaciones previas.
+        """
         details = trade.get("details") or {}
         if isinstance(details, dict):
             metadata = details.get("metadata") or {}
@@ -1692,6 +2020,19 @@ class LiveTradingEngine:
         return {}
 
     def _break_even_initial_stop(self, trade: dict, metadata: dict) -> float | None:
+        """Recupera el stop ORIGINAL de la operación para medir el avance en R.
+
+        Es imprescindible usar el stop inicial y no el actual: una vez movido
+        el stop a break-even, calcular R contra el stop vigente daria una
+        distancia de riesgo casi nula y falsearia por completo la medida.
+
+        Prueba por orden de fiabilidad: el valor explicito persistido al abrir,
+        el registrado en la validacion de stop, y por ultimo el stop actual de
+        la operacion como respaldo.
+
+        Returns:
+            El stop inicial positivo, o `None` si ningun candidato sirve.
+        """
         # Prioridad: valor explícito persistido al abrir la operación.
         candidates = [
             metadata.get("initial_stop_loss"),
@@ -3541,6 +3882,24 @@ class LiveTradingEngine:
         }
 
     def _forex_rollover_entry_gate(self, symbol: str) -> dict | None:
+        """PUERTA DE ENTRADA: impide abrir Forex en la ventana del rollover diario.
+
+        En el cambio de dia del broker la liquidez se hunde, el spread se
+        ensancha y se aplican los intereses de financiacion. Abrir ahi supone
+        pagar un coste evitable con una ejecucion de mala calidad.
+
+        IMPORTANTE: solo bloquea ENTRADAS NUEVAS. Las posiciones ya abiertas no
+        se cierran por rollover, coherentemente con la regla de que los cierres
+        deben responder a invalidacion estructural. Ver
+        `_close_forex_positions_for_rollover`, que lo deja explicito.
+
+        Args:
+            symbol: instrumento evaluado.
+
+        Returns:
+            `None` si se puede entrar, o un dict de bloqueo con el estado del
+            rollover.
+        """
         if not bool(self.config.forex_rollover_guard_enabled) or not self._is_forex_symbol(symbol):
             return None
         status = self._forex_rollover_status()
@@ -3569,6 +3928,11 @@ class LiveTradingEngine:
 
     @staticmethod
     def _is_jump_symbol(symbol: str) -> bool:
+        """Indica si el símbolo es un índice sintético de la familia Jump.
+
+        Estos instrumentos saltan a intervalos regulares y reciben tratamiento
+        propio en varias decisiones de gestion.
+        """
         return "jump" in str(symbol or "").lower()
 
     def _meta_label_gate(
@@ -3871,6 +4235,41 @@ class LiveTradingEngine:
         }
 
     def process_symbol(self, symbol: str, sync_before_execution: bool = True):
+        """Procesa un símbolo de extremo a extremo: análisis, filtros y ejecución.
+
+        METODO CENTRAL del motor. Recorre en orden todas las etapas y se
+        detiene en la PRIMERA que rechace, devolviendo siempre un dict con
+        `action` y `reason` que explica el desenlace:
+
+        1. Resolucion del simbolo exacto en el broker.
+        2. Puertas de entrada, en este orden: sesion del oro, rollover Forex,
+           noticias de alto impacto y cuarentena del simbolo.
+        3. Analisis multi-temporal H1/M15/M5 (o ORB segun el perfil).
+        4. Persistencia de la senal para auditoria y entrenamiento del modelo.
+        5. Puerta de meta-etiquetado de IA: en modo sombra solo registra la
+           probabilidad, en modo filtro exige superar los umbrales de
+           probabilidad y expectativa neta.
+        6. Comprobacion de que el mercado actual no invalida la senal y de que
+           el precio no se ha desplazado demasiado respecto al de la senal.
+        7. Limites de posiciones y exposicion.
+        8. Dimensionado por riesgo y envio de la orden.
+        9. Validacion POST-fill del riesgo real: si excede el tope duro, la
+           posicion se cierra de inmediato y el simbolo pasa a cuarentena.
+
+        Args:
+            symbol: instrumento a procesar, admite alias sin resolver.
+            sync_before_execution: si se reconcilian primero las operaciones
+                cerradas con el broker, para partir de un estado fiable.
+
+        Returns:
+            Dict con el resultado. No lanza ante un rechazo normal: que una
+            senal no llegue a ejecutarse es un desenlace esperado.
+
+        Vinculaciones:
+        - Lo invoca `run_once` para cada simbolo del ciclo.
+        - Se apoya en `MultiTimeframeAnalyzer`, `strategy.ai.meta_labeling`,
+          el `TradeExecutor` configurado y `trade_lifecycle_manager`.
+        """
         exact_symbol = self.provider.resolve_symbol(symbol)
         self.provider.ensure_symbol(exact_symbol)
 
@@ -4181,6 +4580,26 @@ class LiveTradingEngine:
         min_ratio = max(0.0, float(self.config.min_actual_risk_ratio))
 
         def build_plan(specs, execution_mode):
+            """Construye el plan de tramos (legs) repartiendo riesgo y objetivos.
+
+            Una operacion puede dividirse en varios tramos con objetivos R
+            crecientes, de modo que se asegura beneficio por partes mientras
+            el resto sigue corriendo. Para cada tramo calcula su porcion de
+            riesgo, el volumen ejecutable y el precio del objetivo.
+
+            El riesgo se dimensiona con una reserva previa al fill que absorbe
+            el desplazamiento entre el precio calculado y el de ejecucion real.
+
+            Args:
+                specs: tuplas `(nombre, fraccion, objetivo_rr)` u
+                    `(nombre, fraccion, objetivo_rr, objetivo_rr_broker)`
+                    cuando el objetivo enviado al broker difiere del interno.
+                execution_mode: modo de ejecucion aplicado a los tramos.
+
+            Returns:
+                Tupla `(plan, error)`. Ante cualquier problema devuelve el plan
+                a `None` y un dict de error con su codigo, en lugar de lanzar.
+            """
             planned_legs = []
             for spec in specs:
                 if len(spec) == 4:
@@ -4984,6 +5403,23 @@ class LiveTradingEngine:
         return results
 
     def run_once(self, symbols):
+        """Ejecuta un ciclo completo: sincroniza, gestiona break-even y analiza.
+
+        Secuencia: reconciliar cierres con el broker, revisar break-even,
+        procesar todos los simbolos y revisar break-even de nuevo.
+
+        El break-even se evalua ANTES y DESPUES a proposito: el analisis de
+        todos los simbolos lleva su tiempo, y una posicion podria alcanzar su
+        umbral justo durante esa ventana. La segunda pasada evita dejarla sin
+        proteger hasta el ciclo siguiente.
+
+        Args:
+            symbols: instrumentos candidatos del ciclo.
+
+        Returns:
+            Dict con los resultados por simbolo, el resultado de la
+            sincronizacion y el estado de break-even antes y despues.
+        """
         # Revisamos Break Even antes y después del análisis. Esto permite que el
         # modo --once también gestione posiciones ya abiertas y reduce una ventana
         # de tiempo en la que una posición podría alcanzar 1R durante el ciclo.
@@ -5033,6 +5469,16 @@ class LiveTradingEngine:
         counts = {"M1": max(180, int(candle_count)), "M5": max(140, int(candle_count)), "M15": max(120, int(candle_count)), "H1": max(120, int(candle_count))}
 
         def _serialize_frame(raw):
+            """Convierte un DataFrame de velas a listas JSON con RSI(14) incluido.
+
+            Normaliza los tiempos a UTC, ordena, elimina duplicados y calcula
+            el RSI de 14 periodos por media exponencial. Los valores no
+            calculables (las primeras velas, o divisiones por cero) quedan
+            como `None` en lugar de NaN, que no es serializable a JSON.
+
+            Returns:
+                Tupla `(velas, ultimo_rsi)`, o `([], None)` si no hay datos.
+            """
             if raw is None or raw.empty:
                 return [], None
             df = raw.copy()
@@ -5146,12 +5592,39 @@ class LiveTradingEngine:
 
     @staticmethod
     def _selection_profile_for_bot(bot_profile: str) -> str:
+        """Traduce el perfil del worker al perfil de selección de instrumentos.
+
+        Varios workers comparten la misma lista de instrumentos: todos los
+        `FOREX*` usan `FOREX`, `ORB` y `GOLD` usan `ORB`, y el resto recae en
+        `SYNTHETICS`.
+        """
         profile=str(bot_profile or "").upper()
         if profile.startswith("FOREX"): return "FOREX"
         if profile in {"ORB", "GOLD"}: return "ORB"
         return "SYNTHETICS"
 
     def _selected_cycle_symbols(self, base_symbols):
+        """Filtra los símbolos del ciclo según la selección vigente del usuario.
+
+        El operador puede elegir desde el panel que instrumentos quedan
+        activos. Este metodo busca esa seleccion en cascada:
+
+        1. Seleccion por perfil guardada en el repositorio.
+        2. Seleccion antigua sin perfil, solo para `SYNTHETICS`.
+        3. Seleccion publicada por el servicio de dashboard.
+        4. Si nada esta disponible, la lista base completa.
+
+        Se conserva SIEMPRE el orden de `base_symbols`, y solo se filtra: una
+        seleccion no puede introducir simbolos que el worker no gestiona.
+
+        Args:
+            base_symbols: instrumentos candidatos del worker.
+
+        Returns:
+            Lista filtrada de simbolos a analizar en este ciclo. Cualquier
+            fallo de lectura degrada al siguiente origen en lugar de detener
+            el ciclo.
+        """
         base=[str(s) for s in (base_symbols or [])]
         profile=self._selection_profile_for_bot(getattr(self.config,"bot_profile",None))
         pref=None
@@ -5194,6 +5667,12 @@ class LiveTradingEngine:
         m15_setup = m15.get("setup") if isinstance(m15.get("setup"), dict) else {}
 
         def pick(*keys, default=None):
+            """Devuelve el primer valor no nulo buscando en la señal y el análisis.
+
+            Los distintos productores usan nombres de campo diferentes para el
+            mismo dato; probar varias claves en orden evita depender de cual
+            de ellos genero el resultado.
+            """
             for source in (signal, analysis):
                 if not isinstance(source, dict):
                     continue
@@ -5473,6 +5952,14 @@ class LiveTradingEngine:
         last_idle_recovery_at = 0.0
 
         def load_owned_open_trades():
+            """Carga las operaciones abiertas que pertenecen a este worker.
+
+            Returns:
+                Lista de operaciones propias, `[]` si no hay ninguna, o `None`
+                si la lectura fallo. La distincion importa: `[]` autoriza la
+                via rapida de reposo, mientras que `None` significa "no se
+                sabe" y obliga a hacer el monitoreo completo.
+            """
             try:
                 return [
                     trade
@@ -5483,6 +5970,28 @@ class LiveTradingEngine:
                 return None
 
         def run_position_monitor_if_due(*, force=False, phase=""):
+            """Ejecuta el monitor de posiciones si toca por cadencia.
+
+            El monitor es la parte cara del daemon: consulta el broker,
+            reconcilia cierres, evalua break-even y trailing, regenera
+            graficos y reconstruye informes. Por eso se limita su frecuencia.
+
+            VIA RAPIDA DE REPOSO: sin posiciones propias abiertas, no tiene
+            sentido pagar todo ese trabajo cada pocos segundos. En ese caso
+            solo se ejecuta una recuperacion ligera de posiciones no
+            persistidas, y con un intervalo mucho mas amplio.
+
+            El orden importa: primero se sincronizan los cierres, para que un
+            tramo TP1 recien cerrado permita activar break-even en esta misma
+            pasada aunque el precio ya haya retrocedido.
+
+            Args:
+                force: ejecuta ahora, ignorando la cadencia y la via rapida.
+                phase: etiqueta del momento del ciclo, para diagnostico.
+
+            Returns:
+                Dict con el resultado del monitoreo, o `None` si aun no tocaba.
+            """
             nonlocal next_monitor_at, last_idle_recovery_at
             now = time.monotonic()
             if not force and now < next_monitor_at:
@@ -5640,6 +6149,7 @@ class LiveTradingEngine:
                             analysis = details.get("analysis") if isinstance(details.get("analysis"), dict) else {}
 
                             def _pick(*keys):
+                                """Primer valor no nulo entre metadata, señal y análisis."""
                                 for source in (metadata, signal, analysis):
                                     if not isinstance(source, dict):
                                         continue
@@ -5774,6 +6284,16 @@ class LiveTradingEngine:
         monitor_thread = None
         if background_monitor_enabled:
             def background_monitor_loop():
+                """Bucle del hilo dedicado a monitorizar posiciones.
+
+                Corre en un hilo aparte para que una lectura lenta de MT5 o de
+                SQLite no retrase el escaneo de senales y envejezca las velas
+                M5/M1 que dependen de llegar a tiempo.
+
+                Descuenta del intervalo el tiempo ya consumido, de modo que la
+                cadencia se mantiene estable, y espera sobre un evento para
+                poder detenerse de inmediato al cerrar el daemon.
+                """
                 while not monitor_stop.is_set():
                     started = time.monotonic()
                     run_position_monitor_if_due(phase="BACKGROUND_MONITOR")
@@ -5839,6 +6359,14 @@ class LiveTradingEngine:
                         self.dashboard_service.cycle_start(cycle_number, len(cycle_symbols))
 
                     def before_symbol(**kwargs):
+                        """Gancho previo al análisis de cada símbolo.
+
+                        Registra el evento de auditoria y avisa a la consola y
+                        al panel. Si el monitor de posiciones NO corre en su
+                        propio hilo, aprovecha este punto para ejecutarlo y
+                        que las posiciones no queden desatendidas durante un
+                        ciclo largo.
+                        """
                         if not background_monitor_enabled:
                             run_position_monitor_if_due(phase="BEFORE_SYMBOL")
                         self._persist_audit_event(
@@ -5863,6 +6391,7 @@ class LiveTradingEngine:
                             )
 
                     def progress_callback(**kwargs):
+                        """Publica el resultado de un símbolo en consola y panel."""
                         if reporter is not None:
                             reporter.print_symbol_result(
                                 row=kwargs["result"],
@@ -5876,6 +6405,11 @@ class LiveTradingEngine:
                             )
 
                     def after_symbol(**kwargs):
+                        """Gancho posterior a cada símbolo.
+
+                        Ejecuta el monitor de posiciones cuando no hay hilo
+                        dedicado, intercalando la gestion entre simbolos.
+                        """
                         if not background_monitor_enabled:
                             run_position_monitor_if_due(phase="AFTER_SYMBOL")
 
@@ -5951,9 +6485,29 @@ class LiveTradingEngine:
             monitor_thread.join(timeout=max(1.0, float(monitor_interval)))
 
     def run_loop(self, symbols, interval_seconds=30):
+        """Alias histórico de `run_daemon`, conservado por compatibilidad."""
         return self.run_daemon(symbols, interval_seconds=interval_seconds)
 
     def sync_closed_trades(self):
+        """Reconcilia con el broker las operaciones que ya se cerraron.
+
+        El broker puede cerrar una posicion por stop loss o take profit sin
+        que el bot intervenga. Esta sincronizacion detecta esos cierres y
+        actualiza el registro local con el resultado real.
+
+        Tras actualizar, exporta el informe SOLO si le corresponde: en modo
+        coordinado los workers llevan `auto_export=False` y el coordinador es
+        el unico escritor del XLSX, evitando que dos procesos colisionen sobre
+        el mismo fichero.
+
+        Returns:
+            El numero de operaciones actualizadas, junto con el diagnostico de
+            la exportacion.
+
+        Vinculaciones:
+        - `database.repository.sync_closed_mt5_trades` hace la reconciliacion.
+        - Los resultados cerrados alimentan el entrenamiento de la IA.
+        """
         updated = self.repository.sync_closed_mt5_trades(
             self.executor,
             source=self.config.source,

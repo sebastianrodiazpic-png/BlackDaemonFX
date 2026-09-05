@@ -1,3 +1,18 @@
+"""Comprobaciones previas al arranque de la ejecucion en DEMO.
+
+Verifica de una sola pasada que estan dadas todas las condiciones para operar:
+terminal conectado, AutoTrading habilitado, cuenta de practicas, margen libre
+suficiente, base de datos escribible y cada simbolo activo y operable.
+
+Se ejecuta UNA vez al arrancar. No forma parte del ciclo ni puede cerrar
+posiciones: su unico efecto es permitir o impedir que el bot empiece.
+
+Vinculaciones:
+    - `execution_provider`: `brokers.mt5_execution.MT5ExecutionProvider`.
+    - `repository`: opcional; si esta, se prueba escribiendo un snapshot de
+      cuenta real, que ademas deja constancia del estado inicial.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,6 +26,14 @@ except ModuleNotFoundError:  # permite ejecutar tests unitarios sin el terminal 
 
 @dataclass
 class ExecutionPreflightConfig:
+    """Umbrales del preflight.
+
+    Attributes:
+        require_demo_account: si `True`, una cuenta real hace fallar la
+            comprobacion. Es la proteccion principal del servicio.
+        min_free_margin: margen libre minimo exigido.
+    """
+
     require_demo_account: bool = True
     min_free_margin: float = 0.0
 
@@ -19,11 +42,28 @@ class ExecutionPreflightService:
     """Valida que el entorno MT5 esté listo antes de permitir ejecución DEMO."""
 
     def __init__(self, execution_provider, repository=None, config=None):
+        """Guarda proveedor, repositorio opcional y umbrales."""
         self.execution_provider = execution_provider
         self.repository = repository
         self.config = config or ExecutionPreflightConfig()
 
     def run(self, symbols: Iterable[str]) -> dict:
+        """Ejecuta todas las comprobaciones y devuelve el veredicto.
+
+        Args:
+            symbols: instrumentos que se van a operar; cada uno se activa y se
+                verifica que no tenga el trading deshabilitado.
+
+        Returns:
+            dict con `ready` (booleano global), `checks` (todas) y `failed`
+            (solo las fallidas).
+
+        No lanza excepciones: cada fallo se convierte en un check negativo, de
+        modo que el llamador vea el diagnostico COMPLETO en vez de detenerse en
+        el primer problema. La unica excepcion es un fallo al leer la cuenta,
+        que corta de inmediato porque el resto de comprobaciones dependen de
+        ella.
+        """
         if mt5 is None:
             return {
                 "ready": False,
@@ -33,6 +73,7 @@ class ExecutionPreflightService:
         checks = []
 
         def check(name, ok, details=None):
+            """Acumula un resultado de comprobacion en la lista."""
             checks.append({"name": name, "ok": bool(ok), "details": details or {}})
 
         try:
@@ -89,6 +130,11 @@ class ExecutionPreflightService:
                 # diccionario. Algunos dobles de prueba/devuelven objetos tipo
                 # SimpleNamespace. El preflight debe aceptar ambos contratos.
                 def field(name, default=None):
+                    """Lee un atributo tanto si `info` es dict como si es objeto.
+
+                    `ensure_symbol` devuelve un diccionario, pero los dobles de
+                    prueba usan `SimpleNamespace`; el preflight acepta ambos.
+                    """
                     if isinstance(info, dict):
                         return info.get(name, default)
                     return getattr(info, name, default)
@@ -138,6 +184,7 @@ class ExecutionPreflightService:
 
     @staticmethod
     def _result(checks):
+        """Empaqueta el veredicto: `ready` solo si NINGUNA comprobacion fallo."""
         failed = [item for item in checks if not item["ok"]]
         return {
             "ready": not failed,

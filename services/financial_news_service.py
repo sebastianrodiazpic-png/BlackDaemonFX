@@ -1,3 +1,23 @@
+"""Noticias financieras y calendario macroeconomico para el dashboard.
+
+Descarga en segundo plano un RSS de noticias y la agenda semanal de eventos de
+alto impacto, los normaliza a UTC y en espanol, y los persiste en un JSON para
+que otros procesos los lean sin repetir la descarga.
+
+IMPORTANTE: este servicio es INFORMATIVO y, cuando se usa como filtro, solo
+bloquea la APERTURA de nuevas entradas en Forex durante ventanas de noticia.
+Nunca cierra una posicion ya abierta: un evento macro no invalida la estructura
+de una operacion en curso.
+
+Toda la red esta aislada: cualquier fallo degrada el estado a "NO DISPONIBLE"
+conservando el ultimo dato bueno, jamas propaga la excepcion al bot.
+
+Vinculaciones:
+    - `dashboard.realtime_dashboard`: consumidor de `snapshot()`.
+    - `load_economic_calendar_state`: lectura del JSON persistido por procesos
+      que no ejecutan el dashboard.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -60,10 +80,16 @@ _CALENDAR_TITLE_TRANSLATIONS = (
 
 
 def _clean(value: str | None) -> str:
+    """Normaliza texto HTML: desescapa entidades y colapsa espacios."""
     return " ".join(unescape(str(value or "")).split())
 
 
 def _published_at(value: str | None) -> str:
+    """Convierte una fecha RFC-2822 de RSS a ISO-8601 UTC.
+
+    Si no se puede interpretar devuelve el texto original en lugar de fallar:
+    una fecha rara no debe tumbar la lectura del feed completo.
+    """
     raw = str(value or "").strip()
     if not raw:
         return ""
@@ -74,11 +100,29 @@ def _published_at(value: str | None) -> str:
 
 
 def classify_news_impact(title: str, description: str = "") -> str:
+    """Clasifica una noticia como ALTO o MEDIO impacto.
+
+    Heuristica por palabras clave (`_HIGH_IMPACT_TERMS`): banca central,
+    inflacion, empleo, geopolitica. Es deliberadamente simple; solo alimenta el
+    orden de presentacion, no decisiones de trading.
+    """
     text = f"{title} {description}".casefold()
     return "ALTO" if any(term in text for term in _HIGH_IMPACT_TERMS) else "MEDIO"
 
 
 def parse_rss(xml_payload: bytes, limit: int = 20) -> list[dict]:
+    """Extrae los items de un feed RSS a diccionarios normalizados.
+
+    Descarta entradas sin titulo o sin enlace. Funcion pura: recibe los bytes
+    ya descargados, por lo que es directamente testeable sin red.
+
+    Args:
+        xml_payload: contenido XML del feed.
+        limit: maximo de items a procesar.
+
+    Returns:
+        Lista de dicts con title, description, link, published_at e impact.
+    """
     root = ElementTree.fromstring(xml_payload)
     items = []
     for item in root.findall(".//item")[: max(1, int(limit))]:
@@ -100,6 +144,11 @@ def parse_rss(xml_payload: bytes, limit: int = 20) -> list[dict]:
 
 
 def _calendar_time(value: str | None) -> datetime | None:
+    """Interpreta la fecha ISO de un evento y la lleva a UTC.
+
+    Asume UTC cuando el valor viene sin zona horaria. Devuelve `None` si no es
+    interpretable, para que el evento se descarte sin romper el resto.
+    """
     raw = str(value or "").strip()
     if not raw:
         return None
@@ -113,6 +162,11 @@ def _calendar_time(value: str | None) -> datetime | None:
 
 
 def translate_calendar_title(title: str) -> str:
+    """Traduce al espanol los nombres de eventos macro mas habituales.
+
+    Sustitucion por tabla (`_CALENDAR_TITLE_TRANSLATIONS`); lo no reconocido se
+    deja tal cual, por eso tambien se conserva `title_original`.
+    """
     translated = _clean(title)
     for source, target in _CALENDAR_TITLE_TRANSLATIONS:
         translated = translated.replace(source, target)
@@ -189,6 +243,13 @@ def load_economic_calendar_state(state_path: str | Path) -> dict:
 
 
 class FinancialNewsService:
+    """Recolector en segundo plano de noticias y agenda macro.
+
+    Mantiene el ultimo estado bueno en memoria y en disco. El hilo es `daemon`
+    para que no impida cerrar el proceso, y todo acceso al estado compartido
+    pasa por un `RLock` porque el dashboard lee mientras el hilo escribe.
+    """
+
     def __init__(
         self,
         feed_url: str = DEFAULT_NEWS_FEED,
@@ -197,6 +258,16 @@ class FinancialNewsService:
         refresh_seconds: int = 600,
         timeout_seconds: int = 8,
     ):
+        """Configura fuentes y periodicidad, y rehidrata el estado del disco.
+
+        Args:
+            feed_url: RSS de noticias.
+            calendar_url: JSON del calendario economico semanal.
+            state_path: fichero donde se persiste el ultimo snapshot.
+            refresh_seconds: periodo de refresco; se fuerza un minimo de 60 s
+                para no abusar de las fuentes publicas.
+            timeout_seconds: timeout de red; minimo 2 s.
+        """
         self.feed_url = str(feed_url)
         self.calendar_url = str(calendar_url)
         self.state_path = Path(state_path) if state_path else None
@@ -213,6 +284,12 @@ class FinancialNewsService:
         self._load()
 
     def _load(self):
+        """Rehidrata el estado desde `state_path` al arrancar.
+
+        Permite que el dashboard muestre datos al instante aunque todavia no se
+        haya completado el primer refresco. Un fichero corrupto solo deja el
+        estado en "SIN_DATOS".
+        """
         if not self.state_path or not self.state_path.exists():
             return
         try:
@@ -229,6 +306,10 @@ class FinancialNewsService:
             self._status = "SIN_DATOS"
 
     def _persist(self):
+        """Vuelca el estado actual al JSON compartido (si hay `state_path`).
+
+        Se invoca siempre dentro del lock, desde `refresh()`.
+        """
         if not self.state_path:
             return
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -242,6 +323,19 @@ class FinancialNewsService:
         self.state_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     def refresh(self) -> list[dict]:
+        """Descarga noticias y calendario, y actualiza el estado persistido.
+
+        El calendario se descarga en un `try` propio: si falla, se conservan
+        los eventos anteriores y solo se degrada `calendar_status`, de modo que
+        un problema en la agenda no deja al dashboard sin noticias. Las de
+        impacto ALTO se colocan primero y se recortan a 20.
+
+        Returns:
+            Copia de la lista de noticias vigente.
+
+        Raises:
+            Errores de red del feed RSS: los captura `_run`.
+        """
         request = Request(self.feed_url, headers={"User-Agent": "DaemonBlackFx/1.0"})
         with urlopen(request, timeout=self.timeout_seconds) as response:
             news = parse_rss(response.read())
@@ -280,6 +374,11 @@ class FinancialNewsService:
             return list(self._news)
 
     def _run(self):
+        """Bucle del hilo: refresca y espera hasta que se pida parar.
+
+        Usa `Event.wait` en vez de `sleep` para que `stop()` corte la espera de
+        inmediato. Absorbe todo error de red manteniendo el ultimo estado.
+        """
         while not self._stop.is_set():
             try:
                 self.refresh()
@@ -289,6 +388,7 @@ class FinancialNewsService:
             self._stop.wait(self.refresh_seconds)
 
     def start(self):
+        """Arranca el hilo de refresco. Idempotente: no duplica el hilo."""
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
@@ -296,10 +396,19 @@ class FinancialNewsService:
         self._thread.start()
 
     def stop(self):
+        """Senala la parada del hilo; al ser `daemon` no se hace join."""
         self._stop.set()
         self._thread = None
 
     def snapshot(self) -> dict:
+        """Devuelve una copia coherente del estado para la interfaz.
+
+        Copia las listas dentro del lock para que el consumidor nunca vea una
+        estructura mutando bajo sus pies.
+
+        Returns:
+            dict con `items` (noticias), `calendar`, `status` y `updated_at`.
+        """
         with self._lock:
             return {
                 "items": list(self._news),

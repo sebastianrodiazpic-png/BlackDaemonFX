@@ -1,3 +1,22 @@
+"""Proveedor de datos de mercado desde MetaTrader 5.
+
+Traduce la API nativa de MT5 a DataFrames de pandas listos para la estrategia,
+resolviendo por el camino tres problemas practicos:
+
+1. **Nombres inexactos**: el nombre comercial de un instrumento rara vez
+   coincide con el del broker; `resolve_symbol` lo resuelve de forma tolerante.
+2. **Simbolos no visibles**: MT5 exige activar un simbolo antes de leerlo;
+   `ensure_symbol` lo hace y memoriza el resultado.
+3. **Coste por ciclo**: con decenas de instrumentos por ciclo, repetir
+   `symbols_get()` seria prohibitivo, de ahi las caches de sesion.
+
+Todas las marcas de tiempo se devuelven en UTC, criterio unico del proyecto.
+
+Vinculaciones:
+    - `brokers.mt5_connector.MT5Connector`: sesion con el terminal.
+    - `app.main` lo instancia y lo inyecta en el motor y la estrategia.
+"""
+
 import pandas as pd
 import MetaTrader5 as mt5
 import time
@@ -61,15 +80,19 @@ class MT5DataProvider:
     # ==================================================
 
     def connect(self):
-
+        """Abre la sesion con el terminal delegando en el conector."""
         return self.connector.connect()
 
     def disconnect(self):
-
+        """Cierra la sesion con el terminal."""
         return self.connector.disconnect()
 
     def _ensure_connection(self):
+        """Reconecta si la sesion se cayo.
 
+        Se invoca al principio de cada lectura, de modo que una caida temporal
+        del terminal se recupere sola sin reiniciar el bot.
+        """
         if not self.connector.is_connected():
 
             self.connector.connect()
@@ -79,7 +102,13 @@ class MT5DataProvider:
     # ==================================================
 
     def get_timeframe(self, timeframe):
+        """Traduce un nombre como "M5" o "H1" a la constante de MT5.
 
+        Raises:
+            ValueError: si el marco no existe; el mensaje enumera los validos
+                para que un error de configuracion se detecte de inmediato en
+                vez de degenerar en datos incorrectos.
+        """
         timeframe = str(timeframe).upper()
 
         if timeframe not in self.TIMEFRAMES:
@@ -98,7 +127,13 @@ class MT5DataProvider:
     # ==================================================
 
     def search_symbols(self, text):
+        """Busca simbolos cuyo nombre contenga `text` (sin distinguir mayusculas).
 
+        Utilidad de exploracion; el flujo normal usa `resolve_symbol`.
+
+        Returns:
+            Lista ordenada de nombres coincidentes.
+        """
         self._ensure_connection()
 
         text = str(text).lower()
@@ -131,6 +166,15 @@ class MT5DataProvider:
     # ==================================================
 
     def resolve_symbol(self, symbol):
+        """Traduce un nombre aproximado al nombre EXACTO del broker.
+
+        Consulta el catalogo completo y cachea el resultado por nombre en
+        minusculas, porque `symbols_get()` es caro y se pediria una vez por
+        instrumento y marco temporal en cada ciclo.
+
+        Returns:
+            El nombre exacto tal como lo espera MT5.
+        """
         self._ensure_connection()
 
         requested_symbol = str(symbol).strip()
@@ -193,6 +237,20 @@ class MT5DataProvider:
     # ==================================================
 
     def ensure_symbol(self, symbol):
+        """Resuelve el nombre y garantiza que el simbolo este activo en MT5.
+
+        Un simbolo no visible en el Market Watch no devuelve velas ni ticks,
+        asi que se selecciona con `symbol_select` y se vuelve a verificar. El
+        resultado se memoriza en `_ensured_symbols` para no repetir dos
+        llamadas a `symbol_info()` en cada analisis.
+
+        Returns:
+            El nombre exacto, ya activo y listo para leer.
+
+        Raises:
+            ValueError / RuntimeError: si el simbolo aparece en la lista pero
+                no puede consultarse o activarse.
+        """
         self._ensure_connection()
 
         requested = str(symbol).strip()
@@ -249,7 +307,13 @@ class MT5DataProvider:
     # ==================================================
 
     def get_symbol_info(self, symbol):
+        """Datos basicos del instrumento ya activado.
 
+        Returns:
+            dict con `name`, `visible`, `select`, `point`, `digits` y
+            `trade_mode`. `point` y `digits` son los que usa el motor para
+            redondear precios y calcular distancias de stop.
+        """
         self._ensure_connection()
 
         exact_symbol = self.ensure_symbol(symbol)
@@ -283,7 +347,19 @@ class MT5DataProvider:
         timeframe="M5",
         count=1000
     ):
+        """Devuelve las ultimas `count` velas como DataFrame ordenado por tiempo.
 
+        Reintenta hasta tres veces con esperas crecientes (0 / 0.15 / 0.40 s)
+        ante fallos transitorios del terminal. El comentario del codigo lo
+        subraya y conviene repetirlo: **solo se reintentan LECTURAS**. Reintentar
+        el envio de una orden romperia su idempotencia y podria abrir posiciones
+        duplicadas.
+
+        La columna `time` se convierte a datetime UTC.
+
+        Raises:
+            RuntimeError: si tras los tres intentos no hay velas.
+        """
         self._ensure_connection()
 
         exact_symbol = self.ensure_symbol(symbol)
@@ -347,7 +423,16 @@ class MT5DataProvider:
         symbol,
         timeframe="M5"
     ):
+        """Ultima vela CERRADA, es decir la penultima del DataFrame.
 
+        Distincion critica de toda la estrategia: la ultima vela que devuelve
+        MT5 esta en formacion y sus maximos, minimos y cierre cambian tick a
+        tick. Confirmar sobre ella produciria senales que se desvanecen. Por eso
+        se devuelve `iloc[-2]`.
+
+        Raises:
+            RuntimeError: si no hay al menos dos velas.
+        """
         candles = self.get_candles(
             symbol=symbol,
             timeframe=timeframe,
@@ -368,7 +453,13 @@ class MT5DataProvider:
     # ==================================================
 
     def get_current_tick(self, symbol):
+        """Precio en vivo del instrumento.
 
+        Returns:
+            dict con `symbol`, `time` (UTC), `bid`, `ask` y `last`. La
+            diferencia bid/ask es el spread que el motor evalua antes de
+            ejecutar.
+        """
         self._ensure_connection()
 
         exact_symbol = self.ensure_symbol(symbol)

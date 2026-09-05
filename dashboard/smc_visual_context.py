@@ -1,3 +1,19 @@
+"""Contexto SMC en formato visual para el grafico del dashboard.
+
+Traduce el DataFrame ya analizado (order blocks, FVG, BOS/CHOCH, liquidez) a
+estructuras JSON que el frontend dibuja sobre las velas, e indica el estado de
+cada zona: FRESCA, MITIGADA, INVALIDADA, RELLENADA.
+
+SOLO PRESENTACION: nada de lo que se calcula aqui influye en las decisiones de
+la estrategia. Por eso todos los helpers absorben errores y devuelven `None` o
+`False` en vez de fallar: un dato corrupto debe dejar un hueco en el grafico,
+nunca detener el dashboard.
+
+Vinculaciones:
+    - `strategy.smc.*`: produce las columnas del DataFrame que se leen aqui.
+    - `dashboard.realtime_dashboard`: consumidor de `build_smc_visual_context`.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -6,6 +22,7 @@ import pandas as pd
 
 
 def _float(value):
+    """Convierte a float finito; `None` si no es valido (NaN/inf incluidos)."""
     try:
         number = float(value)
         return number if math.isfinite(number) else None
@@ -14,6 +31,7 @@ def _float(value):
 
 
 def _iso(value):
+    """Convierte una marca temporal a texto ISO-8601 en UTC, o `None`."""
     try:
         return pd.to_datetime(value, utc=True).isoformat()
     except Exception:
@@ -21,6 +39,7 @@ def _iso(value):
 
 
 def _bool(row, name: str) -> bool:
+    """Lee una columna booleana de una fila tratando NaN como `False`."""
     try:
         value = row.get(name, False)
         return bool(value) if pd.notna(value) else False
@@ -50,6 +69,14 @@ def _zone_status(data: pd.DataFrame, source_pos: int, low: float, high: float, d
 
 
 def _fvg_status(data: pd.DataFrame, source_pos: int, low: float, high: float, direction: str) -> str:
+    """Estado de un Fair Value Gap segun las velas posteriores.
+
+    A diferencia de una zona, un FVG no se "invalida": se rellena. Si el precio
+    recorre el hueco por completo devuelve RELLENADA; si solo entra en parte,
+    MITIGADA_PARCIAL; si nadie lo toco, ABIERTA.
+
+    Solo para visualizacion.
+    """
     future = data.iloc[source_pos + 1 :]
     if future.empty:
         return "ABIERTA"

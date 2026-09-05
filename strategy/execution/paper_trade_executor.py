@@ -1,3 +1,24 @@
+"""Ejecutor de operaciones en papel: simula el broker sin enviar órdenes.
+
+Implementacion de referencia de `TradeExecutor`. Reproduce el comportamiento
+de un broker real —tickets, llenados, rechazos, cierres— manteniendo todo en
+memoria, de modo que el resto del sistema no distingue si opera en papel o en
+real.
+
+Mantiene DOS representaciones de cada posicion, y conviene entenderlo bien:
+- `self._positions`: vision del executor, con datos de ejecucion.
+- `PositionManager`: vision de la gestion, con PnL flotante y break-even.
+
+Los metodos `_sync_*` mantienen ambas alineadas. `get_position` devuelve la
+fusion de las dos.
+
+Vinculaciones:
+- Implementa el contrato de `strategy.execution.trade_executor.TradeExecutor`.
+- Delega el estado en `position_manager.PositionManager` y la vigilancia en
+  `monitoring.position_monitoring_service.PositionMonitoringService`.
+- Lo consume `trade_lifecycle_manager.TradeLifecycleManager`.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -42,7 +63,22 @@ class PaperTradeExecutor(
         position_manager: Optional[PositionManager] = None,
         break_even_trigger_rr: float = 1.0,
     ):
+        """Prepara el executor y engancha el servicio de monitoreo.
 
+        Registra sus propios `_sync_*` como callbacks del servicio de
+        monitoreo, de forma que cualquier cambio que este aplique sobre la
+        posicion gestionada se refleje de inmediato en la vision del
+        executor.
+
+        Args:
+            position_manager: almacen de posiciones; se crea uno si se omite.
+                Compartirlo permite que varios executores vean el mismo
+                estado.
+            break_even_trigger_rr: multiplo de R que activa el break-even.
+
+        Raises:
+            TypeError: si `position_manager` no es del tipo esperado.
+        """
         if position_manager is not None and not isinstance(position_manager, PositionManager):
             raise TypeError("position_manager debe ser PositionManager o None")
 
@@ -79,7 +115,27 @@ class PaperTradeExecutor(
         self,
         request: TradeExecutionRequest,
     ) -> TradeExecutionResult:
+        """Abre una posición virtual y devuelve el resultado de la ejecución.
 
+        IDEMPOTENCIA: construye una clave con simbolo, timeframe, direccion,
+        hora y precios; si ya existe una ejecucion con esa clave devuelve el
+        resultado anterior marcado con `duplicate=True` en lugar de abrir una
+        segunda posicion. Es la defensa contra la doble entrada por
+        reintentos o por reevaluar la misma senal.
+
+        La posicion se registra ademas en el `PositionManager`, que es quien
+        calculara su PnL flotante y su break-even.
+
+        Args:
+            request: peticion validada de apertura.
+
+        Returns:
+            `TradeExecutionResult` llenado, o el duplicado previo.
+
+        Raises:
+            TypeError: si `request` no es un `TradeExecutionRequest`.
+            ValueError: si la peticion no supera `_validate_request`.
+        """
         if not isinstance(
             request,
             TradeExecutionRequest,
@@ -329,7 +385,16 @@ class PaperTradeExecutor(
         self,
         position_ticket: str,
     ) -> Optional[dict[str, Any]]:
+        """Devuelve la posición fusionando la vista de ejecución y la de gestión.
 
+        Si el `PositionManager` conoce el ticket, se combinan ambas visiones
+        con `_merge_paper_and_managed_position`, dando prioridad a los datos
+        de gestion en los campos que ambos comparten (stop, objetivo, precio
+        actual). Si no lo conoce, se devuelve solo la vista del executor.
+
+        Returns:
+            Copia del dict de la posicion, o `None` si el ticket no existe.
+        """
         position = (
             self._positions.get(
                 str(position_ticket)
@@ -362,7 +427,24 @@ class PaperTradeExecutor(
         ] = None,
         reason: str = "manual_close",
     ) -> dict[str, Any]:
+        """Cierra una posición virtual y propaga el cierre al PositionManager.
 
+        Si no se indica `exit_price` se usa el precio de entrada, lo que
+        equivale a un cierre a coste cero. Conviene pasar el precio real
+        siempre que se conozca.
+
+        Args:
+            position_ticket: ticket de la posicion abierta.
+            exit_price: precio de salida; por defecto el de entrada.
+            reason: motivo del cierre, que se conserva para auditoria.
+
+        Returns:
+            La posicion ya cerrada, fusionada con la vista de gestion.
+
+        Raises:
+            ValueError: si el ticket no existe.
+            RuntimeError: si la posicion ya estaba cerrada.
+        """
         ticket = str(
             position_ticket
         )
@@ -429,10 +511,12 @@ class PaperTradeExecutor(
 
     @property
     def position_manager(self) -> PositionManager:
+        """Almacén de posiciones que respalda a este executor."""
         return self._position_manager
 
     @property
     def position_monitoring_service(self) -> PositionMonitoringService:
+        """Servicio que aplica break-even y detecta toques de SL o TP."""
         return self._position_monitoring_service
 
     def monitor_position(
@@ -440,6 +524,16 @@ class PaperTradeExecutor(
         position_ticket: str,
         current_price: float,
     ) -> dict[str, Any]:
+        """Actualiza una posición con el precio actual y decide si cerrarla.
+
+        Metodo NO abstracto pero imprescindible: es el que busca
+        `trade_lifecycle_manager.TradeLifecycleManager.monitor_execution`
+        para poder vigilar la operacion. Delega todo en el servicio de
+        monitoreo.
+
+        Returns:
+            Dict con al menos `closed` y `action`.
+        """
         return self._position_monitoring_service.monitor_position(
             ticket=str(position_ticket),
             current_price=float(current_price),
@@ -449,6 +543,7 @@ class PaperTradeExecutor(
         self,
         prices_by_ticket: dict[str, float],
     ) -> list[dict[str, Any]]:
+        """Monitorea en lote todas las posiciones con precio disponible."""
         return self._position_monitoring_service.monitor_open_positions(
             prices_by_ticket=prices_by_ticket,
         )
@@ -459,6 +554,12 @@ class PaperTradeExecutor(
 
     @staticmethod
     def _to_managed_position(position: dict[str, Any]) -> dict[str, Any]:
+        """Traduce la posición del executor al formato del PositionManager.
+
+        El cambio de nombre clave es `position_ticket` -> `ticket`, y el
+        estado se fuerza a `POSITION_OPEN` porque solo se registran
+        posiciones recien abiertas.
+        """
         return {
             "ticket": str(position["position_ticket"]),
             "symbol": position["symbol"],
@@ -474,6 +575,16 @@ class PaperTradeExecutor(
         self,
         managed_position: dict[str, Any],
     ) -> None:
+        """Callback: copia al executor los cambios de una posición aún abierta.
+
+        Lo invoca `PositionMonitoringService` en cada actualizacion de
+        precio. Copia solo los campos presentes, de modo que una clave
+        ausente conserva su valor anterior en vez de borrarse.
+
+        Si el ticket no existe en el executor no hace nada, en lugar de
+        fallar, porque el `PositionManager` puede estar compartido con otros
+        executores.
+        """
         ticket = str(managed_position["ticket"])
         position = self._positions.get(ticket)
         if position is None:
@@ -496,6 +607,15 @@ class PaperTradeExecutor(
         self,
         managed_position: dict[str, Any],
     ) -> None:
+        """Callback: refleja en el executor el cierre decidido por la gestión.
+
+        Se dispara cuando el servicio de monitoreo detecta un toque de stop o
+        de objetivo. Reutiliza `_sync_position_update_from_manager` y despues
+        marca el estado como cerrado con su precio y motivo de salida.
+
+        Solo asigna `exit_time` si aun no estaba puesto, para no pisar la
+        marca de un cierre deliberado previo.
+        """
         ticket = str(managed_position["ticket"])
         position = self._positions.get(ticket)
         if position is None:
@@ -516,6 +636,18 @@ class PaperTradeExecutor(
         paper_position: dict[str, Any],
         managed_position: dict[str, Any],
     ) -> dict[str, Any]:
+        """Combina la vista de ejecución con la de gestión en un solo dict.
+
+        Parte de la posicion del executor y la enriquece con los datos vivos
+        de la gestion: precio actual, PnL, stop y objetivo vigentes, estado
+        del break-even.
+
+        `exit_price` y `exit_reason` solo se sobrescriben si la gestion trae
+        valor, para no borrar los de un cierre ya registrado.
+
+        El estado de gestion se expone aparte como `managed_status`, sin
+        pisar el `status` del executor.
+        """
         merged = dict(paper_position)
         merged.update({
             "managed_status": managed_position.get("status"),
@@ -542,7 +674,11 @@ class PaperTradeExecutor(
     def get_positions(
         self,
     ) -> list[dict[str, Any]]:
+        """Lista todas las posiciones del executor, abiertas y cerradas.
 
+        Devuelve copias superficiales, y SIN fusionar con la vista de
+        gestion: para datos vivos usar `get_position` ticket a ticket.
+        """
         return [
 
             dict(position)
@@ -558,7 +694,7 @@ class PaperTradeExecutor(
     def get_open_positions(
         self,
     ) -> list[dict[str, Any]]:
-
+        """Lista sólo las posiciones en estado `FILLED`."""
         return [
 
             dict(position)
@@ -578,7 +714,20 @@ class PaperTradeExecutor(
     def _validate_request(
         request: TradeExecutionRequest,
     ) -> None:
+        """Valida la coherencia de la orden antes de abrir nada.
 
+        Ademas de los campos basicos, comprueba la ORDENACION de los precios,
+        que es la validacion realmente importante:
+        - BUY: `stop_loss < entry_price < take_profit`.
+        - SELL: `take_profit < entry_price < stop_loss`.
+
+        Un stop del lado equivocado convertiria la operacion en una trampa
+        garantizada, asi que se rechaza aqui en vez de dejar que llegue al
+        broker.
+
+        Raises:
+            ValueError: describiendo el problema concreto.
+        """
         direction = (
             str(
                 request.direction
@@ -666,7 +815,16 @@ class PaperTradeExecutor(
     def _build_execution_key(
         request: TradeExecutionRequest,
     ) -> str:
+        """Genera la huella que identifica una orden para detectar duplicados.
 
+        Concatena simbolo, timeframe, direccion, hora de entrada y los tres
+        precios. Dos peticiones con la misma huella se consideran la misma
+        orden.
+
+        NOTA: incluir los precios implica que una reevaluacion que ajuste
+        minimamente el stop produce una huella distinta y, por tanto, NO se
+        detecta como duplicado.
+        """
         return ":".join([
 
             str(

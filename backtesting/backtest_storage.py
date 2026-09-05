@@ -1,3 +1,16 @@
+"""Persistencia de resultados de backtest en base de datos y su exportación.
+
+Ultimo eslabon del pipeline: toma los resultados ya procesados con gestion
+monetaria y los guarda en el mismo repositorio que la operativa real, para
+despues exportar el informe. Reutilizar el almacen comun permite comparar
+backtest y operativa en vivo con las mismas herramientas.
+
+Vinculaciones:
+- Lo consume `backtesting.backtest_pipeline`.
+- Escribe mediante `database.repository.TradingRepository` y exporta con
+  `database.reporting.export_trading_report`.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

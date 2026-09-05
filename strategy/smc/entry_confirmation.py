@@ -1,3 +1,21 @@
+"""Confirmacion de entrada tras el retest del Order Block.
+
+Enlaza el setup detectado con el motor de confirmacion M5: espera el retest de
+la zona y delega en `strategy.smc.confirmation_engine` la decision de si la
+vela candidata confirma.
+
+ESTADO: no lo importa ningun modulo de produccion. En vivo, esta misma
+secuencia (retest + confirmacion) la ejecuta
+`strategy.execution.trade_pipeline.run_pipeline`. Aqui se conserva como camino
+alternativo usado por los tests.
+
+Vinculaciones:
+- Importa `strategy.smc.confirmation_engine` (`M5ConfirmationConfig` y
+  `evaluate_m5_confirmation`), que es el mismo motor que usa produccion.
+- Recibe los setups de `strategy.smc.setup_detector.detect_setups`.
+- Su salida la consume `strategy.smc.risk_reward.calculate_risk_reward`.
+"""
+
 import pandas as pd
 
 from strategy.smc.confirmation_engine import M5ConfirmationConfig, evaluate_m5_confirmation
@@ -51,6 +69,24 @@ def detect_entry_confirmations(
     -------
     pd.DataFrame
         DataFrame con entradas confirmadas.
+
+    Notas de proceso
+    ----------------
+    `min_wait_candles` evita confirmar en la misma vela del setup, lo que
+    produciria entradas irreales imposibles de reproducir en vivo.
+    `max_wait_candles` descarta el setup si el retest nunca llega: una zona
+    que tarda demasiado deja de ser valida.
+
+    La decision final NO se toma aqui: cada vela candidata se envia a
+    `strategy.smc.confirmation_engine.evaluate_m5_confirmation`, que aplica
+    rechazo, desplazamiento, micro estructura y score.
+
+    Vinculaciones
+    -------------
+    - Llama a `evaluate_m5_confirmation` del confirmation engine.
+    - Consume los setups de `strategy.smc.setup_detector.detect_setups`.
+    - Su salida alimenta `strategy.smc.risk_reward.calculate_risk_reward`.
+    - Sin llamadores de produccion; solo lo usan tests.
     """
 
     # ==================================================

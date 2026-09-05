@@ -1,3 +1,18 @@
+"""COPIA DE SEGURIDAD OBSOLETA. NO SE USA.
+
+Este fichero es una version anterior de `brokers/mt5_execution.py`, conservada
+por precaucion. La extension `.back.py` lo mantiene fuera de cualquier import:
+`brokers.mt5_execution.back` no aparece como dependencia de ningun modulo.
+
+NO editar ni tomar como referencia: puede divergir del comportamiento real.
+La implementacion vigente, con la validacion de riesgo posterior al fill, esta
+en `brokers/mt5_execution.py`.
+
+Se documenta unicamente a nivel de modulo, de forma deliberada: detallar codigo
+muerto invitaria a confundirlo con el activo. Si se confirma que no hace falta,
+puede borrarse.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -7,6 +22,8 @@ import MetaTrader5 as mt5
 
 
 class MT5ExecutionError(RuntimeError):
+    """Error de ejecucion (version obsoleta; ver `brokers.mt5_execution`)."""
+
     pass
 
 

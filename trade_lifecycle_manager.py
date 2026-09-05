@@ -1,3 +1,42 @@
+"""Máquina de estados del ciclo de vida de una operación, de la señal al cierre.
+
+Es la capa que convierte una senal ya validada en una operacion con estado
+explicito y trazable. Modela el recorrido completo:
+
+    READY_TO_ENTER -> EXECUTION -> {WIN, LOSS, AMBIGUOUS, EXPIRED,
+                                    BREAK_EVEN, CLOSED}
+
+Los estados de la segunda fila son FINALES: una vez alcanzados el lifecycle
+no admite mas transiciones y cualquier intento lanza `RuntimeError`. Esa
+rigidez es intencionada, porque evita que una operacion ya liquidada se
+reejecute o se cierre dos veces.
+
+Ofrece DOS caminos de ejecucion mutuamente independientes:
+
+1. Backtest: `execute` / `process_signal`, que resuelven el desenlace de un
+   golpe llamando al `trade_simulator` sobre un DataFrame de velas.
+2. Operativa real o papel: `execute_with_executor` /
+   `process_signal_with_executor`, que abren la posicion mediante un
+   `TradeExecutor` y luego requieren llamadas repetidas a `monitor_execution`
+   hasta que la posicion se cierre.
+
+El constructor exige al menos uno de los dos colaboradores.
+
+Vinculaciones:
+- Importa el contrato `TradeExecutor` y sus tipos desde
+  `strategy.execution.trade_executor`.
+- La implementacion de papel es
+  `strategy.execution.paper_trade_executor.PaperTradeExecutor`.
+- `monitoring.position_monitoring_service` invoca `monitor_open_executions`
+  en bucle para vigilar las posiciones vivas.
+- `_notify_reporting` emite eventos al `reporting_service` inyectado, que en
+  produccion es el servicio de reporte de operaciones.
+- `strategy.execution.live_paper_trading_engine` y `app.main` lo instancian.
+- El `trade_simulator` que recibe es `strategy.smc.trade_simulator.simulate_trade`
+  o su homonimo de `backtesting`; son funciones distintas, comprobar cual se
+  esta inyectando.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -54,6 +93,19 @@ SIMULATION_EXPIRED = "expired"
 
 @dataclass
 class TradeLifecycle:
+    """Estado completo de una operación individual a lo largo de su vida.
+
+    Es un objeto MUTABLE que se va enriqueciendo: nace en `READY_TO_ENTER`
+    con solo los datos de la senal y acumula precio de entrada real, ticket,
+    salida y resultado conforme avanza.
+
+    Ojo con `entry_price`, `stop_loss` y `take_profit`: al ejecutar contra un
+    broker se SOBRESCRIBEN con los valores realmente llenados, que pueden
+    diferir de los planificados por deslizamiento.
+
+    `metadata` es el saco libre donde viajan datos auxiliares (volumen,
+    broker, motivo de ejecucion) y es lo que se persiste para auditoria.
+    """
 
     symbol: str
 
@@ -98,11 +150,19 @@ class TradeLifecycle:
     )
 
     def is_final(self) -> bool:
+        """Indica si el lifecycle ya alcanzó un estado terminal.
 
+        Los metodos de ejecucion y cierre lo consultan primero para negarse a
+        operar sobre una operacion ya liquidada.
+        """
         return self.state in FINAL_STATES
 
     def to_dict(self) -> dict[str, Any]:
+        """Vuelca el lifecycle a un dict plano para persistir o reportar.
 
+        Vinculaciones:
+        - Lo usa `_notify_reporting` en la carga util de cada evento.
+        """
         return {
             "symbol": self.symbol,
 
@@ -153,6 +213,17 @@ class TradeLifecycle:
 # ============================================================
 
 class TradeLifecycleManager:
+    """Orquesta la creación, ejecución, monitoreo y cierre de lifecycles.
+
+    Mantiene dos colecciones:
+    - `_active_lifecycles`: indexada por ticket de posicion, solo operaciones
+      vivas. Se limpia al cerrar.
+    - `lifecycle_history`: acumula TODOS los lifecycles finalizados.
+
+    Vinculaciones:
+    - Lo instancian `strategy.execution.live_paper_trading_engine` y `app.main`.
+    - `monitoring.position_monitoring_service` llama a `monitor_open_executions`.
+    """
 
     def __init__(
         self,
@@ -160,7 +231,25 @@ class TradeLifecycleManager:
         trade_executor: Optional[TradeExecutor] = None,
         reporting_service: Optional[Any] = None,
     ):
+        """Inyecta los colaboradores y valida sus contratos por adelantado.
 
+        Se exige AL MENOS uno entre `trade_simulator` y `trade_executor`: sin
+        ninguno de los dos el manager no podria resolver ninguna operacion.
+        Se pueden dar los dos, y entonces cada metodo usa el que le
+        corresponde.
+
+        Args:
+            trade_simulator: callable de backtest que resuelve el desenlace
+                sobre un DataFrame de velas.
+            trade_executor: implementacion de `TradeExecutor` para operativa
+                real o papel.
+            reporting_service: objeto opcional con `on_lifecycle_event`, al
+                que se notifica cada transicion relevante.
+
+        Raises:
+            TypeError: si algun colaborador no cumple su contrato.
+            ValueError: si no se proporciona simulador ni executor.
+        """
         if trade_simulator is not None and not callable(trade_simulator):
             raise TypeError("trade_simulator debe ser una función callable o None")
 
@@ -192,7 +281,24 @@ class TradeLifecycleManager:
         self,
         signal: dict[str, Any],
     ) -> TradeLifecycle:
+        """Construye un lifecycle en `READY_TO_ENTER` desde una señal validada.
 
+        NO ejecuta nada: solo traduce el dict de senal a un objeto con estado.
+        Valida antes los campos obligatorios y la coherencia de precios.
+
+        Args:
+            signal: dict con `symbol`, `direction`, `entry_time`,
+                `entry_price`, `stop_loss` y `take_profit`.
+
+        Returns:
+            El lifecycle listo para ejecutar.
+
+        Raises:
+            ValueError o TypeError si la senal es incompleta o incoherente.
+
+        Vinculaciones:
+        - Delega la validacion en `_validate_signal` y `_get_timeframe`.
+        """
         self._validate_signal(signal)
 
         lifecycle = TradeLifecycle(
@@ -242,7 +348,31 @@ class TradeLifecycleManager:
         candles: pd.DataFrame,
         max_bars: int = 500,
     ) -> TradeLifecycle:
+        """Resuelve el lifecycle de golpe simulando sobre velas históricas.
 
+        Camino de BACKTEST, no de operativa real. Pasa por `EXECUTION` y
+        alcanza el estado final en una sola llamada: el simulador recorre las
+        velas y determina si toco antes el TP o el SL.
+
+        Convierte la direccion `BUY`/`SELL` al vocabulario `long`/`short` que
+        espera el simulador.
+
+        Args:
+            lifecycle: operacion en estado no final.
+            candles: velas POSTERIORES a la entrada.
+            max_bars: limite de velas antes de declarar la operacion expirada.
+
+        Returns:
+            El mismo lifecycle, ya finalizado y registrado en el historial.
+
+        Raises:
+            RuntimeError: si el lifecycle ya es final, si no hay simulador
+                configurado o si el simulador devuelve algo invalido.
+
+        Vinculaciones:
+        - Llama al `trade_simulator` inyectado y notifica
+          `LIFECYCLE_FINALIZED` al servicio de reporte.
+        """
         if lifecycle.is_final():
 
             raise RuntimeError(
@@ -349,7 +479,11 @@ class TradeLifecycleManager:
         candles: pd.DataFrame,
         max_bars: int = 500,
     ) -> TradeLifecycle:
+        """Atajo de backtest: crea el lifecycle desde la señal y lo ejecuta.
 
+        Equivale a `create_from_signal` seguido de `execute`. Es el punto de
+        entrada habitual del motor de backtest.
+        """
         lifecycle = self.create_from_signal(
             signal=signal
         )
@@ -373,6 +507,37 @@ class TradeLifecycleManager:
         volume: float = 1.0,
         trade_executor: Optional[TradeExecutor] = None,
     ) -> TradeLifecycle:
+        """Abre la posición en el broker real o de papel.
+
+        A diferencia de `execute`, NO finaliza la operacion: la deja en
+        `EXECUTION` y registrada en `_active_lifecycles`, a la espera de que
+        `monitor_execution` detecte su cierre.
+
+        Detalle critico: tras el llenado se SOBRESCRIBEN `entry_price`,
+        `stop_loss` y `take_profit` con los precios realmente ejecutados, que
+        pueden diferir por deslizamiento.
+
+        Si la orden se rechaza, el lifecycle NO cambia de estado, se marca
+        `execution_accepted` en metadata y se emite `EXECUTION_REJECTED`; el
+        lifecycle sigue siendo reutilizable.
+
+        Args:
+            lifecycle: operacion en estado no final y sin posicion abierta.
+            volume: tamano de la posicion.
+            trade_executor: executor puntual; si se omite usa el del manager.
+
+        Returns:
+            El lifecycle actualizado, llenado o rechazado.
+
+        Raises:
+            RuntimeError: si el lifecycle es final, ya tiene posicion activa,
+                no hay executor, o el executor llena sin devolver ticket.
+
+        Vinculaciones:
+        - Construye un `TradeExecutionRequest` y espera un
+          `TradeExecutionResult`, ambos de `strategy.execution.trade_executor`.
+        - Emite `EXECUTION_FILLED` o `EXECUTION_REJECTED`.
+        """
         if lifecycle.is_final():
             raise RuntimeError("No se puede ejecutar un lifecycle que ya está finalizado")
 
@@ -445,6 +610,11 @@ class TradeLifecycleManager:
         volume: float = 1.0,
         trade_executor: Optional[TradeExecutor] = None,
     ) -> TradeLifecycle:
+        """Atajo de operativa: crea el lifecycle y abre la posición.
+
+        Equivale a `create_from_signal` seguido de `execute_with_executor`.
+        Recuerda que la operacion queda ABIERTA y necesita monitoreo.
+        """
         lifecycle = self.create_from_signal(signal)
         return self.execute_with_executor(
             lifecycle=lifecycle,
@@ -462,7 +632,30 @@ class TradeLifecycleManager:
         trade_executor: Optional[TradeExecutor] = None,
         reason: str = "manual_close",
     ) -> dict[str, Any]:
-        """Cierra una posición activa mediante el executor y finaliza el lifecycle."""
+        """Cierra una posición activa mediante el executor y finaliza el lifecycle.
+
+        Es el cierre DELIBERADO, distinto del que detecta `monitor_execution`
+        cuando el mercado toca SL o TP. Lo usan los cierres defensivos del
+        gestor y las paradas manuales.
+
+        Solo confia en el executor: si `close_position` no confirma
+        `closed=True` aborta sin tocar el estado, para no dar por cerrada en
+        el bot una posicion que sigue viva en el broker.
+
+        Args:
+            lifecycle: operacion en `EXECUTION` con ticket asignado.
+            trade_executor: executor puntual; si se omite usa el del manager.
+            reason: motivo del cierre, que determina el estado final via
+                `_state_from_exit_reason`. Conviene que sea especifico para
+                poder auditar despues por que se cerro.
+
+        Returns:
+            El dict crudo devuelto por el executor.
+
+        Raises:
+            RuntimeError: si el lifecycle es final, no tiene posicion activa,
+                no hay executor o el cierre no se confirma.
+        """
         if lifecycle.is_final():
             raise RuntimeError("No se puede cerrar un lifecycle ya finalizado")
         if lifecycle.state != STATE_EXECUTION or not lifecycle.position_ticket:
@@ -500,6 +693,37 @@ class TradeLifecycleManager:
         current_price: float,
         trade_executor: Optional[TradeExecutor] = None,
     ) -> dict[str, Any]:
+        """Refresca una posición abierta y la finaliza si el broker la cerró.
+
+        Es el latido de la operativa: se llama repetidamente con el precio
+        vivo. Cada llamada delega en `monitor_position` del executor, que es
+        quien aplica trailing y break-even y decide si la posicion se ha
+        cerrado.
+
+        Dos desenlaces:
+        - Sigue abierta: sincroniza SL, TP y flotante en el lifecycle y emite
+          `POSITION_UPDATED`.
+        - Se cerro: traduce el motivo de salida a resultado y estado final,
+          la saca de `_active_lifecycles`, la archiva en el historial y emite
+          `LIFECYCLE_FINALIZED`.
+
+        Args:
+            lifecycle: operacion en `EXECUTION` con ticket.
+            current_price: precio actual del instrumento.
+            trade_executor: executor puntual; si se omite usa el del manager.
+
+        Returns:
+            El dict crudo del executor, con al menos la clave `closed`.
+
+        Raises:
+            RuntimeError: si el lifecycle es final o no tiene posicion activa.
+            TypeError: si el executor no soporta `monitor_position` o su
+                respuesta no es un dict.
+
+        Vinculaciones:
+        - Lo invoca en bucle `monitor_open_executions`, y a traves de el
+          `monitoring.position_monitoring_service`.
+        """
         if lifecycle.is_final():
             raise RuntimeError("No se puede monitorear un lifecycle finalizado")
         if lifecycle.state != STATE_EXECUTION or not lifecycle.position_ticket:
@@ -558,6 +782,23 @@ class TradeLifecycleManager:
         prices_by_ticket: dict[str, float],
         trade_executor: Optional[TradeExecutor] = None,
     ) -> list[dict[str, Any]]:
+        """Monitorea en lote todas las posiciones vivas con precio disponible.
+
+        Los tickets sin precio en el dict se SALTAN en silencio, de modo que
+        una cotizacion ausente no interrumpe el ciclo de las demas. Itera
+        sobre una copia de la coleccion porque `monitor_execution` puede
+        eliminar entradas al cerrar.
+
+        Args:
+            prices_by_ticket: precio actual indexado por ticket de posicion.
+
+        Returns:
+            Un dict de resultado por cada posicion monitoreada.
+
+        Vinculaciones:
+        - Es el metodo que llama `monitoring.position_monitoring_service` en
+          su bucle de vigilancia.
+        """
         if not isinstance(prices_by_ticket, dict):
             raise TypeError("prices_by_ticket debe ser un dict")
         results = []
@@ -572,9 +813,11 @@ class TradeLifecycleManager:
         return results
 
     def get_active_lifecycle(self, position_ticket: str) -> Optional[TradeLifecycle]:
+        """Recupera el lifecycle vivo asociado a un ticket, o None."""
         return self._active_lifecycles.get(str(position_ticket))
 
     def get_active_lifecycles(self) -> list[TradeLifecycle]:
+        """Devuelve una copia de la lista de operaciones actualmente abiertas."""
         return list(self._active_lifecycles.values())
 
     def _notify_reporting(
@@ -588,6 +831,12 @@ class TradeLifecycleManager:
 
         El manager sigue siendo dueño de las transiciones de estado; el servicio
         externo solamente persiste y exporta el resultado.
+
+        Eventos emitidos: `EXECUTION_FILLED`, `EXECUTION_REJECTED`,
+        `POSITION_UPDATED` y `LIFECYCLE_FINALIZED`.
+
+        Si no hay servicio inyectado no hace nada, de modo que el manager
+        funciona igual en tests y backtests sin persistencia.
         """
         if self.reporting_service is None:
             return None
@@ -599,11 +848,23 @@ class TradeLifecycleManager:
         )
 
     def _record_final_lifecycle(self, lifecycle: TradeLifecycle) -> None:
+        """Archiva el lifecycle en el historial, evitando duplicados.
+
+        Comprueba identidad de objeto (`is`), no igualdad, porque dos
+        operaciones distintas pueden tener campos identicos. Solo archiva si
+        el estado es final.
+        """
         if lifecycle.is_final() and not any(item is lifecycle for item in self.lifecycle_history):
             self.lifecycle_history.append(lifecycle)
 
     @staticmethod
     def _result_from_exit_reason(exit_reason: str) -> str:
+        """Traduce el motivo de salida al vocabulario de resultado.
+
+        Los motivos desconocidos se devuelven TAL CUAL en lugar de caer en un
+        valor por defecto, para no ocultar en el reporte una causa de cierre
+        no contemplada.
+        """
         mapping = {
             "take_profit": "win",
             "stop_loss": "loss",
@@ -614,6 +875,16 @@ class TradeLifecycleManager:
 
     @staticmethod
     def _state_from_exit_reason(exit_reason: str) -> str:
+        """Traduce el motivo de salida al estado final del lifecycle.
+
+        A diferencia de `_result_from_exit_reason`, aqui SI hay valor por
+        defecto: cualquier motivo no contemplado cae en `CLOSED`, que es un
+        estado final generico y seguro.
+
+        NOTA: por eso los cierres defensivos del gestor terminan mostrandose
+        como `CLOSED` en el reporte; el motivo detallado se conserva en
+        `lifecycle.exit_reason`, no en el estado.
+        """
         mapping = {
             "take_profit": STATE_WIN,
             "stop_loss": STATE_LOSS,
@@ -631,7 +902,21 @@ class TradeLifecycleManager:
         lifecycle: TradeLifecycle,
         simulation: dict[str, Any],
     ) -> None:
+        """Vuelca el desenlace del simulador sobre el lifecycle.
 
+        Copia salida, barras aguantadas y PnL, y traduce el resultado del
+        simulador (`win`, `loss`, `ambiguous`, `expired`) al estado final
+        correspondiente.
+
+        `ambiguous` significa que dentro de la misma vela se tocaron SL y TP
+        y no se puede saber cual ocurrio primero; se marca como tal en vez de
+        elegir arbitrariamente, para no falsear las estadisticas.
+
+        Raises:
+            ValueError: ante un resultado desconocido. Falla en voz alta a
+                proposito, ya que un desenlace no contemplado corromperia las
+                metricas si se ignorase.
+        """
         result = simulation["result"]
 
         lifecycle.result = result
@@ -712,7 +997,19 @@ class TradeLifecycleManager:
     def _validate_signal(
         signal: dict[str, Any],
     ) -> None:
+        """Valida que la señal traiga todo lo necesario antes de crear nada.
 
+        Comprueba tipo, campos obligatorios, que la direccion sea `BUY` o
+        `SELL`, y que exista timeframe en alguna de sus dos claves posibles.
+
+        Falla rapido y con mensaje explicito: es preferible rechazar la senal
+        aqui que crear un lifecycle a medias que reviente al ejecutarse.
+
+        Raises:
+            TypeError: si `signal` no es un dict.
+            ValueError: si faltan campos, la direccion es invalida o no hay
+                timeframe.
+        """
         if not isinstance(signal, dict):
 
             raise TypeError(
@@ -779,7 +1076,14 @@ class TradeLifecycleManager:
     def _get_timeframe(
         signal: dict[str, Any],
     ) -> str:
+        """Obtiene el timeframe de la señal, con `timeframe` sobre `m5_timeframe`.
 
+        La doble clave existe porque las estrategias no publican el campo con
+        el mismo nombre. `_validate_signal` ya garantiza que hay uno.
+
+        Raises:
+            ValueError: si ninguna de las dos claves esta presente.
+        """
         timeframe = signal.get(
             "timeframe"
         )
@@ -808,7 +1112,15 @@ class TradeLifecycleManager:
     def _validate_candles(
         candles: pd.DataFrame,
     ) -> None:
+        """Comprueba que el DataFrame de velas sirve para simular.
 
+        Exige DataFrame no vacio con las columnas OHLC y de tiempo. Sin esta
+        barrera el simulador fallaria mas adelante con errores opacos de
+        pandas, dificiles de rastrear hasta la senal culpable.
+
+        Raises:
+            ValueError o TypeError describiendo el problema concreto.
+        """
         if candles is None:
 
             raise ValueError(
@@ -866,7 +1178,11 @@ class TradeLifecycleManager:
     def get_history(
         self,
     ) -> list[TradeLifecycle]:
+        """Devuelve una copia superficial del historial de lifecycles.
 
+        La lista es nueva, pero los lifecycles son los mismos objetos:
+        modificarlos afecta al historial real.
+        """
         return list(
             self.lifecycle_history
         )
@@ -878,7 +1194,12 @@ class TradeLifecycleManager:
     def get_completed_trades(
         self,
     ) -> list[TradeLifecycle]:
+        """Filtra del historial solo las operaciones en estado final.
 
+        En la practica coincide con `get_history`, porque
+        `_record_final_lifecycle` solo archiva lifecycles finalizados; el
+        filtro es una salvaguarda por si algo se anade a mano.
+        """
         return [
 
             lifecycle
@@ -896,5 +1217,9 @@ class TradeLifecycleManager:
     def clear_history(
         self,
     ) -> None:
+        """Vacía el historial de lifecycles finalizados.
 
+        NO afecta a `_active_lifecycles`: las posiciones abiertas siguen
+        vigiladas. Pensado para liberar memoria entre tandas de backtest.
+        """
         self.lifecycle_history.clear()

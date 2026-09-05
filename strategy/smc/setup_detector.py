@@ -1,3 +1,25 @@
+"""Deteccion de setups SMC combinando ruptura, Order Block y zona.
+
+Version independiente del detector de setups. La logica equivalente que se
+ejecuta EN PRODUCCION vive dentro de
+`strategy.execution.trade_pipeline.run_pipeline`, que ademas rellena el
+checklist completo y encadena la confirmacion M5.
+
+ESTADO: ningun modulo de produccion importa este fichero. Solo lo usan tests
+(`test_setup_detector.py`, `test_entry_confirmation.py`, `test_risk_reward.py`,
+`test_trade_simulator.py`, `test_backtest_metric.py`, `test_money_management.py`
+y `test_position_sizing.py`), donde sirve para montar escenarios SMC de forma
+compacta. Si vas a cambiar el comportamiento del bot en vivo, el fichero que
+debes tocar es `trade_pipeline.py`, no este.
+
+Vinculaciones:
+- Consume las columnas de `strategy.smc.choch_bos` y
+  `strategy.smc.order_blocks`, y la columna `zone` de
+  `strategy.smc.premium_discount`.
+- Su salida la encadenan los tests hacia
+  `strategy.smc.entry_confirmation.detect_entry_confirmations`.
+"""
+
 import pandas as pd
 
 
@@ -22,6 +44,26 @@ def detect_setups(
     structure_lookback:
         Número máximo de velas después de una ruptura
         estructural para considerar válido el contexto.
+
+    El orden temporal es la clave: la ruptura debe ser ANTERIOR al OB y no
+    puede quedar mas lejos de `structure_lookback` velas, para que el contexto
+    estructural siga vigente cuando se opera la zona.
+
+    Args:
+        df: DataFrame con las columnas de ruptura (`choch_*`, `bos_*`).
+        order_blocks: DataFrame de OB con su zona premium/discount asignada.
+        structure_lookback: antiguedad maxima admitida de la ruptura.
+
+    Returns:
+        DataFrame de setups. Devuelve uno vacio si cualquiera de las entradas
+        esta vacia.
+
+    Raises:
+        ValueError: si faltan columnas obligatorias en `df`.
+
+    Vinculaciones:
+    - Sin llamadores de produccion; lo usan varios tests. El equivalente vivo
+      es `strategy.execution.trade_pipeline.run_pipeline`.
     """
 
     # ==================================================

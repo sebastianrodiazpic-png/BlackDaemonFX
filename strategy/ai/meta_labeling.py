@@ -57,13 +57,52 @@ class MetaLabelDecision:
     evaluated_at: str = ""
 
     def to_dict(self) -> dict:
+        """Convierte la decision a dict plano para auditarla en la bitacora.
+
+        Vinculaciones:
+        - El resultado lo persiste `strategy.execution.live_trading_engine`
+          como evento `META_LABEL_SIGNAL_SCORED`, que despues agrega
+          `database.repository.meta_label_decision_summary` para el panel de
+          IA de la pantalla Cuenta.
+        """
         return asdict(self)
 
 
 class MetaLabelingEngine:
-    """Puntúa señales por worker con modelos independientes y persistentes."""
+    """Puntúa señales por worker con modelos independientes y persistentes.
+
+    Nunca crea senales: recibe una ya confirmada por la estrategia y decide si
+    dejarla pasar, con que probabilidad y con que prioridad.
+
+    Modos de operacion:
+    - `SHADOW`: observa y registra sin afectar a la operativa. Es el modo por
+      defecto y el unico seguro mientras no haya modelo entrenado.
+    - `FILTER`: bloquea las senales cuya probabilidad o expectativa no
+      superan los umbrales.
+    - `RANKING`: cuando concurren varias senales, prioriza las de mayor
+      probabilidad.
+
+    SEGURIDAD: con `block_when_untrained=False` (valor por defecto) la IA
+    jamas bloquea una entrada si no tiene modelo entrenado.
+
+    Vinculaciones:
+    - Lo instancia `strategy.execution.live_trading_engine` en su `__init__`,
+      uno por worker.
+    - Usa `strategy.ai.training` para entrenar y `strategy.ai.model` para
+      predecir.
+    - `strategy.ai.ranking.rank_signals` ordena sus decisiones.
+    """
 
     def __init__(self, config: MetaLabelingConfig | None = None, *, worker: str = "DEFAULT"):
+        """Prepara el motor para un worker concreto.
+
+        Los modelos se cachean en memoria y se protegen con un `RLock` porque
+        cada worker corre en su propio hilo.
+
+        Args:
+            config: parametros de umbrales, modo y rutas.
+            worker: identificador del worker; se normaliza a mayusculas.
+        """
         self.config = config or MetaLabelingConfig()
         self.worker = str(worker or "DEFAULT").upper()
         self._models: dict[str, CalibratedLogisticModel] = {}
@@ -74,15 +113,30 @@ class MetaLabelingEngine:
     # ------------------------------------------------------------------
 
     def _model_path(self, strategy_name: str) -> Path:
+        """Construye la ruta del fichero del modelo.
+
+        El nombre es `metalabel_<WORKER>_<ESTRATEGIA>.json`. Sanea las barras
+        para que un nombre de simbolo no genere subdirectorios accidentales.
+        """
         directory = Path(self.config.model_directory)
         safe_worker = self.worker.replace("/", "_")
         safe_strategy = str(strategy_name or "ALL").upper().replace("/", "_")
         return directory / f"metalabel_{safe_worker}_{safe_strategy}.json"
 
     def _model_key(self, strategy_name: str) -> str:
+        """Clave de cache en memoria, con formato `WORKER:ESTRATEGIA`."""
         return f"{self.worker}:{str(strategy_name or 'ALL').upper()}"
 
     def load_model(self, strategy_name: str = "ALL") -> CalibratedLogisticModel:
+        """Carga el modelo del worker desde cache o disco.
+
+        Si el fichero no existe o esta corrupto devuelve un modelo VACIO sin
+        entrenar en lugar de propagar la excepcion: un modelo danado degrada
+        el worker a modo sombra pero nunca detiene la operativa.
+
+        Returns:
+            El modelo del worker, entrenado o no.
+        """
         key = self._model_key(strategy_name)
         with self._lock:
             if key in self._models:
@@ -103,6 +157,14 @@ class MetaLabelingEngine:
             return model
 
     def save_model(self, model: CalibratedLogisticModel) -> str:
+        """Persiste el modelo en disco y refresca la cache en memoria.
+
+        Crea el directorio si no existe. El JSON se guarda indentado para
+        poder inspeccionar a mano los pesos aprendidos.
+
+        Returns:
+            La ruta del fichero escrito.
+        """
         path = self._model_path(model.strategy_name)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(

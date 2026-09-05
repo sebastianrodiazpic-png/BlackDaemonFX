@@ -1,3 +1,36 @@
+"""Analizador multi-temporal H1 → M15 → M5, el cerebro que decide entradas.
+
+Aplica el principio SMC de que cada temporalidad cumple un papel distinto:
+
+- H1 da el CONTEXTO: hacia donde va el mercado.
+- M15 da el SETUP: donde esta la zona operable.
+- M5 da la CONFIRMACION: cuando entrar exactamente.
+
+Recorre una maquina de estados que solo avanza si cada etapa valida la
+anterior. Si algo falla, la senal se detiene en un estado terminal y se
+registra el motivo, de modo que siempre se puede explicar por que NO se
+opero.
+
+CACHE POR ETAPA: recalcular H1 en cada ciclo seria absurdo, porque su
+resultado no cambia hasta que cierra una vela nueva. La cache guarda cada
+etapa hasta el cierre siguiente, protegida por un `RLock` porque el monitor
+de posiciones puede leerla mientras el escaner la renueva.
+
+ANTIGUEDAD DE SENAL: `max_m5_signal_age_candles` limita la vejez de la
+confirmacion M5 para ABRIR una entrada nueva. Un `STALE_M5_SIGNAL` significa
+"demasiado tarde para entrar", NO "la tesis se ha invalidado", y por tanto no
+debe usarse como criterio para cerrar una posicion ya abierta.
+
+Vinculaciones:
+- Ejecuta `strategy.execution.trade_pipeline.run_trade_pipeline` en cada
+  temporalidad.
+- Usa `strategy.smc.market_structure.get_current_trend` para el contexto H1 y
+  `strategy.smc.h1_doji_extremes` como confluencia.
+- `config.symbol_policy` puede bloquear direcciones por instrumento.
+- Lo consumen `strategy.execution.live_trading_engine` y
+  `strategy.execution.live_paper_trading_engine`.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -21,6 +54,17 @@ class MultiTimeframeConfig:
         H1  -> contexto / tendencia
         M15 -> setup
         M5  -> confirmación / entrada
+
+    Los `require_*` permiten relajar etapas en pruebas, pero en operativa
+    deben quedarse en `True`: desactivarlos elimina precisamente las
+    validaciones que dan sentido al analisis multi-temporal.
+
+    `require_m5_after_m15` exige que la confirmacion sea POSTERIOR al setup,
+    evitando dar por buena una confirmacion que ocurrio antes.
+
+    `max_m5_signal_age_candles` limita la antiguedad de la confirmacion para
+    ABRIR una entrada. No es un criterio de invalidacion de posiciones ya
+    abiertas.
     """
 
     structure_timeframe: str = "H1"
@@ -80,6 +124,10 @@ class MultiTimeframeAnalyzer:
         STALE_M5_SIGNAL
         INVALID_DIRECTION
         READY_TO_ENTER
+
+    Solo `READY_TO_ENTER` habilita una entrada. Los demas estados terminales
+    describen en que punto exacto se detuvo el analisis, informacion que se
+    registra y se usa despues para auditar oportunidades perdidas.
     """
 
     def __init__(
@@ -88,6 +136,14 @@ class MultiTimeframeAnalyzer:
         config: MultiTimeframeConfig | None = None,
         pipeline_config: PipelineConfig | None = None,
     ):
+        """Enlaza proveedor de datos y configuración, y prepara la caché.
+
+        Args:
+            data_provider: objeto con `get_candles` y `get_current_tick`.
+            config: parametros del flujo multi-temporal.
+            pipeline_config: parametros del pipeline SMC que se ejecutara en
+                cada temporalidad.
+        """
         self.data_provider = data_provider
         self.config = config or MultiTimeframeConfig()
         self.pipeline_config = pipeline_config or PipelineConfig()
@@ -123,7 +179,15 @@ class MultiTimeframeAnalyzer:
     }
 
     def clear_stage_cache(self, symbol=None, timeframe=None):
-        """Invalida la caché completa o una etapa concreta."""
+        """Invalida la caché completa o una etapa concreta.
+
+        Sin argumentos borra todo. Con `symbol` o `timeframe` filtra
+        selectivamente, y ambos pueden combinarse.
+
+        Vinculaciones:
+        - Lo llama `strategy.execution.live_trading_engine` cuando necesita
+          forzar un recalculo, por ejemplo tras reconectar con el broker.
+        """
         with self._stage_cache_lock:
             if symbol is None and timeframe is None:
                 self._stage_cache.clear()
@@ -139,13 +203,31 @@ class MultiTimeframeAnalyzer:
                 self._stage_cache.pop(key, None)
 
     def cached_stage(self, symbol, timeframe):
-        """Devuelve un snapshot seguro de una etapa para auditoría visual."""
+        """Devuelve un snapshot seguro de una etapa para auditoría visual.
+
+        Copia superficial bajo el lock: el llamante puede inspeccionarla sin
+        riesgo de corromper la cache ni de leerla a medio actualizar.
+
+        Returns:
+            Dict con `data`, `result` y `refresh_at`, o vacio si no hay nada
+            cacheado.
+        """
         key = (str(symbol), str(timeframe).upper())
         with self._stage_cache_lock:
             cached = self._stage_cache.get(key)
             return dict(cached) if isinstance(cached, dict) else {}
 
     def _next_refresh_at(self, timeframe, now):
+        """Calcula cuándo caduca la caché de una temporalidad.
+
+        Alinea el vencimiento con el cierre real de la siguiente vela —no con
+        un intervalo fijo desde ahora— y le suma `cache_grace_seconds` para
+        dar margen a que el broker publique el dato definitivo.
+
+        Returns:
+            Instante de caducidad. Si la temporalidad es desconocida devuelve
+            `now`, lo que desactiva la cache en la practica.
+        """
         seconds = self._TIMEFRAME_SECONDS.get(str(timeframe).upper(), 0)
         if seconds <= 0:
             return now
@@ -157,7 +239,19 @@ class MultiTimeframeAnalyzer:
         ).to_pydatetime()
 
     def _get_stage_result(self, symbol, timeframe, count):
-        """Obtiene una etapa H1/M15/M5 usando caché hasta la próxima vela cerrada."""
+        """Obtiene una etapa H1/M15/M5 usando caché hasta la próxima vela cerrada.
+
+        Con acierto de cache devuelve al instante lo guardado. Si no, descarga
+        velas cerradas, ejecuta el pipeline y guarda el resultado.
+
+        Descarga y pipeline se ejecutan FUERA del lock, y solo se toma para
+        leer y escribir el mapa. Asi el trabajo lento no bloquea al monitor
+        de posiciones.
+
+        Returns:
+            Tupla `(datos, resultado, telemetria)`, donde la telemetria trae
+            `cache_hit` y los tiempos de descarga y pipeline.
+        """
         key = (str(symbol), str(timeframe).upper())
         now = datetime.now(timezone.utc)
         with self._stage_cache_lock:
@@ -213,6 +307,11 @@ class MultiTimeframeAnalyzer:
 
     @staticmethod
     def _new_transitions():
+        """Inicia el registro de transiciones con el estado `START`.
+
+        La lista de transiciones es la TRAZA del analisis: cada etapa anade
+        su paso, y al final explica por completo el recorrido seguido.
+        """
         return [
             {
                 "state": "START",
@@ -222,6 +321,17 @@ class MultiTimeframeAnalyzer:
 
     @staticmethod
     def _add_transition(transitions, state, reason=None, **details):
+        """Añade un paso a la traza del análisis.
+
+        Los `details` son opcionales y solo se incluyen si se pasan, para no
+        llenar la traza de claves vacias.
+
+        Args:
+            transitions: lista que se MUTA en el sitio.
+            state: nombre del estado alcanzado.
+            reason: codigo del motivo.
+            **details: datos de contexto de ese paso.
+        """
         transition = {
             "state": state,
             "reason": reason,
@@ -237,6 +347,19 @@ class MultiTimeframeAnalyzer:
     # ============================================================
 
     def _get_closed_candles(self, symbol, timeframe, count):
+        """Descarga velas y descarta la última, que puede estar en formación.
+
+        SALVAGUARDA ANTI-REPINTADO: la ultima vela devuelta por el broker
+        suele ser la actual, todavia abierta. Analizarla haria que los
+        resultados cambiasen a cada tick y que el backtest no reprodujera lo
+        vivido en vivo.
+
+        Ademas normaliza `time` a UTC, ordena y elimina duplicados.
+
+        Returns:
+            DataFrame de velas cerradas, o uno vacio si el proveedor no
+            devuelve nada.
+        """
         df = self.data_provider.get_candles(
             symbol=symbol,
             timeframe=timeframe,
@@ -266,6 +389,12 @@ class MultiTimeframeAnalyzer:
         return df.reset_index(drop=True)
 
     def _run_pipeline(self, df, symbol):
+        """Ejecuta el pipeline SMC, tolerando la ausencia de velas.
+
+        Sin datos devuelve una estructura VACIA con las mismas claves en vez
+        de lanzar, de modo que las etapas siguientes puedan seguir su curso y
+        terminar en un estado terminal explicito.
+        """
         if df is None or df.empty:
             return {
                 "data": pd.DataFrame(),
@@ -287,6 +416,11 @@ class MultiTimeframeAnalyzer:
 
     @staticmethod
     def _as_time(value):
+        """Convierte un valor a Timestamp UTC, o `None` si no es una fecha.
+
+        Envuelve `pd.isna` en try/except porque lanza `TypeError` con ciertos
+        tipos, como listas.
+        """
         if value is None:
             return None
 
@@ -302,6 +436,15 @@ class MultiTimeframeAnalyzer:
         )
 
     def _pipeline_diagnostics(self, result, stage_timing=None):
+        """Resume el resultado del pipeline en contadores para la traza.
+
+        Reduce DataFrames enteros a numeros (velas, setups, confirmaciones) e
+        incorpora la telemetria de cache. Sin esta reduccion, la traza del
+        analisis seria impracticable de persistir.
+
+        Returns:
+            Dict de diagnostico, ampliando el que ya trajera el pipeline.
+        """
         data = result.get("data")
         setups = result.get("setups")
         confirmations = result.get("confirmations")
@@ -353,6 +496,12 @@ class MultiTimeframeAnalyzer:
 
     @staticmethod
     def _trend_direction(trend):
+        """Traduce la tendencia a dirección operable.
+
+        `BULLISH` a `BUY`, `BEARISH` a `SELL` y cualquier otro valor a
+        `None`, que detiene el analisis. Un mercado sin direccion clara no
+        genera senal.
+        """
         if trend == "BULLISH":
             return "BUY"
 
@@ -373,6 +522,18 @@ class MultiTimeframeAnalyzer:
         controladas pueden traer solamente eventos BOS/CHOCH. Esta función
         soporta ambos contratos y nunca delega a ``get_current_trend`` con una
         columna ``structure`` inexistente.
+
+        Aplica TRES estrategias en cascada, deteniendose en la primera que
+        arroje direccion:
+        1. `get_current_trend` sobre la estructura HH/HL/LH/LL.
+        2. El ultimo evento BOS/CHOCH: gana el mas reciente.
+        3. La tendencia que el propio pipeline resumio en `summary`.
+
+        Returns:
+            Dict con `trend`, `valid`, `reason` y `context_time`. Sin
+            direccion clara, `valid` es `False` con motivo
+            `NO_DIRECTIONAL_H1_TREND` y el analisis termina en
+            `NO_H1_CONTEXT`.
         """
         data = result.get("data")
         if data is None or data.empty:
@@ -438,6 +599,19 @@ class MultiTimeframeAnalyzer:
         }
 
     def _m15_setups(self, result, expected_direction):
+        """Filtra los setups M15 que coinciden con la dirección del contexto H1.
+
+        Traduce `BUY`/`SELL` al vocabulario `long`/`short` que usan los
+        setups. Devuelve un DataFrame vacio ante cualquier dato ausente, en
+        vez de fallar.
+
+        Args:
+            result: salida del pipeline en M15.
+            expected_direction: `BUY` o `SELL` que impone H1.
+
+        Returns:
+            Setups alineados, ordenados por `setup_time`.
+        """
         setups = result.get("setups")
 
         if (
@@ -486,6 +660,14 @@ class MultiTimeframeAnalyzer:
     # ============================================================
 
     def _m5_confirmations(self, result, expected_direction):
+        """Filtra las confirmaciones M5 válidas y alineadas con la dirección.
+
+        Aplica dos filtros: descarta las que el motor de confirmacion marco
+        como invalidas, y las que apuntan al lado contrario.
+
+        Returns:
+            Confirmaciones utilizables, ordenadas por `entry_time`.
+        """
         confirmations = result.get("confirmations")
 
         if confirmations is None or confirmations.empty:
@@ -536,6 +718,27 @@ class MultiTimeframeAnalyzer:
         m15_setups,
         m5_confirmations,
     ):
+        """Empareja un setup M15 con la confirmación M5 que le corresponde.
+
+        Aqui se impone el ORDEN TEMPORAL de la metodologia: primero aparece
+        la zona operable en M15 y despues llega la confirmacion en M5. Una
+        confirmacion anterior al setup no lo confirma, aunque coincida en
+        direccion.
+
+        Dos ajustes gobiernan la seleccion:
+        - `require_latest_m15_setup`: solo se considera el setup mas
+          reciente. Desactivarlo permite recuperar setups anteriores todavia
+          vigentes.
+        - `require_m5_after_m15`: exige la posterioridad estricta.
+
+        Entre las confirmaciones elegibles se elige la MAS RECIENTE, por ser
+        la que refleja el estado actual del mercado.
+
+        Returns:
+            Tupla `(setup, confirmacion, motivo, diagnostico)`. El motivo es
+            `None` si el emparejamiento tiene exito, o un codigo terminal
+            (`NO_M15_SETUP`, `NO_M5_CONFIRMATION`, `WAITING_M5_AFTER_M15`).
+        """
         sequence_diag = {
             "m15_setups_total": (
                 0
@@ -675,6 +878,28 @@ class MultiTimeframeAnalyzer:
         m5_data,
         signal,
     ):
+        """Mide la antigüedad de la confirmación M5 y decide si está caducada.
+
+        Una confirmacion valida deja de servir para ABRIR si el mercado ha
+        avanzado demasiadas velas desde entonces: el precio ya no esta donde
+        estaba y la entrada perderia su ventaja.
+
+        Mide por dos vias independientes, y basta que UNA se supere para
+        marcar `is_stale`:
+        - `age_candles`: velas transcurridas desde la senal.
+        - `age_minutes`: minutos transcurridos, solo si
+          `max_m5_signal_age_minutes` esta configurado.
+
+        LIMITE CONCEPTUAL IMPORTANTE: la caducidad significa "ya no procede
+        abrir aqui", NO "la tesis se ha invalidado". Aplicarla como criterio
+        de cierre sobre una posicion ya abierta confunde dos conceptos
+        distintos y provoca salidas prematuras.
+
+        Returns:
+            Dict con la posicion de la senal, ambas medidas de antiguedad,
+            sus umbrales y los indicadores `is_stale`, `stale_by_candles` y
+            `stale_by_minutes`.
+        """
         base = {
             "valid": False,
             "reason": "NO_M5_DATA_OR_SIGNAL",
@@ -825,6 +1050,32 @@ class MultiTimeframeAnalyzer:
         diagnostics=None,
         extra=None,
     ):
+        """Compone el dict de respuesta uniforme del analizador.
+
+        TODAS las salidas pasan por aqui, tanto las senales validas como los
+        estados terminales. Esa uniformidad permite a los consumidores tratar
+        cualquier resultado con la misma forma.
+
+        `extra` se fusiona al final y es lo que anade los campos de operativa
+        (entrada, stop, objetivo) cuando la senal es valida.
+
+        Args:
+            symbol: instrumento analizado.
+            valid: si hay senal operable.
+            action: accion para el resto del sistema, p. ej.
+                `MULTI_TIMEFRAME_SIGNAL`.
+            state: estado de la maquina de estados alcanzado.
+            direction: `BUY`, `SELL` o `None`.
+            reason: codigo del motivo del desenlace.
+            transitions: traza completa del analisis.
+            policy_diag: politica de direccion aplicada al simbolo.
+            h1, m15, m5: bloques de diagnostico por temporalidad.
+            diagnostics: diagnostico general.
+            extra: campos adicionales que se fusionan al final.
+
+        Returns:
+            El dict de analisis completo.
+        """
         result = {
             "symbol": symbol,
             "valid": valid,
@@ -858,7 +1109,36 @@ class MultiTimeframeAnalyzer:
     # ============================================================
 
     def analyze_symbol(self, symbol):
+        """Analiza un símbolo de principio a fin y devuelve la señal o el bloqueo.
 
+        METODO PRINCIPAL de la clase. Recorre la maquina de estados completa:
+
+        1. Politica de direccion del instrumento.
+        2. H1: contexto y tendencia -> `NO_H1_CONTEXT` si no hay direccion.
+        3. Validacion de la direccion contra la politica ->
+           `DIRECTION_POLICY_BLOCKED`.
+        4. M15: setups alineados -> `NO_M15_SETUP`.
+        5. M5: confirmaciones validas -> `NO_M5_CONFIRMATION`.
+        6. Emparejamiento ordenado -> `WAITING_M5_AFTER_M15`.
+        7. Antiguedad de la senal -> `STALE_M5_SIGNAL`.
+        8. `READY_TO_ENTER` con entrada, stop y objetivo.
+
+        SIEMPRE devuelve un dict y no lanza por falta de senal: la ausencia
+        de oportunidad es un resultado normal, y su motivo queda registrado.
+
+        Args:
+            symbol: instrumento a analizar.
+
+        Returns:
+            Dict de analisis con `valid`, `state`, `action`, `reason`, la
+            traza de `transitions` y los diagnosticos por temporalidad.
+
+        Vinculaciones:
+        - Lo llaman `strategy.execution.live_trading_engine` y
+          `strategy.execution.live_paper_trading_engine` en cada ciclo.
+        - Cuando `valid` es `True`, el motor pasa el dict por
+          `strategy.ai.meta_labeling` antes de decidir si ejecuta.
+        """
         transitions = self._new_transitions()
 
         # --------------------------------------------------------
@@ -1562,6 +1842,11 @@ class MultiTimeframeAnalyzer:
 
     @staticmethod
     def _safe_float(value):
+        """Convierte a float devolviendo `None` ante nulos, NaN o basura.
+
+        Devuelve `None` en lugar de 0.0 a proposito: un precio ausente no es
+        un precio de cero, y confundirlos produciria stops absurdos.
+        """
         if value is None:
             return None
 

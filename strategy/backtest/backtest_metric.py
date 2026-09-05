@@ -1,3 +1,17 @@
+"""Cálculo de métricas de rendimiento de un backtest.
+
+Calcula sobre un conjunto de operaciones los indicadores habituales de
+evaluacion: tasa de acierto, factor de beneficio, expectativa, drawdown
+maximo y rachas, partiendo de un capital inicial y un riesgo por operacion.
+
+ESTADO — sin consumidores en produccion. El pipeline vivo `backtesting/`
+calcula su propio resumen. Este modulo solo lo utilizan
+`tests/test_backtest_metric.py` y `tests/test_money_management.py`.
+
+Vinculaciones:
+- No lo importa ningun modulo de produccion.
+"""
+
 import pandas as pd
 import numpy as np
 

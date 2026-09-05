@@ -25,6 +25,12 @@ MIN_TRAINING_SAMPLES = 30
 
 
 def _parse_details(raw) -> dict:
+    """Normaliza el campo `details` del journal, que puede venir como dict o JSON.
+
+    Devuelve siempre un dict: ante texto invalido o tipos inesperados
+    devuelve uno vacio en vez de fallar, porque un registro historico mal
+    formado no debe impedir entrenar con los demas.
+    """
     if isinstance(raw, dict):
         return raw
     if isinstance(raw, str) and raw.strip():
@@ -37,6 +43,15 @@ def _parse_details(raw) -> dict:
 
 
 def _row_metadata(row) -> dict:
+    """Extrae el bloque `metadata` de una fila del historial.
+
+    Prueba las dos columnas posibles (`details` y `details_json`) porque el
+    esquema del journal ha variado con el tiempo. Ahi es donde viajan las
+    caracteristicas de la senal capturadas en el momento de la entrada.
+
+    Returns:
+        El dict de metadatos, o uno vacio si no aparece en ninguna columna.
+    """
     for key in ("details", "details_json"):
         details = _parse_details(row.get(key) if hasattr(row, "get") else None)
         metadata = details.get("metadata")
@@ -46,7 +61,25 @@ def _row_metadata(row) -> dict:
 
 
 def _trade_label(row) -> int | None:
-    """1 si la operación fue ganadora; 0 si fue perdedora. None si es indecisa."""
+    """1 si la operación fue ganadora; 0 si fue perdedora. None si es indecisa.
+
+    Es la ETIQUETA que aprende el modelo, asi que su correccion es critica.
+
+    Prioridad de fuentes: primero `realized_rr` (la medida homogenea entre
+    instrumentos) y, si no esta disponible, `net_pnl`.
+
+    Se descartan devolviendo `None`:
+    - Operaciones aun abiertas (`status == OPEN`), cuyo desenlace se ignora.
+    - Valores NaN, que aparecen cuando el journal no registro el RR.
+    - Resultados practicamente nulos (break-even), que no ensenan nada y solo
+      anadirian ruido.
+
+    Returns:
+        `1`, `0` o `None` para excluir la fila del entrenamiento.
+
+    Vinculaciones:
+    - La usa `build_training_dataset` en este mismo modulo.
+    """
     status = str(row.get("status") or "").upper()
     if status == "OPEN":
         return None
@@ -73,7 +106,17 @@ def _trade_label(row) -> int | None:
 
 
 def _canonical_profile(value) -> str:
-    """Normaliza `VOLATILITY_3`, `FOREX_2`, `SCALP_BOOM` a su familia de worker."""
+    """Normaliza `VOLATILITY_3`, `FOREX_2`, `SCALP_BOOM` a su familia de worker.
+
+    Los perfiles reales llevan sufijo numerico y a veces prefijo `SCALP_`.
+    Sin esta normalizacion, `VOLATILITY_1` y `VOLATILITY_3` se tratarian como
+    workers distintos y ninguno reuniria muestras suficientes para entrenar.
+
+    Returns:
+        El nombre de la familia (`VOLATILITY`, `FOREX`, `BOOM`, `CRASH`,
+        `STEP`, `JUMP`, `FLIP`, `GOLD`, `SYNTHETICS`) o el texto original en
+        mayusculas si no reconoce ninguna.
+    """
     text = str(value or "").upper().strip()
     if not text:
         return ""
@@ -86,6 +129,16 @@ def _canonical_profile(value) -> str:
 
 
 def _profiles_match(worker, metadata_profile) -> bool:
+    """Decide si una operación histórica pertenece al worker que se entrena.
+
+    Acepta la fila si el worker esta vacio (entrenamiento global), si el
+    nombre coincide exacto, o si ambos pertenecen a la misma familia segun
+    `_canonical_profile`. Este ultimo caso es el que permite que un worker
+    entrene con todas sus instancias numeradas.
+
+    Returns:
+        True si la fila debe entrar en el dataset de ese worker.
+    """
     wanted = str(worker or "").upper().strip()
     actual = str(metadata_profile or "").upper().strip()
     if not wanted:
@@ -160,6 +213,20 @@ def build_training_dataset(
 
 
 def _average_outcomes(labels, rr_values) -> tuple[float, float]:
+    """Calcula el R medio ganado y el R medio perdido del historial.
+
+    Estos dos numeros alimentan `CalibratedLogisticModel.net_expectancy_r`,
+    que traduce probabilidad a valor esperado. Ignora los resultados casi
+    nulos (break-even) para no rebajar artificialmente las medias.
+
+    Args:
+        labels: lista de 1/0 alineada con `rr_values`.
+        rr_values: R realizado de cada operacion.
+
+    Returns:
+        Tupla `(media_ganancia, media_perdida)`, ambas positivas. Si falta
+        alguno de los dos grupos devuelve 1.0, equivalente a asumir 1:1.
+    """
     wins = [abs(rr) for rr, label in zip(rr_values, labels) if label == 1 and abs(rr) > 1e-9]
     losses = [abs(rr) for rr, label in zip(rr_values, labels) if label == 0 and abs(rr) > 1e-9]
     average_win = float(np.mean(wins)) if wins else 1.0
@@ -220,6 +287,13 @@ class TemporalValidationReport:
     reason: str | None = None
 
     def to_dict(self) -> dict:
+        """Serializa el informe de validación temporal para persistirlo.
+
+        Vinculaciones:
+        - Lo consume el panel de IA de la pantalla Cuenta a traves de
+          `ui.account_metrics`, que muestra `lift` y `valid` como prueba de
+          que el modelo aporta sobre la tasa base.
+        """
         return {
             "folds": self.folds,
             "samples_evaluated": self.samples_evaluated,

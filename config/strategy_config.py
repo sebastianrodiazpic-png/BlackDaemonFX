@@ -1,3 +1,30 @@
+"""Parametros por defecto de la estrategia SMC.
+
+Constantes puras, sin logica. Definen los tres marcos temporales del analisis,
+la calidad exigida a un Order Block, el motor de confirmacion M5 y los limites
+de riesgo base.
+
+Jerarquia importante: estos son valores POR DEFECTO. El motor en vivo puede
+recibir umbrales propios por instrumento o por perfil de bot, que prevalecen
+sobre lo definido aqui.
+
+Notas sobre las claves menos evidentes:
+    - `maximum_touches`: un Order Block deja de ser fresco tras ser tocado; por
+      eso solo se admite 1.
+    - `confirmation_mode`: `inside`, `midpoint` o `break_ob`, de mas laxo a mas
+      estricto respecto a donde debe reaccionar el precio dentro del bloque.
+    - `max_confirmation_age_candles`: cuantas velas M5 puede tener la
+      confirmacion para seguir siendo valida AL ABRIR. Es el origen de
+      `STALE_M5_SIGNAL` y NO debe usarse para cerrar posiciones ya abiertas.
+    - `displacement_range_multiplier`: cuanto debe superar el rango medio el
+      impulso para considerarse desplazamiento real.
+
+Vinculaciones:
+    - `app.main` lo importa y lo propaga a la estrategia.
+    - Los consumidores efectivos viven en `strategy.smc` y
+      `strategy.execution.multi_timeframe`.
+"""
+
 STRATEGY_VERSION = "SMC_V2"
 
 TIMEFRAMES = {

@@ -1,3 +1,20 @@
+"""Adaptador de MT5 al contrato generico `TradeExecutor`.
+
+Permite que el motor trabaje siempre contra la misma interfaz, tanto si opera
+en MT5 real como en papel. Aqui no hay logica de estrategia: solo traduccion
+entre `TradeExecutionRequest`/`TradeExecutionResult` y las llamadas nativas.
+
+El import de `MetaTrader5` es tolerante a fallo para poder importar el proyecto
+y ejecutar los tests fuera de Windows; los metodos que lo necesitan comprueban
+`mt5 is None` y lanzan un error claro.
+
+Vinculaciones:
+    - `strategy.execution.trade_executor`: contrato y constantes de estado.
+    - `execution_provider`: instancia de `brokers.mt5_execution`, que hace el
+      trabajo de bajo nivel.
+    - Consumidores: `app.main` y `services.live_demo_smoke_test_service`.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -27,11 +44,32 @@ class MT5TradeExecutor(TradeExecutor):
     BROKER_NAME = "MT5"
 
     def __init__(self, execution_provider, magic: int, deviation: int = 20):
+        """Configura el adaptador.
+
+        Args:
+            execution_provider: capa de bajo nivel (`brokers.mt5_execution`).
+            magic: identificador del bot en las ordenes; permite que varios
+                workers convivan en la misma cuenta sin tocar posiciones ajenas.
+            deviation: desviacion maxima de precio tolerada, en puntos.
+        """
         self.execution_provider = execution_provider
         self.magic = int(magic)
         self.deviation = int(deviation)
 
     def execute_trade(self, request: TradeExecutionRequest) -> TradeExecutionResult:
+        """Envia una orden a mercado y devuelve el resultado normalizado.
+
+        Antes de nada llama a `assert_demo_account()`: es la salvaguarda que
+        impide enviar ordenes a una cuenta real por error.
+
+        Tras el envio localiza el ticket de posicion por comentario y, si no
+        aparece, lo deriva del ticket del deal. El comentario que genera
+        `_comment_for` incorpora la `execution_key`, lo que hace la operacion
+        rastreable e idempotente extremo a extremo.
+
+        Raises:
+            RuntimeError: si `MetaTrader5` no esta disponible en el entorno.
+        """
         if mt5 is None:
             raise RuntimeError("MetaTrader5 no está disponible en este entorno")
         self.execution_provider.assert_demo_account()
@@ -119,6 +157,13 @@ class MT5TradeExecutor(TradeExecutor):
         return result
 
     def get_position(self, position_ticket: str) -> Optional[dict]:
+        """Estado actual de una posicion, normalizado a dict.
+
+        Returns:
+            dict con direccion, volumen, precios de entrada y actual, SL, TP y
+            PnL flotante; o `None` si la posicion ya no existe (normalmente
+            porque se cerro).
+        """
         row = self.execution_provider.get_position(int(position_ticket))
         if row is None:
             return None
@@ -146,6 +191,30 @@ class MT5TradeExecutor(TradeExecutor):
         exit_price: Optional[float] = None,
         reason: str = "manual_close",
     ) -> dict:
+        """Cierra una posicion abierta enviando la orden opuesta.
+
+        Si la posicion ya no existe devuelve `closed: True` con motivo
+        `already_closed`, comportamiento idempotente que evita errores cuando
+        el broker cerro por SL/TP entre la decision y la ejecucion.
+
+        Prueba secuencialmente los modos de llenado que admite el simbolo,
+        porque no todos los brokers aceptan el mismo, y acumula cada intento en
+        `attempts` para poder diagnosticar el rechazo.
+
+        Args:
+            position_ticket: ticket de la posicion.
+            exit_price: precio deseado; si es `None` toma bid o ask segun la
+                direccion del cierre.
+            reason: motivo, que viaja en el comentario de la orden (truncado a
+                20 caracteres por el limite de MT5).
+
+        Returns:
+            dict con `closed`, precio de salida, motivo y los tickets.
+
+        Raises:
+            RuntimeError: si MT5 no esta disponible, si no hay tick, o si todos
+                los modos de llenado fueron rechazados.
+        """
         if mt5 is None:
             raise RuntimeError("MetaTrader5 no está disponible en este entorno")
         self.execution_provider._ensure()
@@ -210,6 +279,12 @@ class MT5TradeExecutor(TradeExecutor):
 
     @staticmethod
     def _comment_for(request: TradeExecutionRequest) -> str:
+        """Comentario de la orden, truncado a los 31 caracteres que admite MT5.
+
+        Prefiere la `execution_key` de los metadatos: asi el comentario sirve
+        despues para reencontrar la posicion y garantizar idempotencia. Como
+        alternativa compone `smc:simbolo:direccion`.
+        """
         raw = request.metadata.get("execution_key") if request.metadata else None
         if raw:
             return str(raw)[:31]

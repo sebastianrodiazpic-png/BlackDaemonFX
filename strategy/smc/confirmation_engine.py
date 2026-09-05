@@ -3,6 +3,22 @@
 El objetivo es evitar entradas por un simple toque del Order Block. La señal se
 valida con rechazo, desplazamiento, micro estructura, momentum, frescura del OB
 y un score explicable.
+
+Es el GUARDIAN de la calidad de entrada: aqui se decide si un setup detectado
+por el pipeline llega a convertirse en orden real, y con que puntuacion y
+grado. Todo el diagnostico es auditable para poder explicar a posteriori por
+que se acepto o rechazo cada operacion.
+
+Vinculaciones:
+- Importa `strategy.smc.harmonic_patterns` y `strategy.smc.chart_patterns`
+  para anadir confluencias opcionales al score.
+- Lo importa `strategy.execution.trade_pipeline`, que traduce su
+  `PipelineConfig` a `M5ConfirmationConfig` y llama a
+  `evaluate_m5_confirmation` por cada setup candidato.
+- Lo consume `strategy.execution.live_trading_engine`, que lee del resultado
+  `confirmation_valid`, `trade_score`, `grade` y `strict_rejection_reasons`.
+- Sus claves de salida alimentan `strategy.ai.feature_extraction` para el
+  meta-etiquetado.
 """
 from __future__ import annotations
 
@@ -17,6 +33,28 @@ from strategy.smc.chart_patterns import ChartPatternConfig, detect_chart_pattern
 
 @dataclass(frozen=True)
 class M5ConfirmationConfig:
+    """Parametros de confirmacion M5. Inmutable para garantizar reproducibilidad.
+
+    Grupos de campos:
+    - Umbrales de score: `minimum_trade_score` (via estricta) y
+      `minimum_viable_trade_score` (via adaptativa).
+    - Requisitos `require_*`: si estan activos, su ausencia genera un motivo
+      de rechazo estricto.
+    - Geometria de vela: `minimum_body_ratio`, `minimum_rejection_wick_ratio`,
+      `displacement_range_multiplier`, `strong_close_fraction`.
+    - `confirmation_mode`: `inside` (cierra dentro del OB), `midpoint` (cruza
+      el punto medio) o `break_ob` (cierra fuera del OB). El modo por defecto
+      es `midpoint`.
+    - Modo adaptativo: permite validar con `minimum_confirmation_ratio` de las
+      confirmaciones, SIEMPRE que no falle ninguna condicion critica.
+    - Confluencias opcionales: armonicos, divergencia RSI y patrones
+      chartistas.
+
+    Vinculaciones:
+    - La construye `strategy.execution.trade_pipeline` desde `PipelineConfig`.
+    - Los campos `chart_patterns_*` se reenvian a
+      `strategy.smc.chart_patterns.ChartPatternConfig`.
+    """
     minimum_trade_score: float = 85.0
     require_rejection: bool = True
     require_displacement: bool = True
@@ -68,6 +106,11 @@ class M5ConfirmationConfig:
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
+    """Convierte a float tolerando `None`, texto invalido y NaN.
+
+    Se usa en todo el modulo para que un dato ausente nunca lance excepcion en
+    mitad de la evaluacion: degrada al valor por defecto.
+    """
     try:
         value = float(value)
         return value if pd.notna(value) else default
@@ -76,6 +119,23 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def candle_metrics(candle: pd.Series) -> dict[str, float]:
+    """Descompone una vela en cuerpo, mechas y sus proporciones.
+
+    Es la base geometrica de casi todas las validaciones: el rechazo se mide
+    con la mecha, el desplazamiento con el rango y la fuerza con el cuerpo.
+
+    Args:
+        candle: fila con `open`, `high`, `low` y `close`.
+
+    Returns:
+        Dict con `range`, `body`, `body_ratio`, `upper_wick`, `lower_wick`,
+        `upper_wick_ratio` y `lower_wick_ratio`. Si el rango es cero (vela
+        plana) todas las proporciones valen `0.0` en lugar de dividir por cero.
+
+    Vinculaciones:
+    - Lo llama `evaluate_m5_confirmation` para la vela de confirmacion y para
+      la de retest.
+    """
     high = _safe_float(candle.get("high"))
     low = _safe_float(candle.get("low"))
     open_ = _safe_float(candle.get("open"))
@@ -96,6 +156,19 @@ def candle_metrics(candle: pd.Series) -> dict[str, float]:
 
 
 def _average_range(data: pd.DataFrame, index: int, lookback: int) -> float:
+    """Calcula el rango medio de las velas ANTERIORES al indice dado.
+
+    La ventana excluye deliberadamente la vela evaluada (`iloc[start:index]`)
+    para que el desplazamiento se compare contra la volatilidad previa y no
+    contra si misma.
+
+    Returns:
+        Rango medio, o `0.0` si la ventana queda vacia.
+
+    Vinculaciones:
+    - Lo usa `evaluate_m5_confirmation` como referencia para juzgar
+      desplazamiento y momentum.
+    """
     start = max(0, index - max(1, lookback))
     window = data.iloc[start:index]
     if window.empty:
@@ -105,6 +178,14 @@ def _average_range(data: pd.DataFrame, index: int, lookback: int) -> float:
 
 
 def _grade(score: float) -> str:
+    """Traduce el trade score a la letra de calidad mostrada en la bitacora.
+
+    Cortes vigentes: A+ >= 90, A >= 80, B >= 70, por debajo `REJECT`.
+
+    No confundir con `strategy.smc.ob_quality.get_ob_grade`, que es codigo
+    legado y usa cortes distintos (A+ desde 85). El grado que ves en el
+    dashboard sale de esta funcion.
+    """
     if score >= 90:
         return "A+"
     if score >= 80:
@@ -117,6 +198,22 @@ def _grade(score: float) -> str:
 
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
+    """Calcula el RSI mediante media exponencial de ganancias y perdidas.
+
+    Usa suavizado de Wilder (`alpha = 1/period`). Los valores que no se pueden
+    calcular (arranque de la serie o perdida media nula) se rellenan con 50.0,
+    el punto neutro, para no generar falsas divergencias.
+
+    Args:
+        close: serie de cierres.
+        period: periodo del indicador; se fuerza a un minimo de 2.
+
+    Returns:
+        Serie de RSI alineada con la entrada.
+
+    Vinculaciones:
+    - Lo usa `detect_rsi_divergence` en este mismo modulo.
+    """
     period = max(2, int(period))
     delta = close.astype(float).diff()
     gains = delta.clip(lower=0.0)
@@ -141,6 +238,33 @@ def detect_rsi_divergence(
     LONG: último mínimo de precio es menor, pero RSI forma un mínimo mayor.
     SHORT: último máximo de precio es mayor, pero RSI forma un máximo menor.
     La divergencia no abre trades por sí sola; sólo aporta confluencia.
+
+    Proceso: se apoya en los pivotes SMC ya confirmados (`swing_low` para
+    largos, `swing_high` para cortos) en lugar de recalcular extremos, y
+    compara los DOS ultimos pivotes disponibles antes de la vela de
+    confirmacion.
+
+    Args:
+        data: DataFrame con OHLC y las columnas de pivote de
+            `strategy.smc.swings.detect_swings`.
+        confirmation_index: indice de la vela de confirmacion.
+        direction: `"long"` o `"short"`.
+        period: periodo del RSI.
+        lookback_candles: ventana de busqueda de pivotes; el minimo efectivo
+            es 10 velas.
+
+    Returns:
+        Dict con `divergence_detected`, `divergence_type` y
+        `divergence_reason`. Cuando hay pivotes suficientes anade tambien los
+        indices, precios y valores de RSI comparados.
+
+        Motivos de no deteccion: `DATOS_INSUFICIENTES`, `SIN_PIVOTES_SMC`
+        (falta la columna de pivotes), `MENOS_DE_DOS_PIVOTES` o
+        `SIN_DIVERGENCIA_REGULAR`.
+
+    Vinculaciones:
+    - La llama `evaluate_m5_confirmation`, que convierte la deteccion en
+      `divergence_bonus_points` sobre el score.
     """
     if confirmation_index <= 2 or data.empty:
         return {"divergence_detected": False, "divergence_type": None, "divergence_reason": "DATOS_INSUFICIENTES"}
@@ -196,7 +320,75 @@ def evaluate_m5_confirmation(
     direction: str,
     config: M5ConfirmationConfig | None = None,
 ) -> dict[str, Any]:
-    """Evalúa una vela candidata y devuelve un diagnóstico completamente explicable."""
+    """Evalúa una vela candidata y devuelve un diagnóstico completamente explicable.
+
+    Es la funcion mas importante del motor de entrada: decide si un setup se
+    convierte en orden real. Todo el resultado esta pensado para ser auditable
+    a posteriori.
+
+    Proceso, en orden:
+    1. Mide la geometria de la vela de confirmacion y de la de retest.
+    2. Cuenta los TOQUES del OB desde que se formo para determinar su
+       frescura (`fresh_ob`).
+    3. Evalua las condiciones: rechazo, desplazamiento, micro estructura,
+       momentum, cierre fuerte, vela direccional y modo de confirmacion.
+    4. Suma el score ponderado y anade los bonus de confluencia (armonico,
+       divergencia, patron chartista).
+    5. Aplica la penalizacion por conflicto chartista.
+    6. Calcula el porcentaje adaptativo de confirmacion.
+    7. Determina fallos criticos y gates estructurales.
+    8. Decide la validez por via estricta o por via adaptativa.
+
+    DETALLES QUE IMPORTAN AL DEPURAR:
+
+    - Los pesos de `weights` suman 110, NO 100. Con el bonus chartista de 8 el
+      bruto puede llegar a 118. Por eso el score final se calcula como
+      `max(0.0, min(100.0, raw_score) - chart_conflict_penalty)`: primero se
+      recorta a 100 y DESPUES se resta el castigo. Restarlo antes dejaba ~18
+      puntos de holgura en los que la penalizacion era invisible, justo en los
+      setups mas fuertes.
+    - `raw_trade_score` es el bruto SIN penalizar; es informativo. El que
+      alimenta grado y gates es `score`.
+    - Bloqueo y penalizacion son EXCLUYENTES: si el conflicto bloquea, la
+      penalizacion es 0.0 y en su lugar se anade
+      `MATERIAL_CHART_PATTERN_CONFLICT` a los fallos estructurales, que pasan
+      a criticos e impiden incluso la via adaptativa.
+    - Son conflicto material `DOMINANT_CONTRA` y `CONTRA_MAS_FUERTE`.
+      `FUERZAS_SIMILARES` solo bloquea si se activa
+      `block_similar_chart_pattern_forces`.
+    - La via adaptativa NUNCA puede compensar un fallo critico ni un gate
+      estructural: solo relaja el numero de confirmaciones exigidas.
+
+    Args:
+        data: DataFrame con OHLC, pivotes y columnas de estructura.
+        setup: fila del setup con `ob_high`, `ob_low`, `setup_time`,
+            `structure_break_type` y las casillas del checklist.
+        retest_index: indice de la vela que retesteo el OB.
+        confirmation_index: indice de la vela que se esta evaluando.
+        direction: `"long"` o `"short"`.
+        config: parametros; si es `None` usa los de fabrica.
+
+    Returns:
+        Dict con el diagnostico completo. Claves principales:
+        `confirmation_valid` (decision final), `confirmation_decision`
+        (`STRICT_CONFIRMED`, o el motivo del rechazo), `trade_score`,
+        `raw_trade_score`, `grade`, `strict_rejection_reasons`,
+        `critical_failures`, `confirmation_percentage`, mas todas las claves
+        `chart_pattern_*`, `harmonic_*` y `divergence_*`.
+
+        OJO con los nombres: es `strict_rejection_reasons` (no
+        `required_failures`) y `confirmation_valid` (no `valid`).
+
+    Vinculaciones:
+    - Llama a `strategy.smc.chart_patterns.detect_chart_pattern_confirmation`,
+      a `strategy.smc.harmonic_patterns.detect_harmonic_confirmation` y a
+      `detect_rsi_divergence` de este mismo modulo.
+    - La invoca `strategy.execution.trade_pipeline` por cada setup candidato.
+    - Su salida la consume `strategy.execution.live_trading_engine` para
+      decidir si ejecuta la orden, y
+      `strategy.ai.feature_extraction` para construir las caracteristicas del
+      modelo de meta-etiquetado.
+    """
     config = config or M5ConfirmationConfig()
     direction = str(direction).lower()
     candle = data.iloc[confirmation_index]

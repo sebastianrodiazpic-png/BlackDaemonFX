@@ -1,3 +1,28 @@
+"""Capa de ejecucion de bajo nivel contra MetaTrader 5.
+
+Es el unico punto del proyecto que envia ordenes reales. Concentra todas las
+salvaguardas previas al `order_send`:
+
+- **Cuenta DEMO obligatoria**: `assert_demo_account` bloquea la ejecucion
+  automatica si la cuenta conectada no es de practicas.
+- **Restricciones del simbolo**: distancias minimas de stop, pasos de precio y
+  limites de volumen del broker.
+- **Normalizacion**: precios y volumenes se ajustan a los digitos y al paso
+  admitidos, porque un valor mal redondeado provoca rechazo.
+- **Modo de llenado**: se detectan y prueban FOK / IOC / RETURN, ya que cada
+  broker admite unos distintos.
+- **`order_check` antes de `order_send`**: se valida la orden antes de enviarla
+  y se guarda el diagnostico de cada intento.
+
+Requiere el terminal MT5 abierto y conectado.
+
+Vinculaciones:
+    - `brokers.mt5_trade_executor.MT5TradeExecutor` lo envuelve y lo adapta al
+      contrato generico del motor.
+    - Consumidores: `app.main` y `strategy.execution.live_trading_engine`.
+    - `brokers/mt5_execution.back.py` es una copia obsoleta de este fichero.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -7,6 +32,12 @@ import MetaTrader5 as mt5
 
 
 class MT5ExecutionError(RuntimeError):
+    """Fallo en la ejecucion o validacion contra MT5.
+
+    Cubre desde la ausencia de un simbolo hasta el rechazo de una orden. Se usa
+    un tipo propio para poder distinguir estos errores de los de la estrategia.
+    """
+
     pass
 
 
@@ -29,6 +60,7 @@ class MT5ExecutionProvider:
     """
 
     def __init__(self, connector):
+        """Guarda el conector; la conexion se asegura en cada operacion."""
         self.connector = connector
 
     # ==========================================================
@@ -36,10 +68,21 @@ class MT5ExecutionProvider:
     # ==========================================================
 
     def _ensure(self):
+        """Reconecta si hace falta antes de cualquier llamada a MT5."""
         if not self.connector.is_connected():
             self.connector.connect()
 
     def account_info(self) -> dict:
+        """Estado de la cuenta normalizado a dict.
+
+        Returns:
+            dict con login, servidor, divisa, balance, equity, margen, margen
+            libre, beneficio flotante, apalancamiento, `trade_mode` y el
+            instante UTC de la lectura.
+
+        Raises:
+            MT5ExecutionError: si el terminal no devuelve la cuenta.
+        """
         self._ensure()
 
         info = mt5.account_info()
@@ -64,6 +107,18 @@ class MT5ExecutionProvider:
         }
 
     def assert_demo_account(self):
+        """SALVAGUARDA CRITICA: aborta si la cuenta conectada no es DEMO.
+
+        Se invoca antes de cada envio de orden. Si `ACCOUNT_TRADE_MODE_DEMO` no
+        existe en la version instalada de la libreria, la comprobacion se omite
+        en lugar de fallar.
+
+        Returns:
+            El dict de cuenta, para reaprovecharlo sin releerlo.
+
+        Raises:
+            MT5ExecutionError: si la cuenta es real.
+        """
         account = self.account_info()
 
         demo_mode = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", None)
@@ -112,6 +167,11 @@ class MT5ExecutionProvider:
         return info
 
     def symbol_spec(self, symbol: str):
+        """Especificacion del simbolo, garantizando que este seleccionado.
+
+        Alias de `ensure_symbol` con nombre orientado a su uso: obtener
+        digitos, paso de volumen y distancia minima de stop.
+        """
         self._ensure()
         return self.ensure_symbol(symbol)
 
@@ -157,6 +217,11 @@ class MT5ExecutionProvider:
 
     @staticmethod
     def _normalize_price(price: float, digits: int) -> float:
+        """Redondea el precio a los decimales que admite el simbolo.
+
+        Imprescindible: un precio con mas decimales de los permitidos provoca
+        el rechazo de la orden por parte del broker.
+        """
         return round(float(price), max(0, int(digits)))
 
     # ==========================================================
@@ -327,6 +392,11 @@ class MT5ExecutionProvider:
 
     @staticmethod
     def _filling_name(filling: int) -> str:
+        """Nombre legible del modo de llenado, para los diagnosticos.
+
+        Devuelve `UNKNOWN_<n>` si el valor no es ninguno de los tres conocidos,
+        en vez de ocultarlo.
+        """
         names = {
             getattr(mt5, "ORDER_FILLING_FOK", 0): "FOK",
             getattr(mt5, "ORDER_FILLING_IOC", 1): "IOC",
@@ -424,6 +494,14 @@ class MT5ExecutionProvider:
         symbol: str,
         direction: str,
     ) -> float:
+        """Precio de mercado del lado correcto: ask para BUY, bid para SELL.
+
+        Usar el lado equivocado introduciria un error del tamano del spread en
+        el calculo de riesgo.
+
+        Raises:
+            MT5ExecutionError: si no hay tick o el precio no es positivo.
+        """
         tick = mt5.symbol_info_tick(symbol)
 
         if tick is None:
@@ -462,6 +540,12 @@ class MT5ExecutionProvider:
 
     @staticmethod
     def _last_error_is_invalid_comment(last_error) -> bool:
+        """Detecta el error `-2 Invalid "comment" argument` del binding.
+
+        Ese fallo lo produce la libreria de Python ANTES de llegar al servidor,
+        de modo que reintentar con un comentario minimo si tiene sentido: no
+        hay riesgo de haber enviado ya la orden.
+        """
         try:
             code = int(last_error[0]) if last_error else None
             message = str(last_error[1]) if last_error and len(last_error) > 1 else ""
@@ -540,6 +624,15 @@ class MT5ExecutionProvider:
         comment: str,
         deviation: int,
     ) -> dict:
+        """Arma el diccionario base de una orden a mercado.
+
+        Normaliza precio, SL y TP a los decimales del simbolo y sanea el
+        comentario. No incluye `type_filling`: ese campo lo anaden los
+        reintentos que prueban FOK / IOC / RETURN.
+
+        Raises:
+            ValueError: si la direccion no es BUY ni SELL.
+        """
         direction = str(direction).upper()
 
         if direction not in {"BUY", "SELL"}:
@@ -587,6 +680,12 @@ class MT5ExecutionProvider:
 
     @staticmethod
     def _result_fields(result) -> dict:
+        """Convierte a dict el objeto que devuelve MT5 (namedtuple opaco).
+
+        Intenta `_asdict()` y, si no esta disponible, extrae los campos
+        conocidos uno a uno. Asi el diagnostico se puede serializar a JSON y
+        guardar en la auditoria.
+        """
         if result is None:
             return {}
 
@@ -849,6 +948,24 @@ class MT5ExecutionProvider:
         info,
         round_down: bool = True,
     ) -> float:
+        """Ajusta el volumen al paso, minimo y maximo que admite el simbolo.
+
+        Args:
+            volume: lotes deseados.
+            info: especificacion del simbolo.
+            round_down: `True` por defecto y ese es el criterio prudente,
+                porque redondear al alza superaria el riesgo objetivo.
+
+        El epsilon `1e-12` del `floor` evita que un error de coma flotante haga
+        perder un paso entero (p. ej. 2.9999999 -> 2 en vez de 3).
+
+        Returns:
+            El volumen normalizado y acotado a `[volume_min, volume_max]`.
+
+        Raises:
+            MT5ExecutionError: si el simbolo no informa limites validos; se
+                prefiere fallar antes que enviar un volumen arbitrario.
+        """
         step = float(
             getattr(info, "volume_step", 0.0) or 0.0
         )
@@ -1392,6 +1509,15 @@ class MT5ExecutionProvider:
         magic: int,
         comment: str,
     ):
+        """Localiza el ticket de la posicion recien abierta.
+
+        `order_send` no siempre devuelve el ticket de POSICION (devuelve el del
+        deal), asi que se busca entre las posiciones del simbolo por `magic` o
+        por comentario, y se toma la mas reciente.
+
+        Returns:
+            El ticket como entero, o `None` si no hay candidatos.
+        """
         self._ensure()
 
         positions = mt5.positions_get(
@@ -1429,6 +1555,14 @@ class MT5ExecutionProvider:
         self,
         deal_ticket: int | None,
     ):
+        """Deriva el ticket de posicion a partir del ticket de un deal.
+
+        Via alternativa cuando `find_position_ticket` no encuentra nada: el
+        historial de deals guarda el `position_id` al que pertenecen.
+
+        Returns:
+            El ticket de posicion, o `None` si no se puede determinar.
+        """
         if not deal_ticket:
             return None
 
@@ -1453,6 +1587,11 @@ class MT5ExecutionProvider:
         self,
         ticket: int | None,
     ):
+        """Objeto nativo de la posicion abierta, o `None` si ya no existe.
+
+        Devolver `None` es la senal de que la posicion se cerro; no es un
+        error.
+        """
         if not ticket:
             return None
 
@@ -1470,6 +1609,15 @@ class MT5ExecutionProvider:
         from_time,
         to_time,
     ):
+        """Deals historicos de una posicion, o de un rango temporal.
+
+        Con `position_ticket` consulta directamente por posicion (preciso);
+        sin el, recurre a la ventana `from_time`/`to_time`. Es la base para
+        reconstruir precio de salida y PnL real de una operacion cerrada.
+
+        Returns:
+            Lista de deals, vacia si no hay nada.
+        """
         self._ensure()
 
         if position_ticket:

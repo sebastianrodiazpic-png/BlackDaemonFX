@@ -1,3 +1,17 @@
+"""Gestor monetario en R: traduce resultados en R a dinero sobre el capital.
+
+Trabaja en multiplos de R en lugar de en dinero absoluto. Con un riesgo de
+10 unidades, un +2R son +20 y un -1R son -10. Esa normalizacion permite
+comparar operaciones de instrumentos y tamanos distintos.
+
+ESTADO — LEGADO. Sin consumidores en produccion; solo lo cubre
+`tests/test_money_manager.py`. La operativa real calcula el riesgo en
+`strategy.execution.live_trading_engine`.
+
+Vinculaciones:
+- No importa nada del proyecto ni es importado por modulos de produccion.
+"""
+
 from dataclasses import dataclass
 
 
@@ -38,6 +52,18 @@ class MoneyManager:
         initial_balance,
         risk_percent=1.0
     ):
+        """Inicializa el gestor con el capital y el riesgo por operación.
+
+        Args:
+            initial_balance: capital de partida, debe ser mayor que cero.
+            risk_percent: porcentaje del capital arriesgado en cada
+                operacion, debe ser mayor que cero.
+
+        Raises:
+            ValueError: si el capital o el porcentaje no son positivos. Se
+                valida al construir para que un gestor mal configurado no
+                llegue a calcular resultados sin sentido.
+        """
         self.balance = float(initial_balance)
         self.risk_percent = float(risk_percent)
 

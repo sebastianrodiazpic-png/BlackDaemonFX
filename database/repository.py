@@ -1,3 +1,30 @@
+"""Repositorio de datos: única API de acceso a la base de datos del proyecto.
+
+Modulo mas extenso de la capa de datos. Concentra TODAS las lecturas y
+escrituras, de modo que ningun otro modulo consulta las tablas directamente.
+
+Responsabilidades:
+- Persistir senales y operaciones, incluidas las que no se ejecutan.
+- Reconciliar con MT5 las operaciones que el broker cerro por su cuenta.
+- Mantener el historial permanente `trade_journal`, independiente de la tabla
+  operativa `trades`, de modo que un reinicio de estadisticas no borre lo ya
+  auditado.
+- Registrar auditoria, estado de los workers y snapshots visuales.
+- Construir los DataFrames y resumenes que consumen panel e informes.
+- Guardar la seleccion de instrumentos del operador.
+
+IDEMPOTENCIA: las escrituras clave (`save_signal_once`, `create_trade`) se
+apoyan en claves de ejecucion y tickets para no duplicar registros cuando un
+ciclo reprocesa la misma senal o varios workers coinciden.
+
+Vinculaciones:
+- Se apoya en `database.database` para sesiones y en `database.models` para
+  las tablas.
+- Clasifica desenlaces con `trade_outcome_policy` (el de la raiz).
+- Lo consumen el motor de ejecucion, los servicios de reporting, el panel y
+  el pipeline de backtesting.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
@@ -34,11 +61,26 @@ class TradingRepository:
     """
 
     def __init__(self, db_path: str | Path | None = None):
+        """Resuelve la base, la inicializa y prepara la fábrica de sesiones.
+
+        Construir el repositorio GARANTIZA que el esquema existe y esta
+        migrado: `init_database` crea tablas, columnas e indices ausentes.
+
+        Args:
+            db_path: ruta explicita; si falta se usa la ubicacion estable.
+        """
         self.db_path = resolve_db_path(db_path)
         init_database(self.db_path)
         self.Session = get_session_factory(self.db_path)
 
     def database_diagnostics(self):
+        """Devuelve el diagnóstico de la base en uso por este repositorio.
+
+        Util para confirmar desde el panel que se esta leyendo el fichero
+        esperado tras una actualizacion de version.
+
+        NOTA: el codigo posterior al `return` es inalcanzable y no se ejecuta.
+        """
         return database_diagnostics(self.db_path)
         # Migración transparente para instalaciones previas: cualquier trade
         # que ya exista en la tabla operativa se incorpora al journal permanente.
@@ -670,6 +712,15 @@ class TradingRepository:
         deleted_by_cap = 0
 
         def delete_batch(where_clause) -> int:
+            """Borra un lote acotado de eventos, confirmando en cada pasada.
+
+            Se borra por lotes en transacciones cortas para no mantener SQLite
+            bloqueado durante una eliminacion masiva, lo que dejaria a los
+            demas workers esperando.
+
+            Returns:
+                Numero de filas borradas, o 0 cuando ya no queda nada.
+            """
             with self.Session() as session:
                 ids = list(session.execute(
                     select(DaemonAuditEvent.id)
@@ -745,6 +796,19 @@ class TradingRepository:
             connection.close()
 
     def create_consistent_backup(self, destination_path=None) -> dict:
+        """Crea una copia de seguridad consistente, incluso con el bot operando.
+
+        Usa el mecanismo de backup en caliente de SQLite, que produce una
+        copia integra aunque haya escrituras en curso. Copiar el fichero a
+        mano mientras el daemon opera si podria dar una copia corrupta.
+
+        Args:
+            destination_path: destino explicito; si falta se genera dentro de
+                `backups/` con la marca temporal en el nombre.
+
+        Returns:
+            Dict con origen, destino y tamano del fichero creado.
+        """
         destination = (
             Path(destination_path).expanduser().resolve()
             if destination_path
@@ -788,6 +852,22 @@ class TradingRepository:
         max_rows: int = 250_000,
         checkpoint_mode: str = "PASSIVE",
     ) -> dict:
+        """Ejecuta el mantenimiento periódico de la auditoría operativa.
+
+        Combina en una sola llamada la poda de eventos antiguos, el
+        checkpoint del WAL para que el fichero no crezca sin limite, y el
+        diagnostico final del estado de la base.
+
+        Args:
+            retention_days: dias de eventos que se conservan.
+            max_rows: tope de filas por encima del cual se poda aunque sean
+                recientes.
+            checkpoint_mode: modo del checkpoint WAL; `PASSIVE` no interrumpe
+                a los escritores en curso.
+
+        Returns:
+            Dict con el resultado de la poda, del checkpoint y el diagnostico.
+        """
         retention = self.prune_operational_audit_events(
             retention_days=retention_days,
             max_rows=max_rows,
@@ -835,6 +915,17 @@ class TradingRepository:
             return result
 
     def audit_events_dataframe(self, source: str | None = None) -> pd.DataFrame:
+        """Devuelve todos los eventos de auditoría como DataFrame.
+
+        Cada `payload_json` se decodifica en la columna `payload`; si no es
+        JSON valido se conserva el texto original en lugar de descartarlo.
+
+        Args:
+            source: filtra por fuente, p. ej. `DEMO`. Sin valor devuelve todo.
+
+        Returns:
+            DataFrame ordenado cronologicamente, vacio si no hay eventos.
+        """
         with self.Session() as session:
             stmt = select(DaemonAuditEvent).order_by(
                 DaemonAuditEvent.event_time,
@@ -876,6 +967,30 @@ class TradingRepository:
         details=None,
         event_time=None,
     ):
+        """Crea o actualiza el estado en vivo de un worker.
+
+        Es la fila que alimenta el panel: que esta haciendo cada worker, en
+        que ciclo va, que simbolo analiza y cuantos lleva procesados.
+
+        Solo se actualizan los campos recibidos con valor no nulo, por lo que
+        una llamada parcial no borra la informacion previa. La clave del
+        registro es la pareja fuente + perfil, de modo que cada worker
+        mantiene exactamente una fila.
+
+        Args:
+            bot_profile: perfil del worker, p. ej. `FOREX_1` o `GOLD`.
+            daemon_magic: identificador magico de sus operaciones.
+            source: entorno, `DEMO` por defecto.
+            status: estado actual, p. ej. `RUNNING` o `WAITING_NEW_M5_BAR`.
+            pid: proceso del sistema operativo.
+            cycle_number: numero de ciclo en curso.
+            symbols_total, symbols_processed: progreso del ciclo.
+            current_symbol: simbolo que se analiza ahora.
+            last_action, last_reason: ultimo desenlace, legible en el panel.
+            last_elapsed_seconds: duracion del ultimo paso.
+            details: contexto adicional serializado.
+            event_time: instante del evento; por defecto, ahora en UTC.
+        """
         source = str(source or "DEMO").upper()
         profile = str(bot_profile or "UNKNOWN").upper()
         now = self._dt(event_time) or datetime.now(timezone.utc)
@@ -929,6 +1044,15 @@ class TradingRepository:
             return row.id
 
     def worker_runtime_states(self, source: str = "DEMO"):
+        """Devuelve el estado en vivo de todos los workers de una fuente.
+
+        Args:
+            source: entorno, `DEMO` por defecto.
+
+        Returns:
+            Lista de dicts ordenada por perfil, con `details` ya decodificado.
+            El panel la usa para mostrar la actividad de cada worker.
+        """
         source = str(source or "DEMO").upper()
         with self.Session() as session:
             rows = (
@@ -966,6 +1090,30 @@ class TradingRepository:
         source: str = "DEMO",
         updated_at=None,
     ):
+        """Guarda o refresca el contexto gráfico de una posición abierta.
+
+        Persiste los graficos multi-temporal que se generan en el hilo del
+        monitor, de modo que el panel pueda mostrarlos sin consultar a MT5
+        desde el navegador.
+
+        Mantiene una unica fila por fuente, perfil e instrumento: cada
+        refresco sobrescribe la anterior en lugar de acumular historico.
+
+        Args:
+            instrument: simbolo, obligatorio.
+            chart: estructura con las velas y el contexto por temporalidad.
+            market: datos de mercado adicionales.
+            bot_profile: worker propietario de la posicion.
+            daemon_magic: identificador magico del worker.
+            source: entorno, `DEMO` por defecto.
+            updated_at: instante del refresco; por defecto, ahora en UTC.
+
+        Returns:
+            El identificador de la fila guardada.
+
+        Raises:
+            ValueError: si el instrumento viene vacio.
+        """
         source = str(source or "DEMO").upper()
         profile = str(bot_profile or "UNKNOWN").upper()
         instrument = str(instrument or "").strip()
@@ -1004,6 +1152,19 @@ class TradingRepository:
             return int(row.id)
 
     def position_visual_audits(self, source: str = "DEMO"):
+        """Recupera el contexto gráfico guardado de las posiciones abiertas.
+
+        Incluye compatibilidad hacia atras: las versiones antiguas guardaban
+        solo el grafico, sin envolverlo junto a los datos de mercado. Si el
+        JSON no trae las claves `chart` y `market`, se interpreta como el
+        grafico completo y el mercado queda vacio.
+
+        Args:
+            source: entorno, `DEMO` por defecto.
+
+        Returns:
+            Lista de dicts, del refresco mas reciente al mas antiguo.
+        """
         source = str(source or "DEMO").upper()
         with self.Session() as session:
             rows = (
@@ -1122,6 +1283,19 @@ class TradingRepository:
             return int(row.id)
 
     def trade_visual_audits(self, source: str = "DEMO"):
+        """Recupera la auditoría visual asociada a operaciones concretas.
+
+        A diferencia de `position_visual_audits`, aqui se conserva la imagen
+        del momento de ENTRADA, que solo se escribe una vez y no se
+        sobrescribe, junto al ultimo estado. Esa pareja permite comparar como
+        se veia el mercado al entrar frente a como esta ahora.
+
+        Args:
+            source: entorno, `DEMO` por defecto.
+
+        Returns:
+            Lista de dicts con los graficos y contextos ya decodificados.
+        """
         source = str(source or "DEMO").upper()
         with self.Session() as session:
             rows = (
@@ -1134,6 +1308,7 @@ class TradingRepository:
                 .all()
             )
             def decode(value):
+                """Decodifica un campo JSON a dict, o `{}` si no es utilizable."""
                 if not value:
                     return {}
                 try:
@@ -1193,6 +1368,21 @@ class TradingRepository:
             return int(row.id)
 
     def trade_audit_snapshots(self, *, trade_id=None, source: str = "DEMO", limit=None):
+        """Recupera el histórico de snapshots de auditoría de operaciones.
+
+        A diferencia de las auditorias visuales, que mantienen una unica fila
+        por operacion, aqui cada snapshot se ACUMULA. Eso permite reconstruir
+        la evolucion de una operacion a lo largo de su vida.
+
+        Args:
+            trade_id: limita a una operacion concreta; sin valor, todas.
+            source: entorno, `DEMO` por defecto.
+            limit: numero maximo de snapshots devueltos.
+
+        Returns:
+            Lista de dicts, del mas reciente al mas antiguo, con las vistas
+            de entrada y actual, el mercado y el contexto visual decodificados.
+        """
         source = str(source or "DEMO").upper()
         with self.Session() as session:
             stmt = select(TradeAuditSnapshot).where(TradeAuditSnapshot.source == source)
@@ -1204,6 +1394,7 @@ class TradingRepository:
             rows = session.execute(stmt).scalars().all()
 
             def decode(value):
+                """Decodifica un campo JSON a dict, o `{}` si no es utilizable."""
                 if not value:
                     return {}
                 try:
@@ -1270,6 +1461,22 @@ class TradingRepository:
         }
 
     def trade_audit_snapshots_dataframe(self, source: str = "DEMO"):
+        """Aplana los snapshots de auditoría en un DataFrame comparable.
+
+        Extrae de las estructuras anidadas los campos relevantes y los coloca
+        en columnas planas con prefijo `entry_` o `current_`. Esa disposicion
+        permite comparar de un vistazo como estaba el analisis al ENTRAR
+        frente a como esta AHORA: si la direccion cambio, si el score cayo, si
+        aparecio un patron contrario.
+
+        Es la vista clave para investigar por que se cerro una operacion.
+
+        Args:
+            source: entorno, `DEMO` por defecto.
+
+        Returns:
+            DataFrame con una fila por snapshot.
+        """
         rows = self.trade_audit_snapshots(source=source)
         flat = []
         for row in rows:
@@ -1360,6 +1567,23 @@ class TradingRepository:
 
     @staticmethod
     def _infer_audit_profile(payload: dict, result: dict, instrument: str | None = None):
+        """Deduce a qué worker pertenece un evento de auditoría antiguo.
+
+        Los eventos recientes ya traen `bot_profile`, pero los generados por
+        versiones anteriores no. Para no perderlos, se infiere en cascada:
+
+        1. El `bot_profile` explicito del evento.
+        2. El numero magico, que identifica de forma unica a cada worker.
+        3. Como ultimo recurso, la accion y el nombre del simbolo.
+
+        Args:
+            payload: contenido del evento auditado.
+            result: resultado asociado al evento.
+            instrument: simbolo, si no viene dentro del resultado.
+
+        Returns:
+            El perfil del worker deducido.
+        """
         profile = str((payload or {}).get("bot_profile") or "").upper()
         if profile:
             return profile
@@ -1535,6 +1759,26 @@ class TradingRepository:
         )
 
     def _upsert_trade_journal_session(self, session, trade_row):
+        """Copia una operación al historial permanente dentro de una sesión abierta.
+
+        `trade_journal` es INDEPENDIENTE de `trades` a proposito: un reinicio
+        de estadisticas puede vaciar la tabla operativa sin perder el
+        historial auditado.
+
+        La identidad se establece mediante `journal_key`, derivada de la
+        operacion, de modo que reprocesar la misma operacion la actualiza en
+        lugar de duplicarla.
+
+        No confirma la transaccion: eso corresponde a quien la abrio, lo que
+        permite archivar muchas operaciones en un unico commit.
+
+        Args:
+            session: sesion ORM ya abierta.
+            trade_row: fila ORM o dict de la operacion.
+
+        Returns:
+            La fila del journal creada o actualizada.
+        """
         trade = self._trade_dict(trade_row) if not isinstance(trade_row, dict) else dict(trade_row)
         key = self._journal_key(trade)
         row = session.execute(select(TradeJournal).where(TradeJournal.journal_key == key)).scalar_one_or_none()
@@ -1572,6 +1816,18 @@ class TradingRepository:
             return len(rows)
 
     def trade_history_dataframe(self, source: str | None = None):
+        """Devuelve el historial permanente de operaciones como DataFrame.
+
+        Lee de `trade_journal`, no de `trades`, por lo que incluye tambien las
+        operaciones anteriores a un reinicio de estadisticas. Es la fuente que
+        alimenta la pantalla de Cuenta y el entrenamiento del modelo de IA.
+
+        Args:
+            source: filtra por entorno; sin valor devuelve todo.
+
+        Returns:
+            DataFrame ordenado por fecha de entrada.
+        """
         with self.Session() as session:
             stmt = select(TradeJournal).order_by(TradeJournal.entry_time, TradeJournal.id)
             if source:
@@ -1767,6 +2023,21 @@ class TradingRepository:
 
     @staticmethod
     def _normalize_selection_profile(profile: str | None) -> str:
+        """Normaliza y valida un perfil de selección de instrumentos.
+
+        Solo se admiten `SYNTHETICS`, `FOREX` y `ORB`. Rechazar cualquier otro
+        valor evita guardar una seleccion bajo un perfil inexistente que
+        despues nadie leeria.
+
+        Args:
+            profile: perfil recibido; sin valor se asume `SYNTHETICS`.
+
+        Returns:
+            El perfil en mayusculas.
+
+        Raises:
+            ValueError: si el perfil no es uno de los soportados.
+        """
         value = str(profile or "SYNTHETICS").upper().strip()
         if value not in {"SYNTHETICS", "FOREX", "ORB"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
@@ -1841,6 +2112,20 @@ class TradingRepository:
         return result
 
     def latest_instrument_selection_profile(self, selection_profile: str, *, source: str = "DEMO"):
+        """Recupera la selección de instrumentos vigente para un perfil.
+
+        Devuelve solo la fila mas reciente: la seleccion es un estado actual,
+        no un historico. El registro del cambio queda en la auditoria.
+
+        Args:
+            selection_profile: `SYNTHETICS`, `FOREX` u `ORB`.
+            source: entorno, `DEMO` por defecto.
+
+        Returns:
+            Dict con los simbolos seleccionados y la version, o `None` si
+            nunca se guardo una seleccion para ese perfil, lo que indica al
+            worker que debe operar su lista completa.
+        """
         source=str(source or "DEMO").upper(); profile=self._normalize_selection_profile(selection_profile)
         with self.Session() as session:
             row=session.execute(
@@ -1859,6 +2144,15 @@ class TradingRepository:
                 "selected_symbols":selected,"version":row.version,"updated_at":row.updated_at}
 
     def latest_instrument_selection_profiles(self, source: str = "DEMO"):
+        """Devuelve la selección vigente de los tres perfiles a la vez.
+
+        Los perfiles sin seleccion guardada se OMITEN del resultado, en lugar
+        de aparecer vacios: ausencia significa "sin restriccion", mientras que
+        una lista vacia significaria "ningun simbolo".
+
+        Returns:
+            Dict `perfil -> seleccion`, solo con los perfiles configurados.
+        """
         result={}
         for profile in ("SYNTHETICS","FOREX","ORB"):
             row=self.latest_instrument_selection_profile(profile,source=source)
@@ -1903,7 +2197,19 @@ class TradingRepository:
     # ============================================================
 
     def save_account_snapshot(self, account: dict):
+        """Guarda una foto del estado de la cuenta en el broker.
 
+        Cada llamada AÑADE una fila; la serie resultante permite reconstruir
+        la curva de capital y el drawdown sin depender del historico del
+        broker. Los importes ausentes se guardan como 0.0.
+
+        Args:
+            account: dict con balance, equity, margen, margen libre y
+                beneficio flotante.
+
+        Returns:
+            El identificador de la fila creada.
+        """
         with self.Session() as session:
 
             row = AccountSnapshot(
@@ -2006,7 +2312,21 @@ class TradingRepository:
     # ============================================================
 
     def save_signal(self, data: dict):
+        """Inserta una señal SIN comprobar duplicados.
 
+        Cada criterio SMC se guarda en su columna booleana y el analisis
+        integro en `details_json`.
+
+        Para el uso habitual conviene `save_signal_once`, que evita duplicar
+        la misma senal cuando un ciclo la reprocesa.
+
+        Args:
+            data: dict con instrumento, marco, instante, direccion y las
+                banderas de cada criterio.
+
+        Returns:
+            El identificador de la senal creada.
+        """
         details = data.get("details")
 
         with self.Session() as session:
@@ -2062,7 +2382,20 @@ class TradingRepository:
             return row.id
 
     def save_signal_once(self, data: dict):
+        """Inserta una señal solo si no existe ya una idéntica.
 
+        La identidad la forman instrumento, marco temporal, instante de la
+        senal y direccion. Un mismo ciclo puede reevaluar la misma vela
+        varias veces, y sin esta comprobacion el historico se llenaria de
+        duplicados que sesgarian el entrenamiento del modelo.
+
+        Args:
+            data: igual que en `save_signal`.
+
+        Returns:
+            Tupla `(id, creada)`, donde `creada` indica si se inserto ahora o
+            ya existia.
+        """
         signal_time = (
             self._dt(data.get("signal_time"))
             or datetime.now(timezone.utc)
@@ -2105,7 +2438,21 @@ class TradingRepository:
     # ============================================================
 
     def create_trade(self, data: dict):
+        """Crea una operación y la archiva de inmediato en el historial.
 
+        Ambas escrituras ocurren en la MISMA transaccion, de modo que nunca
+        queda una operacion en `trades` sin su copia en `trade_journal`.
+
+        Para el uso habitual conviene `create_trade_once`, que evita duplicar
+        la operacion cuando la recuperacion y el callback de ejecucion se
+        solapan durante un fill.
+
+        Args:
+            data: campos de la operacion.
+
+        Returns:
+            El identificador de la operacion creada.
+        """
         kwargs = self._trade_kwargs(data)
 
         with self.Session() as session:
@@ -2206,7 +2553,11 @@ class TradingRepository:
         return self.create_trade(data), True
 
     def get_trade(self, trade_id: int):
+        """Recupera una operación por su identificador interno.
 
+        Returns:
+            Dict de la operacion, o `None` si no existe.
+        """
         with self.Session() as session:
 
             row = session.get(
@@ -2220,7 +2571,14 @@ class TradingRepository:
         self,
         execution_key: str,
     ):
+        """Recupera una operación por su clave de ejecución.
 
+        Es la consulta que sostiene la idempotencia: antes de ejecutar una
+        senal, el motor comprueba aqui si esa clave ya produjo una operacion.
+
+        Returns:
+            Dict de la operacion, o `None` si esa clave no se ejecuto.
+        """
         with self.Session() as session:
 
             row = (
@@ -2239,7 +2597,17 @@ class TradingRepository:
         self,
         position_ticket,
     ):
+        """Recupera la operación asociada a un ticket de posición del broker.
 
+        Si existen varias filas para el mismo ticket, PREFIERE la que no
+        proviene de una recuperacion automatica (clave `mt5-open-position:`).
+        La fila creada por el propio flujo de ejecucion conserva el analisis
+        que origino la entrada, mientras que la recuperada solo tiene lo que
+        el broker informa.
+
+        Returns:
+            Dict de la operacion, o `None` si el ticket falta o no existe.
+        """
         if position_ticket in (None, ""):
             return None
 
@@ -2267,7 +2635,18 @@ class TradingRepository:
         self,
         source: str | None = None,
     ):
+        """Devuelve las operaciones con estado OPEN.
 
+        Consulta base del monitor de posiciones y de los limites de exposicion.
+        NO filtra por worker: cada motor decide despues cuales le pertenecen
+        mediante su comprobacion de propiedad.
+
+        Args:
+            source: filtra por entorno; sin valor devuelve todas.
+
+        Returns:
+            Lista de dicts de operaciones abiertas.
+        """
         with self.Session() as session:
 
             stmt = (
@@ -2303,7 +2682,22 @@ class TradingRepository:
         trade_id: int,
         data: dict,
     ):
+        """Actualiza los campos indicados de una operación existente.
 
+        Actualizacion PARCIAL: solo se tocan las claves presentes en `data`,
+        de modo que no hace falta reenviar la operacion completa.
+
+        Cada campo se normaliza segun su tipo (numerico, fecha, texto en
+        mayusculas o ticket) antes de escribirse, y el historial permanente se
+        sincroniza en la misma transaccion.
+
+        Args:
+            trade_id: operacion a modificar.
+            data: campos a actualizar.
+
+        Returns:
+            La operacion ya actualizada.
+        """
         numeric_fields = {
             "entry_price",
             "exit_price",
@@ -2412,7 +2806,20 @@ class TradingRepository:
         trade_id: int,
         data: dict,
     ):
+        """Marca una operación como cerrada y registra su desenlace.
 
+        Fija el estado en `CLOSED` y, si no se indica la hora de salida, usa
+        el instante actual. El resto de campos (precio de salida, resultado en
+        R, neto y motivo del cierre) se toman de `data`.
+
+        Args:
+            trade_id: operacion a cerrar.
+            data: datos del cierre; conviene incluir `exit_reason` para poder
+                distinguir despues un stop loss de un cierre defensivo.
+
+        Returns:
+            El identificador de la operacion cerrada.
+        """
         close_data = dict(data)
 
         close_data["status"] = "CLOSED"
@@ -2442,7 +2849,28 @@ class TradingRepository:
         strategy_version: str = "smc-v1",
         source: str = "BACKTEST",
     ):
+        """Importa a la base los resultados de un backtest.
 
+        Permite que las operaciones simuladas convivan con las reales en las
+        mismas tablas, distinguidas por `source`, de modo que los informes y
+        el analisis funcionen igual para ambas.
+
+        Args:
+            trades: DataFrame con las operaciones simuladas.
+            instrument: simbolo al que corresponden.
+            timeframe: marco temporal, `M5` por defecto.
+            broker: origen de la simulacion.
+            strategy_version: version de la estrategia evaluada.
+            source: entorno, `BACKTEST` por defecto, para no mezclarlas con
+                la operativa real.
+
+        Returns:
+            Dict con cuantas se crearon, cuantas ya existian y sus ids.
+
+        Raises:
+            ValueError: si `trades` es `None`. Un DataFrame vacio si es valido
+                y devuelve un resultado con contadores a cero.
+        """
         if trades is None:
             raise ValueError(
                 "trades no puede ser None"
@@ -2698,7 +3126,17 @@ class TradingRepository:
         self,
         source: str | None = None,
     ):
+        """Devuelve las operaciones de la tabla operativa como DataFrame.
 
+        Lee de `trades`, por lo que refleja el estado tras el ultimo reinicio
+        de estadisticas. Para el historial completo, `trade_history_dataframe`.
+
+        Args:
+            source: filtra por entorno; sin valor devuelve todo.
+
+        Returns:
+            DataFrame ordenado por fecha de entrada.
+        """
         with self.Session() as session:
 
             stmt = (
@@ -2732,7 +3170,22 @@ class TradingRepository:
         self,
         source: str | None = None,
     ):
+        """Calcula el resumen agregado de rendimiento de las operaciones.
 
+        Cuenta operaciones totales, abiertas y cerradas, y clasifica los
+        resultados en ganadoras, perdedoras y AMBIGUAS. Estas ultimas son los
+        cierres tan proximos a 0R que no representan una ventaja real; se
+        separan mediante `trade_outcome_policy` para que no inflen
+        artificialmente la tasa de acierto.
+
+        Args:
+            source: filtra por entorno; sin valor agrega todo.
+
+        Returns:
+            Dict con los recuentos y las metricas de rendimiento. Con la base
+            vacia devuelve la misma estructura con todo a cero, de modo que el
+            panel no tenga que distinguir ese caso.
+        """
         df = self.trades_dataframe(
             source=source
         )
@@ -2794,7 +3247,7 @@ class TradingRepository:
         closed_decisive = closed[win_mask | loss_mask]
 
         def numeric(frame, column):
-
+            """Columna como serie numérica, vacía si la columna no existe."""
             if column not in frame.columns:
                 return pd.Series(
                     dtype=float
@@ -3331,6 +3784,15 @@ class TradingRepository:
         now = datetime.now(timezone.utc)
 
         def weighted_price(rows):
+            """Precio medio ponderado por volumen de un conjunto de deals.
+
+            Una posicion puede llenarse o cerrarse en varios deals a precios
+            distintos. Promediar sin ponderar daria un precio erroneo, porque
+            un deal de 0.01 lotes pesaria igual que uno de 1.0.
+
+            Returns:
+                El precio ponderado, o `None` si el volumen total es cero.
+            """
             total_volume = sum(max(0.0, self._num(r.get("volume"), 0.0)) for r in rows)
             if total_volume <= 0:
                 return None
@@ -3560,6 +4022,11 @@ class TradingRepository:
         }
 
     def account_snapshots_dataframe(self):
+        """Devuelve la serie completa de snapshots de cuenta como DataFrame.
+
+        Es la base para reconstruir la curva de capital y calcular el
+        drawdown en la pantalla de Cuenta.
+        """
         with self.Session() as session:
             rows = (
                 session.execute(

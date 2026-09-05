@@ -1,9 +1,38 @@
+"""Acumulacion incremental de velas historicas en CSV.
+
+Vinculaciones:
+    - `app.main`: unico consumidor.
+    - `provider`: cualquier objeto con `get_candles(symbol, timeframe, count)`;
+      en produccion es `brokers.mt5_data`.
+"""
+
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
 
 
 def update_historical_csv(provider, symbol: str, timeframe: str, count: int = 5000, output_dir: str | Path = "data/historical"):
+    """Anade las velas nuevas al CSV del simbolo sin perder el historico.
+
+    Descarga las ultimas `count` velas, las concatena con lo ya guardado,
+    elimina duplicados por marca temporal y reordena cronologicamente. Asi se
+    puede ejecutar tantas veces como se quiera: el archivo crece pero nunca se
+    duplica ni se desordena.
+
+    El nombre del fichero se sanea (parentesis fuera, espacios a guiones bajos)
+    porque los simbolos de Deriv como "Volatility 75 (1s) Index" no son validos
+    como nombre de archivo.
+
+    Args:
+        provider: objeto con `get_candles(symbol, timeframe=, count=)`.
+        symbol: instrumento a descargar.
+        timeframe: marco temporal, p. ej. "M5".
+        count: velas a pedir en esta pasada.
+        output_dir: carpeta destino, por defecto `data/historical`.
+
+    Returns:
+        Tupla `(ruta, total_de_filas)` tras la actualizacion.
+    """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_symbol = "_".join(symbol.replace("(", "").replace(")", "").split())

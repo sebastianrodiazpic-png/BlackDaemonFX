@@ -1,3 +1,19 @@
+"""Dimensionado de posición: convierte riesgo permitido en tamaño de lote.
+
+Idea central: el tamano NO se elige, se deduce. Fijados el precio de entrada
+y el stop loss, la distancia entre ambos es el riesgo por unidad; el volumen
+es entonces el que hace que ese riesgo coincida con el porcentaje del capital
+que se esta dispuesto a arriesgar.
+
+Vinculaciones:
+- Lo consume `strategy.risk.risk_manager`.
+- `strategy.smc.risk_reward` lo referencia como el calculo de lote asociado
+  a sus niveles.
+- El motor en vivo NO lo usa: implementa su propio dimensionado con
+  restricciones adicionales de broker (granularidad de lote, margen y
+  verificacion del riesgo real tras el fill).
+"""
+
 import pandas as pd
 
 

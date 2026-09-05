@@ -50460,3 +50460,2468 @@ CICLO #0132 | 2026-09-05 20:17:59 UTC | símbolos=5
 [05/05] START XAUUSDmicro
 [05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
     Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0132
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0133 | 2026-09-05 20:18:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0133
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0134 | 2026-09-05 20:18:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0134
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0135 | 2026-09-05 20:19:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0135
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0136 | 2026-09-05 20:19:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0136
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0137 | 2026-09-05 20:20:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0137
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0138 | 2026-09-05 20:20:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0138
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0139 | 2026-09-05 20:21:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0139
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0140 | 2026-09-05 20:21:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0140
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0141 | 2026-09-05 20:22:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0141
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0142 | 2026-09-05 20:22:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0142
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0143 | 2026-09-05 20:23:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0143
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0144 | 2026-09-05 20:23:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0144
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0145 | 2026-09-05 20:24:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0145
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0146 | 2026-09-05 20:24:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0146
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0147 | 2026-09-05 20:25:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0147
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0148 | 2026-09-05 20:25:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0148
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0149 | 2026-09-05 20:26:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0149
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0150 | 2026-09-05 20:26:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0150
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0151 | 2026-09-05 20:27:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0151
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0152 | 2026-09-05 20:27:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0152
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0153 | 2026-09-05 20:28:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0153
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0154 | 2026-09-05 20:28:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0154
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0155 | 2026-09-05 20:29:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0155
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0156 | 2026-09-05 20:29:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0156
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0157 | 2026-09-05 20:30:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0157
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0158 | 2026-09-05 20:30:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0158
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0159 | 2026-09-05 20:31:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0159
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0160 | 2026-09-05 20:31:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0160
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0161 | 2026-09-05 20:32:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0161
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0162 | 2026-09-05 20:32:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0162
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0163 | 2026-09-05 20:33:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0163
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0164 | 2026-09-05 20:33:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0164
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0165 | 2026-09-05 20:34:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0165
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0166 | 2026-09-05 20:34:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0166
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0167 | 2026-09-05 20:35:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0167
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0168 | 2026-09-05 20:35:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0168
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0169 | 2026-09-05 20:36:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0169
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0170 | 2026-09-05 20:36:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0170
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0171 | 2026-09-05 20:37:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0171
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0172 | 2026-09-05 20:37:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0172
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0173 | 2026-09-05 20:38:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0173
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0174 | 2026-09-05 20:38:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0174
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0175 | 2026-09-05 20:39:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0175
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0176 | 2026-09-05 20:39:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0176
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0177 | 2026-09-05 20:40:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0177
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0178 | 2026-09-05 20:40:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0178
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0179 | 2026-09-05 20:41:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0179
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0180 | 2026-09-05 20:41:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0180
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0181 | 2026-09-05 20:42:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0181
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0182 | 2026-09-05 20:42:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0182
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0183 | 2026-09-05 20:43:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0183
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0184 | 2026-09-05 20:43:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0184
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0185 | 2026-09-05 20:44:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0185
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0186 | 2026-09-05 20:44:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0186
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0187 | 2026-09-05 20:45:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0187
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0188 | 2026-09-05 20:45:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0188
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0189 | 2026-09-05 20:46:29 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0189
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0190 | 2026-09-05 20:46:59 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 9786.03, 'equity': 9847.7, 'margin': 87.45, 'free_margin': 9698.58, 'profit': 61.67, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 5, 22, 54, 57, 238323, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 9698.58, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:US SP 500 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 50}
+[OK] SYMBOL:US Tech 100 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 150}
+[OK] SYMBOL:Wall Street 30 {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 300}
+[OK] SYMBOL:XAUUSD {'visible': True, 'trade_mode': 4, 'volume_min': 0.01, 'volume_step': 0.01, 'point': 0.01, 'stops_level_points': 20}
+[OK] SYMBOL:XAUUSDmicro {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.1, 'point': 0.01, 'stops_level_points': 20}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v100-entry-quality-recoverable-quarantine-winrate-audit
+BOT ACTIVO: ORB | MAGIC=26082028 | ESTRATEGIA=SMC/ORB | instrumentos=5 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 9786.03 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 5
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=5
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-05 22:54:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.02s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.02s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.02s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.02s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.02s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-05 22:55:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-05 22:55:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-05 22:56:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-05 22:56:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-05 22:57:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-05 22:57:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-05 22:58:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-05 22:58:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-05 22:59:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-05 22:59:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-05 23:00:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.04s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.14s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.86s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-05 23:00:58 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 5
+Sin señal: 0
+Esperando/otros: 5
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-05 23:01:28 UTC | símbolos=5
+========================================================================================
+[01/05] START US SP 500
+[01/05] END   US SP 500 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[02/05] START US Tech 100
+[02/05] END   US Tech 100 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[03/05] START Wall Street 30
+[03/05] END   Wall Street 30 | 0.00s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[04/05] START XAUUSD
+[04/05] END   XAUUSD | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA
+[05/05] START XAUUSDmicro
+[05/05] END   XAUUSDmicro | 0.01s | NO ORB SESSION
+    Motivo: SESION_NEW_YORK_FINALIZADA

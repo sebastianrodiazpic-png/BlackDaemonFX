@@ -1,3 +1,24 @@
+"""Exportador XLSX de la auditoria forense "Entrada vs. Ahora" de UN trade.
+
+A diferencia de `trade_report_exporter` (que exporta la cartera entera), aqui
+se disecciona una sola operacion: que se veia al entrar, que se ve ahora y como
+evoluciono snapshot a snapshot. Es la herramienta para responder "por que se
+cerro esto".
+
+Hojas generadas: Resumen, Tesis Entrada, Ultimo Estado, Mercado Final y
+Timeline Completo (una fila por snapshot).
+
+Control de integridad: si la identidad del trade no es verificable, falta la
+tesis de entrada o hay snapshots de otro instrumento mezclados, `export` LANZA
+`ValueError` en lugar de producir un fichero enganoso. Un informe forense
+incorrecto es peor que no tener informe.
+
+Vinculaciones:
+    - Payload identico al que consume la pestana web de auditoria, producido por
+      `database.repository.TradingRepository.trade_audit_snapshots`.
+    - `openpyxl` para el formato final del libro.
+"""
+
 from __future__ import annotations
 
 import json
@@ -20,10 +41,17 @@ class TradeAuditExcelExporter:
     SAFE_CELL_LIMIT = 30000
 
     def __init__(self, output_path):
+        """Fija la ruta de destino del XLSX (aun no se crea el fichero)."""
         self.output_path = Path(output_path)
 
     @classmethod
     def _safe_text(cls, value):
+        """Convierte cualquier valor en texto apto para una celda de Excel.
+
+        Estructuras anidadas se serializan a JSON y el resultado se trunca a
+        `SAFE_CELL_LIMIT` (30.000) porque Excel revienta por encima de 32.767
+        caracteres por celda. El truncado se marca con puntos suspensivos.
+        """
         if value is None:
             return ""
         if isinstance(value, (dict, list, tuple)):
@@ -36,6 +64,12 @@ class TradeAuditExcelExporter:
 
     @classmethod
     def _local_time(cls, value):
+        """Pasa un instante UTC a hora de Chile y le quita la zona horaria.
+
+        Se quita el tzinfo porque Excel no maneja datetimes con zona; el
+        contexto queda documentado en `DISPLAY_TIMEZONE`. Ante cualquier fallo
+        de conversion se devuelve el valor original en lugar de perder el dato.
+        """
         if value in (None, ""):
             return None
         try:
@@ -48,12 +82,27 @@ class TradeAuditExcelExporter:
 
     @staticmethod
     def _first(*values):
+        """Primer valor no vacio de la lista, o `None`.
+
+        Sirve para el patron "tomalo de la tesis de entrada y si no del trade".
+        """
         for value in values:
             if value not in (None, ""):
                 return value
         return None
 
     def _summary_frame(self, payload):
+        """Hoja "Resumen": ficha campo/valor de la operacion.
+
+        Incluye deliberadamente el MFE/MAE persistido JUNTO al observado en los
+        snapshots: si ambos difieren mucho, el seguimiento en vivo se perdio
+        movimientos y esa discrepancia es en si misma un hallazgo.
+
+        Tambien expone el bloque de integridad (origen de la tesis, snapshots
+        excluidos por conflicto de identidad) y el "Motivo salida exacto",
+        tomado primero de `analysis_exit_reason` para no degradarlo a una
+        etiqueta generica.
+        """
         trade = payload.get("trade") or {}
         snapshots = payload.get("snapshots") or []
         integrity = payload.get("audit_integrity") or {}
@@ -102,6 +151,13 @@ class TradeAuditExcelExporter:
         return pd.DataFrame(rows, columns=["Campo", "Valor"])
 
     def _view_frame(self, view, title):
+        """Aplana un diccionario de vista a dos columnas clave/valor.
+
+        Emite primero las claves de `preferred` en orden fijo (decision,
+        estructura, patrones, conflictos, ORB, HTF...) para que hojas de trades
+        distintos sean comparables visualmente, y despues vuelca el resto de
+        claves para no perder informacion.
+        """
         view = view or {}
         rows = []
         preferred = [
@@ -126,6 +182,12 @@ class TradeAuditExcelExporter:
         return pd.DataFrame(rows, columns=[title, "Valor"])
 
     def _timeline_frame(self, payload):
+        """Hoja "Timeline Completo": una fila por snapshot.
+
+        Cruza en cada instante la tesis de entrada, la vista actual, el mercado
+        y el contexto visual. Es la vista que permite datar con precision el
+        momento en que la operacion dejo de comportarse como se esperaba.
+        """
         rows = []
         for index, snap in enumerate(payload.get("snapshots") or [], start=1):
             entry = snap.get("entry_view") or {}
@@ -196,6 +258,21 @@ class TradeAuditExcelExporter:
         return pd.DataFrame(rows)
 
     def export(self, payload):
+        """Valida la integridad y escribe el libro completo de auditoria.
+
+        Args:
+            payload: dict con `trade`, `snapshots`, `entry_view`, `latest` y
+                `audit_integrity`.
+
+        Returns:
+            dict con `path`, `trade_id`, `instrument` y numero de `snapshots`.
+
+        Raises:
+            ValueError: `AUDIT_INTEGRITY_ERROR` si la integridad viene marcada
+                como invalida, si falta la tesis de entrada o si algun snapshot
+                pertenece a otro instrumento. Se falla en vez de exportar un
+                informe forense potencialmente enganoso.
+        """
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         trade = payload.get("trade") or {}
         snapshots = payload.get("snapshots") or []
@@ -239,6 +316,16 @@ class TradeAuditExcelExporter:
         }
 
     def _format_workbook(self):
+        """Aplica estilo al libro ya escrito: cabecera, filtros y anchos.
+
+        Congela la fila de titulos, activa autofiltro y ajusta el ancho de
+        columna inspeccionando solo las 200 primeras filas (medir un timeline
+        largo entero seria costoso y no cambia el resultado). El ancho se acota
+        entre 10 y 45 para que las celdas JSON no desborden la pantalla.
+
+        `openpyxl` se importa aqui dentro para no pagar el coste al importar el
+        modulo cuando no se va a exportar nada.
+        """
         from openpyxl import load_workbook
         from openpyxl.styles import Alignment, Font, PatternFill
 

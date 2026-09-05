@@ -1,3 +1,14 @@
+"""Conexion base con el terminal MetaTrader 5.
+
+Es la capa mas baja de `brokers/`: solo abre, verifica y cierra la sesion con
+el terminal ya instalado y logueado en el escritorio. No lee mercado ni envia
+ordenes.
+
+Vinculaciones:
+    - `brokers.mt5_data` y `brokers.mt5_connection` lo usan como base.
+    - `app.main` lo instancia al arrancar.
+"""
+
 import MetaTrader5 as mt5
 
 
@@ -7,6 +18,7 @@ class MT5Connector:
     """
 
     def __init__(self):
+        """Crea el conector en estado desconectado; no toca el terminal aun."""
         self.connected = False
 
     def connect(self):

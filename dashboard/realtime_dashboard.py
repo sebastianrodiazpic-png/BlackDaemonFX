@@ -1,3 +1,32 @@
+"""Servidor del dashboard en tiempo real de BlackDaemonFX.
+
+Levanta un `ThreadingHTTPServer` local que sirve las paginas HTML (dashboard,
+cuenta, instrumentos, auditoria de trade) y los endpoints JSON que las
+alimentan. Recoge los eventos que el motor le va notificando (`cycle_start`,
+`symbol_result`, `monitor_result`, ...), los traduce a etiquetas en espanol y
+los publica.
+
+Principios de diseno:
+    - SOLO OBSERVA: nunca abre ni cierra operaciones. La unica accion de
+      escritura es habilitar o detener workers, delegada en el controlador que
+      inyecta `app.main`.
+    - Estado protegido por lock y persistido en JSON, para que al reiniciar el
+      daemon la interfaz no aparezca vacia.
+    - Caches con TTL para las vistas caras (cuenta, instrumentos), de modo que
+      refrescar el navegador no castigue a la base de datos.
+    - Todo error se degrada a un estado visible; el dashboard jamas debe tumbar
+      al bot.
+
+Vinculaciones:
+    - `dashboard.account_metrics.build_account_payload`: metricas de cuenta.
+    - `dashboard.account_page` / `dashboard.trade_audit_page`: plantillas HTML.
+    - `reporting.trade_audit_excel_exporter`: descarga XLSX por operacion.
+    - `services.financial_news_service`: noticias y calendario macro.
+    - `database.repository.TradingRepository`: origen de los datos.
+    - `app.main` y `strategy.execution.live_trading_engine`: emisores de los
+      eventos que se muestran.
+"""
+
 from __future__ import annotations
 
 import json
@@ -151,6 +180,11 @@ _DECISION_LABELS_ES = {
 }
 
 def _humanize_code(value: Any) -> str:
+    """Convierte un codigo tipo `STALE_M5_SIGNAL` en texto legible.
+
+    Solo transforma cadenas que parecen codigos (mayusculas con guion bajo);
+    un texto ya redactado se devuelve intacto.
+    """
     text = str(value or "").strip()
     if not text:
         return "Sin motivo informado"
@@ -159,14 +193,22 @@ def _humanize_code(value: Any) -> str:
     return text.replace("_", " ").strip().capitalize()
 
 def _action_label_es(value: Any) -> str:
+    """Traduce el codigo de accion del motor a su etiqueta en espanol."""
     key = str(value or "SIN_ACCION").strip().upper()
     return _ACTION_LABELS_ES.get(key, _humanize_code(key))
 
 def _state_label_es(value: Any) -> str:
+    """Traduce un codigo de estado usando el mismo diccionario de acciones."""
     key = str(value or "").strip().upper()
     return _ACTION_LABELS_ES.get(key, _humanize_code(key))
 
 def _reason_label_es(value: Any) -> str:
+    """Traduce uno o varios motivos separados por comas a espanol.
+
+    El motor puede acumular varias causas en una sola cadena; se traducen por
+    separado y se concatenan, recurriendo a `_humanize_code` en las no
+    catalogadas.
+    """
     key = str(value or "").strip()
     if not key:
         return "Sin motivo adicional informado."
@@ -180,10 +222,19 @@ def _reason_label_es(value: Any) -> str:
     return _REASON_LABELS_ES.get(key.upper(), _humanize_code(key))
 
 def _decision_label_es(value: Any) -> str:
+    """Traduce la decision de confirmacion (CONFIRMED / REJECTED / ...)."""
     key = str(value or "NO CONFIRMADA").strip().upper()
     return _DECISION_LABELS_ES.get(key, _humanize_code(key))
 
 def _operational_state(action: Any, reason: Any, decision: Any) -> dict:
+    """Resume accion, motivo y decision en un unico estado con color.
+
+    El orden de las comprobaciones es intencionado: RIESGO primero, para que un
+    evento de proteccion nunca quede oculto tras otra etiqueta mas benigna.
+
+    Returns:
+        dict con `key`, `label` y `severity` (good / warn / bad / neutral).
+    """
     a = str(action or "").upper()
     r = str(reason or "").upper()
     d = str(decision or "").upper()
@@ -238,12 +289,18 @@ _CATEGORY_LABELS = {
 _SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB")
 
 def _selection_profile_for_category(category: str) -> str:
+    """Mapea una categoria de instrumento a su perfil de worker."""
     value=str(category or "").lower()
     if value == "forex": return "FOREX"
     if value.startswith("orb_ny_"): return "ORB"
     return "SYNTHETICS"
 
 def _catalog_symbols_by_profile(catalog):
+    """Reagrupa el catalogo de instrumentos por perfil de worker.
+
+    Returns:
+        dict con claves SYNTHETICS, FOREX y ORB y sus simbolos normalizados.
+    """
     result={p:[] for p in _SELECTION_PROFILES}
     for group in catalog or []:
         result[_selection_profile_for_category(group.get("category"))].extend(group.get("symbols") or [])
@@ -251,6 +308,7 @@ def _catalog_symbols_by_profile(catalog):
 
 
 def _normalize_symbol_list(values):
+    """Limpia una lista de simbolos: sin vacios, sin duplicados y ordenada."""
     if not isinstance(values, (list, tuple, set)):
         return []
     clean = []
@@ -264,10 +322,18 @@ def _normalize_symbol_list(values):
 
 
 def _now_iso() -> str:
+    """Marca temporal actual en ISO-8601 UTC."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def _json_safe(value: Any):
+    """Convierte cualquier estructura a algo serializable como JSON.
+
+    Recorre dicts y listas, transforma fechas con `isoformat`, anula NaN e
+    infinitos (que romperian el JSON del navegador) y, como ultimo recurso,
+    representa el valor como texto. Nunca lanza excepcion: un dato exotico debe
+    degradarse, no dejar sin respuesta al endpoint.
+    """
     if value is None or isinstance(value, (str, int, bool)):
         return value
     if isinstance(value, float):
@@ -288,6 +354,11 @@ def _json_safe(value: Any):
 
 
 def _first_dict(*values):
+    """Devuelve el primer argumento que sea un dict, o `{}` si ninguno lo es.
+
+    Util porque el mismo dato puede llegar en claves distintas segun la version
+    del registro.
+    """
     for value in values:
         if isinstance(value, dict):
             return value
@@ -295,6 +366,11 @@ def _first_dict(*values):
 
 
 def _quality_grade(score):
+    """Traduce el score numerico de un setup a una nota (A+ .. D).
+
+    Tramos: >=90 A+, >=85 A, >=80 B+, >=75 B, >=65 C, resto D. Sin score
+    numerico devuelve "SIN SCORE" en lugar de asumir una nota.
+    """
     try:
         score = float(score)
     except (TypeError, ValueError):
@@ -313,11 +389,17 @@ def _quality_grade(score):
 
 
 def _confirmed_decision(value: Any) -> bool:
+    """Indica si una decision equivale a "confirmada" (en ingles o espanol)."""
     text = str(value or "").upper()
     return "CONFIRMED" in text or "CONFIRMADA" in text
 
 
 def _divergence_direction(value: Any) -> str | None:
+    """Deduce la direccion (BUY/SELL) de un texto de divergencia.
+
+    Returns:
+        "BUY", "SELL" o `None` si el texto no indica sesgo.
+    """
     text = str(value or "").upper()
     if "ALCISTA" in text or "BULL" in text:
         return "BUY"
@@ -348,6 +430,16 @@ _BOT_MAGIC_PROFILE = {
 
 
 def _infer_symbol_profile(symbol: str) -> str | None:
+    """Deduce el perfil de worker a partir del nombre del instrumento.
+
+    Respaldo para operaciones sin metadatos (por ejemplo recuperadas de MT5):
+    primero busca familias sinteticas (Boom, Crash, Volatility, Step, Jump),
+    luego un par de divisas de seis letras, y por ultimo los indices e XAUUSD
+    de ORB.
+
+    Returns:
+        Nombre del perfil o `None` si no se reconoce.
+    """
     name = str(symbol or "").lower()
     if "boom" in name and "crash" in name:
         return "FLIP"
@@ -388,6 +480,19 @@ def _infer_symbol_profile(symbol: str) -> str | None:
 
 
 def _position_owner(trade: dict, metadata: dict) -> dict:
+    """Determina que worker es responsable de una posicion abierta.
+
+    Prioridad: numero magico de la orden (identificador fiable asignado al
+    enviarla) -> `bot_profile` de los metadatos -> inferencia por el nombre del
+    simbolo. Los magicos "legacy" se reinterpretan porque en su dia un unico
+    worker cubria varias familias.
+
+    Saber el propietario es lo que permite al dashboard impedir que se detenga
+    un worker con riesgo vivo.
+
+    Returns:
+        dict con el perfil, el magico y si el perfil fue inferido.
+    """
     source = str(trade.get("source") or "").upper()
     symbol = str(trade.get("instrument") or "")
     raw_magic = metadata.get("daemon_magic")
@@ -537,6 +642,14 @@ def _position_health(position: dict, market: dict | None = None, latest: dict | 
 
 
 def _extract_signal(result: dict) -> dict:
+    """Localiza el diccionario de senal dentro del resultado de un ciclo.
+
+    La senal puede venir en `signal`, dentro de `analysis` o en `diagnostics`
+    segun la estrategia y la fase; se busca en ese orden.
+
+    Returns:
+        dict de la senal, o `{}` si el ciclo no produjo ninguna.
+    """
     analysis = _first_dict(result.get("analysis"))
     direct = _first_dict(result.get("signal"))
     if direct:
@@ -554,12 +667,24 @@ def _extract_signal(result: dict) -> dict:
 
 
 def _extract_quality(result: dict) -> dict:
+    """Reune las metricas de calidad de un setup para mostrarlas.
+
+    Consulta senal, analisis, diagnosticos y el propio resultado en ese orden,
+    porque las claves cambian segun la estrategia. Normaliza el porcentaje de
+    confirmacion (acepta 0-1 o 0-100) y traduce los nombres tecnicos de cada
+    confirmacion a texto legible.
+
+    Returns:
+        dict con score, nota, porcentaje, confirmaciones cumplidas, faltantes y
+        fallos criticos.
+    """
     signal = _extract_signal(result)
     analysis = _first_dict(result.get("analysis"))
     diagnostics = _first_dict(result.get("diagnostics"), analysis.get("diagnostics"))
     sources = [signal, analysis, diagnostics, result]
 
     def pick(*keys):
+        """Primer valor no nulo hallado entre las claves y fuentes dadas."""
         for source in sources:
             if not isinstance(source, dict):
                 continue
@@ -593,6 +718,7 @@ def _extract_quality(result: dict) -> dict:
         critical = []
 
     def labels(items):
+        """Traduce nombres tecnicos de confirmaciones a texto legible."""
         return [_LABELS.get(str(item), str(item).replace("_", " ").title()) for item in items]
 
     confirmations = pick("confirmations")
@@ -650,6 +776,19 @@ class RealtimeDashboardService:
     """Publica un dashboard local de sólo lectura sin bloquear el hilo de MT5."""
 
     def __init__(self, repository=None, host="127.0.0.1", port=8765, max_recent=80, state_path=None):
+        """Prepara el estado, las caches y el servicio de noticias.
+
+        Args:
+            repository: `TradingRepository` de lectura; `None` deja la interfaz
+                en modo presentacional.
+            host / port: direccion de escucha; por defecto solo localhost.
+            max_recent: eventos recientes conservados en memoria.
+            state_path: JSON donde se persiste el estado presentacional.
+
+        Las caches con TTL son de lectura y NO son fuente de verdad: SQLAlchemy
+        sigue siendo autoritativo. Al construirse ya refresca posiciones y
+        cuenta para que la primera carga no aparezca vacia.
+        """
         self.repository = repository
         self.host = str(host)
         self.port = int(port)
@@ -703,6 +842,14 @@ class RealtimeDashboardService:
             self._refresh_account_locked()
 
     def _load_persisted_state(self):
+        """Rehidrata el estado presentacional del ultimo arranque.
+
+        Solo restaura datos de presentacion (ciclo, catalogo, seleccion,
+        eventos recientes): trades y cuenta se releen siempre de la base. Marca
+        el estado como OFFLINE/PERSISTED para que quede claro que lo mostrado
+        no es informacion en vivo. Cualquier error se ignora: un snapshot
+        corrupto no puede impedir que el motor opere.
+        """
         try:
             if not self.state_path.exists():
                 return
@@ -734,6 +881,12 @@ class RealtimeDashboardService:
             return
 
     def _persist_state_locked(self):
+        """Guarda el estado en disco de forma atomica.
+
+        Escribe en un `.tmp` y hace `replace`, de modo que un corte a mitad de
+        escritura nunca deje el JSON a medias. Debe llamarse con el lock ya
+        tomado.
+        """
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
             payload = _json_safe({**self._state, "recent": list(self._recent)})
@@ -744,6 +897,13 @@ class RealtimeDashboardService:
             return
 
     def _cached_account_payload(self, force=False):
+        """Payload de cuenta con cache de corta duracion.
+
+        Evita recalcular las metricas en cada refresco del navegador.
+
+        Args:
+            force: ignora la cache y recalcula.
+        """
         now = time.monotonic()
         cached = self._account_cache
         if (
@@ -957,6 +1117,11 @@ class RealtimeDashboardService:
         })
 
     def _cached_instruments_payload(self, force=False):
+        """Payload minimo de la pagina de instrumentos, con cache corta.
+
+        Construye solo catalogo y seleccion; deliberadamente omite posiciones,
+        cuenta y graficos, que son la parte cara del snapshot completo.
+        """
         now = time.monotonic()
         cached = self._instruments_cache
         if (
@@ -986,12 +1151,14 @@ class RealtimeDashboardService:
         return payload
 
     def _invalidate_navigation_caches(self, *, account=False, instruments=False):
+        """Descarta las caches indicadas tras un cambio de estado relevante."""
         if account:
             self._account_cache = {"at": 0.0, "payload": None}
         if instruments:
             self._instruments_cache = {"at": 0.0, "payload": None}
 
     def mark_live(self):
+        """Marca la interfaz como conectada y en datos en vivo."""
         with self._lock:
             now = _now_iso()
             self._state["connection_mode"] = "LIVE"
@@ -1001,6 +1168,11 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def mark_offline(self, status="DAEMON DESCONECTADO · ESTADO PERSISTIDO"):
+        """Marca la interfaz como desconectada conservando el ultimo estado.
+
+        Es clave que se distinga de LIVE: mirar datos viejos creyendolos
+        actuales es peor que no verlos.
+        """
         with self._lock:
             self._state["status"] = str(status)
             self._state["connection_mode"] = "OFFLINE"
@@ -1010,22 +1182,36 @@ class RealtimeDashboardService:
 
     @property
     def url(self):
+        """URL base del dashboard."""
         return f"http://{self.host}:{self.port}"
 
     @property
     def instruments_url(self):
+        """URL de la pagina de instrumentos."""
         return f"{self.url}/instruments"
 
     @property
     def account_url(self):
+        """URL de la pagina de cuenta."""
         return f"{self.url}/account"
 
     def start(self, live=True):
+        """Arranca el servidor HTTP en un hilo daemon y las noticias.
+
+        Define aqui dentro la clase `Handler` para que capture `service` por
+        closure y pueda acceder al estado sin variables globales.
+
+        Args:
+            live: si es `True` marca la interfaz como conectada al arrancar.
+        """
         service = self
         self.news_service.start()
 
         class Handler(BaseHTTPRequestHandler):
+            """Manejador HTTP: sirve las paginas y los endpoints JSON."""
+
             def log_message(self, fmt, *args):
+                """Silencia el log de acceso, que ensuciaria la consola del bot."""
                 return
 
             def _send(self, body: bytes, content_type: str, status=HTTPStatus.OK):
@@ -1055,6 +1241,11 @@ class RealtimeDashboardService:
                 return True
 
             def _send_download(self, body: bytes, filename: str, content_type: str):
+                """Envia un fichero como descarga adjunta (XLSX de auditoria).
+
+                Devuelve `False` si el cliente corto la conexion, sin propagar
+                el error.
+                """
                 try:
                     self.send_response(int(HTTPStatus.OK))
                     self.send_header("Content-Type", content_type)
@@ -1068,6 +1259,13 @@ class RealtimeDashboardService:
                 return True
 
             def do_GET(self):
+                """Enruta las peticiones GET.
+
+                Sirve las paginas HTML (`/`, `/instruments`, `/account`,
+                `/trade-audit`), el logo, la descarga XLSX de auditoria y los
+                endpoints JSON de estado, cuenta e instrumentos. Todo es de
+                solo lectura.
+                """
                 path = urlparse(self.path).path
                 if path in ("/", "/index.html"):
                     self._send(_HTML.encode("utf-8"), "text/html; charset=utf-8")
@@ -1160,6 +1358,12 @@ class RealtimeDashboardService:
                 self._send(b"Not found", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
 
             def do_POST(self):
+                """Enruta las (pocas) peticiones de escritura permitidas.
+
+                Solo dos: habilitar/detener un worker y cambiar la seleccion de
+                instrumentos. Ninguna abre ni cierra operaciones. El tamano del
+                cuerpo se limita a 64 KiB para no aceptar payloads abusivos.
+                """
                 path = urlparse(self.path).path
                 worker_control_match = re.fullmatch(
                     r"/api/workers/([A-Za-z0-9_-]+)/enabled",
@@ -1216,6 +1420,7 @@ class RealtimeDashboardService:
         return self.url
 
     def stop(self):
+        """Detiene el servidor HTTP y el servicio de noticias."""
         self.news_service.stop()
         if self._server is not None:
             self._server.shutdown()
@@ -1224,6 +1429,7 @@ class RealtimeDashboardService:
         self._thread = None
 
     def update_status(self, status):
+        """Actualiza el texto de estado y refresca la marca de datos en vivo."""
         with self._lock:
             self._state["status"] = str(status)
             now = _now_iso()
@@ -1234,9 +1440,21 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def set_worker_controller(self, controller):
+        """Inyecta el callback del coordinador para habilitar/parar workers.
+
+        El dashboard no gestiona procesos: solo delega en `app.main`.
+        """
         self._worker_controller = controller
 
     def update_worker_enabled(self, profile, enabled):
+        """Solicita al coordinador activar o detener un worker.
+
+        Valida la entrada y responde con un error claro si esta ejecucion no
+        tiene controlador (por ejemplo un dashboard sin daemon multibot).
+
+        Returns:
+            dict con `ok` y, en caso de fallo, `error`.
+        """
         profile = str(profile or "").upper()
         if not profile or not isinstance(enabled, bool):
             return {"ok": False, "error": "Worker o estado inválido"}
@@ -1248,6 +1466,18 @@ class RealtimeDashboardService:
         return self._worker_controller(profile, enabled)
 
     def set_instrument_catalog(self, categorized, selected_symbols=None):
+        """Publica el catalogo de instrumentos y resuelve la seleccion vigente.
+
+        Agrupa los simbolos por categoria y perfil, y decide la seleccion de
+        cada perfil por prioridad: eleccion explicita -> seleccion persistida en
+        base de datos -> universo completo. Toda eleccion se filtra contra los
+        simbolos realmente disponibles, para que un instrumento que ya no exista
+        en el broker no quede seleccionado.
+
+        Args:
+            categorized: dict categoria -> simbolos.
+            selected_symbols: seleccion explicita opcional.
+        """
         categorized=categorized or {}; catalog=[]
         for category, values in categorized.items():
             symbols=_normalize_symbol_list(values)
@@ -1287,6 +1517,21 @@ class RealtimeDashboardService:
         return combined
 
     def update_selected_symbols(self, selected_symbols, selection_profile=None):
+        """Guarda la seleccion de instrumentos de un perfil (o global).
+
+        Rechaza simbolos fuera del catalogo y, al persistir por perfil,
+        RELEE lo guardado para verificarlo: si la base no confirma el cambio se
+        devuelve error en vez de mentir al usuario diciendo que se guardo.
+
+        Sin `selection_profile` se mantiene el comportamiento global heredado.
+
+        Args:
+            selected_symbols: simbolos elegidos.
+            selection_profile: SYNTHETICS, FOREX u ORB.
+
+        Returns:
+            dict con `ok`, la seleccion resultante y su version; o `error`.
+        """
         requested=_normalize_symbol_list(selected_symbols)
         # Compatibilidad v55: llamadas sin perfil siguen representando una selección global.
         if selection_profile is None:
@@ -1341,6 +1586,12 @@ class RealtimeDashboardService:
                     "message":self._state["selection_message"]}
 
     def get_selected_symbols(self, default=None, selection_profile=None):
+        """Devuelve la seleccion vigente, por perfil o global.
+
+        Lo consulta el motor en cada ciclo para saber que instrumentos analizar.
+        Con perfil devuelve exactamente lo elegido (aunque este vacio); sin
+        perfil recurre a `default` si no hay seleccion.
+        """
         with self._lock:
             if selection_profile:
                 selected=list((self._state.get("selection_profiles") or {}).get(str(selection_profile).upper()) or [])
@@ -1348,6 +1599,11 @@ class RealtimeDashboardService:
         return selected if selection_profile is not None else (selected or _normalize_symbol_list(default or []))
 
     def _touch_live_locked(self):
+        """Marca actividad en vivo. Requiere el lock ya tomado.
+
+        Returns:
+            str: la marca temporal aplicada.
+        """
         now = _now_iso()
         self._state["connection_mode"] = "LIVE"
         self._state["data_freshness"] = "LIVE"
@@ -1355,6 +1611,10 @@ class RealtimeDashboardService:
         return now
 
     def cycle_start(self, cycle, total_symbols):
+        """Evento: comienza un ciclo de analisis.
+
+        Reinicia los contadores del ciclo y refresca las posiciones abiertas.
+        """
         with self._lock:
             self._touch_live_locked()
             self._state.update({
@@ -1372,6 +1632,7 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def symbol_start(self, symbol, index, total):
+        """Evento: comienza el analisis de un instrumento."""
         with self._lock:
             self._touch_live_locked()
             self._state.update({
@@ -1383,6 +1644,12 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def symbol_result(self, result, index, total, elapsed_seconds):
+        """Evento: termina el analisis de un instrumento.
+
+        Extrae las metricas de calidad, traduce accion y motivo a espanol y
+        anade la fila al historial reciente. Es el registro que permite ver
+        POR QUE el bot no entro en un instrumento.
+        """
         result = result or {}
         quality = _extract_quality(result)
         action = result.get("action") or "SIN ACCIÓN"
@@ -1410,6 +1677,7 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def cycle_end(self, elapsed_seconds):
+        """Evento: termina el ciclo; pasa a espera y refresca los datos."""
         with self._lock:
             self._touch_live_locked()
             self._state.update({
@@ -1423,6 +1691,7 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def monitor_result(self, monitor):
+        """Evento: resultado del monitor de posiciones abiertas."""
         with self._lock:
             self._touch_live_locked()
             self._state["last_monitor"] = _json_safe(monitor)
@@ -1432,6 +1701,20 @@ class RealtimeDashboardService:
             self._persist_state_locked()
 
     def _refresh_open_positions_locked(self):
+        """Reconstruye la lista de posiciones abiertas para la interfaz.
+
+        Muestra TODAS las posiciones persistidas: las de `source=DEMO` las
+        gestiona el bot y las `MT5_EXTERNAL` son solo visualizacion.
+
+        En modo multibot el coordinador no ve el estado interno de cada worker,
+        asi que la auditoria visual y el snapshot de mercado se reconstruyen
+        desde la base de datos. Ademas resuelve el worker propietario de cada
+        posicion y calcula el resumen de salud (mantener / vigilar / proteger /
+        salida), que es ADVISORY: informa, no cierra nada.
+
+        Requiere el lock ya tomado. Cualquier error de lectura aborta el
+        refresco dejando el estado anterior.
+        """
         if self.repository is None:
             return
         try:
@@ -1731,6 +2014,7 @@ class RealtimeDashboardService:
         self._state["position_health_summary"] = counts
 
     def _refresh_account_locked(self):
+        """Actualiza el bloque de cuenta desde la cache. Requiere el lock."""
         self._state["account"] = self._cached_account_payload()
 
     def _refresh_selection_profiles_from_db_locked(self):
@@ -1777,6 +2061,16 @@ class RealtimeDashboardService:
         self._state["selection_persistence_checked_at"] = _now_iso()
 
     def snapshot(self):
+        """Devuelve el estado completo que consume el dashboard.
+
+        Es el endpoint principal (`/api/state`). Usa una cache de ~1,5 s para
+        que varias pestanas abiertas no multipliquen las consultas, y refresca
+        selecciones y posiciones dentro del lock antes de componer el payload.
+
+        Returns:
+            dict serializable con estado, ciclo, posiciones abiertas, cuenta,
+            catalogo, eventos recientes, noticias y version del daemon.
+        """
         now_snapshot = time.monotonic()
         cached_snapshot = self._dashboard_snapshot_cache
         if (

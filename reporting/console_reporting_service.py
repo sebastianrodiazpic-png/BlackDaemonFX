@@ -1,3 +1,23 @@
+"""Capa de presentacion en consola del motor de trading.
+
+Traduce los diccionarios crudos que devuelve el motor a texto legible en
+espanol, sin volcar JSON completos salvo en modo `debug`. Es puramente de
+salida: no consulta la base de datos, no toca el broker y no altera ninguna
+decision.
+
+Tres niveles de verbosidad controlados por `ConsoleReportingConfig`:
+    - normal: resumen por ciclo y eventos importantes;
+    - `verbose`: ademas rechazos y diagnostico de confirmaciones;
+    - `debug`: vuelca el diccionario completo de cada resultado.
+
+Vinculaciones:
+    - Consumidor: `strategy.execution.live_trading_engine` y `app.main`, que
+      le pasan las filas de resultado de cada simbolo.
+    - Los diccionarios de etiquetas (`ACTION_LABELS_ES`, `REASON_LABELS_ES`,
+      `CONFIRMATION_LABELS_ES`) traducen las claves tecnicas que generan
+      `strategy.smc` y el motor.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +29,16 @@ import math
 
 @dataclass
 class ConsoleReportingConfig:
+    """Opciones de verbosidad y ancho de la salida por consola.
+
+    Attributes:
+        verbose: imprime tambien rechazos y detalle de confirmaciones.
+        debug: vuelca el diccionario completo de cada resultado en JSON.
+        show_no_signal: muestra los simbolos sin senal (muy ruidoso).
+        show_cycle_summary: imprime el bloque de resumen al cerrar cada ciclo.
+        width: ancho en caracteres de las lineas separadoras.
+    """
+
     verbose: bool = False
     debug: bool = False
     show_no_signal: bool = False
@@ -64,16 +94,30 @@ class ConsoleReportingService:
 
     @classmethod
     def _reason_label(cls, key: str) -> str:
+        """Traduce un codigo de motivo al espanol.
+
+        Si la clave no esta en `REASON_LABELS_ES` devuelve el propio codigo con
+        los guiones bajos sustituidos, de modo que un motivo nuevo se muestra
+        legible sin necesidad de tocar este fichero.
+        """
         return cls.REASON_LABELS_ES.get(str(key), str(key).replace("_", " ").lower())
 
     def __init__(self, config: ConsoleReportingConfig | None = None):
+        """Guarda la configuracion; sin argumento usa el perfil silencioso."""
         self.config = config or ConsoleReportingConfig()
 
     def _line(self, char: str = "-") -> str:
+        """Linea separadora del ancho configurado."""
         return char * self.config.width
 
     @staticmethod
     def _fmt(value: Any, digits: int = 3) -> str:
+        """Formatea un valor para consola.
+
+        `None` se muestra como `-`, los flotantes con los decimales pedidos y
+        los no finitos (nan/inf) en crudo para que la anomalia sea visible en
+        vez de quedar disimulada como `0.000`.
+        """
         if value is None:
             return "-"
         if isinstance(value, float):
@@ -125,15 +169,23 @@ class ConsoleReportingService:
 
     @classmethod
     def _label(cls, action: str | None) -> str:
+        """Traduce un codigo de accion del motor a su etiqueta en espanol."""
         key = str(action or "UNKNOWN")
         return cls.ACTION_LABELS_ES.get(key, key.replace("_", " "))
 
     @classmethod
     def _confirmation_label(cls, key: str) -> str:
+        """Traduce el nombre tecnico de una confirmacion SMC a espanol."""
         return cls.CONFIRMATION_LABELS_ES.get(str(key), str(key).replace("_", " "))
 
     def print_startup(self, *, account: dict, execute: bool, symbols: Iterable[str], interval: int,
                       risk_percent: float, min_rr: float, report_path: Any) -> None:
+        """Cabecera de arranque: cuenta, modo, riesgo y pipeline.
+
+        Deja explicito si se opera de verdad o en DRY RUN, dato critico para no
+        confundir una sesion simulada con una real. La lista completa de
+        instrumentos solo se imprime en modo `verbose`.
+        """
         symbols = list(symbols)
         print(self._line("="))
         print("BOT SMC MT5 - DERIV DEMO")
@@ -157,6 +209,12 @@ class ConsoleReportingService:
         symbols_count: int,
         position_monitor_interval: int | None = None,
     ) -> None:
+        """Confirma que el daemon arranco e informa de sus dos cadencias.
+
+        El intervalo de senales y el del monitor de posiciones/break-even son
+        independientes: el monitor corre mucho mas a menudo porque vigila
+        posiciones ya abiertas.
+        """
         monitor = "-" if position_monitor_interval is None else f"{position_monitor_interval}s"
         print(
             f"Daemon activo: señales={interval}s | monitor posiciones/BE={monitor} | "
@@ -170,6 +228,11 @@ class ConsoleReportingService:
         started_at: datetime | None = None,
         total_symbols: int | None = None,
     ) -> None:
+        """Abre un ciclo con su numero correlativo y la marca temporal UTC.
+
+        La hora se imprime siempre en UTC para poder cruzar el log con la
+        auditoria de la base de datos, que tambien es UTC.
+        """
         started_at = started_at or datetime.now(timezone.utc)
         print()
         print(self._line("="))
@@ -178,6 +241,11 @@ class ConsoleReportingService:
         print(self._line("="))
 
     def print_symbol_start(self, *, index: int, total: int, symbol: str) -> None:
+        """Marca START de un simbolo, con `flush` para ver el avance en vivo.
+
+        Emparejado con `print_symbol_result`, permite detectar que simbolo dejo
+        colgado un ciclo si el proceso se bloquea.
+        """
         print(f"[{index:02d}/{total:02d}] START {symbol}", flush=True)
 
     def print_symbol_result(
@@ -188,6 +256,12 @@ class ConsoleReportingService:
         total: int,
         elapsed_seconds: float,
     ) -> None:
+        """Marca END de un simbolo con su duracion y accion resultante.
+
+        Amplia con motivo, campos de la operacion y diagnostico de
+        confirmaciones salvo que la accion sea `NO_SIGNAL` y no se pidio modo
+        verbose: ese caso es el 90% del volumen y saturaria la consola.
+        """
         action = self._label(str(row.get("action") or "UNKNOWN"))
         symbol = row.get("symbol", "-")
         print(
@@ -205,6 +279,16 @@ class ConsoleReportingService:
 
     @staticmethod
     def _extract_confirmation_diag(row: dict) -> dict | None:
+        """Localiza el diagnostico de confirmaciones en dos ubicaciones.
+
+        1. `analysis.signal` / `analysis.entry`: la senal que si se genero.
+        2. `analysis.diagnostics.m5.latest_rejected_candidate`: el mejor
+           candidato descartado, util para entender POR QUE no hubo senal.
+
+        Returns:
+            dict normalizado con porcentaje, calidad, decision, faltantes,
+            fallos criticos y divergencias; `None` si no hay nada que mostrar.
+        """
         analysis = row.get("analysis") or {}
         signal = analysis.get("signal") or analysis.get("entry") or {}
         if signal and signal.get("confirmation_percentage") is not None:
@@ -244,6 +328,13 @@ class ConsoleReportingService:
         return None
 
     def _print_confirmation_diag(self, row: dict) -> None:
+        """Imprime el bloque de confirmaciones ya traducido al espanol.
+
+        Muestra el recuento aprobadas/totales, el porcentaje, la calidad y la
+        decision (estricta o adaptativa >=75/80%), y solo anade las lineas de
+        faltantes, criticas, divergencia, doji H1 y rechazo tecnico cuando
+        realmente contienen algo.
+        """
         diag = self._extract_confirmation_diag(row)
         if not diag:
             return
@@ -286,6 +377,15 @@ class ConsoleReportingService:
         phase: str,
         runner_updates: list | None = None,
     ) -> None:
+        """Resumen de una pasada del monitor de posiciones abiertas.
+
+        Guarda silencio absoluto si no hubo nada que reportar (ni posiciones,
+        ni break-even, ni cierres, ni eventos de runner): el monitor corre cada
+        pocos segundos y de otro modo inundaria la consola.
+
+        Detalla cada evento del runner distinguiendo cierre para proteger
+        ganancia, extension con SL asegurado y error.
+        """
         runner_updates = list(runner_updates or [])
         # No inundar la consola cuando no hay posiciones ni eventos relevantes.
         if checked or activated or errors or sync or runner_updates:
@@ -320,6 +420,7 @@ class ConsoleReportingService:
                 print(f"    Errores monitor: {errors}", flush=True)
 
     def _reason(self, row: dict) -> str:
+        """Motivo legible de la fila: `reason`, `error` o, si no, la accion."""
         reason = row.get("reason") or row.get("error")
         if reason:
             return self.REASON_LABELS_ES.get(str(reason), str(reason))
@@ -327,6 +428,13 @@ class ConsoleReportingService:
         return self._label(action)
 
     def _print_trade_fields(self, row: dict) -> None:
+        """Imprime los campos del plan que esten presentes.
+
+        Cada linea se omite si el campo falta, para no mostrar filas de guiones.
+        Distingue "Riesgo objetivo" (el solicitado) de "Riesgo calculado" (el
+        que resulta tras normalizar el lote): su diferencia revela simbolos
+        donde el lote minimo impide respetar el riesgo configurado.
+        """
         if row.get("direction"):
             print(f"    Dirección: {row.get('direction')}")
         if row.get("entry_price") is not None:
@@ -348,6 +456,13 @@ class ConsoleReportingService:
             print(f"    Riesgo calculado: {self._fmt(row.get('actual_risk_amount'), 2)}")
 
     def print_result(self, row: dict, index: int | None = None, total: int | None = None) -> None:
+        """Ficha detallada de un resultado (formato de bloque, no de linea).
+
+        Se salta por completo las filas `NO_SIGNAL` salvo que `verbose` o
+        `show_no_signal` esten activos. Para ordenes abiertas anade ticket e
+        id de ejecucion; para el resto, el motivo y, en verbose, la edad de la
+        senal. Si `debug` esta activo termina volcando el diccionario integro.
+        """
         action = str(row.get("action") or "UNKNOWN")
         symbol = row.get("symbol", "-")
         prefix = ""
@@ -389,6 +504,7 @@ class ConsoleReportingService:
             self.print_debug(row)
 
     def print_debug(self, row: dict) -> None:
+        """Vuelca la fila completa en JSON indentado (`default=str`)."""
         print("    DEBUG:")
         print(json.dumps(row, default=str, ensure_ascii=False, indent=2))
 
@@ -396,6 +512,16 @@ class ConsoleReportingService:
                   elapsed_seconds: float | None = None, interval: int | None = None,
                   next_delay_seconds: float | None = None,
                   overrun_seconds: float | None = None) -> None:
+        """Bloque de cierre del ciclo con el reparto por categorias.
+
+        Clasifica cada accion en: sin senal, rechazadas, bloqueadas por estado
+        o limites, validadas en DRY RUN, ordenes nuevas y errores. La categoria
+        `waiting` ("Esperando/otros") se calcula por resta, de modo que ninguna
+        accion desconocida desaparezca del recuento.
+
+        Avisa explicitamente cuando el ciclo excedio su intervalo objetivo
+        (`overrun_seconds`), sintoma de que el bot va por detras del mercado.
+        """
         if not self.config.show_cycle_summary:
             return
         actions = [str(row.get("action") or "UNKNOWN") for row in results]
@@ -434,6 +560,10 @@ class ConsoleReportingService:
         print(self._line("-"))
 
     def print_cycle_error(self, exc: Exception, cycle_started: datetime | None = None) -> None:
+        """Enmarca un fallo de ciclo con lineas de admiracion muy visibles.
+
+        Solo informa: el daemon decide por su cuenta si continua o se detiene.
+        """
         print(self._line("!"))
         print("ERROR EN EL CICLO DEL DEMONIO")
         print(f"Error: {exc}")

@@ -1,3 +1,13 @@
+"""Exportación del informe de trading desde SQLite a un libro de Excel.
+
+Genera el informe completo con varias hojas (operaciones, senales, cuenta y
+resumen) a partir de lo almacenado en la base de datos.
+
+Vinculaciones:
+- Lee mediante `database.repository.TradingRepository`.
+- Lo invocan `backtesting.backtest_storage` y los servicios de reporting.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,12 +18,27 @@ from database.repository import TradingRepository
 
 
 def _numeric(frame: pd.DataFrame, column: str) -> pd.Series:
+    """Devuelve una columna como serie numérica, tolerando ausencias y basura.
+
+    Si la columna no existe devuelve ceros con el mismo indice, y los valores
+    no convertibles pasan a 0.0. Asi los calculos del informe no fallan ante
+    una base antigua a la que le falte alguna columna.
+    """
     if column not in frame.columns:
         return pd.Series(0.0, index=frame.index)
     return pd.to_numeric(frame[column], errors="coerce").fillna(0.0)
 
 
 def _write_sheet(writer, frame: pd.DataFrame, name: str):
+    """Escribe una hoja de Excel ya formateada para poder revisarla.
+
+    Aplica el formato que hace util el informe: fija la fila de cabeceras al
+    desplazarse, activa el autofiltro y ajusta el ancho de cada columna a su
+    contenido, entre 12 y 40 caracteres.
+
+    El ancho se mide sobre las primeras 1000 filas para no recorrer informes
+    muy grandes por completo.
+    """
     frame.to_excel(writer, sheet_name=name, index=False)
     ws = writer.book[name]
     ws.freeze_panes = "A2"
@@ -100,6 +125,11 @@ def export_trading_report(db_path=None, output_path=None, source: str | None = N
 
 
 def _pretty_json(value):
+    """Formatea un JSON almacenado para que sea legible en la celda de Excel.
+
+    Reindenta el contenido conservando los acentos. Si el valor no es JSON
+    valido lo devuelve tal cual, para no perder informacion en el informe.
+    """
     if value in (None, ""):
         return ""
     try:

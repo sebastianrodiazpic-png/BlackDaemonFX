@@ -1,3 +1,20 @@
+"""Informe de diagnostico offline sobre las evaluaciones de simbolo.
+
+Responde a preguntas de calibracion que no se ven operando en vivo:
+por que se rechazan las senales, que confirmacion falta mas a menudo, cuanto
+tarda cada estrategia en evaluar y si el riesgo solicitado se alcanza de
+verdad al dimensionar.
+
+Se ejecuta como script independiente (`python -m reporting.strategy_evaluation`)
+y NO forma parte del ciclo de trading: solo lee la bitacora de auditoria.
+
+Vinculaciones:
+    - `database.repository.TradingRepository.recent_symbol_evaluation_events`:
+      unica fuente de datos.
+    - Productor de esos eventos: `strategy.execution.live_trading_engine`.
+    - Salida por defecto: `storage/analysis/strategy_evaluation.json`.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -11,6 +28,12 @@ from database.repository import TradingRepository
 
 
 def _number(value):
+    """Convierte a float devolviendo `None` en vez de lanzar.
+
+    Los payloads de auditoria son JSON heterogeneo; un campo puede llegar como
+    texto, `None` o ausente. Se descarta en silencio en lugar de romper el
+    informe completo.
+    """
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -18,6 +41,12 @@ def _number(value):
 
 
 def _distribution(values):
+    """Resume una serie en count/min/mediana/media/max.
+
+    Se incluye la mediana junto a la media porque la latencia tiene colas muy
+    largas: un unico ciclo lento distorsiona la media pero no la mediana.
+    Devuelve la estructura con `None` si no hay valores validos.
+    """
     clean = sorted(value for value in (_number(item) for item in values) if value is not None)
     if not clean:
         return {"count": 0, "min": None, "median": None, "mean": None, "max": None}
@@ -31,6 +60,24 @@ def _distribution(values):
 
 
 def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
+    """Agrega los eventos de evaluacion de una ventana en un informe unico.
+
+    Args:
+        repository: `TradingRepository` desde el que se leen los eventos.
+        source: entorno a analizar (DEMO, LIVE, PAPER).
+        hours: tamano de la ventana hacia atras.
+
+    Returns:
+        dict con recuentos por accion y por estrategia, confirmaciones que mas
+        faltan, distribucion de latencia por estrategia, el bloque
+        `risk_reachability` (riesgo solicitado frente al realmente aplicado,
+        clave para detectar simbolos donde el lote minimo impide respetar el
+        riesgo) y el detalle fila a fila en `evaluations`.
+
+    `configuration_guardrails` viaja siempre en `False`: es un recordatorio
+    explicito de que este informe describe la configuracion vigente y no
+    modifica umbrales de frescura M5 ni puertas estructurales.
+    """
     events = repository.recent_symbol_evaluation_events(source=source, hours=hours)
     actions = Counter()
     strategies = Counter()
@@ -125,6 +172,15 @@ def build_strategy_evaluation(repository, *, source="DEMO", hours=24.0) -> dict:
 
 
 def write_strategy_evaluation(report: dict, output_path) -> Path:
+    """Guarda el informe en JSON mediante escritura atomica.
+
+    Escribe primero en un `.tmp` y despues hace `replace`, de modo que un lector
+    concurrente nunca vea un JSON a medias. `default=str` evita fallos con tipos
+    no serializables como fechas.
+
+    Returns:
+        La ruta absoluta del fichero escrito.
+    """
     path = Path(output_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -134,6 +190,11 @@ def write_strategy_evaluation(report: dict, output_path) -> Path:
 
 
 def main():
+    """Punto de entrada CLI: `--hours`, `--source` y `--output`.
+
+    Construye el informe, lo escribe y muestra por pantalla un resumen breve
+    con la ruta, el total de evaluaciones y el recuento por accion.
+    """
     parser = argparse.ArgumentParser(
         description="Resume latencia y alcance de riesgo desde auditoría compacta."
     )

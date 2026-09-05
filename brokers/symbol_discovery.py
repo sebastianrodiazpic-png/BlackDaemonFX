@@ -1,3 +1,20 @@
+"""Descubrimiento y clasificacion del catalogo de instrumentos del broker.
+
+Recorre los simbolos que ofrece MT5, los clasifica por familia (volatility,
+boom, crash, step, jump, flip) o los identifica como pares de divisas, y filtra
+los que realmente se pueden operar.
+
+La distincion entre "existe" y "es operable" es central: un simbolo puede
+aparecer en el catalogo pero estar invisible o con el trading deshabilitado.
+Los metodos `get_tradeable_*` activan el simbolo y verifican `trade_mode`, y
+son los unicos que deben alimentar el bucle en vivo.
+
+Vinculaciones:
+    - `config.instruments.InstrumentManager`: unico consumidor.
+    - `config.symbol_policy` usa la misma nocion de categoria para decidir la
+      direccion permitida.
+"""
+
 import MetaTrader5 as mt5
 
 
@@ -41,12 +58,22 @@ def _looks_like_forex_name(symbol):
 
 
 class DerivSymbolDiscovery:
+    """Explora el catalogo MT5 y separa lo operable de lo que no lo es.
+
+    No cachea: cada consulta refleja el estado actual del terminal.
+    """
 
     def __init__(self, connector):
+        """Guarda el conector; exige que ya este conectado al consultar."""
         self.connector = connector
 
     def _ensure_connection(self):
+        """Verifica la conexion.
 
+        A diferencia de `MT5DataProvider`, aqui NO se reconecta: se lanza
+        `ConnectionError`. El descubrimiento ocurre en el arranque, donde una
+        desconexion debe ser un fallo visible y no algo que se enmascare.
+        """
         if not self.connector.is_connected():
 
             raise ConnectionError(
@@ -54,7 +81,10 @@ class DerivSymbolDiscovery:
             )
 
     def get_all_symbols(self):
+        """Todos los nombres del catalogo del broker, ordenados.
 
+        Sin filtrar: incluye instrumentos invisibles o deshabilitados.
+        """
         self._ensure_connection()
 
         symbols = mt5.symbols_get()
@@ -76,7 +106,15 @@ class DerivSymbolDiscovery:
         )
 
     def classify_symbol(self, symbol):
+        """Clasifica un simbolo en su familia sintetica.
 
+        El caso especial va primero: si el nombre contiene "boom" Y "crash" se
+        trata de un indice FLIP, que combina ambos comportamientos y por tanto
+        no hereda la restriccion direccional de ninguno.
+
+        Returns:
+            "volatility", "boom", "crash", "step", "jump", "flip" u "other".
+        """
         symbol_lower = symbol.lower()
 
         if "boom" in symbol_lower and "crash" in symbol_lower:
@@ -94,7 +132,12 @@ class DerivSymbolDiscovery:
         return "other"
 
     def get_deriv_synthetics(self):
+        """Agrupa TODO el catalogo por categoria.
 
+        Returns:
+            dict categoria -> lista de simbolos, incluida la clave "other" con
+            lo no reconocido. Sin filtrar por operabilidad.
+        """
         symbols = self.get_all_symbols()
 
         result = {
@@ -118,7 +161,10 @@ class DerivSymbolDiscovery:
         return result
 
     def get_all_synthetic_symbols(self):
+        """Lista plana de sinteticos reconocidos, excluyendo "other".
 
+        Deduplica y ordena. Sigue sin filtrar por operabilidad.
+        """
         categorized = self.get_deriv_synthetics()
 
         symbols = []
@@ -141,7 +187,14 @@ class DerivSymbolDiscovery:
         )
 
     def get_symbol_info(self, symbol):
+        """Metadatos de contratacion del simbolo.
 
+        Returns:
+            dict con nombre, visibilidad, `trade_mode`, limites de volumen
+            (`volume_min`, `volume_max`, `volume_step`), `point` y `digits`; o
+            `None` si el simbolo no existe. Los limites de volumen son los que
+            condicionan si el riesgo objetivo puede respetarse.
+        """
         self._ensure_connection()
 
         info = mt5.symbol_info(symbol)
@@ -162,7 +215,15 @@ class DerivSymbolDiscovery:
         }
 
     def get_tradeable_synthetics(self):
+        """Sinteticos realmente operables ahora mismo.
 
+        Para cada candidato: si no es visible intenta activarlo, y descarta los
+        que tengan `trade_mode == SYMBOL_TRADE_MODE_DISABLED`. Los fallos se
+        saltan en silencio con `continue`, porque un instrumento no disponible
+        es una situacion normal y no debe abortar el arranque.
+
+        Este es el metodo que debe alimentar el bucle en vivo.
+        """
         symbols = self.get_all_synthetic_symbols()
 
         tradeable = []
@@ -208,6 +269,11 @@ class DerivSymbolDiscovery:
         return _looks_like_forex_name(symbol)
 
     def get_all_forex_symbols(self):
+        """Todos los pares FX del catalogo, deduplicados y ordenados.
+
+        Cualquier excepcion al examinar un simbolo concreto se ignora para que
+        un instrumento problematico no impida detectar el resto.
+        """
         self._ensure_connection()
         forex = []
         for symbol in self.get_all_symbols():
@@ -238,7 +304,13 @@ class DerivSymbolDiscovery:
         return sorted(set(tradeable))
 
     def print_report(self):
+        """Imprime el catalogo agrupado por categoria con su total.
 
+        Utilidad de diagnostico para comprobar que se detecta lo esperado.
+
+        Returns:
+            El mismo diccionario que `get_deriv_synthetics()`.
+        """
         categorized = self.get_deriv_synthetics()
 
         print("\n" + "=" * 70)
