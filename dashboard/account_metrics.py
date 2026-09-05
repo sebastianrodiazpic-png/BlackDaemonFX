@@ -168,10 +168,6 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         audit_snapshot_summaries = {}
 
     stats["total"] = len(records)
-    by_strategy = defaultdict(lambda: {
-        "strategy": None, "closed_legs": 0, "wins": 0, "losses": 0,
-        "neutral": 0, "emergency": 0, "net_pnl": 0.0,
-    })
     logical_groups = {}
     for trade in records:
         classification = classify_close(trade)
@@ -194,12 +190,6 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             pnl = 0.0
         stats["net_pnl"] += pnl
         strategy = _strategy_name(trade)
-        strategy_row = by_strategy[strategy]
-        strategy_row["strategy"] = strategy
-        strategy_row["closed_legs"] += 1
-        strategy_row["net_pnl"] += pnl
-        if classification == "EMERGENCIA":
-            strategy_row["emergency"] += 1
         outcome = decisive_outcome(
             realized_rr=trade.get("realized_rr"),
             net_pnl=pnl,
@@ -208,12 +198,8 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         )
         if outcome == "WIN":
             stats["wins"] += 1
-            strategy_row["wins"] += 1
         elif outcome == "LOSS":
             stats["losses"] += 1
-            strategy_row["losses"] += 1
-        else:
-            strategy_row["neutral"] += 1
 
         meta = _metadata(trade)
         parent_key = meta.get("parent_execution_key")
@@ -239,6 +225,11 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
     decisive = stats["wins"] + stats["losses"]
     stats["decisive_legs"] = decisive
     stats["win_rate"] = (stats["wins"] / decisive * 100.0) if decisive else 0.0
+    by_strategy = defaultdict(lambda: {
+        "strategy": None, "setups": 0, "wins": 0, "losses": 0,
+        "neutral": 0, "net_pnl": 0.0, "gross_profit": 0.0,
+        "gross_loss": 0.0,
+    })
     for logical in logical_groups.values():
         # Un cierre de emergencia sin PnL pertenece a ejecución/riesgo, no al
         # desempeño de la tesis; se informa aparte y no contamina el win rate.
@@ -258,6 +249,21 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         else:
             stats["logical_neutral"] += 1
 
+        strategy_row = by_strategy[logical["strategy"]]
+        strategy_row["strategy"] = logical["strategy"]
+        strategy_row["setups"] += 1
+        strategy_row["net_pnl"] += logical["net_pnl"]
+        if logical["net_pnl"] > 0:
+            strategy_row["gross_profit"] += logical["net_pnl"]
+        elif logical["net_pnl"] < 0:
+            strategy_row["gross_loss"] += abs(logical["net_pnl"])
+        if setup_outcome == "WIN":
+            strategy_row["wins"] += 1
+        elif setup_outcome == "LOSS":
+            strategy_row["losses"] += 1
+        else:
+            strategy_row["neutral"] += 1
+
     logical_decisive = stats["logical_wins"] + stats["logical_losses"]
     stats["setup_win_rate"] = (
         stats["logical_wins"] / logical_decisive * 100.0
@@ -267,8 +273,16 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         strategy_decisive = row["wins"] + row["losses"]
         row["win_rate"] = row["wins"] / strategy_decisive * 100.0 if strategy_decisive else 0.0
         row["net_pnl"] = round(row["net_pnl"], 2)
+        row["gross_profit"] = round(row["gross_profit"], 2)
+        row["gross_loss"] = round(row["gross_loss"], 2)
+        row["average_pnl"] = round(row["net_pnl"] / row["setups"], 2) if row["setups"] else 0.0
+        row["profit_factor"] = (
+            round(row["gross_profit"] / row["gross_loss"], 2)
+            if row["gross_loss"] > 0 else None
+        )
     stats["by_strategy"] = sorted(
-        by_strategy.values(), key=lambda row: (row["strategy"] or "")
+        by_strategy.values(),
+        key=lambda row: (-row["net_pnl"], -(row["profit_factor"] or 0), row["strategy"] or ""),
     )
     records.sort(key=lambda t: (str(t.get("entry_time") or ""), int(t.get("id") or 0)), reverse=True)
     recent = []
@@ -278,6 +292,7 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         entry_audit = confirmation_audits.get(str(source_trade_id), {})
         recent.append({
             "id": trade.get("id"), "source_trade_id": source_trade_id, "instrument": trade.get("instrument"), "direction": trade.get("direction"),
+            "strategy": _strategy_name(trade),
             "broker_position_ticket": trade.get("broker_position_ticket"),
             "status": trade.get("status"), "result": trade.get("result"), "entry_time": trade.get("entry_time"),
             "exit_time": trade.get("exit_time"), "planned_rr": trade.get("planned_rr"), "realized_rr": trade.get("realized_rr"),

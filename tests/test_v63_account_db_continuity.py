@@ -119,3 +119,54 @@ def test_account_page_displays_sqlite_path():
     assert 'id="dbpath"' in text
     assert "SQLite:" in text
     assert "RECUPERADA DESDE" in text
+
+
+def test_account_payload_ranks_strategies_by_logical_setup_profitability():
+    class Repository:
+        def latest_account_snapshot(self):
+            return None
+
+        def latest_account_stats_reset(self, source="DEMO"):
+            return None
+
+        def account_trade_history_dataframe(self, source="DEMO"):
+            return pd.DataFrame([
+                {
+                    "id": 1, "status": "CLOSED", "net_pnl": 12.0,
+                    "details": {"metadata": {
+                        "strategy_name": "ORB_NEW_YORK",
+                        "parent_execution_key": "ORB:1",
+                    }},
+                },
+                {
+                    "id": 2, "status": "CLOSED", "net_pnl": 8.0,
+                    "details": {"metadata": {
+                        "strategy_name": "ORB_NEW_YORK",
+                        "parent_execution_key": "ORB:1",
+                    }},
+                },
+                {
+                    "id": 3, "status": "CLOSED", "net_pnl": -7.0,
+                    "details": {"metadata": {
+                        "strategy_name": "FOREX",
+                        "parent_execution_key": "FOREX:1",
+                    }},
+                },
+            ])
+
+        def trade_visual_audit_entry_contexts(self, source="DEMO"):
+            return {}
+
+        def trade_audit_snapshot_summaries(self, source="DEMO"):
+            return {}
+
+        def database_diagnostics(self):
+            return {}
+
+    ranking = build_account_payload(Repository())["stats"]["by_strategy"]
+
+    assert [row["strategy"] for row in ranking] == ["ORB_NEW_YORK", "FOREX"]
+    assert ranking[0]["setups"] == 1
+    assert ranking[0]["net_pnl"] == 20.0
+    assert ranking[0]["average_pnl"] == 20.0
+    assert ranking[1]["profit_factor"] == 0.0

@@ -32,8 +32,8 @@ def test_account_page_fetch_checks_http_status():
     assert "SQLite/API:" in text
 
 
-def test_account_page_keeps_persistent_confirmation_column():
+def test_account_page_keeps_persistent_confirmation_audit():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"account_page.py").read_text(encoding="utf-8")
-    assert "Confirmaciones persistentes" in text
-    assert "Detalle técnico persistido" in text
+    assert "Cada auditoría muestra su resumen directamente" in text
+    assert "Ver auditoría completa ↗" in text

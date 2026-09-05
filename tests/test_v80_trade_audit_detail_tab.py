@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import subprocess
 
 def test_account_opens_trade_audit_in_new_tab():
     root=Path(__file__).resolve().parents[1]
@@ -31,3 +33,15 @@ def test_detail_page_exposes_timeline_and_evolution_metrics():
     assert 'MAE observado' in page
     assert 'LO QUE VEÍA EN ESE MOMENTO' in page
     assert 'Contexto técnico persistido' in page
+
+
+def test_trade_audit_page_javascript_is_valid(tmp_path):
+    root=Path(__file__).resolve().parents[1]
+    page=(root/"dashboard"/"trade_audit_page.py").read_text(encoding="utf-8")
+    script=re.search(r"<script>(.*)</script>", page, re.S).group(1)
+    js=tmp_path/"trade_audit_page.js"
+    js.write_text(script, encoding="utf-8")
+
+    result=subprocess.run(["node", "--check", str(js)], capture_output=True, text=True)
+
+    assert result.returncode == 0, result.stderr
