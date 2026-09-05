@@ -25,13 +25,25 @@ def _mixed_structure():
 
 
 def test_conflict_explanation_compares_supporting_and_opposing_patterns():
+    # v102: un patrón contrario más fuerte es CONTRA_MAS_FUERTE aunque el
+    # margen sea estrecho. Antes caía en FUERZAS_SIMILARES y no bloqueaba.
     supporting={"pattern":"TRIPLE_BOTTOM","direction":"BUY","strength":.78}
     conflicting={"pattern":"HEAD_AND_SHOULDERS","direction":"SELL","strength":.82}
     level,reason,delta=_explain_chart_pattern_conflict(supporting,conflicting,"BUY")
-    assert level=="FUERZAS_SIMILARES"
+    assert level=="CONTRA_MAS_FUERTE"
     assert "TRIPLE_BOTTOM BUY 78%" in reason
     assert "HEAD_AND_SHOULDERS SELL 82%" in reason
     assert delta==.04
+
+
+def test_similar_forces_require_aligned_pattern_to_hold_its_ground():
+    # FUERZAS_SIMILARES queda para el empate o una ventaja alineada estrecha.
+    supporting={"pattern":"TRIPLE_BOTTOM","direction":"BUY","strength":.82}
+    conflicting={"pattern":"HEAD_AND_SHOULDERS","direction":"SELL","strength":.78}
+    level,reason,delta=_explain_chart_pattern_conflict(supporting,conflicting,"BUY")
+    assert level=="FUERZAS_SIMILARES"
+    assert "fuerza similar" in reason
+    assert delta==-.04
 
 
 def test_stronger_opposing_pattern_is_identified():

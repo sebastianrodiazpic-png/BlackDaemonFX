@@ -340,10 +340,18 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
     except Exception as exc:
         db_info = {"error": str(exc)}
 
+    meta_labeling = None
+    try:
+        if hasattr(repository, "meta_label_decision_summary"):
+            meta_labeling = repository.meta_label_decision_summary(source=source)
+    except Exception as exc:
+        meta_labeling = {"error": str(exc)}
+
     return {
         "snapshot": snapshot,
         "stats": stats,
         "recent_trades": recent,
+        "meta_labeling": meta_labeling,
         "data_source": "SQLALCHEMY_LOCAL_ONLY",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "stats_reset": stats_reset,
@@ -354,6 +362,7 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             "history": "trade_journal",
             "entry_confirmations": "trade_visual_audits.entry_context_json",
             "entry_vs_now_history": "trade_audit_snapshots",
+            "meta_labeling": "daemon_audit_events.META_LABEL_SIGNAL_SCORED",
             "transient_dashboard_state_used": False,
         },
     }

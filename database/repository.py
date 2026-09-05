@@ -496,6 +496,153 @@ class TradingRepository:
             session.refresh(row)
             return int(row.id)
 
+    def meta_label_decision_summary(
+        self,
+        *,
+        source: str | None = None,
+        limit: int = 500,
+    ) -> dict:
+        """Resume las decisiones del meta-etiquetado para la pantalla Cuenta.
+
+        Lee los eventos META_LABEL_* de la bitácora. Estos eventos no están
+        sujetos a la política de retención operacional, así que el conteo
+        refleja el histórico completo de señales puntuadas por la IA.
+        """
+        summary = {
+            "analyzed_total": 0,
+            "shadow_scored": 0,
+            "filter_allowed": 0,
+            "filter_rejected": 0,
+            "trained_decisions": 0,
+            "untrained_decisions": 0,
+            "average_probability": None,
+            "average_net_expectancy_r": None,
+            "by_worker": [],
+            "rejection_reasons": [],
+            "last_trained_at": None,
+            "recent_decisions": [],
+        }
+
+        try:
+            with self.Session() as session:
+                rows = session.execute(
+                    select(DaemonAuditEvent)
+                    .where(DaemonAuditEvent.event_type == "META_LABEL_SIGNAL_SCORED")
+                    .where(
+                        DaemonAuditEvent.source == str(source).upper()
+                        if source else text("1=1")
+                    )
+                    .order_by(DaemonAuditEvent.event_time.desc(), DaemonAuditEvent.id.desc())
+                    .limit(max(1, int(limit)))
+                ).scalars().all()
+
+                trained_rows = session.execute(
+                    select(DaemonAuditEvent)
+                    .where(DaemonAuditEvent.event_type == "META_LABEL_MODEL_TRAINED")
+                    .order_by(DaemonAuditEvent.event_time.desc(), DaemonAuditEvent.id.desc())
+                    .limit(50)
+                ).scalars().all()
+        except Exception as exc:
+            summary["error"] = str(exc)
+            return summary
+
+        workers: dict[str, dict] = {}
+        reasons: dict[str, int] = {}
+        probabilities: list[float] = []
+        expectancies: list[float] = []
+
+        for row in rows:
+            try:
+                payload = json.loads(row.payload_json) if row.payload_json else {}
+            except Exception:
+                payload = {}
+            decision = payload.get("meta_label") if isinstance(payload, dict) else {}
+            if not isinstance(decision, dict):
+                decision = {}
+
+            summary["analyzed_total"] += 1
+            shadow = bool(decision.get("shadow"))
+            allowed = bool(decision.get("allowed", True))
+            trained = bool(decision.get("trained"))
+
+            if shadow:
+                summary["shadow_scored"] += 1
+            elif allowed:
+                summary["filter_allowed"] += 1
+            else:
+                summary["filter_rejected"] += 1
+
+            if trained:
+                summary["trained_decisions"] += 1
+                # Sin modelo entrenado la probabilidad es 0.0 por convención y
+                # promediarla distorsionaría la métrica mostrada.
+                try:
+                    probabilities.append(float(decision.get("probability") or 0.0))
+                    expectancies.append(float(decision.get("net_expectancy_r") or 0.0))
+                except (TypeError, ValueError):
+                    pass
+            else:
+                summary["untrained_decisions"] += 1
+
+            worker = str(decision.get("worker") or payload.get("bot_profile") or "DESCONOCIDO")
+            entry = workers.setdefault(worker, {
+                "worker": worker, "analyzed": 0, "allowed": 0,
+                "rejected": 0, "shadow": 0, "trained": False,
+            })
+            entry["analyzed"] += 1
+            entry["trained"] = bool(entry["trained"] or trained)
+            if shadow:
+                entry["shadow"] += 1
+            elif allowed:
+                entry["allowed"] += 1
+            else:
+                entry["rejected"] += 1
+
+            if not allowed and not shadow:
+                reason = str(decision.get("reason") or "SIN_MOTIVO")
+                reasons[reason] = reasons.get(reason, 0) + 1
+
+            if len(summary["recent_decisions"]) < 25:
+                summary["recent_decisions"].append({
+                    "event_time": row.event_time.isoformat() if row.event_time else None,
+                    "instrument": row.instrument,
+                    "worker": worker,
+                    "strategy_name": decision.get("strategy_name"),
+                    "mode": decision.get("mode"),
+                    "probability": decision.get("probability"),
+                    "net_expectancy_r": decision.get("net_expectancy_r"),
+                    "allowed": allowed,
+                    "shadow": shadow,
+                    "trained": trained,
+                    "reason": decision.get("reason"),
+                })
+
+        if probabilities:
+            summary["average_probability"] = round(sum(probabilities) / len(probabilities), 4)
+        if expectancies:
+            summary["average_net_expectancy_r"] = round(sum(expectancies) / len(expectancies), 4)
+
+        summary["by_worker"] = sorted(
+            workers.values(), key=lambda item: (-item["analyzed"], item["worker"])
+        )
+        summary["rejection_reasons"] = sorted(
+            ({"reason": key, "count": value} for key, value in reasons.items()),
+            key=lambda item: -item["count"],
+        )
+
+        for row in trained_rows:
+            try:
+                payload = json.loads(row.payload_json) if row.payload_json else {}
+            except Exception:
+                payload = {}
+            if isinstance(payload, dict) and payload.get("trained"):
+                summary["last_trained_at"] = (
+                    row.event_time.isoformat() if row.event_time else None
+                )
+                break
+
+        return summary
+
     # Sólo estos eventos de alta frecuencia están sujetos a retención. Las
     # entradas, salidas, incidentes de riesgo, auditorías visuales y journal de
     # trades permanecen fuera de esta política y no se eliminan.

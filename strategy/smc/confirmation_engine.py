@@ -372,11 +372,14 @@ def evaluate_m5_confirmation(
         if chart_pattern.get("chart_pattern_conflict") and not chart_conflict_blocked
         else 0.0
     )
-    raw_score = max(0.0, raw_score - chart_conflict_penalty)
 
     # v41: el score visible vuelve a ser una escala 0-100. Las confluencias
     # adicionales ya no pueden producir A+ de 105/110 ni compensar un gate crítico.
-    score = min(100.0, raw_score)
+    # v102: la penalización por conflicto chartista se descuenta DESPUÉS del
+    # recorte. Los pesos suman 110 y el bonus añade 8, así que restarla antes
+    # dejaba ~18 puntos de holgura donde el castigo era invisible: justo en los
+    # setups más fuertes, que es donde un patrón contrario importa más.
+    score = max(0.0, min(100.0, raw_score) - chart_conflict_penalty)
 
     # El porcentaje de confirmación es distinto al trade_score ponderado.
     # Sólo se cuentan condiciones que realmente forman parte del análisis activo.

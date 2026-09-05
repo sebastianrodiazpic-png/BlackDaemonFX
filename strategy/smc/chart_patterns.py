@@ -121,7 +121,13 @@ def _evidence(df, pattern, direction, strength, anchors, note):
 
 
 def _explain_chart_pattern_conflict(supporting, conflicting, wanted):
-    """Devuelve nivel, razón y delta sin alterar la decisión de trading."""
+    """Devuelve nivel, razón y delta sin alterar la decisión de trading.
+
+    Un patrón contrario estrictamente más fuerte que el alineado siempre es
+    CONTRA_MAS_FUERTE, aunque la diferencia sea pequeña. FUERZAS_SIMILARES
+    queda reservado al empate real o al caso en que el alineado domina por un
+    margen insuficiente para considerarlo superior.
+    """
     if not conflicting:
         return "NONE", None, None
 
@@ -136,7 +142,7 @@ def _explain_chart_pattern_conflict(supporting, conflicting, wanted):
             f"{oppose_strength*100:.0f}% sin patrón alineado equivalente para {wanted}.",
             delta,
         )
-    if oppose_strength > support_strength + 0.05:
+    if oppose_strength > support_strength:
         return (
             "CONTRA_MAS_FUERTE",
             f"{conflicting['pattern']} {conflicting['direction']} {oppose_strength*100:.0f}% "
@@ -144,7 +150,7 @@ def _explain_chart_pattern_conflict(supporting, conflicting, wanted):
             f"{support_strength*100:.0f}%.",
             delta,
         )
-    if abs(oppose_strength-support_strength) <= 0.05:
+    if support_strength - oppose_strength <= 0.05:
         return (
             "FUERZAS_SIMILARES",
             f"Patrones opuestos con fuerza similar: "

@@ -2403,6 +2403,34 @@ def run_database_maintenance(
 
 
 
+def run_train_meta_labeling(profiles=None, strategy_name: str = "ALL"):
+    """Entrena el meta-etiquetado de cada worker con su propio historial.
+
+    Cada perfil aprende sólo de sus operaciones: un modelo nunca mezcla el
+    comportamiento de dos workers distintos.
+    """
+    from database.repository import TradingRepository
+    from strategy.ai import MetaLabelingConfig, MetaLabelingEngine
+
+    repository = TradingRepository()
+
+    targets = [str(item).upper() for item in (profiles or [])]
+    if not targets:
+        targets = [
+            "SYNTHETICS", "BOOM", "CRASH", "VOLATILITY",
+            "STEP", "JUMP", "FLIP", "GOLD", "FOREX",
+        ]
+
+    trades = repository.trade_history_dataframe()
+    reports = {}
+    for worker in targets:
+        engine = MetaLabelingEngine(MetaLabelingConfig(), worker=worker)
+        reports[worker] = engine.train(trades, strategy_name=strategy_name)
+
+    print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+    return reports
+
+
 def run_reset_account_stats(confirm: bool = False):
     """Reinicia la ventana estadística de Cuenta activa sin borrar el historial físico."""
     from database.database import DEFAULT_DB_PATH
@@ -2480,6 +2508,7 @@ def main():
             "multi-bot-daemon",
             "unified-multibot-daemon",
             "report-daemon",
+            "train-meta-labeling",
         ],
         default="collect",
     )
@@ -2691,7 +2720,27 @@ def main():
         help="Segundos entre retención/checkpoint SQLite coordinados.",
     )
 
+    parser.add_argument(
+        "--meta-labeling-profiles",
+        nargs="*",
+        default=None,
+        help="Workers a entrenar en modo train-meta-labeling. Por defecto, todos.",
+    )
+
+    parser.add_argument(
+        "--meta-labeling-strategy",
+        default="ALL",
+        help="Estrategia a entrenar (SMC, ORB_NEW_YORK, ARPS o ALL).",
+    )
+
     args = parser.parse_args()
+
+    if args.mode == "train-meta-labeling":
+        run_train_meta_labeling(
+            profiles=args.meta_labeling_profiles,
+            strategy_name=args.meta_labeling_strategy,
+        )
+        return
 
     if args.reset_account_stats or args.mode == "reset-account-stats":
         run_reset_account_stats(confirm=args.confirm_reset_account_stats)

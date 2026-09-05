@@ -31,6 +31,11 @@ from strategy.orb.new_york_orb import (
     score_orb_gold_contract_candidate,
 )
 from services.financial_news_service import load_economic_calendar_state
+from strategy.ai import (
+    MetaLabelingConfig,
+    MetaLabelingEngine,
+    rank_signals,
+)
 
 
 _QUARANTINE_PROCESS_LOCK = threading.RLock()
@@ -158,6 +163,17 @@ class LiveTradingConfig:
     # el análisis M1 confirma la reversión.
     flip_reversal_protection_enabled: bool = True
     flip_reversal_protection_trigger_rr: float = 0.50
+
+    # v101: meta-etiquetado con IA. Cada worker entrena y puntúa por separado.
+    # SHADOW puntúa sin bloquear; FILTER exige probabilidad y expectativa neta.
+    meta_labeling_enabled: bool = True
+    meta_labeling_mode: str = "SHADOW"
+    meta_labeling_min_probability: float = 0.55
+    meta_labeling_min_net_expectancy_r: float = 0.10
+    meta_labeling_ranking_enabled: bool = True
+    meta_labeling_max_signals_per_cycle: int = 1
+    meta_labeling_model_directory: str = "storage/ai_models"
+    meta_labeling_min_training_samples: int = 30
 
     # v69: scheduler Forex por nueva vela cerrada M5.
     forex_event_scheduler_enabled: bool = True
@@ -419,6 +435,23 @@ class LiveTradingEngine:
             ),
             pipeline_config=self.pipeline_config,
         )
+
+        # v101: meta-etiquetado independiente por worker. El modelo de un perfil
+        # nunca contamina a otro: se entrena y persiste con su propio historial.
+        self.meta_labeling = MetaLabelingEngine(
+            MetaLabelingConfig(
+                enabled=bool(self.config.meta_labeling_enabled),
+                mode=str(self.config.meta_labeling_mode),
+                min_probability=float(self.config.meta_labeling_min_probability),
+                min_net_expectancy_r=float(self.config.meta_labeling_min_net_expectancy_r),
+                ranking_enabled=bool(self.config.meta_labeling_ranking_enabled),
+                max_signals_per_cycle=int(self.config.meta_labeling_max_signals_per_cycle),
+                model_directory=str(self.config.meta_labeling_model_directory),
+                min_training_samples=int(self.config.meta_labeling_min_training_samples),
+            ),
+            worker=str(self.config.bot_profile or "DEFAULT"),
+        )
+        self._meta_label_cycle_decisions = []
 
     def _quarantine_file(self) -> Path:
         path = Path(self.config.quarantine_path)
@@ -938,6 +971,19 @@ class LiveTradingEngine:
             },
             "risk_metrics": risk_metrics,
         }
+
+        meta_label = row.get("meta_label")
+        if not isinstance(meta_label, dict):
+            meta_label = signal.get("meta_label") if isinstance(signal.get("meta_label"), dict) else {}
+        if meta_label:
+            compact["meta_label"] = {
+                key: meta_label.get(key)
+                for key in (
+                    "mode", "probability", "net_expectancy_r",
+                    "allowed", "shadow", "reason", "trained",
+                )
+                if meta_label.get(key) is not None
+            }
         return {key: value for key, value in compact.items() if value not in (None, {}, [])}
 
     def _recover_unpersisted_open_positions(self):
@@ -3525,6 +3571,92 @@ class LiveTradingEngine:
     def _is_jump_symbol(symbol: str) -> bool:
         return "jump" in str(symbol or "").lower()
 
+    def _meta_label_gate(
+        self,
+        *,
+        symbol: str,
+        signal: dict,
+        analysis: dict,
+        strategy_name: str,
+    ) -> dict:
+        """Puntúa la señal con el meta-etiquetado del worker.
+
+        En SHADOW registra la probabilidad sin bloquear. En FILTER exige que
+        probabilidad y expectativa neta superen los umbrales configurados.
+        """
+        engine = getattr(self, "meta_labeling", None)
+        if engine is None:
+            return {"allowed": True, "reason": "META_LABELING_NOT_AVAILABLE"}
+
+        try:
+            decision = engine.score_signal(
+                symbol=str(symbol),
+                signal=signal,
+                analysis=analysis,
+                market={
+                    "planned_rr": signal.get("risk_reward_ratio"),
+                    "risk_percent": float(self.config.risk_percent),
+                    "entry_price": signal.get("entry_price"),
+                },
+                strategy_name=strategy_name,
+            ).to_dict()
+        except Exception as exc:
+            # Un fallo del modelo nunca debe impedir operar una señal válida.
+            return {"allowed": True, "reason": f"META_LABEL_ERROR:{exc}"}
+
+        self._meta_label_cycle_decisions.append(decision)
+        self._persist_audit_event(
+            "META_LABEL_SIGNAL_SCORED",
+            instrument=str(symbol),
+            action="SHADOW_SCORED" if decision.get("shadow") else (
+                "FILTER_ALLOWED" if decision.get("allowed") else "FILTER_REJECTED"
+            ),
+            reason=decision.get("reason"),
+            payload={"meta_label": decision},
+        )
+        return decision
+
+    def meta_label_cycle_ranking(self, *, reset: bool = True) -> list[dict]:
+        """Ordena las señales puntuadas del ciclo por expectativa y probabilidad."""
+        decisions = list(getattr(self, "_meta_label_cycle_decisions", []) or [])
+        if reset:
+            self._meta_label_cycle_decisions = []
+        if not decisions or not bool(self.config.meta_labeling_ranking_enabled):
+            return []
+        ranked = rank_signals(
+            decisions,
+            max_signals=int(self.config.meta_labeling_max_signals_per_cycle),
+        )
+        self._persist_audit_event(
+            "META_LABEL_CYCLE_RANKING",
+            action="SIGNALS_RANKED",
+            reason="RANKED_BY_NET_EXPECTANCY_AND_PROBABILITY",
+            payload={"ranking": ranked},
+        )
+        return ranked
+
+    def train_meta_labeling(self, *, strategy_name: str = "ALL") -> dict:
+        """Entrena el modelo del worker con su historial persistido."""
+        engine = getattr(self, "meta_labeling", None)
+        if engine is None:
+            return {"trained": False, "reason": "META_LABELING_NOT_AVAILABLE"}
+
+        reader = getattr(self.repository, "trade_history_dataframe", None)
+        if not callable(reader):
+            reader = getattr(self.repository, "trades_dataframe", None)
+        if not callable(reader):
+            return {"trained": False, "reason": "REPOSITORY_HAS_NO_TRADE_HISTORY"}
+
+        trades = reader(source=self.config.source)
+        report = engine.train(trades, strategy_name=strategy_name)
+        self._persist_audit_event(
+            "META_LABEL_MODEL_TRAINED",
+            action="MODEL_TRAINED" if report.get("trained") else "MODEL_NOT_TRAINED",
+            reason="TEMPORAL_VALIDATION_COMPLETED",
+            payload=report,
+        )
+        return report
+
     def _jump_quality_gate(self, symbol: str, signal: dict) -> dict | None:
         """Filtro extra para Jump basado en la muestra DEMO observada.
 
@@ -3902,6 +4034,24 @@ class LiveTradingEngine:
         strategy_name = str(signal.get("strategy_name") or analysis.get("strategy_name") or "SMC").upper()
         strategy_version = str(signal.get("strategy_version") or analysis.get("strategy_version") or self.config.strategy_version)
         key = self._execution_key(exact_symbol, signal["entry_time"], direction, strategy_name=strategy_name)
+
+        meta_label = self._meta_label_gate(
+            symbol=exact_symbol,
+            signal=signal,
+            analysis=analysis,
+            strategy_name=strategy_name,
+        )
+        signal["meta_label"] = meta_label
+        if not meta_label.get("allowed", True):
+            return {
+                "symbol": exact_symbol,
+                "action": "META_LABEL_FILTER_REJECTED",
+                "reason": meta_label.get("reason"),
+                "execution_key": key,
+                "direction": direction,
+                "meta_label": meta_label,
+                "analysis": analysis if self.config.diagnostic_mode else None,
+            }
 
         orb_exposure = self._orb_exposure_guard(exact_symbol, key, strategy_name)
         if orb_exposure is not None:
@@ -4775,6 +4925,7 @@ class LiveTradingEngine:
 
         results = []
         total = len(symbols)
+        self._meta_label_cycle_decisions = []
         for index, symbol in enumerate(symbols, start=1):
             symbol_started = time.monotonic()
             if before_symbol is not None:
@@ -4825,6 +4976,10 @@ class LiveTradingEngine:
                     result=result,
                     elapsed_seconds=elapsed_seconds,
                 )
+
+        # El ranking se publica al cerrar el ciclo, cuando ya se conocen todas
+        # las señales simultáneas y sus probabilidades.
+        self.meta_label_cycle_ranking()
 
         return results
 
