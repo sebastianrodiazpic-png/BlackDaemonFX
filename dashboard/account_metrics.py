@@ -23,6 +23,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 from trade_outcome_policy import decisive_outcome, is_break_even_rr
+from dashboard.winrate_pre_post import build_pre_post_summary, canonical_family
 
 
 def _metadata(trade):
@@ -181,6 +182,7 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             "entry_vs_now_history": "trade_audit_snapshots",
             "transient_dashboard_state_used": False,
         },
+        "winrate_pre_post": build_pre_post_summary([]),
     }
     if repository is None:
         return payload
@@ -272,6 +274,8 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         logical = logical_groups.setdefault(logical_key, {
             "strategy": strategy, "net_pnl": 0.0, "risk_amount": 0.0,
             "has_risk_amount": False, "all_emergency": True,
+            "strategy_version": trade.get("strategy_version"),
+            "family": canonical_family(trade.get("instrument"), meta.get("bot_profile")),
         })
         logical["net_pnl"] += pnl
         try:
@@ -345,6 +349,21 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         by_strategy.values(),
         key=lambda row: (-row["net_pnl"], -(row["profit_factor"] or 0), row["strategy"] or ""),
     )
+
+    # Comparativa PRE/POST de las mejoras de win rate (v106): usa el mismo
+    # outcome (WIN/LOSS/NEUTRAL) ya calculado por señal lógica arriba, para
+    # que esta cifra sea consistente con `setup_win_rate` y `by_strategy`.
+    pre_post_rows = [
+        {
+            "outcome": logical.get("outcome", "NEUTRAL"),
+            "strategy_version": logical.get("strategy_version"),
+            "family": logical.get("family", "OTHER"),
+        }
+        for logical in logical_groups.values()
+        if "outcome" in logical
+    ]
+    payload["winrate_pre_post"] = build_pre_post_summary(pre_post_rows)
+
     records.sort(key=lambda t: (str(t.get("entry_time") or ""), int(t.get("id") or 0)), reverse=True)
     recent = []
     for trade in (records if recent_limit is None else records[:max(1, int(recent_limit))]):
@@ -426,4 +445,5 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             "meta_labeling": "daemon_audit_events.META_LABEL_SIGNAL_SCORED",
             "transient_dashboard_state_used": False,
         },
+        "winrate_pre_post": payload["winrate_pre_post"],
     }

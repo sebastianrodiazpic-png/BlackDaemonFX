@@ -121,6 +121,32 @@ class PipelineConfig:
     divergence_rsi_period: int = 14
     divergence_lookback_candles: int = 80
     divergence_bonus_points: float = 5.0
+    fvg_enabled: bool = True
+    fvg_lookback: int = 30
+    fvg_max_age_candles: int = 10
+    fvg_require_alignment_with_zone: bool = False
+    fvg_bonus_points: float = 6.0
+    require_fvg: bool = False
+    synthetics_killzone_enabled: bool = False
+    synthetics_favorable_hour_ranges: tuple = ((13, 15), (17, 18), (22, 24))
+    synthetics_killzone_bonus_points: float = 5.0
+    require_synthetics_killzone: bool = False
+    round_number_enabled: bool = False
+    round_number_increment: float = 50.0
+    round_number_tolerance_price: float = 2.0
+    round_number_bonus_points: float = 4.0
+    require_round_number: bool = False
+    # v107: modelo "Asian Range + sweep" (solo GOLD). Cuando está activo, el
+    # sweep de `build_setups` solo cuenta si el nivel barrido pertenece al
+    # rango de consolidación asiático más reciente (no a cualquier pivote
+    # genérico). Es un gate MAS ESTRICTO sobre `sweep_ok`, no una confluencia
+    # adicional: por eso está desactivado por defecto para no afectar a
+    # Forex/Sintéticos/ORB.
+    asian_range_sweep_enabled: bool = False
+    asian_range_start_hour_utc: int = 22
+    asian_range_end_hour_utc: int = 6
+    asian_range_lookback_candles: int = 200
+    asian_range_tolerance_price: float = 0.0
 
     # Doji H1 en extremos: confluencia opcional, nunca requisito obligatorio.
     h1_doji_enabled: bool = True
@@ -133,7 +159,7 @@ class PipelineConfig:
 
 
 CHECKLIST_COLUMNS = [
-    'trend_ok', 'swing_ok', 'liquidity_ok', 'sweep_ok',
+    'trend_ok', 'swing_ok', 'liquidity_ok', 'sweep_ok', 'asian_range_ok',
     'structure_break_ok', 'order_block_ok', 'retest_ok',
     'premium_discount_ok', 'confirmation_ok',
 ]
@@ -214,6 +240,58 @@ def _trend_at(data: pd.DataFrame, break_index: int) -> str:
     return get_current_trend(data.iloc[: break_index + 1])
 
 
+def _asian_range_at(data: pd.DataFrame, reference_index: int, asian_start_hour: int, asian_end_hour: int, lookback_candles: int) -> tuple[float | None, float | None]:
+    """Rango (high, low) de la sesión asiática vigente hasta `reference_index`.
+
+    v107: soporte del modelo "Asian Range + sweep" para GOLD. Busca hacia
+    atrás, desde `reference_index`, el bloque continuo de velas más reciente
+    cuya hora UTC cae en `[asian_start_hour, asian_end_hour)` (con soporte de
+    rango que cruza medianoche, ej. 22-06h). Ese bloque define el rango cuya
+    liquidez debe ser barrida para que el sweep cuente como válido.
+
+    Args:
+        data: velas con columna `time` (UTC, tz-aware).
+        reference_index: posición de referencia (típicamente el índice del
+            barrido a validar); no mira hacia el futuro respecto de él.
+        asian_start_hour: hora UTC de inicio de la sesión asiática.
+        asian_end_hour: hora UTC de fin (puede ser menor que el inicio si
+            cruza medianoche, ej. 22 -> 6).
+        lookback_candles: cuántas velas hacia atrás se exploran como máximo.
+
+    Returns:
+        `(asian_high, asian_low)`, o `(None, None)` si no se encontró un
+        bloque asiático completo en la ventana de búsqueda.
+    """
+    if reference_index <= 0:
+        return None, None
+    start = max(0, reference_index - max(1, int(lookback_candles)))
+    window = data.iloc[start:reference_index]
+    if window.empty:
+        return None, None
+
+    def _in_asian_hours(hour: int) -> bool:
+        if asian_start_hour <= asian_end_hour:
+            return asian_start_hour <= hour < asian_end_hour
+        return hour >= asian_start_hour or hour < asian_end_hour
+
+    hours = window['time'].dt.hour
+    mask = hours.apply(_in_asian_hours)
+    asian_candles = window[mask]
+    if asian_candles.empty:
+        return None, None
+    # Se queda solo con el bloque contiguo mas reciente (evita mezclar dos
+    # sesiones asiaticas distintas si el lookback abarca varios dias).
+    contiguous_index = asian_candles.index[-1]
+    block_indices = [contiguous_index]
+    for idx in reversed(asian_candles.index[:-1]):
+        if idx == block_indices[-1] - 1:
+            block_indices.append(idx)
+        else:
+            break
+    block = data.loc[block_indices]
+    return float(block['high'].max()), float(block['low'].min())
+
+
 def build_setups(data: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
     """Construye los setups válidos a partir de los order blocks detectados.
 
@@ -248,6 +326,30 @@ def build_setups(data: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         sweep = _latest_sweep(data, direction, break_index, config.sweep_lookback)
         sweep_ok = sweep is not None
         liquidity_ok = bool(sweep_ok and pd.notna(sweep.get('sweep_level')))
+
+        # v107: modelo "Asian Range + sweep" (solo GOLD, desactivado por
+        # defecto). Si está activo, el barrido solo es válido cuando el nivel
+        # barrido pertenece al rango asiático más reciente respecto a la
+        # ruptura, no a cualquier pivote genérico.
+        asian_range_ok = True
+        if sweep_ok and bool(getattr(config, 'asian_range_sweep_enabled', False)):
+            sweep_index = data.index.get_indexer([sweep.name])[0] if sweep.name in data.index else break_index
+            asian_high, asian_low = _asian_range_at(
+                data, sweep_index,
+                int(getattr(config, 'asian_range_start_hour_utc', 22)),
+                int(getattr(config, 'asian_range_end_hour_utc', 6)),
+                int(getattr(config, 'asian_range_lookback_candles', 200)),
+            )
+            tolerance = float(getattr(config, 'asian_range_tolerance_price', 0.0))
+            sweep_level = float(sweep['sweep_level']) if pd.notna(sweep.get('sweep_level')) else None
+            if asian_high is None or asian_low is None or sweep_level is None:
+                asian_range_ok = False
+            elif direction == 'long':
+                # Bullish sweep: barre sell-side liquidity, debe estar cerca del low asiatico.
+                asian_range_ok = sweep_level <= asian_low + tolerance
+            else:
+                # Bearish sweep: barre buy-side liquidity, debe estar cerca del high asiatico.
+                asian_range_ok = sweep_level >= asian_high - tolerance
         trend = _trend_at(data, break_index)
         trend_ok = trend == ('BULLISH' if direction == 'long' else 'BEARISH')
         swing_ok = bool(
@@ -260,7 +362,7 @@ def build_setups(data: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
         structure_break_ok = structure_break_type in allowed_breaks
         order_block_ok = pd.notna(ob.get('ob_high')) and pd.notna(ob.get('ob_low'))
 
-        if not all((trend_ok, swing_ok, liquidity_ok, sweep_ok, structure_break_ok, order_block_ok, premium_discount_ok)):
+        if not all((trend_ok, swing_ok, liquidity_ok, sweep_ok, asian_range_ok, structure_break_ok, order_block_ok, premium_discount_ok)):
             continue
 
         rows.append({
@@ -274,6 +376,7 @@ def build_setups(data: pd.DataFrame, config: PipelineConfig) -> pd.DataFrame:
             'structure_break_type': structure_break_type,
             'trend_ok': bool(trend_ok), 'swing_ok': bool(swing_ok),
             'liquidity_ok': bool(liquidity_ok), 'sweep_ok': bool(sweep_ok),
+            'asian_range_ok': bool(asian_range_ok),
             'structure_break_ok': bool(structure_break_ok),
             'order_block_ok': bool(order_block_ok), 'retest_ok': False,
             'premium_discount_ok': bool(premium_discount_ok), 'confirmation_ok': False,
@@ -398,6 +501,21 @@ def run_trade_pipeline(
         divergence_rsi_period=getattr(config, "divergence_rsi_period", 14),
         divergence_lookback_candles=getattr(config, "divergence_lookback_candles", 80),
         divergence_bonus_points=getattr(config, "divergence_bonus_points", 5.0),
+        fvg_enabled=getattr(config, "fvg_enabled", True),
+        fvg_lookback=getattr(config, "fvg_lookback", 30),
+        fvg_max_age_candles=getattr(config, "fvg_max_age_candles", 10),
+        fvg_require_alignment_with_zone=getattr(config, "fvg_require_alignment_with_zone", False),
+        fvg_bonus_points=getattr(config, "fvg_bonus_points", 6.0),
+        require_fvg=getattr(config, "require_fvg", False),
+        synthetics_killzone_enabled=getattr(config, "synthetics_killzone_enabled", False),
+        synthetics_favorable_hour_ranges=getattr(config, "synthetics_favorable_hour_ranges", ((13, 15), (17, 18), (22, 24))),
+        synthetics_killzone_bonus_points=getattr(config, "synthetics_killzone_bonus_points", 5.0),
+        require_synthetics_killzone=getattr(config, "require_synthetics_killzone", False),
+        round_number_enabled=getattr(config, "round_number_enabled", False),
+        round_number_increment=getattr(config, "round_number_increment", 50.0),
+        round_number_tolerance_price=getattr(config, "round_number_tolerance_price", 2.0),
+        round_number_bonus_points=getattr(config, "round_number_bonus_points", 4.0),
+        require_round_number=getattr(config, "require_round_number", False),
     )
 
     confirmations = detect_entry_confirmations(

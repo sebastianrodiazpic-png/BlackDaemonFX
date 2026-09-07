@@ -33,6 +33,8 @@ import json
 import re
 import threading
 import time
+import zipfile
+from io import BytesIO
 from collections import deque
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -916,10 +918,12 @@ class RealtimeDashboardService:
         self._account_cache = {"at": now, "payload": payload}
         return payload
 
-    def _trade_audit_detail_payload(self, trade_id):
+    def _trade_audit_detail_payload(self, trade_id, account_payload=None):
         """Detalle completo de un trade y TODOS sus snapshots Entrada vs. Ahora."""
         trade_id = int(trade_id)
-        account = _json_safe(build_account_payload(self.repository, source="DEMO", recent_limit=None))
+        account = account_payload if account_payload is not None else _json_safe(
+            build_account_payload(self.repository, source="DEMO", recent_limit=None)
+        )
         trades = list(account.get("recent_trades") or [])
         trade = next(
             (
@@ -1365,6 +1369,112 @@ class RealtimeDashboardService:
                 cuerpo se limita a 64 KiB para no aceptar payloads abusivos.
                 """
                 path = urlparse(self.path).path
+                if path == "/api/account/trades/audit/excel/bulk":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                    except ValueError:
+                        length = 0
+                    if length <= 0 or length > 65536:
+                        payload = json.dumps(
+                            {"ok": False, "error": "Payload inválido"}, ensure_ascii=False
+                        ).encode("utf-8")
+                        self._send(payload, "application/json; charset=utf-8", HTTPStatus.BAD_REQUEST)
+                        return
+                    try:
+                        body = json.loads(self.rfile.read(length).decode("utf-8"))
+                        raw_ids = body.get("trade_ids") if isinstance(body, dict) else None
+                        trade_ids = sorted(
+                            {int(tid) for tid in raw_ids}
+                        ) if isinstance(raw_ids, list) else []
+                    except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        payload = json.dumps(
+                            {"ok": False, "error": f"Solicitud inválida: {exc}"}, ensure_ascii=False
+                        ).encode("utf-8")
+                        self._send(payload, "application/json; charset=utf-8", HTTPStatus.BAD_REQUEST)
+                        return
+                    if not trade_ids:
+                        payload = json.dumps(
+                            {"ok": False, "error": "No se seleccionó ningún trade"}, ensure_ascii=False
+                        ).encode("utf-8")
+                        self._send(payload, "application/json; charset=utf-8", HTTPStatus.BAD_REQUEST)
+                        return
+                    if len(trade_ids) > 200:
+                        payload = json.dumps(
+                            {"ok": False, "error": "Máximo 200 trades por descarga"}, ensure_ascii=False
+                        ).encode("utf-8")
+                        self._send(payload, "application/json; charset=utf-8", HTTPStatus.BAD_REQUEST)
+                        return
+                    export_dir = Path(__file__).resolve().parents[1] / "storage" / "exports" / "trade_audits"
+                    export_dir.mkdir(parents=True, exist_ok=True)
+                    failed: list[dict[str, Any]] = []
+                    zip_buffer = BytesIO()
+                    used_names: set[str] = set()
+                    # Se calcula UNA sola vez para todo el lote: reutilizar el mismo
+                    # payload de cuenta evita recomputar 99+ trades por cada
+                    # seleccionado, que era la causa de los timeouts del bulk-export.
+                    shared_account_payload = _json_safe(
+                        build_account_payload(service.repository, source="DEMO", recent_limit=None)
+                    )
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                        for trade_id in trade_ids:
+                            detail = service._trade_audit_detail_payload(
+                                trade_id, account_payload=shared_account_payload
+                            )
+                            if not detail.get("ok"):
+                                failed.append({
+                                    "trade_id": trade_id,
+                                    "error": detail.get("error") or "Trade no encontrado",
+                                })
+                                continue
+                            trade = detail.get("trade") or {}
+                            instrument = re.sub(
+                                r"[^A-Za-z0-9._-]+", "_", str(trade.get("instrument") or "trade")
+                            )[:50]
+                            entry_name = f"DaemonBlackFx_Auditoria_{instrument}_Trade_{trade_id}.xlsx"
+                            if entry_name in used_names:
+                                entry_name = f"DaemonBlackFx_Auditoria_{instrument}_Trade_{trade_id}_{time.time_ns()}.xlsx"
+                            used_names.add(entry_name)
+                            tmp_path = export_dir / (
+                                f".bulk.{threading.get_ident()}.{time.time_ns()}.tmp.xlsx"
+                            )
+                            try:
+                                TradeAuditExcelExporter(tmp_path).export(detail)
+                                archive.writestr(entry_name, tmp_path.read_bytes())
+                            except Exception as exc:
+                                failed.append({"trade_id": trade_id, "error": str(exc)})
+                            finally:
+                                try:
+                                    tmp_path.unlink(missing_ok=True)
+                                except Exception:
+                                    pass
+                        if failed:
+                            summary_lines = [
+                                f"Trade {item['trade_id']}: {item['error']}" for item in failed
+                            ]
+                            archive.writestr(
+                                "ERRORES.txt",
+                                "No se pudieron exportar los siguientes trades:\n"
+                                + "\n".join(summary_lines),
+                            )
+                    exported_count = len(trade_ids) - len(failed)
+                    if exported_count == 0:
+                        payload = json.dumps(
+                            {
+                                "ok": False,
+                                "error": "No fue posible generar ningún Excel de auditoría",
+                                "failed": failed,
+                            },
+                            ensure_ascii=False,
+                        ).encode("utf-8")
+                        self._send(
+                            payload,
+                            "application/json; charset=utf-8",
+                            HTTPStatus.UNPROCESSABLE_ENTITY,
+                        )
+                        return
+                    filename = f"DaemonBlackFx_Auditorias_Lote_{time.strftime('%Y%m%d_%H%M%S')}.zip"
+                    self._send_download(zip_buffer.getvalue(), filename, "application/zip")
+                    return
                 worker_control_match = re.fullmatch(
                     r"/api/workers/([A-Za-z0-9_-]+)/enabled",
                     path,

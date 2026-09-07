@@ -108,8 +108,10 @@ def test_tp1_close_immediately_protects_runner_at_be_plus_two_points():
     broker.current=106.0
     result=engine._monitor_break_even_positions()
     assert result["activated"] == 1
-    assert broker.sl == 100.02
-    assert tx.moves[0][1] == 100.02
+    # v105: riesgo=10 (entry 100, stop inicial 90) x fracción 0.3 -> +3.0 de
+    # ganancia real bloqueada, además del offset de 2 points (0.02).
+    assert broker.sl == 103.02
+    assert tx.moves[0][1] == 103.02
     assert repo.runner["details"]["metadata"]["break_even_activation_reason"] == "TP1_CLOSED_IN_PROFIT"
 
 

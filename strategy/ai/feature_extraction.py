@@ -1,6 +1,6 @@
 """Extracción de características para el meta-etiquetado.
 
-Todas las estrategias (SMC, ORB, ARPS) se normalizan al mismo vector para que
+Todas las estrategias (SMC, ORB) se normalizan al mismo vector para que
 un worker pueda entrenar y puntuar con una representación estable.
 """
 

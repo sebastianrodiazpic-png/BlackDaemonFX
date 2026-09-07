@@ -13,5 +13,5 @@ Vinculaciones:
   comportamiento observado con la version que lo produjo.
 """
 
-DAEMONBLACKFX_VERSION = "v100-entry-quality-recoverable-quarantine-winrate-audit"
-BUILD_DATE = "2026-09-03"
+DAEMONBLACKFX_VERSION = "v106-winrate-improvements-be-session-m15-invalidation"
+BUILD_DATE = "2026-09-07"

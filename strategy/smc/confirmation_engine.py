@@ -29,6 +29,47 @@ import pandas as pd
 
 from strategy.smc.harmonic_patterns import HarmonicConfig, detect_harmonic_confirmation
 from strategy.smc.chart_patterns import ChartPatternConfig, detect_chart_pattern_confirmation
+from strategy.smc.fair_value_gap import FVGConfig, detect_fvg_confirmation
+from strategy.smc.round_number_levels import RoundNumberConfig, detect_round_number_confirmation
+
+
+def _detect_synthetics_killzone_confirmation(
+    data: pd.DataFrame,
+    confirmation_index: int,
+    enabled: bool,
+    favorable_hour_ranges,
+    bonus_points: float,
+) -> dict[str, Any]:
+    """Confluencia (no gate) de "killzone favorable" para Sintéticos.
+
+    Complementa a `_synthetics_low_edge_session_gate` (blacklist binaria,
+    sigue vigente sin cambios). Aquí solo se SUMA puntos si la vela de
+    confirmación cae dentro de una franja UTC con WR historico alto
+    (13-15h, 17-18h, 22-23h observado sobre 82 trades reales); nunca resta
+    ni bloquea por sí sola.
+
+    Returns:
+        Dict con `synthetics_killzone_enabled`, `synthetics_killzone_confirmed`,
+        `synthetics_killzone_hour`.
+    """
+    result = {
+        "synthetics_killzone_enabled": bool(enabled),
+        "synthetics_killzone_confirmed": False,
+        "synthetics_killzone_hour": None,
+    }
+    if not enabled:
+        return result
+    try:
+        candle_time = data.iloc[confirmation_index].get("time")
+        hour = int(pd.Timestamp(candle_time).hour)
+    except (TypeError, ValueError, IndexError, KeyError):
+        return result
+    result["synthetics_killzone_hour"] = hour
+    for start_hour, end_hour in favorable_hour_ranges:
+        if int(start_hour) <= hour < int(end_hour):
+            result["synthetics_killzone_confirmed"] = True
+            break
+    return result
 
 
 @dataclass(frozen=True)
@@ -103,6 +144,35 @@ class M5ConfirmationConfig:
     # por sí solos una invalidación estructural. Sólo domina un patrón contrario
     # ausente de apoyo o claramente más fuerte.
     block_similar_chart_pattern_forces: bool = False
+    # v107: Fair Value Gap / imbalance como confluencia SMC ponderada. Antes
+    # solo se dibujaba como contexto visual auxiliar en el dashboard; ahora
+    # también puede sumar bonus de score cuando está alineado con la
+    # dirección de la señal y aún no fue rellenado.
+    fvg_enabled: bool = True
+    fvg_lookback: int = 30
+    fvg_max_age_candles: int = 10
+    fvg_require_alignment_with_zone: bool = False
+    fvg_bonus_points: float = 6.0
+    require_fvg: bool = False
+    # v107: confluencia de "killzone favorable" para Sintéticos. El gate
+    # binario `_synthetics_low_edge_session_gate` (blacklist de horas malas)
+    # se mantiene intacto; esto es una confluencia ADICIONAL y opcional que
+    # suma puntos si la vela de confirmación cae en una franja horaria
+    # históricamente fuerte (50-100% WR real observado). No aplica a
+    # Forex/GOLD por defecto (`synthetics_killzone_enabled=False` salvo que
+    # el pipeline de Sintéticos lo active explícitamente).
+    synthetics_killzone_enabled: bool = False
+    synthetics_favorable_hour_ranges: tuple = ((13, 15), (17, 18), (22, 24))
+    synthetics_killzone_bonus_points: float = 5.0
+    require_synthetics_killzone: bool = False
+    # v107: niveles psicológicos redondos ($50/$100), confluencia específica
+    # de XAUUSD documentada en la literatura SMC/ICT para gold. Deshabilitada
+    # por defecto: solo el perfil GOLD la activa explícitamente.
+    round_number_enabled: bool = False
+    round_number_increment: float = 50.0
+    round_number_tolerance_price: float = 2.0
+    round_number_bonus_points: float = 4.0
+    require_round_number: bool = False
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -498,6 +568,42 @@ def evaluate_m5_confirmation(
         confirmation_index=confirmation_index,
     )
 
+    fvg = detect_fvg_confirmation(
+        data,
+        direction,
+        confirmation_index,
+        FVGConfig(
+            enabled=config.fvg_enabled,
+            lookback=config.fvg_lookback,
+            max_age_candles=config.fvg_max_age_candles,
+            require_alignment_with_zone=config.fvg_require_alignment_with_zone,
+            bonus_points=config.fvg_bonus_points,
+            require_pattern=config.require_fvg,
+        ),
+        zone_low=ob_low,
+        zone_high=ob_high,
+    )
+
+    synthetics_killzone = _detect_synthetics_killzone_confirmation(
+        data,
+        confirmation_index,
+        enabled=config.synthetics_killzone_enabled,
+        favorable_hour_ranges=config.synthetics_favorable_hour_ranges,
+        bonus_points=config.synthetics_killzone_bonus_points,
+    )
+
+    round_number = detect_round_number_confirmation(
+        ob_low,
+        ob_high,
+        RoundNumberConfig(
+            enabled=config.round_number_enabled,
+            increment=config.round_number_increment,
+            tolerance_price=config.round_number_tolerance_price,
+            bonus_points=config.round_number_bonus_points,
+            require_pattern=config.require_round_number,
+        ),
+    )
+
     chart_pattern = detect_chart_pattern_confirmation(
         data,
         direction,
@@ -534,6 +640,9 @@ def evaluate_m5_confirmation(
         "harmonic_confirmation": bool(harmonic["harmonic_confirmed"]),
         "divergence_confirmation": divergence_structure_pressure,
         "chart_pattern_confirmation": bool(chart_pattern["chart_pattern_confirmed"]),
+        "fvg_confirmation": bool(fvg["fvg_confirmed"]),
+        "synthetics_killzone_confirmation": bool(synthetics_killzone["synthetics_killzone_confirmed"]),
+        "round_number_confirmation": bool(round_number["round_number_confirmed"]),
     }
 
     weights = {
@@ -549,6 +658,12 @@ def evaluate_m5_confirmation(
         raw_score += float(config.divergence_bonus_points)
     if chart_pattern["chart_pattern_confirmed"]:
         raw_score += float(config.chart_patterns_bonus_points)
+    if fvg["fvg_confirmed"]:
+        raw_score += float(config.fvg_bonus_points)
+    if synthetics_killzone["synthetics_killzone_confirmed"]:
+        raw_score += float(config.synthetics_killzone_bonus_points)
+    if round_number["round_number_confirmed"]:
+        raw_score += float(config.round_number_bonus_points)
 
     conflict_level = str(chart_pattern.get("chart_pattern_conflict_level") or "NONE").upper()
     material_conflict_levels = {"DOMINANT_CONTRA", "CONTRA_MAS_FUERTE"}
@@ -591,6 +706,15 @@ def evaluate_m5_confirmation(
     # evaluated_keys unless explicitly required; absence never penalizes legacy SMC.
     if config.require_chart_pattern:
         evaluated_keys.append("chart_pattern_confirmation")
+    # v107: igual criterio que armónicos/patrones chartistas: el FVG es
+    # confluencia opcional, su ausencia solo penaliza el ratio si se exige
+    # explícitamente con `require_fvg`.
+    if config.require_fvg:
+        evaluated_keys.append("fvg_confirmation")
+    if config.require_synthetics_killzone:
+        evaluated_keys.append("synthetics_killzone_confirmation")
+    if config.require_round_number:
+        evaluated_keys.append("round_number_confirmation")
 
     passed_keys = [key for key in evaluated_keys if bool(context.get(key, False))]
     failed_keys = [key for key in evaluated_keys if not bool(context.get(key, False))]
@@ -714,4 +838,7 @@ def evaluate_m5_confirmation(
         **divergence,
         **harmonic,
         **chart_pattern,
+        **fvg,
+        **synthetics_killzone,
+        **round_number,
     }

@@ -211,7 +211,17 @@ class ORBConfig:
     apertura en lugar de en el borde opuesto, acortando el riesgo.
 
     `one_signal_per_session` evita reentrar el mismo dia tras una ruptura ya
-    aprovechada.
+    aprovechada. Ahora SI se aplica: la estrategia recuerda, por simbolo y
+    fecha NY, la vela de ruptura de la primera señal confirmada del dia y
+    bloquea cualquier señal posterior basada en OTRA ruptura ese mismo dia.
+
+    `require_breakout_volume_confirmation` exige que la vela de ruptura
+    tenga volumen por encima del promedio reciente, evitando operar rupturas
+    "débiles" sin participación real (causa habitual de falsos breakouts).
+
+    `max_opening_range_atr_multiple` limita la amplitud aceptable del rango
+    de apertura respecto del ATR reciente. Un rango demasiado ancho implica
+    un stop (al 50%) igualmente ancho y un riesgo desproporcionado.
     """
 
     enabled: bool = True
@@ -232,6 +242,12 @@ class ORBConfig:
     stop_mode: str = "MIDPOINT"  # v61: protección estructural al 50% del ORB
     stop_buffer_fraction: float = 0.0
     one_signal_per_session: bool = True
+    require_breakout_volume_confirmation: bool = True
+    breakout_volume_lookback: int = 20
+    breakout_volume_multiplier: float = 1.2
+    require_max_opening_range_atr: bool = True
+    opening_range_atr_period: int = 14
+    max_opening_range_atr_multiple: float = 1.5
 
 
 class NewYorkORBStrategy:
@@ -255,6 +271,11 @@ class NewYorkORBStrategy:
         self.data_provider = data_provider
         self.config = config or ORBConfig()
         self.tz = ZoneInfo(self.config.timezone_name)
+        # Memoria de "una señal por sesión": guarda, por símbolo, la fecha NY
+        # y la vela de ruptura ya aprovechada. Vive en memoria del proceso;
+        # se reinicia solo al reiniciar el daemon, lo cual es correcto porque
+        # cada día NY es una sesión nueva de todas formas.
+        self._session_signal_memory: dict[str, tuple[str, str]] = {}
 
     def _session_bounds(self, now_utc: datetime):
         """Calcula los hitos horarios de la sesión para el día en curso.
@@ -376,6 +397,74 @@ class NewYorkORBStrategy:
             bucket_volume[idx] += max(0.0, float(vol))
         idx = max(range(bins), key=lambda i: bucket_volume[i])
         return low + (idx + 0.5) * width
+
+    @staticmethod
+    def _average_true_range(df: pd.DataFrame, period: int = 14) -> float | None:
+        """ATR simple sobre las velas recibidas (sin suavizado de Wilder).
+
+        Se usa solo como referencia de amplitud típica reciente para filtrar
+        rangos de apertura anormalmente anchos, no como stop.
+
+        Returns:
+            El ATR, o `None` si no hay suficientes velas.
+        """
+        if df.empty or len(df) < 2:
+            return None
+        high = pd.to_numeric(df["high"], errors="coerce")
+        low = pd.to_numeric(df["low"], errors="coerce")
+        close = pd.to_numeric(df["close"], errors="coerce")
+        prev_close = close.shift(1)
+        true_range = pd.concat([
+            (high - low).abs(),
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        window = true_range.dropna().tail(max(1, int(period)))
+        if window.empty:
+            return None
+        value = float(window.mean())
+        return value if math.isfinite(value) and value > 0 else None
+
+    @staticmethod
+    def _breakout_volume_confirmed(
+        df: pd.DataFrame,
+        breakout_time,
+        lookback: int = 20,
+        multiplier: float = 1.2,
+    ) -> tuple[bool | None, float | None, float | None]:
+        """Compara el volumen de la vela de ruptura contra el promedio reciente.
+
+        Evita operar rupturas "de baja convicción": sin participación real,
+        el breakout es más propenso a ser una trampa de liquidez que
+        continuación genuina.
+
+        Args:
+            df: velas de la sesión ya ordenadas por tiempo.
+            breakout_time: timestamp de la vela de ruptura.
+            lookback: cuántas velas previas usar de referencia.
+            multiplier: umbral mínimo (volumen_ruptura >= promedio * multiplier).
+
+        Returns:
+            Tupla `(confirmado, volumen_ruptura, promedio_referencia)`.
+            `confirmado` es `None` cuando no hay volumen fiable disponible
+            (no penaliza al desconocer el dato).
+        """
+        volume = NewYorkORBStrategy._volume_column(df)
+        if float(volume.sum()) <= 0:
+            return None, None, None
+        prior = df[df["time"] < breakout_time]
+        reference = volume.loc[prior.index].tail(max(1, int(lookback)))
+        if reference.empty:
+            return None, None, None
+        breakout_rows = df[df["time"] == breakout_time]
+        if breakout_rows.empty:
+            return None, None, None
+        breakout_volume = float(volume.loc[breakout_rows.index[-1]])
+        avg_volume = float(reference.mean())
+        if avg_volume <= 0:
+            return None, breakout_volume, avg_volume
+        confirmed = breakout_volume >= avg_volume * max(0.0, float(multiplier))
+        return bool(confirmed), breakout_volume, avg_volume
 
     def _prepare_candles(self, symbol: str, now_utc: datetime) -> pd.DataFrame:
         """Descarga las velas y descarta las que aún no han cerrado.
@@ -503,6 +592,31 @@ class NewYorkORBStrategy:
         if not math.isfinite(range_size) or range_size <= 0:
             return {**base, "action": "INVALID_OPENING_RANGE", "reason": "RANGO_ORB_SIN_AMPLITUD"}
 
+        # Filtro de amplitud: un rango de apertura demasiado ancho respecto
+        # del ATR reciente implica un stop (al 50%) desproporcionadamente
+        # grande. Se calcula el ATR con las velas previas a la apertura de
+        # la sesion, para no incluir el propio rango en su propia referencia.
+        pre_open = df[df["time_ny"] < open_ny]
+        atr_reference = self._average_true_range(
+            pre_open, period=int(getattr(self.config, "opening_range_atr_period", 14))
+        )
+        max_atr_multiple = float(getattr(self.config, "max_opening_range_atr_multiple", 1.5))
+        range_atr_ratio = (range_size / atr_reference) if atr_reference else None
+        if bool(getattr(self.config, "require_max_opening_range_atr", True)) and atr_reference:
+            if range_atr_ratio is not None and range_atr_ratio > max_atr_multiple:
+                return {
+                    **base,
+                    "action": "OPENING_RANGE_TOO_WIDE",
+                    "reason": "RANGO_ORB_EXCEDE_MULTIPLO_MAXIMO_DE_ATR",
+                    "opening_range_high": range_high,
+                    "opening_range_low": range_low,
+                    "opening_range_midpoint": midpoint,
+                    "opening_range_size": range_size,
+                    "opening_range_atr_reference": atr_reference,
+                    "opening_range_atr_ratio": range_atr_ratio,
+                    "opening_range_atr_max_multiple": max_atr_multiple,
+                }
+
         post_range = session[session["time_ny"] >= range_end_ny].copy()
         if post_range.empty:
             return {
@@ -589,6 +703,9 @@ class NewYorkORBStrategy:
                 else "tick_volume" if "tick_volume" in through_candidate
                 else "fallback"
             ),
+            "opening_range_atr_reference": atr_reference,
+            "opening_range_atr_ratio": range_atr_ratio,
+            "opening_range_atr_max_multiple": max_atr_multiple,
         }
 
         if direction is None:
@@ -599,6 +716,31 @@ class NewYorkORBStrategy:
             )
             return {**base, **diagnostics, "action": "WAITING_M5_BREAKOUT_RETEST", "reason": reason}
 
+        # one_signal_per_session: si ya se aprovechó una ruptura distinta ese
+        # mismo día NY para este símbolo, no se generan señales adicionales
+        # basadas en otra vela de ruptura (evita sobre-operar el mismo día).
+        session_date_str = str(now_ny.date())
+        breakout_key = str(pd.Timestamp(breakout["time"]).isoformat())
+        if bool(getattr(self.config, "one_signal_per_session", True)):
+            remembered = self._session_signal_memory.get(str(symbol))
+            if remembered is not None and remembered[0] == session_date_str and remembered[1] != breakout_key:
+                return {
+                    **base, **diagnostics, "direction": direction,
+                    "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
+                    "reason": "YA_SE_UTILIZO_UNA_RUPTURA_DISTINTA_ESTA_SESION",
+                    "session_previous_breakout_time": remembered[1],
+                }
+
+        breakout_volume_confirmed, breakout_volume, breakout_volume_reference = self._breakout_volume_confirmed(
+            through_candidate,
+            breakout["time"],
+            lookback=int(getattr(self.config, "breakout_volume_lookback", 20)),
+            multiplier=float(getattr(self.config, "breakout_volume_multiplier", 1.2)),
+        )
+        diagnostics["breakout_volume"] = breakout_volume
+        diagnostics["breakout_volume_reference_avg"] = breakout_volume_reference
+        diagnostics["breakout_volume_confirmed"] = breakout_volume_confirmed
+
         vwap_ok = vwap_buy_ok if direction == "BUY" else vwap_sell_ok
         poc_ok = poc_buy_ok if direction == "BUY" else poc_sell_ok
         failed = []
@@ -606,12 +748,18 @@ class NewYorkORBStrategy:
             failed.append("VWAP_NO_ALINEADO_CON_RETEST")
         if bool(self.config.require_poc_alignment) and not poc_ok:
             failed.append("POC_NO_ALINEADO_CON_RETEST")
+        if (
+            bool(getattr(self.config, "require_breakout_volume_confirmation", True))
+            and breakout_volume_confirmed is False
+        ):
+            failed.append("RUPTURA_SIN_VOLUMEN_SUFICIENTE")
         if failed:
             return {
                 **base, **diagnostics, "direction": direction,
                 "action": "ORB_RETEST_FILTERED", "reason": ",".join(failed),
                 "rejection_reasons": failed,
             }
+
 
         # v61: protección exacta en el 50% del Opening Range.
         # Sin buffer adicional: el midpoint es el nivel estructural de invalidación.
@@ -632,10 +780,17 @@ class NewYorkORBStrategy:
             "new_york_session": True,
             "eligible_market": True,
             "stop_at_orb_50_percent": True,
+            "opening_range_atr_within_limit": atr_reference is None or bool(
+                range_atr_ratio is not None and range_atr_ratio <= max_atr_multiple
+            ),
+            "breakout_volume_confirmed": breakout_volume_confirmed is not False,
         }
         passed = [name for name, ok in confirmations.items() if ok]
         missing = [name for name, ok in confirmations.items() if not ok]
         percentage = round(len(passed) / len(confirmations) * 100.0, 2)
+
+        if bool(getattr(self.config, "one_signal_per_session", True)):
+            self._session_signal_memory[str(symbol)] = (session_date_str, breakout_key)
 
         signal = {
             "strategy_name": "ORB_NEW_YORK",

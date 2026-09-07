@@ -90,8 +90,11 @@ def test_daemon_moves_live_position_to_break_even_at_one_r():
 
     assert result["activated"] == 1
     assert trade_executor.calls[0][0] == "123"
-    assert trade_executor.calls[0][1] == 100.02
-    assert repo.trade["stop_loss"] == 100.02
+    # v105: el BE ya no solo cubre spread/offset (100.02): bloquea además una
+    # fracción del riesgo inicial como ganancia real. Riesgo=10 (entry 100,
+    # stop inicial 90) x break_even_profit_lock_rr_fraction=0.3 -> +3.0.
+    assert trade_executor.calls[0][1] == 103.02
+    assert repo.trade["stop_loss"] == 103.02
     assert repo.trade["details"]["metadata"]["break_even_activated"] is True
 
 
@@ -190,7 +193,9 @@ def test_runner_moves_to_break_even_when_tp1_closed_even_after_price_retrace():
     result = engine._monitor_break_even_positions()
 
     assert result["activated"] == 1
-    assert trade_executor.calls[0][1] == 100.02
+    # v105: riesgo=10 (entry 100, stop inicial 90) x fracción 0.3 -> +3.0 de
+    # ganancia real bloqueada, además del offset de 2 points (0.02).
+    assert trade_executor.calls[0][1] == 103.02
     metadata = repo.trade["details"]["metadata"]
     assert metadata["break_even_activated"] is True
     assert metadata["break_even_activation_reason"] == "TP1_CLOSED_IN_PROFIT"
@@ -230,4 +235,6 @@ def test_runner_sell_break_even_uses_two_points_in_favorable_direction():
     result = engine._monitor_break_even_positions()
 
     assert result["activated"] == 1
-    assert trade_executor.calls[0][1] == 99.98
+    # v105: riesgo=10 (entry 100, stop inicial 110 en SELL) x fracción 0.3
+    # -> -3.0 de ganancia real bloqueada, restando el offset de 2 points.
+    assert trade_executor.calls[0][1] == 96.98

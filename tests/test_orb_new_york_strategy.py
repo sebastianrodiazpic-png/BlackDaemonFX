@@ -53,10 +53,17 @@ def _session_candles(direction="BUY", valid_retest=True):
                     o,c,h,l = 98.9,99.2,100.1,98.6  # toca OR low=100 y cierra debajo
                 else:
                     o,c,h,l = 98.9,99.0,99.5,98.6
+        # v107: volumen ajustado para que la ruptura M5 (indice 3) tenga
+        # participacion suficiente frente al promedio previo, sin desplazar
+        # el POC lejos del retest (mantiene el escenario de exito original).
+        volumes = [100, 101, 102, 130, 140]
         rows.append({
             "time": ts, "open": o, "high": h, "low": l, "close": c,
-            "tick_volume": 100 + i, "real_volume": 0,
+            "tick_volume": volumes[i], "real_volume": 0,
         })
+
+
+
     return pd.DataFrame(rows)
 
 

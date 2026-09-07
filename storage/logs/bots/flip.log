@@ -94060,3 +94060,3414 @@ Próximo ciclo en: 29.98s
 [MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
 [MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
 [MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 8628.92, 'equity': 8714.99, 'margin': 275.41, 'free_margin': 8353.51, 'profit': 86.07, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 7, 16, 2, 25, 282395, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 8353.51, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash Boom Flip 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 18783}
+[OK] SYMBOL:Crash Boom Flip 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 5165}
+[OK] SYMBOL:Crash Boom Flip 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 86279}
+[OK] SYMBOL:Crash Boom Flip 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 30584}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v106-winrate-improvements-be-session-m15-invalidation
+BOT ACTIVO: FLIP | MAGIC=26082106 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 8628.92 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-07 16:02:31 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 5.44s
+[01/04] END   Crash Boom Flip 1000 Index | 21.81s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.45s
+[02/04] END   Crash Boom Flip 150 Index | 19.51s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.04s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.39s
+[04/04] END   Crash Boom Flip 500 Index | 6.13s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 51.55s
+Intervalo objetivo: 30s
+Próximo ciclo en: 30.00s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.13s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0002 | 2026-09-07 16:03:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.17s
+
+========================================================================================
+CICLO #0003 | 2026-09-07 16:04:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+
+========================================================================================
+CICLO #0004 | 2026-09-07 16:04:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.13s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0005 | 2026-09-07 16:05:22 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.67s
+[01/04] END   Crash Boom Flip 1000 Index | 3.99s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.74s
+[02/04] END   Crash Boom Flip 150 Index | 1.03s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.06s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.80s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 5.98s
+Intervalo objetivo: 30s
+Próximo ciclo en: 24.02s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0006 | 2026-09-07 16:05:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0007 | 2026-09-07 16:06:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0008 | 2026-09-07 16:06:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.18s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.82s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.22s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.10s
+
+========================================================================================
+CICLO #0009 | 2026-09-07 16:07:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 8628.92, 'equity': 8735.16, 'margin': 275.41, 'free_margin': 8353.51, 'profit': 106.24, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 7, 16, 7, 50, 570912, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 8353.51, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash Boom Flip 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 18783}
+[OK] SYMBOL:Crash Boom Flip 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 5165}
+[OK] SYMBOL:Crash Boom Flip 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 86279}
+[OK] SYMBOL:Crash Boom F[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 7.33s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 3.78s
+
+========================================================================================
+CICLO #0011 | 2026-09-07 16:08:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.17s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.15s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.59s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.23s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.28s
+
+========================================================================================
+CICLO #0012 | 2026-09-07 16:08:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.21s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0013 | 2026-09-07 16:09:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0014 | 2026-09-07 16:09:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0015 | 2026-09-07 16:10:22 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.03s
+[01/04] END   Crash Boom Flip 1000 Index | 13.95s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 2.79s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.04s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 1.16s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 19.27s
+Intervalo objetivo: 30s
+Próximo ciclo en: 10.73s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.18s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.16s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+
+========================================================================================
+CICLO #0016 | 2026-09-07 16:10:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0017 | 2026-09-07 16:11:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.24s
+
+========================================================================================
+CICLO #0018 | 2026-09-07 16:11:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.46s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.54s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.18s
+
+========================================================================================
+CICLO #0019 | 2026-09-07 16:12:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0020 | 2026-09-07 16:12:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0021 | 2026-09-07 16:13:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.25s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0022 | 2026-09-07 16:13:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+
+========================================================================================
+CICLO #0023 | 2026-09-07 16:14:22 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0024 | 2026-09-07 16:14:52 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.12s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.88s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.14s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.50s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.26s
+
+========================================================================================
+CICLO #0025 | 2026-09-07 16:15:22 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 29.18s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 2.59s[[02/04] END   Crash Boom Flip 150 Index | 15.93s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index[03/04] END   Crash Boom Flip 300 Index | 1.09s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.21s
+[04/04] END   Crash Boom Flip 500 Index | 14.81s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 75.57s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 45.57s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-07 16:16:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.07s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.93s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.25s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0015 | 2026-09-07 16:16:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.05s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.95s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.16s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+
+========================================================================================
+CICLO #0016 | 2026-09-07 16:17:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0017 | 2026-09-07 16:17:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0017
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0018 | 2026-09-07 16:18:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0018
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0019 | 2026-09-07 16:18:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0019
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0020 | 2026-09-07 16:19:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0020
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0021 | 2026-09-07 16:19:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0021
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+
+========================================================================================
+CICLO #0022 | 2026-09-07 16:20:24 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.27s
+[01/04] END   Crash Boom Flip 1000 Index | 8.62s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 3.17s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.03s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.80s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0022
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 13.18s
+Intervalo objetivo: 30s
+Próximo ciclo en: 16.82s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0023 | 2026-09-07 16:20:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0023
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0024 | 2026-09-07 16:21:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0025 | 2026-09-07 16:21:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0026 | 2026-09-07 16:22:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0026
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0027 | 2026-09-07 16:22:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0027
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0028 | 2026-09-07 16:23:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0028
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.47s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\app\main.py", line 3305, in <module>
+    main()
+    ~~~~^^
+  File "C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\app\main.py", line 3103, in main
+    run_demo_bot(
+    ~~~~~~~~~~~~^
+        symbols,
+        ^^^^^^^^
+    ...<13 lines>...
+        auto_export=False,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\app\main.py", line 524, in run_demo_bot
+    provider.prepare_symbols(symbols)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\brokers\mt5_data.py", line 303, in prepare_symbols
+    return [self.ensure_symbol(symbol) for symbol in symbols]
+            ~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\brokers\mt5_data.py", line 259, in ensure_symbol
+    [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 4.47s
+
+========================================================================================
+CICLO #
+========================================================================================
+CICLO #0030 | 2026-09-07 16:24:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0030
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 7.71s
+Intervalo objetivo: 30s
+Próximo ciclo en: 22.29s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.19s
+
+========================================================================================
+CICLO #0043 | 2026-09-07 16:24:47 UTC | símbolos=0
+=====================================================
+========================================================================================
+CICLO #0031 | 2026-09-07 16:24:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0031
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en:[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.88s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.14s
+
+========================================================================================
+CICLO #
+========================================================================================
+CICLO #0032 | 2026-09-07 16:25:24 UTC | símbolos=4
+=================================[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.30s
+[01/04] END   Crash Boom Flip 1000 Index | 25.43s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 1.83s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.03s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 3.55s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0044
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 38.11s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 8.11s
+----------------------------------------------------------------------------------------
+
+==================================================
+========================================================================================
+CICLO #0033 | 2026-09-07 16:25:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0033
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.09s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.91s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ
+=============================================
+========================================================================================
+CICLO #0046 | 2026-09-07 16:26:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0046
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.04s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.96s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ
+=============================================
+========================================================================================
+CICLO #0047 | 2026-09-07 16:26:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0047
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ
+========================================================================================
+CICLO #0036 | 2026-09-07 16:27:24 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #
+========================================================================================
+CICLO #0048 | 2026-09-07 16:27:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0048
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE [MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activ
+========================================================================================
+CICLO #0037 | 2026-09-07 16:27:54 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0037
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 6.90s
+Intervalo objetivo: 30s
+Próximo ciclo en: 23.10s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0038 | 2026-09-07 16:28:24 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0050 | 2026-09-07 16:28:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0050
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0039 | 2026-09-07 16:28:54 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0051 | 2026-09-07 16:29:01 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0051
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+-------------------------------------------[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0040 | 2026-09-07 16:29:24 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0052 | 2026-09-07 16:29:31 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0052
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.06s
+
+=============================================
+========================================================================================
+CICLO #0053 | 2026-09-07 16:30:58 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 12.55s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.03s
+[02/04] END   Crash Boom Flip 150 Index | 6.03s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 15.44s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 7.05s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0053
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 43.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 13.17s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0054 | 2026-09-07 16:31:41 UTC | símbolo----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0042
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 43.50s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 13.50s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0043 | 2026-09-07 16:31:41 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0055 | 2026-09-07 16:32:11 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0055
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------
+========================================================================================
+CICLO #0044 | 2026-09-07 16:32:11 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+
+========================================================================================
+CICLO #0056 | 2026-09-07 16:32:41 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0056
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------
+========================================================================================
+CICLO #0045 | 2026-09-07 16:32:41 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.13s
+
+========================================================================================
+CICLO #0057 | 2026-09-07 16:33:11 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0057
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.26s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.74s
+-------------------------------------------
+========================================================================================
+CICLO #0046 | 2026-09-07 16:33:11 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0058 | 2026-09-07 16:33:41 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0058
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+-------------------------------------------
+========================================================================================
+CICLO #0047 | 2026-09-07 16:33:41 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0059 | 2026-09-07 16:34:11 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0059
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------
+========================================================================================
+CICLO #0048 | 2026-09-07 16:34:11 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0060 | 2026-09-07 16:34:41 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0060
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+-------------------------------------------
+========================================================================================
+CICLO #0049 | 2026-09-07 16:34:41 UTC | símbolos=0
+=[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+
+========================================================================================
+CICLO #0061 | 2026-09-07 16:35:11 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 12.68s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.87s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.02s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.69s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] END   Crash Boom Flip 150 Index | 3.76s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.02s | STALE M5 SIGNAL
+    Motivo: M5_CONFIR
+========================================================================================
+CICLO #0062 | 2026-09-07 16:35:44 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 49.55s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 19.55s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0063 | 2026-09-07 16:36:33 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.65s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.35s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0064 | 2026-09-07 16:37:05 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0064
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 38.17s
+Intervalo objetivo: 30s
+Próximo ciclo en: 0.00s
+[AVISO] Ciclo excedio el intervalo por: 8.17s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0065 | 2026-09-07 16:37:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0065
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.60s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.40s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0066 | 2026-09-07 16:38:13 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0066
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0067 | 2026-09-07 16:38:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0067
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0068 | 2026-09-07 16:39:13 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0068
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0069 | 2026-09-07 16:39:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0069
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.16s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.12s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0070 | 2026-09-07 16:40:13 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.93s
+[01/04] END   Crash Boom Flip 1000 Index | 3.92s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.96s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.03s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.82s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0070
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 7.58s
+Intervalo objetivo: 30s
+Próximo ciclo en: 22.42s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.24s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0071 | 2026-09-07 16:40:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0071
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0072 | 2026-09-07 16:41:13 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0072
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0073 | 2026-09-07 16:41:43 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0073
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+===================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0061
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0062 | 2026-09-07 16:41:11 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0062
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0063 | 2026-09-07 16:41:41 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0063
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+nner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0024 | 2026-09-07 16:41:17 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0024
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0025 | 2026-09-07 16:41:47 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0025
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 8628.92, 'equity': 8756.97, 'margin': 275.41, 'free_margin': 8353.51, 'profit': 128.05, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 7, 16, 48, 8, 439060, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 8353.51, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash Boom Flip 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 18783}
+[OK] SYMBOL:Crash Boom Flip 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 5165}
+[OK] SYMBOL:Crash Boom Flip 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 86279}
+[OK] SYMBOL:Crash Boom Flip 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 30584}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v106-winrate-improvements-be-session-m15-invalidation
+BOT ACTIVO: FLIP | MAGIC=26082106 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 8628.92 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-07 16:48:12 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 5.45s
+[01/04] END   Crash Boom Flip 1000 Index | 17.15s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.20s
+[02/04] END   Crash Boom Flip 150 Index | 14.79s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.05s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.25s
+[04/04] END   Crash Boom Flip 500 Index | 8.02s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 43.96s
+Intervalo objetivo: 30s
+Próximo ciclo en: 30.00s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0002 | 2026-09-07 16:49:25 UTC | símbolos=3
+========================================================================================
+[01/03] START Crash Boom Flip 1000 Index
+[01/03] END   Crash Boom Flip 1000 Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/03] START Crash Boom Flip 150 Index
+[02/03] END   Crash Boom Flip 150 Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/03] START Crash Boom Flip 500 Index
+[03/03] END   Crash Boom Flip 500 Index | 0.01s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 3
+Sin señal: 0
+Esperando/otros: 3
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.06s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.94s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0003 | 2026-09-07 16:49:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0004 | 2026-09-07 16:50:25 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 1.82s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.40s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.01s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.31s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 2.64s
+Intervalo objetivo: 30s
+Próximo ciclo en: 27.36s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0005 | 2026-09-07 16:50:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0006 | 2026-09-07 16:51:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.09s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.13s
+
+========================================================================================
+CICLO #0007 | 2026-09-07 16:51:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0008 | 2026-09-07 16:52:25 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.16s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.84s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0009 | 2026-09-07 16:52:55 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+
+========================================================================================
+CICLO #0010 | 2026-09-07 16:53:26 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.50s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.50s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0011 | 2026-09-07 16:53:56 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+
+========================================================================================
+CICLO #0012 | 2026-09-07 16:54:26 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.54s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.46s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0013 | 2026-09-07 16:54:56 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0014 | 2026-09-07 16:55:26 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 2.38s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.35s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.01s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.30s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 3.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 26.92s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0015 | 2026-09-07 16:55:56 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0015
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.08s
+
+========================================================================================
+CICLO #0016 | 2026-09-07 16:56:26 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0016
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 8628.92, 'equity': 8780.55, 'margin': 275.41, 'free_margin': 8353.51, 'profit': 151.63, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 7, 16, 57, 38, 260047, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 8353.51, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash Boom Flip 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 18783}
+[OK] SYMBOL:Crash Boom Flip 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 5165}
+[OK] SYMBOL:Crash Boom Flip 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 86279}
+[OK] SYMBOL:Crash Boom Flip 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 30584}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v106-winrate-improvements-be-session-m15-invalidation
+BOT ACTIVO: FLIP | MAGIC=26082106 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 8628.92 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-07 16:57:42 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 6.92s
+[01/04] END   Crash Boom Flip 1000 Index | 20.50s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.52s
+[02/04] END   Crash Boom Flip 150 Index | 13.32s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.10s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.67s
+[04/04] END   Crash Boom Flip 500 Index | 6.37s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 45.65s
+Intervalo objetivo: 30s
+Próximo ciclo en: 30.00s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.10s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0002 | 2026-09-07 16:58:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.08s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.92s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.07s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0003 | 2026-09-07 16:59:28 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.06s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0004 | 2026-09-07 16:59:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.22s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.78s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0005 | 2026-09-07 17:00:28 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.66s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.67s
+[01/04] END   Crash Boom Flip 1000 Index | 8.61s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.38s
+[02/04] END   Crash Boom Flip 150 Index | 8.39s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 0.02s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 1.02s
+[04/04] END   Crash Boom Flip 500 Index | 4.81s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 21.89s
+Intervalo objetivo: 30s
+Próximo ciclo en: 8.11s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+[MONITOR BACKGROUND_MONITOR] posiciones=2 | BE activados=0 | runner eventos=0 | cierres=0 | 0.04s
+
+========================================================================================
+CICLO #0006 | 2026-09-07 17:00:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0007 | 2026-09-07 17:01:28 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.05s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0008 | 2026-09-07 17:01:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0009 | 2026-09-07 17:02:28 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0010 | 2026-09-07 17:02:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+
+========================================================================================
+CICLO #0011 | 2026-09-07 17:03:28 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.02s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+[MONITOR BACKGROUND_MONITOR] posiciones=1 | BE activados=0 | runner eventos=0 | cierres=0 | 0.03s
+
+========================================================================================
+CICLO #0012 | 2026-09-07 17:03:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-07 17:04:28 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-07 17:04:58 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0015 | 2026-09-07 17:05:28 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 1.96s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.47s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 1.33s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.37s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+========================================================================
+DERIV DEMO EXECUTION PREFLIGHT
+========================================================================
+[OK] MT5_ACCOUNT_INFO {'login': 41108926, 'server': 'Deriv-Demo', 'currency': 'USD', 'balance': 8795.61, 'equity': 8794.63, 'margin': 224.43, 'free_margin': 8570.2, 'profit': -0.98, 'leverage': 1000, 'trade_mode': 0, 'snapshot_time': datetime.datetime(2026, 9, 7, 17, 18, 5, 752035, tzinfo=datetime.timezone.utc), 'broker': 'MT5'}
+[OK] MT5_TERMINAL_CONNECTED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] MT5_AUTOTRADING_ALLOWED {'trade_allowed': True, 'tradeapi_disabled': False}
+[OK] DEMO_ACCOUNT {'trade_mode': 0, 'server': 'Deriv-Demo'}
+[OK] FREE_MARGIN {'free_margin': 8570.2, 'required': 0.0}
+[OK] DATABASE_READY {}
+[OK] SYMBOL:Crash Boom Flip 1000 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 18783}
+[OK] SYMBOL:Crash Boom Flip 150 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 5165}
+[OK] SYMBOL:Crash Boom Flip 300 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 86279}
+[OK] SYMBOL:Crash Boom Flip 500 Index {'visible': True, 'trade_mode': 4, 'volume_min': 0.1, 'volume_step': 0.01, 'point': 0.0001, 'stops_level_points': 30584}
+========================================================================
+STATUS: READY FOR DEMO EXECUTION
+DAEMONBLACKFX VERSION: v106-winrate-improvements-be-session-m15-invalidation
+BOT ACTIVO: FLIP | MAGIC=26082106 | ESTRATEGIA=SMC/ORB | instrumentos=4 | auto_export=False
+========================================================================================
+BOT SMC MT5 - DERIV DEMO
+========================================================================================
+Cuenta: 41108926 | Servidor: Deriv-Demo
+Balance: 8795.61 USD
+Modo: EJECUCIÓN DEMO
+Riesgo por trade: 1.00% | R:R mínimo: 1.50
+Intervalo: 30s | Símbolos: 4
+Reporte XLSX: C:\TradingBoot\smc_synthetic_bot.worktrees\log-analysis-project-issues\storage\exports\deriv_demo_trading_report.xlsx
+Pipeline: SMC -> TradeLifecycleManager -> MT5TradeExecutor -> SQLite -> XLSX
+========================================================================================
+Daemon activo: señales=30s | monitor posiciones/BE=2s | símbolos=4
+Progreso: se mostrará cada símbolo y su tiempo de análisis.
+{'action': 'POSITION_MONITOR_STARTED', 'signal_interval_seconds': 30, 'position_monitor_interval_seconds': 2, 'monitor_mode': 'BACKGROUND_DECOUPLED'}
+
+========================================================================================
+CICLO #0001 | 2026-09-07 17:18:09 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 6.89s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 5.92s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 8.03s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 4.69s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0001
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 28.60s
+Intervalo objetivo: 30s
+Próximo ciclo en: 30.00s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0002 | 2026-09-07 17:19:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0002
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0003 | 2026-09-07 17:19:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0003
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0004 | 2026-09-07 17:20:07 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 2.67s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 1.76s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 1.79s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.58s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0004
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 6.82s
+Intervalo objetivo: 30s
+Próximo ciclo en: 23.18s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0005 | 2026-09-07 17:20:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0005
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0006 | 2026-09-07 17:21:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0006
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0007 | 2026-09-07 17:21:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0007
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0008 | 2026-09-07 17:22:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0008
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0009 | 2026-09-07 17:22:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0009
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0010 | 2026-09-07 17:23:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0010
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0011 | 2026-09-07 17:23:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0011
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.03s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.97s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0012 | 2026-09-07 17:24:07 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0012
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.02s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.98s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0013 | 2026-09-07 17:24:37 UTC | símbolos=0
+========================================================================================
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0013
+Símbolos analizados: 0
+Sin señal: 0
+Esperando/otros: 0
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 0.01s
+Intervalo objetivo: 30s
+Próximo ciclo en: 29.99s
+----------------------------------------------------------------------------------------
+
+========================================================================================
+CICLO #0014 | 2026-09-07 17:25:07 UTC | símbolos=4
+========================================================================================
+[01/04] START Crash Boom Flip 1000 Index
+[01/04] END   Crash Boom Flip 1000 Index | 2.89s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+[02/04] START Crash Boom Flip 150 Index
+[02/04] END   Crash Boom Flip 150 Index | 0.79s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+    Confirmaciones: 12/13 | 92.3% | calidad=100.00 | decisión=RECHAZADA
+    Faltantes: rechazo del precio
+    Críticas faltantes: BOS REQUIRES REJECTION, MATERIAL CHART PATTERN CONFLICT
+    Rechazo técnico: bos rejection not confirmed, chart pattern conflict blocked, rechazo del precio no confirmado, falta una confirmación estructural crítica
+[03/04] START Crash Boom Flip 300 Index
+[03/04] END   Crash Boom Flip 300 Index | 2.01s | STALE M5 SIGNAL
+    Motivo: M5_CONFIRMATION_TOO_OLD_FOR_LIVE_ENTRY
+[04/04] START Crash Boom Flip 500 Index
+[04/04] END   Crash Boom Flip 500 Index | 0.68s | NO M5 CONFIRMATION
+    Motivo: NO_DIRECTIONAL_M5_CONFIRMATION
+----------------------------------------------------------------------------------------
+RESUMEN DEL CICLO #0014
+Símbolos analizados: 4
+Sin señal: 0
+Esperando/otros: 4
+Señales rechazadas: 0
+Bloqueadas por estado/límites: 0
+Validadas DRY RUN: 0
+Nuevas órdenes: 0
+Operaciones cerradas sincronizadas: 0
+Errores: 0
+Duración del ciclo: 6.42s
+Intervalo objetivo: 30s
+Próximo ciclo en: 23.58s
+----------------------------------------------------------------------------------------
+Bot detenido por el usuario.

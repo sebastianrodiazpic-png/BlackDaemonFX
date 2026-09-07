@@ -145,6 +145,13 @@ class LiveTradingConfig:
     break_even_trigger_rr: float = 1.0
     # BE protector: desplaza el SL hacia beneficio para cubrir spread/costes.
     break_even_offset_points: int = 2
+    # v105: el BE clásico (entrada + spread/offset) solo evita pérdida, pero no
+    # asegura ninguna ganancia real. Los 8 cierres BREAKEVEN observados en la
+    # cuenta real cerraron con ~0.03R en promedio pese a haber alcanzado 1R de
+    # favor. Bloqueamos una fracción del riesgo inicial como ganancia mínima
+    # al activar el BE, para que "asegurar operación" también capture parte de
+    # la ganancia ya alcanzada, no solo cubra costes.
+    break_even_profit_lock_rr_fraction: float = 0.3
     break_even_confirmation_retries: int = 3
     break_even_confirmation_delay_seconds: float = 0.20
     orb_correlated_entry_min_break_even_offset_points: int = 2
@@ -153,6 +160,15 @@ class LiveTradingConfig:
     background_position_monitor_enabled: bool = True
     position_monitor_audit_interval_seconds: float = 30.0
     strategy_evaluation_audit_interval_seconds: float = 300.0
+    # v104: mitigación del arranque en frío. El primer ciclo tras iniciar el
+    # worker no tiene ninguna etapa H1/M15/M5 en caché, así que analiza todos
+    # los símbolos desde cero y es estructuralmente más lento que el resto.
+    # Escalonar ese ciclo evita saturar al broker con ráfagas simultáneas de
+    # peticiones, y excluirlo del aviso de overrun refleja que su duración es
+    # esperada, no una degradación del intervalo objetivo.
+    cold_start_batch_size: int = 5
+    cold_start_batch_delay_seconds: float = 0.5
+    cold_start_exclude_from_overrun: bool = True
     # La gestión de SL/BE conserva su frecuencia rápida, pero los cuatro marcos
     # visuales se reconstruyen con menor cadencia en el hilo del monitor.
     visual_audit_refresh_seconds: float = 30.0
@@ -212,6 +228,15 @@ class LiveTradingConfig:
     # v95: salida defensiva únicamente cuando la reevaluación vigente invalida
     # la tesis en velas M5 cerradas distintas y consecutivas. No sustituye el
     # SL estructural ni cierra por una lectura aislada.
+    # v105: el criterio de cierre ya NO exige alcanzar un RR de pérdida
+    # mínimo (antes -0.35R): basta con que la invalidación estructural quede
+    # confirmada (`analysis_invalidation_confirmations` velas consecutivas)
+    # para salir de inmediato, sin esperar a que la pérdida crezca. El campo
+    # `analysis_invalidation_exit_rr` se conserva solo por compatibilidad de
+    # configuraciones/metadata antiguas; ya no gatea el cierre.
+    # v106: `analysis_invalidation_confirmations` ahora cuenta velas M15
+    # cerradas (más contexto), no M5. El comportamiento del precio que
+    # determina si la tesis se invalidó sigue analizándose en M5.
     analysis_invalidation_exit_enabled: bool = True
     analysis_invalidation_exit_rr: float = -0.35
     analysis_invalidation_confirmations: int = 2
@@ -260,6 +285,10 @@ class LiveTradingConfig:
     gold_new_york_open_minute: int = 30
     gold_take_profit_at_new_york_rr: float = 1.0
     gold_break_even_positive_at_new_york: bool = True
+    # v107: modelo "Asian Range + sweep" para GOLD (ver PipelineConfig en
+    # trade_pipeline.py). Solo se activa cuando bot_profile == GOLD.
+    gold_asian_range_sweep_enabled: bool = True
+    gold_asian_range_tolerance_price: float = 2.0
 
     # Riesgo agregado Forex compartido vía SQLAlchemy.
     # Una divisa no puede acumular más de 1% de riesgo lógico abierto.
@@ -271,6 +300,16 @@ class LiveTradingConfig:
     forex_high_impact_news_before_minutes: int = 15
     forex_high_impact_news_after_minutes: int = 15
     forex_high_impact_news_calendar_path: str = "storage/dashboard/financial_news.json"
+    # v107: killzone Londres/NY para Forex. La literatura SMC coincide en que
+    # operar SOLO dentro de estas ventanas mejora el win rate (mayor volumen
+    # institucional); antes Forex era el único perfil sin ningún filtro
+    # horario (a diferencia de GOLD y Sintéticos). Igual que en Sintéticos,
+    # una señal de confluencia muy alta se exceptúa del filtro.
+    forex_killzone_filter_enabled: bool = True
+    forex_killzone_timezone: str = "UTC"
+    forex_london_killzone_hour_range: tuple = (7, 10)
+    forex_new_york_killzone_hour_range: tuple = (13, 16)
+    forex_killzone_high_confluence_override_pct: float = 90.0
     # v85: ORB ya no usa un techo global de 1%. Sólo evita duplicar exposición
     # entre S&P 500 y Nasdaq 100 hasta que la primera operación tenga BE real.
     orb_equity_correlation_guard_enabled: bool = True
@@ -329,7 +368,12 @@ class LiveTradingConfig:
     h1_doji_min_rejection_wick_ratio: float = 0.35
     h1_doji_bonus_points: float = 5.0
 
-    strategy_version: str = "smc-v100-volatility-normalized-chart-risk-buffer"
+    # v106: los 3 cambios de mejora de win rate (BE profit-lock, filtro de
+    # horas de bajo edge en sintéticos, salida por invalidación M15) quedan
+    # marcados en esta versión. Sirve como frontera PRE/POST para comparar
+    # el win rate antes y después del despliegue (ver
+    # `tools/winrate_pre_post_report.py`).
+    strategy_version: str = "smc-v106-winrate-improvements-be-session-m15-invalidation"
 
 
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
@@ -371,6 +415,17 @@ class LiveTradingConfig:
     forex_london_session_start_minute: int = 0
     forex_force_flat_daily: bool = True
     forex_force_flat_friday: bool = True
+
+    # v105: los cierres reales muestran WR ~13% en 01:00-11:59 UTC y ~14% en
+    # 18:00-19:59 UTC para los sintéticos (BOOM/CRASH/VOLATILITY/STEP/JUMP/
+    # FLIP), frente a ~55% en el resto de franjas. GOLD y Forex ya tenían
+    # filtro de sesión; los sintéticos operaban 24/7 sin ninguno. Se bloquean
+    # nuevas entradas en esas franjas salvo que la señal tenga una confluencia
+    # M5 muy alta (90-100%), que sí puede tomarse pese al horario débil.
+    synthetics_session_filter_enabled: bool = True
+    synthetics_session_filter_timezone: str = "UTC"
+    synthetics_low_edge_hour_ranges: tuple = ((1, 12), (18, 20))
+    synthetics_session_filter_high_confluence_override_pct: float = 90.0
 
     # False = solo analiza y calcula la operación; no envía órdenes.
     execution_enabled: bool = False
@@ -469,6 +524,33 @@ class LiveTradingEngine:
             h1_doji_extreme_fraction=float(self.config.h1_doji_extreme_fraction),
             h1_doji_min_rejection_wick_ratio=float(self.config.h1_doji_min_rejection_wick_ratio),
             h1_doji_bonus_points=float(self.config.h1_doji_bonus_points),
+            fvg_enabled=bool(getattr(self.config, "fvg_enabled", True)),
+            fvg_lookback=int(getattr(self.config, "fvg_lookback", 30)),
+            fvg_max_age_candles=int(getattr(self.config, "fvg_max_age_candles", 10)),
+            fvg_require_alignment_with_zone=bool(getattr(self.config, "fvg_require_alignment_with_zone", False)),
+            fvg_bonus_points=float(getattr(self.config, "fvg_bonus_points", 6.0)),
+            require_fvg=bool(getattr(self.config, "require_fvg", False)),
+            # Solo se activa para la familia Sintéticos: es una confluencia
+            # adicional (no gate) que refuerza el score en horas favorables,
+            # sin afectar Forex/GOLD ni reemplazar el gate binario existente.
+            synthetics_killzone_enabled=self._is_synthetics_profile_name(self.config.bot_profile),
+            synthetics_favorable_hour_ranges=tuple(
+                getattr(self.config, "synthetics_favorable_hour_ranges", ((13, 15), (17, 18), (22, 24)))
+            ),
+            synthetics_killzone_bonus_points=float(getattr(self.config, "synthetics_killzone_bonus_points", 5.0)),
+            require_synthetics_killzone=bool(getattr(self.config, "require_synthetics_killzone", False)),
+            # Solo se activa para el perfil GOLD: confluencia especifica de
+            # XAUUSD documentada en la literatura SMC (niveles $50/$100).
+            round_number_enabled=str(self.config.bot_profile or "").upper() == "GOLD",
+            round_number_increment=float(getattr(self.config, "round_number_increment", 50.0)),
+            round_number_tolerance_price=float(getattr(self.config, "round_number_tolerance_price", 2.0)),
+            round_number_bonus_points=float(getattr(self.config, "round_number_bonus_points", 4.0)),
+            require_round_number=bool(getattr(self.config, "require_round_number", False)),
+            asian_range_sweep_enabled=(
+                str(self.config.bot_profile or "").upper() == "GOLD"
+                and bool(getattr(self.config, "gold_asian_range_sweep_enabled", True))
+            ),
+            asian_range_tolerance_price=float(getattr(self.config, "gold_asian_range_tolerance_price", 2.0)),
         )
         self.lifecycle_manager = lifecycle_manager
         self.reporting_service = reporting_service
@@ -1276,6 +1358,23 @@ class LiveTradingEngine:
         return False
 
     @staticmethod
+    def _is_synthetics_profile_name(bot_profile: str) -> bool:
+        """True si `bot_profile` es un perfil de Sintéticos (Boom/Crash/Volatility/Step/Jump/Flip).
+
+        v107: se usa para omitir metadata de runner TP3/TP4
+        (`runner_max_target_rr`, `runner_tp3_guard_*`, `runner_tp4_guard_*`)
+        que nunca se usa en Sintéticos, porque `_manage_runner_extension`
+        siempre corta con `SYNTHETICS_FIXED_TP2_TARGET` antes de llegar a esa
+        lógica (ver esa función más abajo). Antes esos campos se calculaban
+        igual para todos los perfiles no-ORB, generando ruido en la
+        metadata/auditoría de trades de Sintéticos.
+        """
+        profile = LiveTradingEngine._canonical_bot_profile(bot_profile)
+        return profile.startswith("VOLATILITY") or profile in {
+            "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
+        }
+
+    @staticmethod
     def _uses_forex_style_smc_management(bot_profile: str) -> bool:
         """Perfiles SMC con la misma gestión progresiva de Forex.
 
@@ -1395,6 +1494,135 @@ class LiveTradingEngine:
             "action": "GOLD_SMC_SESSION_CLOSED",
             "reason": "XAUUSD_ENTRADAS_SOLO_ASIA_HASTA_NY_0930_O_LONDRES_08_A_12",
             "gold_session": state,
+        }
+
+    def _synthetics_low_edge_session_gate(self, symbol: str, signal: dict, now_utc=None):
+        """PUERTA DE ENTRADA: bloquea nuevas entradas sintéticas en franjas de baja efectividad.
+
+        Solo aplica a la familia BOOM/CRASH/VOLATILITY/STEP/JUMP/FLIP. El
+        análisis de los 82 trades reales cerrados mostró WR ~13%-14% en las
+        franjas 01:00-11:59 y 18:00-19:59 (huso configurable, UTC por
+        defecto), frente a ~55% en el resto del día. Una señal con
+        confluencia M5 muy alta (>= `synthetics_session_filter_high_confluence_override_pct`)
+        se exceptúa: una confirmación casi perfecta puede tomarse incluso en
+        horario débil.
+
+        Args:
+            symbol: instrumento evaluado.
+            signal: señal M5 ya validada, se usa su `confirmation_percentage`.
+            now_utc: instante de referencia; útil para pruebas.
+
+        Returns:
+            `None` si la entrada está PERMITIDA, o un dict de bloqueo con
+            `action`, `reason` y el estado horario cuando debe rechazarse.
+        """
+        if not bool(self.config.synthetics_session_filter_enabled):
+            return None
+        event_profiles = {"BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
+        family_profile = self._canonical_bot_profile(str(self.config.bot_profile or "").upper())
+        if family_profile not in event_profiles:
+            return None
+
+        tz = ZoneInfo(str(self.config.synthetics_session_filter_timezone))
+        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        local_now = now.tz_convert(tz)
+        hour = int(local_now.hour)
+
+        in_low_edge_window = False
+        for start_hour, end_hour in self.config.synthetics_low_edge_hour_ranges:
+            if int(start_hour) <= hour < int(end_hour):
+                in_low_edge_window = True
+                break
+        if not in_low_edge_window:
+            return None
+
+        confirmation_percentage = float(signal.get("confirmation_percentage") or 0.0)
+        override_threshold = float(
+            self.config.synthetics_session_filter_high_confluence_override_pct
+        )
+        if confirmation_percentage + 1e-9 >= override_threshold:
+            signal["synthetics_session_gate_override"] = {
+                "overridden": True,
+                "confirmation_percentage": confirmation_percentage,
+                "override_threshold": override_threshold,
+            }
+            return None
+
+        return {
+            "symbol": symbol,
+            "action": "SYNTHETICS_LOW_EDGE_SESSION_BLOCKED",
+            "reason": "FRANJA_HORARIA_DE_BAJA_EFECTIVIDAD_HISTORICA_SIN_ALTA_CONFLUENCIA",
+            "session_hour": hour,
+            "session_timezone": str(self.config.synthetics_session_filter_timezone),
+            "confirmation_percentage": confirmation_percentage,
+            "required_override_percentage": override_threshold,
+        }
+
+    def _forex_killzone_entry_gate(self, symbol: str, signal: dict, now_utc=None):
+        """PUERTA DE ENTRADA: exige killzone Londres/NY para Forex.
+
+        Antes Forex era el único perfil SMC sin ningún filtro horario
+        (GOLD ya tiene `_gold_smc_entry_gate`, Sintéticos tiene
+        `_synthetics_low_edge_session_gate`). La literatura SMC coincide en
+        que operar solo dentro de Londres (07-10h UTC) o Nueva York
+        (13-16h UTC) mejora el win rate por mayor volumen institucional.
+
+        Igual que en Sintéticos, una confluencia M5 muy alta
+        (>= `forex_killzone_high_confluence_override_pct`) se exceptúa del
+        filtro: una confirmación casi perfecta puede tomarse fuera de
+        killzone.
+
+        Args:
+            symbol: instrumento evaluado.
+            signal: señal M5 ya validada, se usa su `confirmation_percentage`.
+            now_utc: instante de referencia; útil para pruebas.
+
+        Returns:
+            `None` si la entrada está PERMITIDA, o un dict de bloqueo con
+            `action`, `reason` y el estado horario cuando debe rechazarse.
+        """
+        if not bool(self.config.forex_killzone_filter_enabled):
+            return None
+        family_profile = self._canonical_bot_profile(str(self.config.bot_profile or "").upper())
+        if not family_profile.startswith("FOREX"):
+            return None
+
+        tz = ZoneInfo(str(self.config.forex_killzone_timezone))
+        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        local_now = now.tz_convert(tz)
+        hour = int(local_now.hour)
+
+        in_killzone = False
+        for start_hour, end_hour in (
+            self.config.forex_london_killzone_hour_range,
+            self.config.forex_new_york_killzone_hour_range,
+        ):
+            if int(start_hour) <= hour < int(end_hour):
+                in_killzone = True
+                break
+        if in_killzone:
+            return None
+
+        confirmation_percentage = float(signal.get("confirmation_percentage") or 0.0)
+        override_threshold = float(self.config.forex_killzone_high_confluence_override_pct)
+        if confirmation_percentage + 1e-9 >= override_threshold:
+            signal["forex_killzone_gate_override"] = {
+                "overridden": True,
+                "confirmation_percentage": confirmation_percentage,
+                "override_threshold": override_threshold,
+            }
+            return None
+
+        return {
+            "symbol": symbol,
+            "action": "FOREX_OUTSIDE_KILLZONE_BLOCKED",
+            "reason": "FUERA_DE_KILLZONE_LONDRES_NUEVA_YORK_SIN_ALTA_CONFLUENCIA",
+            "session_hour": hour,
+            "session_timezone": str(self.config.forex_killzone_timezone),
+            "confirmation_percentage": confirmation_percentage,
+            "required_override_percentage": override_threshold,
         }
 
     def _trade_owned_by_current_bot(self, trade: dict) -> bool:
@@ -2049,8 +2277,19 @@ class LiveTradingEngine:
                 continue
         return None
 
-    def _break_even_target_stop(self, symbol: str, direction: str, entry_price: float) -> tuple[float, float]:
-        """Calcula BE neto de spread más offset, hacia el lado favorable del trade."""
+    def _break_even_target_stop(
+        self,
+        symbol: str,
+        direction: str,
+        entry_price: float,
+        profit_lock_amount: float = 0.0,
+    ) -> tuple[float, float]:
+        """Calcula BE neto de spread más offset, hacia el lado favorable del trade.
+
+        ``profit_lock_amount`` (en precio, no en R) suma una distancia extra al
+        offset para que el BE asegure una fracción de la ganancia ya alcanzada,
+        en lugar de limitarse a cubrir spread/costes de la operación.
+        """
         offset_points = max(0, int(self.config.break_even_offset_points))
         point = 0.0
         digits = None
@@ -2077,6 +2316,7 @@ class LiveTradingEngine:
             except (TypeError, ValueError, RuntimeError):
                 # Conserva el offset mínimo protector si el tick puntual no está disponible.
                 pass
+        offset += max(0.0, float(profit_lock_amount or 0.0))
         target = float(entry_price) + offset if str(direction).upper() == "BUY" else float(entry_price) - offset
         if digits is not None:
             target = round(target, max(0, int(digits)))
@@ -2206,9 +2446,12 @@ class LiveTradingEngine:
     ) -> dict:
         """Cierra una pérdida controlada cuando la tesis ACTUAL ya no es válida.
 
-        Cuenta sólo velas M5 cerradas distintas, no las lecturas del monitor ni
-        las reevaluaciones del mismo candle. La antigüedad de una señal bloquea
-        entradas nuevas, pero no invalida una posición abierta.
+        Cuenta sólo velas M15 cerradas distintas (más contexto que M5), no
+        las lecturas del monitor ni las reevaluaciones del mismo candle. El
+        comportamiento del precio que determina la invalidación (dirección,
+        ruptura de estructura, etc.) se sigue analizando en M5 vía
+        `current_view`. La antigüedad de una señal bloquea entradas nuevas,
+        pero no invalida una posición abierta.
         """
         result = {"managed": False, "closed": False, "reason": None}
         if not bool(getattr(self.config, "analysis_invalidation_exit_enabled", True)):
@@ -2269,8 +2512,17 @@ class LiveTradingEngine:
         diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
         signal_age = diagnostics.get("signal_age")
         signal_age = signal_age if isinstance(signal_age, dict) else {}
+        # v106: el streak de confirmación avanza por vela M15 cerrada (más
+        # contexto que M5), aunque `invalid_now` sigue evaluando el
+        # comportamiento del precio en M5 vía `current_view`/diagnostics. Si
+        # el análisis todavía no expone la vela M15 (paths de test/legacy),
+        # se cae de nuevo a la clave M5 anterior para no romper el flujo.
+        m15_diag = diagnostics.get("m15")
+        m15_diag = m15_diag if isinstance(m15_diag, dict) else {}
         candle_key = str(
-            current_view.get("latest_closed_candle_time")
+            current_view.get("latest_closed_m15_candle_time")
+            or m15_diag.get("last_candle_time")
+            or current_view.get("latest_closed_candle_time")
             or signal_age.get("latest_closed_candle_time")
             or current_view.get("signal_time")
             or signal_age.get("signal_time")
@@ -2321,17 +2573,18 @@ class LiveTradingEngine:
 
         rr_now = float(current_rr)
         mfe = float(metadata.get("max_favorable_excursion_rr", 0.0) or 0.0)
-        hard_threshold = float(
-            getattr(self.config, "analysis_invalidation_exit_rr", -0.35)
-        )
+        # v105: el criterio de cierre es la invalidación estructural en sí
+        # misma (dirección/estructura del análisis cambió respecto a la
+        # entrada, ya confirmada arriba por `streak >= required` velas M5
+        # consecutivas), no un umbral de pérdida a tolerar. Esperar a un RR
+        # negativo específico (-0.35R, valor antiguo) permitía que la posición
+        # siguiera cayendo hasta el Stop Loss pleno en sintéticos, donde el
+        # precio suele saltar de "levemente en contra" a SL en una sola vela.
         recovery_mfe = float(getattr(self.config, "analysis_recovery_mfe_rr", 0.20))
         recovery_threshold = float(
             getattr(self.config, "analysis_recovery_exit_rr", -0.10)
         )
         recovery_exit = mfe + 1e-9 >= recovery_mfe and rr_now <= recovery_threshold + 1e-9
-        invalid_loss_exit = rr_now <= hard_threshold + 1e-9
-        if not (recovery_exit or invalid_loss_exit):
-            return result
 
         exit_reason = (
             "analysis_invalid_recovery_protection"
@@ -2419,9 +2672,7 @@ class LiveTradingEngine:
         synthetic_profile = str(
             metadata.get("bot_profile") or self.config.bot_profile or ""
         ).upper()
-        if synthetic_profile.startswith("VOLATILITY") or synthetic_profile in {
-            "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
-        }:
+        if self._is_synthetics_profile_name(synthetic_profile):
             result["reason"] = "SYNTHETICS_FIXED_TP2_TARGET"
             return result
         if str(metadata.get("bot_profile") or self.config.bot_profile or "").upper().startswith("FOREX"):
@@ -3325,9 +3576,20 @@ class LiveTradingEngine:
                 tolerance = self._break_even_price_tolerance(
                     str(trade.get("instrument") or ""), entry_price
                 )
+                profit_lock_fraction = max(
+                    0.0, float(self.config.break_even_profit_lock_rr_fraction or 0.0)
+                )
+                profit_lock_amount = (
+                    float(initial_risk_snapshot) * profit_lock_fraction
+                    if initial_risk_snapshot and initial_risk_snapshot > 0
+                    else 0.0
+                )
                 already_active = bool(metadata.get("break_even_activated", False))
                 break_even_price, break_even_offset = self._break_even_target_stop(
-                    str(trade.get("instrument") or ""), direction, entry_price
+                    str(trade.get("instrument") or ""),
+                    direction,
+                    entry_price,
+                    profit_lock_amount=profit_lock_amount,
                 )
                 broker_at_entry = abs(current_sl - break_even_price) <= tolerance
                 if already_active or broker_at_entry:
@@ -4420,6 +4682,18 @@ class LiveTradingEngine:
                 jump_gate["analysis"] = analysis
             return jump_gate
 
+        synthetics_session_gate = self._synthetics_low_edge_session_gate(exact_symbol, signal)
+        if synthetics_session_gate is not None:
+            if self.config.diagnostic_mode:
+                synthetics_session_gate["analysis"] = analysis
+            return synthetics_session_gate
+
+        forex_killzone_gate = self._forex_killzone_entry_gate(exact_symbol, signal)
+        if forex_killzone_gate is not None:
+            if self.config.diagnostic_mode:
+                forex_killzone_gate["analysis"] = analysis
+            return forex_killzone_gate
+
         rr = float(signal.get("risk_reward_ratio", signal.get("risk_reward", 0.0)) or 0.0)
         if rr < self.config.min_rr:
             return {
@@ -4951,24 +5225,29 @@ class LiveTradingEngine:
                     "runner_logical_target_rr": float(leg.get("logical_target_rr", leg["target_rr"])),
                     "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                     "runner_max_target_rr": (
-                        float(self.config.runner_extension_max_target_rr)
+                        None if self._is_synthetics_profile_name(self.config.bot_profile)
+                        else float(self.config.runner_extension_max_target_rr)
                         if strategy_name == "ORB_NEW_YORK"
                         else float(self.config.smc_runner_max_target_rr)
                     ),
                     "runner_tp3_guard_trigger_rr": (
                         None if strategy_name == "ORB_NEW_YORK"
+                        or self._is_synthetics_profile_name(self.config.bot_profile)
                         else float(self.config.smc_runner_tp3_guard_trigger_rr)
                     ),
                     "runner_tp3_guard_lock_rr": (
                         None if strategy_name == "ORB_NEW_YORK"
+                        or self._is_synthetics_profile_name(self.config.bot_profile)
                         else float(self.config.smc_runner_tp3_guard_lock_rr)
                     ),
                     "runner_tp4_guard_trigger_rr": (
                         None if strategy_name == "ORB_NEW_YORK"
+                        or self._is_synthetics_profile_name(self.config.bot_profile)
                         else float(self.config.smc_runner_tp4_guard_trigger_rr)
                     ),
                     "runner_tp4_guard_lock_rr": (
                         None if strategy_name == "ORB_NEW_YORK"
+                        or self._is_synthetics_profile_name(self.config.bot_profile)
                         else float(self.config.smc_runner_tp4_guard_lock_rr)
                     ),
                     "bot_profile": str(self.config.bot_profile).upper(),
@@ -5249,7 +5528,8 @@ class LiveTradingEngine:
                         "runner_logical_target_rr": float(leg.get("logical_target_rr", leg["target_rr"])),
                         "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                         "runner_max_target_rr": (
-                            float(self.config.forex_runner_max_target_rr)
+                            None if self._is_synthetics_profile_name(self.config.bot_profile)
+                            else float(self.config.forex_runner_max_target_rr)
                             if self._uses_forex_style_smc_management(self.config.bot_profile)
                             else (
                                 float(self.config.runner_extension_max_target_rr)
@@ -5259,18 +5539,22 @@ class LiveTradingEngine:
                         ),
                         "runner_tp3_guard_trigger_rr": (
                             None if strategy_name == "ORB_NEW_YORK"
+                            or self._is_synthetics_profile_name(self.config.bot_profile)
                             else float(self.config.smc_runner_tp3_guard_trigger_rr)
                         ),
                         "runner_tp3_guard_lock_rr": (
                             None if strategy_name == "ORB_NEW_YORK"
+                            or self._is_synthetics_profile_name(self.config.bot_profile)
                             else float(self.config.smc_runner_tp3_guard_lock_rr)
                         ),
                         "runner_tp4_guard_trigger_rr": (
                             None if strategy_name == "ORB_NEW_YORK"
+                            or self._is_synthetics_profile_name(self.config.bot_profile)
                             else float(self.config.smc_runner_tp4_guard_trigger_rr)
                         ),
                         "runner_tp4_guard_lock_rr": (
                             None if strategy_name == "ORB_NEW_YORK"
+                            or self._is_synthetics_profile_name(self.config.bot_profile)
                             else float(self.config.smc_runner_tp4_guard_lock_rr)
                         ),
                         "break_even_offset_points": int(self.config.break_even_offset_points),
@@ -5323,6 +5607,8 @@ class LiveTradingEngine:
         progress_callback=None,
         before_symbol=None,
         after_symbol=None,
+        batch_size=None,
+        batch_delay_seconds: float = 0.0,
     ):
         """Procesa símbolos uno a uno con puntos de control cooperativos.
 
@@ -5330,6 +5616,13 @@ class LiveTradingEngine:
         a que termine todo el ciclo. ``before_symbol`` y ``after_symbol`` permiten
         que el daemon ejecute tareas urgentes (por ejemplo Break Even) entre
         símbolos, evitando que un ciclo largo deje las posiciones sin supervisión.
+
+        ``batch_size``/``batch_delay_seconds`` escalonan el procesamiento: tras
+        cada lote de ese tamaño se espera la pausa indicada antes de continuar.
+        Pensado para el ciclo de arranque en frío, donde ninguna etapa H1/M15/M5
+        tiene caché todavía y una ráfaga de N símbolos simultáneos golpearía al
+        broker de una sola vez. En operación normal (``batch_size=None``) no
+        cambia el comportamiento.
         """
         symbols = list(symbols)
 
@@ -5395,6 +5688,15 @@ class LiveTradingEngine:
                     result=result,
                     elapsed_seconds=elapsed_seconds,
                 )
+
+            if (
+                batch_size
+                and int(batch_size) > 0
+                and index < total
+                and index % int(batch_size) == 0
+                and batch_delay_seconds > 0
+            ):
+                time.sleep(float(batch_delay_seconds))
 
         # El ranking se publica al cerrar el ciclo, cuando ya se conocen todas
         # las señales simultáneas y sus probabilidades.
@@ -5753,6 +6055,15 @@ class LiveTradingEngine:
                     and isinstance((analysis.get("diagnostics") or {}).get("signal_age"), dict)
                     else None
                 )
+            ),
+            # v106: la salida por invalidación de análisis cuenta velas M15
+            # cerradas (más contexto que M5) para el streak de confirmación,
+            # aunque el comportamiento invalidante en sí se evalúa con M5.
+            "latest_closed_m15_candle_time": (
+                (analysis.get("diagnostics") or {}).get("m15", {}).get("last_candle_time")
+                if isinstance(analysis.get("diagnostics"), dict)
+                and isinstance((analysis.get("diagnostics") or {}).get("m15"), dict)
+                else None
             ),
             "diagnostics": analysis.get("diagnostics") or {},
             "evaluated_at": datetime.now(timezone.utc).isoformat(),
@@ -6413,18 +6724,40 @@ class LiveTradingEngine:
                         if not background_monitor_enabled:
                             run_position_monitor_if_due(phase="AFTER_SYMBOL")
 
+                    is_cold_start_cycle = cycle_number == 1
+                    process_kwargs = {}
+                    if is_cold_start_cycle and int(self.config.cold_start_batch_size or 0) > 0:
+                        process_kwargs["batch_size"] = int(self.config.cold_start_batch_size)
+                        process_kwargs["batch_delay_seconds"] = float(
+                            self.config.cold_start_batch_delay_seconds or 0.0
+                        )
+
                     results = self.process_symbols(
                         cycle_symbols,
                         progress_callback=progress_callback,
                         before_symbol=before_symbol,
                         after_symbol=after_symbol,
+                        **process_kwargs,
                     )
                     self._commit_forex_processed_symbols(results)
 
                     cycle_elapsed = time.monotonic() - started_monotonic
-                    next_signal_at = started_monotonic + signal_interval
-                    next_delay = max(0.0, next_signal_at - time.monotonic())
-                    overrun = max(0.0, cycle_elapsed - signal_interval)
+                    cold_start_excluded = (
+                        is_cold_start_cycle and bool(self.config.cold_start_exclude_from_overrun)
+                    )
+                    if cold_start_excluded:
+                        # El arranque en frío no tiene caché de etapas H1/M15/M5:
+                        # su duración es estructuralmente mayor y no representa
+                        # una degradación del intervalo. El reloj del siguiente
+                        # ciclo arranca al terminar este, no se descuenta de él,
+                        # y no se reporta como overrun.
+                        next_signal_at = time.monotonic() + signal_interval
+                        next_delay = signal_interval
+                        overrun = 0.0
+                    else:
+                        next_signal_at = started_monotonic + signal_interval
+                        next_delay = max(0.0, next_signal_at - time.monotonic())
+                        overrun = max(0.0, cycle_elapsed - signal_interval)
 
                     if reporter is not None:
                         reporter.summarize(

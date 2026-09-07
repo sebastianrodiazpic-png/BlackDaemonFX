@@ -2982,7 +2982,7 @@ def main():
     parser.add_argument(
         "--meta-labeling-strategy",
         default="ALL",
-        help="Estrategia a entrenar (SMC, ORB_NEW_YORK, ARPS o ALL).",
+        help="Estrategia a entrenar (SMC, ORB_NEW_YORK o ALL).",
     )
 
     args = parser.parse_args()
