@@ -67,6 +67,11 @@ from strategy.orb.new_york_orb import (
     is_orb_gold_symbol,
     score_orb_gold_contract_candidate,
 )
+from strategy.indices.ny_index_open import (
+    NYIndexOpenConfig,
+    NYIndexOpenStrategy,
+    is_ny_index_open_symbol,
+)
 from services.financial_news_service import load_economic_calendar_state
 from strategy.ai import (
     MetaLabelingConfig,
@@ -124,7 +129,10 @@ class LiveTradingConfig:
     pre_fill_risk_buffer: float = 0.0
     # Hard cap post-fill: si el riesgo real de la posición supera este margen,
     # se cierra inmediatamente y el símbolo queda en cuarentena.
-    hard_risk_tolerance: float = 0.02
+    # Subido de 0.02 a 0.035 tras incidente real en Step Index 500 (exceso
+    # 2.36% por granularidad de lote minimo del broker, quedaba en cuarentena
+    # temporal pese a ser un desvio mecanico normal de ejecucion).
+    hard_risk_tolerance: float = 0.035
     emergency_risk_exit_enabled: bool = True
     quarantine_enabled: bool = True
     quarantine_path: str = "storage/risk_quarantine.json"
@@ -132,7 +140,9 @@ class LiveTradingConfig:
     # bloqueado temporalmente y se reintenta más tarde. Incidentes reales por
     # encima del umbral adicional siguen requiriendo intervención manual.
     recoverable_quarantine_minutes: float = 60.0
-    recoverable_quarantine_extra_tolerance: float = 0.01
+    # Margen adicional (sumado al hard_risk_tolerance) hasta el cual un
+    # breach post-fill se auto-recupera sin revision manual.
+    recoverable_quarantine_extra_tolerance: float = 0.015
     # Exigimos que el volumen realmente ejecutable se acerque al riesgo objetivo.
     # Si el máximo de lotes del broker impide llegar al umbral, rechazamos la operación
     # en lugar de abrirla con un tamaño arbitrariamente grande o con un riesgo muy distinto.
@@ -300,16 +310,6 @@ class LiveTradingConfig:
     forex_high_impact_news_before_minutes: int = 15
     forex_high_impact_news_after_minutes: int = 15
     forex_high_impact_news_calendar_path: str = "storage/dashboard/financial_news.json"
-    # v107: killzone Londres/NY para Forex. La literatura SMC coincide en que
-    # operar SOLO dentro de estas ventanas mejora el win rate (mayor volumen
-    # institucional); antes Forex era el único perfil sin ningún filtro
-    # horario (a diferencia de GOLD y Sintéticos). Igual que en Sintéticos,
-    # una señal de confluencia muy alta se exceptúa del filtro.
-    forex_killzone_filter_enabled: bool = True
-    forex_killzone_timezone: str = "UTC"
-    forex_london_killzone_hour_range: tuple = (7, 10)
-    forex_new_york_killzone_hour_range: tuple = (13, 16)
-    forex_killzone_high_confluence_override_pct: float = 90.0
     # v85: ORB ya no usa un techo global de 1%. Sólo evita duplicar exposición
     # entre S&P 500 y Nasdaq 100 hasta que la primera operación tenga BE real.
     orb_equity_correlation_guard_enabled: bool = True
@@ -343,8 +343,7 @@ class LiveTradingConfig:
     divergence_lookback_candles: int = 80
     divergence_bonus_points: float = 5.0
 
-    # Patrones chartistas: confluencia auditable con tolerancia normalizada por
-    # rango M5. No reemplaza desplazamiento, estructura, OB ni frescura.
+    # Patrones chartistas: una tesis alineada y sin conflicto es obligatoria.
     chart_patterns_enabled: bool = True
     chart_patterns_lookback: int = 80
     chart_patterns_pivot_window: int = 2
@@ -357,7 +356,17 @@ class LiveTradingConfig:
     require_chart_pattern: bool = False
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
-    block_similar_chart_pattern_forces: bool = False
+    # v108: margen mínimo (fracción 0-1) que el patrón chartista alineado con
+    # la dirección deseada debe superar al contrario para no bloquear la
+    # entrada. Ver detalle en confirmation_engine.M5ConfirmationConfig.
+    chart_pattern_conflict_min_margin: float = 0.25
+    block_similar_chart_pattern_forces: bool = True
+    fvg_enabled: bool = True
+    fvg_lookback: int = 30
+    fvg_max_age_candles: int = 10
+    fvg_require_alignment_with_zone: bool = False
+    fvg_bonus_points: float = 6.0
+    require_fvg: bool = False
 
     # Confirmación adicional H1: Doji reciente en extremos relevantes.
     h1_doji_enabled: bool = True
@@ -368,12 +377,12 @@ class LiveTradingConfig:
     h1_doji_min_rejection_wick_ratio: float = 0.35
     h1_doji_bonus_points: float = 5.0
 
-    # v106: los 3 cambios de mejora de win rate (BE profit-lock, filtro de
-    # horas de bajo edge en sintéticos, salida por invalidación M15) quedan
-    # marcados en esta versión. Sirve como frontera PRE/POST para comparar
-    # el win rate antes y después del despliegue (ver
-    # `tools/winrate_pre_post_report.py`).
-    strategy_version: str = "smc-v106-winrate-improvements-be-session-m15-invalidation"
+    # v107: retest limpio validado con overshoot real (no fijo en True), patrón
+    # chartista y FVG obligatorios en las 4 estrategias, sin killzones/filtro
+    # horario forzado en Sintéticos/Forex, niveles de cuartos en Gold/ORB solo
+    # para XAUUSD/microXAUUSD. Nueva frontera PRE/POST (ver
+    # `tools/winrate_pre_post_report.py` y `POST_IMPROVEMENT_MIN_VERSION`).
+    strategy_version: str = "smc-v107-clean-retest-real-chart-fvg-mandatory-quarter-levels"
 
 
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
@@ -396,6 +405,15 @@ class LiveTradingConfig:
     orb_candle_count: int = 1000
     orb_strategy_version: str = "orb-ny-v2-m5-breakout-retest-midpoint"
 
+    # Tercera estrategia: Apertura Indices Bursatiles (Wall Street 30, US
+    # Tech 100, US SP 500) en la apertura de Nueva York (09:30 NY). Sesgo H1
+    # 07h/08h + confirmacion M5 + doble entrada 0.5%+0.5% (TP1 1:1, TP2 1:2).
+    idx_open_enabled: bool = True
+    idx_open_confirmation_window_minutes: int = 20
+    idx_open_tp1_rr: float = 1.0
+    idx_open_target_rr: float = 2.0
+    idx_open_strategy_version: str = "ny-index-open-v1-h1-bias-m5-confirmation"
+
     # v43: protección específica para Forex alrededor del rollover diario de NY.
     # Spot FX opera 24/5, pero alrededor de 17:00 New York suele disminuir la
     # liquidez y ampliarse el spread. DaemonBlackFx queda flat antes del rollover.
@@ -416,16 +434,11 @@ class LiveTradingConfig:
     forex_force_flat_daily: bool = True
     forex_force_flat_friday: bool = True
 
-    # v105: los cierres reales muestran WR ~13% en 01:00-11:59 UTC y ~14% en
-    # 18:00-19:59 UTC para los sintéticos (BOOM/CRASH/VOLATILITY/STEP/JUMP/
-    # FLIP), frente a ~55% en el resto de franjas. GOLD y Forex ya tenían
-    # filtro de sesión; los sintéticos operaban 24/7 sin ninguno. Se bloquean
-    # nuevas entradas en esas franjas salvo que la señal tenga una confluencia
-    # M5 muy alta (90-100%), que sí puede tomarse pese al horario débil.
-    synthetics_session_filter_enabled: bool = True
-    synthetics_session_filter_timezone: str = "UTC"
-    synthetics_low_edge_hour_ranges: tuple = ((1, 12), (18, 20))
-    synthetics_session_filter_high_confluence_override_pct: float = 90.0
+    # GOLD: niveles de cuarto ($25/$50/$75/$100...) como confluencia de precio.
+    gold_quarter_level_increment: float = 25.0
+    gold_quarter_level_tolerance_price: float = 2.0
+    gold_quarter_level_bonus_points: float = 4.0
+    require_gold_quarter_level: bool = False
 
     # False = solo analiza y calcula la operación; no envía órdenes.
     execution_enabled: bool = False
@@ -516,6 +529,9 @@ class LiveTradingEngine:
             require_chart_pattern=bool(self.config.require_chart_pattern),
             chart_pattern_secondary_conflict_penalty=float(self.config.chart_pattern_secondary_conflict_penalty),
             block_material_chart_pattern_conflict=bool(self.config.block_material_chart_pattern_conflict),
+            chart_pattern_conflict_min_margin=float(
+                getattr(self.config, "chart_pattern_conflict_min_margin", 0.25)
+            ),
             block_similar_chart_pattern_forces=bool(self.config.block_similar_chart_pattern_forces),
             h1_doji_enabled=bool(self.config.h1_doji_enabled),
             h1_doji_lookback_candles=int(self.config.h1_doji_lookback_candles),
@@ -529,23 +545,13 @@ class LiveTradingEngine:
             fvg_max_age_candles=int(getattr(self.config, "fvg_max_age_candles", 10)),
             fvg_require_alignment_with_zone=bool(getattr(self.config, "fvg_require_alignment_with_zone", False)),
             fvg_bonus_points=float(getattr(self.config, "fvg_bonus_points", 6.0)),
-            require_fvg=bool(getattr(self.config, "require_fvg", False)),
-            # Solo se activa para la familia Sintéticos: es una confluencia
-            # adicional (no gate) que refuerza el score en horas favorables,
-            # sin afectar Forex/GOLD ni reemplazar el gate binario existente.
-            synthetics_killzone_enabled=self._is_synthetics_profile_name(self.config.bot_profile),
-            synthetics_favorable_hour_ranges=tuple(
-                getattr(self.config, "synthetics_favorable_hour_ranges", ((13, 15), (17, 18), (22, 24)))
-            ),
-            synthetics_killzone_bonus_points=float(getattr(self.config, "synthetics_killzone_bonus_points", 5.0)),
-            require_synthetics_killzone=bool(getattr(self.config, "require_synthetics_killzone", False)),
-            # Solo se activa para el perfil GOLD: confluencia especifica de
-            # XAUUSD documentada en la literatura SMC (niveles $50/$100).
+            require_fvg=bool(getattr(self.config, "require_fvg", True)),
+            # Solo se activa para GOLD: múltiplos de $25 cubren 25/50/75/100.
             round_number_enabled=str(self.config.bot_profile or "").upper() == "GOLD",
-            round_number_increment=float(getattr(self.config, "round_number_increment", 50.0)),
-            round_number_tolerance_price=float(getattr(self.config, "round_number_tolerance_price", 2.0)),
-            round_number_bonus_points=float(getattr(self.config, "round_number_bonus_points", 4.0)),
-            require_round_number=bool(getattr(self.config, "require_round_number", False)),
+            round_number_increment=float(self.config.gold_quarter_level_increment),
+            round_number_tolerance_price=float(self.config.gold_quarter_level_tolerance_price),
+            round_number_bonus_points=float(self.config.gold_quarter_level_bonus_points),
+            require_round_number=bool(self.config.require_gold_quarter_level),
             asian_range_sweep_enabled=(
                 str(self.config.bot_profile or "").upper() == "GOLD"
                 and bool(getattr(self.config, "gold_asian_range_sweep_enabled", True))
@@ -579,6 +585,9 @@ class LiveTradingEngine:
                 stop_mode=str(self.config.orb_stop_mode),
                 stop_buffer_fraction=float(self.config.orb_stop_buffer_fraction),
                 candle_count=int(self.config.orb_candle_count),
+                gold_quarter_level_enabled=True,
+                gold_quarter_level_increment=float(self.config.gold_quarter_level_increment),
+                gold_quarter_level_tolerance_price=float(self.config.gold_quarter_level_tolerance_price),
             ),
         )
         # Selección efímera por ciclo entre XAUUSD y microXAUUSD.
@@ -586,6 +595,17 @@ class LiveTradingEngine:
         # sizing, spread y margen reales del broker.
         self._orb_gold_cycle_selection = None
         self._orb_gold_cycle_diagnostics = {}
+        self.ny_index_open_strategy = NYIndexOpenStrategy(
+            data_provider=provider,
+            config=NYIndexOpenConfig(
+                enabled=bool(self.config.idx_open_enabled),
+                m5_confirmation_window_minutes=int(self.config.idx_open_confirmation_window_minutes),
+                tp1_rr=float(self.config.idx_open_tp1_rr),
+                target_rr=float(self.config.idx_open_target_rr),
+                risk_percent_total=float(self.config.orb_risk_percent),
+                split_entry_risk_fraction=float(self.config.split_entry_risk_fraction),
+            ),
+        )
 
         self.multi_timeframe = MultiTimeframeAnalyzer(
             data_provider=provider,
@@ -1496,135 +1516,6 @@ class LiveTradingEngine:
             "gold_session": state,
         }
 
-    def _synthetics_low_edge_session_gate(self, symbol: str, signal: dict, now_utc=None):
-        """PUERTA DE ENTRADA: bloquea nuevas entradas sintéticas en franjas de baja efectividad.
-
-        Solo aplica a la familia BOOM/CRASH/VOLATILITY/STEP/JUMP/FLIP. El
-        análisis de los 82 trades reales cerrados mostró WR ~13%-14% en las
-        franjas 01:00-11:59 y 18:00-19:59 (huso configurable, UTC por
-        defecto), frente a ~55% en el resto del día. Una señal con
-        confluencia M5 muy alta (>= `synthetics_session_filter_high_confluence_override_pct`)
-        se exceptúa: una confirmación casi perfecta puede tomarse incluso en
-        horario débil.
-
-        Args:
-            symbol: instrumento evaluado.
-            signal: señal M5 ya validada, se usa su `confirmation_percentage`.
-            now_utc: instante de referencia; útil para pruebas.
-
-        Returns:
-            `None` si la entrada está PERMITIDA, o un dict de bloqueo con
-            `action`, `reason` y el estado horario cuando debe rechazarse.
-        """
-        if not bool(self.config.synthetics_session_filter_enabled):
-            return None
-        event_profiles = {"BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
-        family_profile = self._canonical_bot_profile(str(self.config.bot_profile or "").upper())
-        if family_profile not in event_profiles:
-            return None
-
-        tz = ZoneInfo(str(self.config.synthetics_session_filter_timezone))
-        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
-        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
-        local_now = now.tz_convert(tz)
-        hour = int(local_now.hour)
-
-        in_low_edge_window = False
-        for start_hour, end_hour in self.config.synthetics_low_edge_hour_ranges:
-            if int(start_hour) <= hour < int(end_hour):
-                in_low_edge_window = True
-                break
-        if not in_low_edge_window:
-            return None
-
-        confirmation_percentage = float(signal.get("confirmation_percentage") or 0.0)
-        override_threshold = float(
-            self.config.synthetics_session_filter_high_confluence_override_pct
-        )
-        if confirmation_percentage + 1e-9 >= override_threshold:
-            signal["synthetics_session_gate_override"] = {
-                "overridden": True,
-                "confirmation_percentage": confirmation_percentage,
-                "override_threshold": override_threshold,
-            }
-            return None
-
-        return {
-            "symbol": symbol,
-            "action": "SYNTHETICS_LOW_EDGE_SESSION_BLOCKED",
-            "reason": "FRANJA_HORARIA_DE_BAJA_EFECTIVIDAD_HISTORICA_SIN_ALTA_CONFLUENCIA",
-            "session_hour": hour,
-            "session_timezone": str(self.config.synthetics_session_filter_timezone),
-            "confirmation_percentage": confirmation_percentage,
-            "required_override_percentage": override_threshold,
-        }
-
-    def _forex_killzone_entry_gate(self, symbol: str, signal: dict, now_utc=None):
-        """PUERTA DE ENTRADA: exige killzone Londres/NY para Forex.
-
-        Antes Forex era el único perfil SMC sin ningún filtro horario
-        (GOLD ya tiene `_gold_smc_entry_gate`, Sintéticos tiene
-        `_synthetics_low_edge_session_gate`). La literatura SMC coincide en
-        que operar solo dentro de Londres (07-10h UTC) o Nueva York
-        (13-16h UTC) mejora el win rate por mayor volumen institucional.
-
-        Igual que en Sintéticos, una confluencia M5 muy alta
-        (>= `forex_killzone_high_confluence_override_pct`) se exceptúa del
-        filtro: una confirmación casi perfecta puede tomarse fuera de
-        killzone.
-
-        Args:
-            symbol: instrumento evaluado.
-            signal: señal M5 ya validada, se usa su `confirmation_percentage`.
-            now_utc: instante de referencia; útil para pruebas.
-
-        Returns:
-            `None` si la entrada está PERMITIDA, o un dict de bloqueo con
-            `action`, `reason` y el estado horario cuando debe rechazarse.
-        """
-        if not bool(self.config.forex_killzone_filter_enabled):
-            return None
-        family_profile = self._canonical_bot_profile(str(self.config.bot_profile or "").upper())
-        if not family_profile.startswith("FOREX"):
-            return None
-
-        tz = ZoneInfo(str(self.config.forex_killzone_timezone))
-        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
-        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
-        local_now = now.tz_convert(tz)
-        hour = int(local_now.hour)
-
-        in_killzone = False
-        for start_hour, end_hour in (
-            self.config.forex_london_killzone_hour_range,
-            self.config.forex_new_york_killzone_hour_range,
-        ):
-            if int(start_hour) <= hour < int(end_hour):
-                in_killzone = True
-                break
-        if in_killzone:
-            return None
-
-        confirmation_percentage = float(signal.get("confirmation_percentage") or 0.0)
-        override_threshold = float(self.config.forex_killzone_high_confluence_override_pct)
-        if confirmation_percentage + 1e-9 >= override_threshold:
-            signal["forex_killzone_gate_override"] = {
-                "overridden": True,
-                "confirmation_percentage": confirmation_percentage,
-                "override_threshold": override_threshold,
-            }
-            return None
-
-        return {
-            "symbol": symbol,
-            "action": "FOREX_OUTSIDE_KILLZONE_BLOCKED",
-            "reason": "FUERA_DE_KILLZONE_LONDRES_NUEVA_YORK_SIN_ALTA_CONFLUENCIA",
-            "session_hour": hour,
-            "session_timezone": str(self.config.forex_killzone_timezone),
-            "confirmation_percentage": confirmation_percentage,
-            "required_override_percentage": override_threshold,
-        }
-
     def _trade_owned_by_current_bot(self, trade: dict) -> bool:
         """Evita que un proceso administre posiciones de otro bot.
 
@@ -2016,11 +1907,11 @@ class LiveTradingEngine:
         if profile.startswith("FOREX"):
             base, quote = self._forex_pair_currencies(symbol)
             affected_currencies = {base, quote} if base and quote else set()
-        elif profile == "GOLD" and is_orb_gold_symbol(symbol):
+        elif profile == "GOLD" and is_orb_eligible_symbol(symbol):
             affected_currencies = {"USD"}
-        elif profile == "ORB" and classify_orb_market(symbol) in {
-            "WALL_STREET_30", "US_500", "US_TECH_100",
-        }:
+        elif profile == "ORB" and is_orb_eligible_symbol(symbol):
+            affected_currencies = {"USD"}
+        elif profile == "IDX_OPEN" and is_ny_index_open_symbol(symbol):
             affected_currencies = {"USD"}
         else:
             return None
@@ -4183,9 +4074,40 @@ class LiveTradingEngine:
         status = self._forex_rollover_status()
         if not status.get("force_flat_now"):
             return result
-        # El rollover sólo bloquea nuevas entradas. Las posiciones abiertas
-        # deben salir por SL/TP del broker o por invalidación estructural.
-        result["skipped_reason"] = "ROLLOVER_NO_ESTRUCTURAL_INVALIDATION"
+
+        close_position = getattr(self.executor, "close_position", None)
+        if not callable(close_position):
+            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
+            return result
+
+        seen_tickets = set()
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if not self._trade_owned_by_current_bot(trade):
+                continue
+            if not self._is_forex_symbol(str(trade.get("instrument") or "")):
+                continue
+            ticket = str(trade.get("broker_position_ticket") or "")
+            if not ticket or ticket in seen_tickets:
+                continue
+            seen_tickets.add(ticket)
+            result["checked"] += 1
+            close_result = close_position(
+                position_ticket=ticket,
+                reason="forex_pre_new_york_close",
+            )
+            closed = bool(
+                (close_result or {}).get("closed", False)
+                or str((close_result or {}).get("status") or "").upper() == "CLOSED"
+            )
+            result["positions"].append({
+                "trade_id": trade.get("id"),
+                "ticket": ticket,
+                "symbol": trade.get("instrument"),
+                "closed": closed,
+                "close_result": close_result,
+            })
+            if closed:
+                result["closed"] += 1
         return result
 
     @staticmethod
@@ -4583,7 +4505,13 @@ class LiveTradingEngine:
                 "gold_contract_selection": self._orb_gold_cycle_diagnostics,
             }
 
-        if bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
+        if (
+            str(self.config.bot_profile or "").upper() == "IDX_OPEN"
+            and bool(self.config.idx_open_enabled)
+            and is_ny_index_open_symbol(exact_symbol)
+        ):
+            analysis = self.ny_index_open_strategy.analyze_symbol(exact_symbol)
+        elif bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
             analysis = self.orb_strategy.analyze_symbol(exact_symbol)
             orb_signal = analysis.get("signal") or analysis.get("entry") or {}
             orb_direction = str(orb_signal.get("direction") or analysis.get("direction") or "").upper()
@@ -4682,18 +4610,6 @@ class LiveTradingEngine:
                 jump_gate["analysis"] = analysis
             return jump_gate
 
-        synthetics_session_gate = self._synthetics_low_edge_session_gate(exact_symbol, signal)
-        if synthetics_session_gate is not None:
-            if self.config.diagnostic_mode:
-                synthetics_session_gate["analysis"] = analysis
-            return synthetics_session_gate
-
-        forex_killzone_gate = self._forex_killzone_entry_gate(exact_symbol, signal)
-        if forex_killzone_gate is not None:
-            if self.config.diagnostic_mode:
-                forex_killzone_gate["analysis"] = analysis
-            return forex_killzone_gate
-
         rr = float(signal.get("risk_reward_ratio", signal.get("risk_reward", 0.0)) or 0.0)
         if rr < self.config.min_rr:
             return {
@@ -4725,6 +4641,16 @@ class LiveTradingEngine:
                 "meta_label": meta_label,
                 "analysis": analysis if self.config.diagnostic_mode else None,
             }
+
+        # v109: la señal de NY_INDEX_OPEN se marca "usada para esta sesión"
+        # recién aquí, tras superar dirección, jump gate, R:R y meta-label.
+        # Antes se marcaba dentro de `analyze_symbol` en cuanto se armaba la
+        # señal candidata, bloqueando el resto de la sesión aunque luego
+        # fuera descartada sin abrir ninguna operación.
+        if strategy_name == "NY_INDEX_OPEN" and signal.get("ny_index_session_date"):
+            self.ny_index_open_strategy.mark_signal_used(
+                exact_symbol, signal["ny_index_session_date"]
+            )
 
         orb_exposure = self._orb_exposure_guard(exact_symbol, key, strategy_name)
         if orb_exposure is not None:
@@ -5897,11 +5823,13 @@ class LiveTradingEngine:
         """Traduce el perfil del worker al perfil de selección de instrumentos.
 
         Varios workers comparten la misma lista de instrumentos: todos los
-        `FOREX*` usan `FOREX`, `ORB` y `GOLD` usan `ORB`, y el resto recae en
-        `SYNTHETICS`.
+        `FOREX*` usan `FOREX`, `GOLD` usa `ORB`, y el resto recae en
+        `SYNTHETICS`. `IDX_OPEN` (Apertura Índices Bursátiles) tiene su propia
+        selección independiente en /instruments, así que se mapea a sí mismo.
         """
         profile=str(bot_profile or "").upper()
         if profile.startswith("FOREX"): return "FOREX"
+        if profile == "IDX_OPEN": return "IDX_OPEN"
         if profile in {"ORB", "GOLD"}: return "ORB"
         return "SYNTHETICS"
 

@@ -47,6 +47,8 @@ def test_optional_harmonic_is_bonus_not_confirmation_denominator():
             minimum_trade_score=70,
             harmonic_enabled=True,
             require_harmonic=False,
+            require_chart_pattern=False,
+            require_fvg=False,
         ),
     )
     assert result["confirmations_total"] == 13
@@ -72,7 +74,14 @@ def test_similar_opposing_chart_patterns_penalize_but_do_not_block(monkeypatch):
         retest_index=2,
         confirmation_index=3,
         direction="long",
-        config=M5ConfirmationConfig(minimum_trade_score=70),
+        config=M5ConfirmationConfig(
+            minimum_trade_score=70,
+            require_fvg=False,
+            # v106 endureció FUERZAS_SIMILARES a bloqueo por defecto
+            # (`block_similar_chart_pattern_forces=True`); este test valida
+            # el comportamiento previo (solo penaliza) desactivándolo.
+            block_similar_chart_pattern_forces=False,
+        ),
     )
     assert result["chart_pattern_conflict_blocked"] is False
     assert result["chart_pattern_conflict_penalty"] == 10.0

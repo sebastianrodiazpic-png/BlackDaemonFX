@@ -2025,9 +2025,10 @@ class TradingRepository:
     def _normalize_selection_profile(profile: str | None) -> str:
         """Normaliza y valida un perfil de selección de instrumentos.
 
-        Solo se admiten `SYNTHETICS`, `FOREX` y `ORB`. Rechazar cualquier otro
-        valor evita guardar una seleccion bajo un perfil inexistente que
-        despues nadie leeria.
+        Se admiten `SYNTHETICS`, `FOREX`, `ORB` e `IDX_OPEN` (Apertura de
+        Índices Bursátiles, con selección persistente independiente de ORB).
+        Rechazar cualquier otro valor evita guardar una seleccion bajo un
+        perfil inexistente que despues nadie leeria.
 
         Args:
             profile: perfil recibido; sin valor se asume `SYNTHETICS`.
@@ -2039,7 +2040,7 @@ class TradingRepository:
             ValueError: si el perfil no es uno de los soportados.
         """
         value = str(profile or "SYNTHETICS").upper().strip()
-        if value not in {"SYNTHETICS", "FOREX", "ORB"}:
+        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
         return value
 
@@ -2154,7 +2155,7 @@ class TradingRepository:
             Dict `perfil -> seleccion`, solo con los perfiles configurados.
         """
         result={}
-        for profile in ("SYNTHETICS","FOREX","ORB"):
+        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN"):
             row=self.latest_instrument_selection_profile(profile,source=source)
             if row is not None: result[profile]=row
         return result

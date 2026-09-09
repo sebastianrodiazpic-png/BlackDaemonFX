@@ -25,7 +25,10 @@ def test_high_quality_long_confirmation_is_accepted():
     df = _data()
     result = evaluate_m5_confirmation(
         data=df, setup=_setup(df), retest_index=2, confirmation_index=3,
-        direction="long", config=M5ConfirmationConfig(minimum_trade_score=70),
+        direction="long",
+        config=M5ConfirmationConfig(
+            minimum_trade_score=70, require_chart_pattern=False, require_fvg=False,
+        ),
     )
     assert result["confirmation_valid"] is True
     assert result["trade_score"] >= 80
@@ -59,6 +62,8 @@ def test_adaptive_75_mode_accepts_when_only_secondary_confirmation_is_missing():
             adaptive_confirmation_enabled=True,
             minimum_confirmation_ratio=0.75,
             minimum_viable_trade_score=75,
+            require_chart_pattern=False,
+            require_fvg=False,
         ),
     )
     assert result["confirmation_percentage"] >= 75.0
@@ -114,6 +119,8 @@ def test_adaptive_80_decision_code_reflects_current_threshold():
             adaptive_confirmation_enabled=True,
             minimum_confirmation_ratio=0.80,
             minimum_viable_trade_score=75,
+            require_chart_pattern=False,
+            require_fvg=False,
         ),
     )
     assert result["confirmation_percentage"] >= 80.0

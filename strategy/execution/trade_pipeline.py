@@ -24,10 +24,11 @@ Vinculaciones:
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import pandas as pd
 
 from config.symbol_policy import get_symbol_direction_policy, normalize_direction
+from strategy.orb.new_york_orb import is_orb_gold_symbol
 from strategy.smc.swings import detect_swings
 from strategy.smc.market_structure import classify_market_structure, get_current_trend
 from strategy.smc.liquidity import detect_liquidity_levels
@@ -116,6 +117,9 @@ class PipelineConfig:
     require_chart_pattern: bool = False
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
+    # v108: margen mínimo (fracción 0-1) que el patrón alineado debe superar
+    # al contrario para no bloquear la entrada por conflicto chartista.
+    chart_pattern_conflict_min_margin: float = 0.25
     block_similar_chart_pattern_forces: bool = False
     divergence_enabled: bool = True
     divergence_rsi_period: int = 14
@@ -418,6 +422,12 @@ def _filter_by_policy(frame: pd.DataFrame, column: str, allowed_direction: str |
     return frame[normalized == expected].copy()
 
 
+def _is_xauusd_contract(symbol: str) -> bool:
+    """True solo para XAUUSD/microXAUUSD; usado para aislar la confluencia
+    de niveles de cuarto del resto de instrumentos compartidos por GOLD/ORB."""
+    return is_orb_gold_symbol(symbol)
+
+
 def run_trade_pipeline(
     df: pd.DataFrame,
     config: PipelineConfig | None = None,
@@ -447,6 +457,13 @@ def run_trade_pipeline(
         ValueError: si las velas no superan `_validate_price_data`.
     """
     config = config or PipelineConfig()
+    # Los niveles de cuarto (25/50/75/100) son una confluencia especifica del
+    # Oro: aunque el worker GOLD comparte universo con ORB (Plata, Petroleo,
+    # indices), solo deben evaluarse cuando el simbolo actual es XAUUSD o
+    # microXAUUSD. Para el resto de instrumentos se desactivan aqui, sin
+    # importar lo que traiga la config del perfil.
+    if config.round_number_enabled and symbol and not is_orb_gold_symbol(symbol):
+        config = replace(config, round_number_enabled=False, require_round_number=False)
     policy = get_symbol_direction_policy(symbol or '') if symbol else None
     allowed_direction = policy.allowed_direction if policy else None
 
@@ -496,6 +513,7 @@ def run_trade_pipeline(
         require_chart_pattern=getattr(config, "require_chart_pattern", False),
         chart_pattern_secondary_conflict_penalty=getattr(config, "chart_pattern_secondary_conflict_penalty", 10.0),
         block_material_chart_pattern_conflict=getattr(config, "block_material_chart_pattern_conflict", True),
+        chart_pattern_conflict_min_margin=getattr(config, "chart_pattern_conflict_min_margin", 0.25),
         block_similar_chart_pattern_forces=getattr(config, "block_similar_chart_pattern_forces", False),
         divergence_enabled=getattr(config, "divergence_enabled", True),
         divergence_rsi_period=getattr(config, "divergence_rsi_period", 14),

@@ -1,15 +1,17 @@
-"""Reporte de comparación de Win Rate PRE/POST mejoras (v106).
+"""Reporte de comparación de Win Rate PRE/POST mejoras (v107).
 
 Compara el desempeño real de las operaciones antes y después del despliegue
-de las 3 mejoras de win rate implementadas en v106:
-    1. Break-Even con bloqueo de ganancia real (profit lock).
+de las mejoras de win rate implementadas hasta v107:
+    1. Break-Even con bloqueo de ganancia real (profit lock). [v106]
     2. Filtro de horas de bajo edge en Sintéticos (con excepción de alta
-       confluencia >= 90%).
+       confluencia >= 90%). [v106]
     3. Salida por invalidación estructural del análisis, confirmada en velas
-       M15 (sin umbral de RR de pérdida).
+       M15 (sin umbral de RR de pérdida). [v106]
+    4. `clean_retest` real (rechazo + overshoot acotado) en vez de fijo en
+       `True`; patrón chartista y FVG obligatorios en las 4 estrategias. [v107]
 
 La frontera PRE/POST se determina por el campo `strategy_version` de cada
-operación: cualquier valor que ya contenga la marca "v106" (o posterior, si
+operación: cualquier valor que ya contenga la marca "v107" (o posterior, si
 se sigue el mismo esquema de nombres incremental "vNNN...") se considera
 POST-despliegue; todo lo demás es PRE.
 
@@ -185,8 +187,8 @@ def main():
     pre_rows = [r for r in rows if r["period"] == "PRE"]
     post_rows = [r for r in rows if r["period"] == "POST"]
 
-    _print_period_summary("PRE (antes de las mejoras v106)", pre_rows)
-    _print_period_summary("POST (después de las mejoras v106)", post_rows)
+    _print_period_summary("PRE (antes de las mejoras v107)", pre_rows)
+    _print_period_summary("POST (después de las mejoras v107)", post_rows)
 
     pre_wr, pre_n = _win_rate(Counter(r["outcome"] for r in pre_rows))
     post_wr, post_n = _win_rate(Counter(r["outcome"] for r in post_rows))

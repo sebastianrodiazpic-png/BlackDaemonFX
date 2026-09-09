@@ -10,8 +10,8 @@ cierre M5 confirmado, y volver a superarlo tras un retesteo, indica
 continuacion direccional.
 
 Alcance restringido a proposito: solo opera contratos concretos y conocidos
-(Oro, indices US), porque el concepto de sesion cash de Nueva York carece de
-sentido en sinteticos que cotizan 24/7.
+(Oro, Plata, Petroleo, indices US), porque el concepto de sesion cash de
+Nueva York carece de sentido en sinteticos que cotizan 24/7.
 
 Vinculaciones:
 - La orquesta `strategy.execution.live_trading_engine`, que la invoca para
@@ -60,8 +60,9 @@ def classify_orb_market(symbol: str) -> str | None:
         symbol: nombre del simbolo tal y como lo publica el broker.
 
     Returns:
-        `XAUUSD`, `MICRO_XAUUSD`, `WALL_STREET_30`, `US_TECH_100`, `US_500`,
-        o `None` si el simbolo no es apto para ORB.
+        `XAUUSD`, `MICRO_XAUUSD`, `XAGUSD`, `MICRO_XAGUSD`, `US_OIL`,
+        `WALL_STREET_30`, `US_TECH_100`, `US_500`, o `None` si el simbolo no
+        es apto para ORB.
     """
     name = _norm_symbol(symbol)
 
@@ -72,10 +73,17 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "xauusd":
         return "XAUUSD"
 
+    # Plata: mismo patron que el Oro, micro evaluado primero.
+    if name in {"xagusdmicro", "microxagusd"}:
+        return "MICRO_XAGUSD"
+    if name in {"xagusd", "silver"}:
+        return "XAGUSD"
+
     aliases = {
-        "WALL_STREET_30": ("wallstreet30", "us30", "dj30", "dow30", "dowjones30"),
-        "US_TECH_100": ("ustech100", "ustec100", "ustec", "nasdaq100", "nas100"),
+        "WALL_STREET_30": ("wallstreet30", "us30", "dj30", "dow30", "dowjones30", "ws30"),
+        "US_TECH_100": ("ustech100", "ustec100", "ustec", "nasdaq100", "nas100", "ndx100"),
         "US_500": ("us500", "sp500", "spx500", "sandp500"),
+        "US_OIL": ("usoil", "uso", "wti", "wtioil", "crudeoil", "brent", "brentoil"),
     }
     for market, tokens in aliases.items():
         if any(token == name or token in name for token in tokens):
@@ -94,6 +102,30 @@ def is_orb_eligible_symbol(symbol: str) -> bool:
 def is_orb_gold_symbol(symbol: str) -> bool:
     """True únicamente para las dos variantes de Oro autorizadas por ORB."""
     return classify_orb_market(symbol) in {"XAUUSD", "MICRO_XAUUSD"}
+
+
+def is_orb_silver_symbol(symbol: str) -> bool:
+    """True únicamente para las dos variantes de Plata autorizadas por ORB."""
+    return classify_orb_market(symbol) in {"XAGUSD", "MICRO_XAGUSD"}
+
+
+def is_orb_oil_symbol(symbol: str) -> bool:
+    """True únicamente para el contrato de Petróleo autorizado por ORB."""
+    return classify_orb_market(symbol) == "US_OIL"
+
+
+def is_orb_commodity_symbol(symbol: str) -> bool:
+    """True para cualquier materia prima autorizada por ORB (oro/plata/petróleo)."""
+    return (
+        is_orb_gold_symbol(symbol)
+        or is_orb_silver_symbol(symbol)
+        or is_orb_oil_symbol(symbol)
+    )
+
+
+def is_orb_index_symbol(symbol: str) -> bool:
+    """True para cualquiera de los tres índices US autorizados por ORB."""
+    return classify_orb_market(symbol) in {"WALL_STREET_30", "US_TECH_100", "US_500"}
 
 
 def score_orb_gold_contract_candidate(
@@ -153,6 +185,13 @@ def discover_orb_symbols(data_provider) -> list[str]:
     """
     terms = (
         "XAUUSD",
+        "XAGUSD",
+        "Silver",
+        "US Oil",
+        "USOIL",
+        "WTI",
+        "Crude Oil",
+        "Brent",
         "Wall Street",
         "US Tech",
         "USTEC",
@@ -219,9 +258,12 @@ class ORBConfig:
     tenga volumen por encima del promedio reciente, evitando operar rupturas
     "débiles" sin participación real (causa habitual de falsos breakouts).
 
-    `max_opening_range_atr_multiple` limita la amplitud aceptable del rango
-    de apertura respecto del ATR reciente. Un rango demasiado ancho implica
-    un stop (al 50%) igualmente ancho y un riesgo desproporcionado.
+    `max_opening_range_atr_multiple` es solo un umbral de referencia para el
+    diagnostico `opening_range_atr_within_limit`; ya NO bloquea la señal. Un
+    rango de apertura ancho implica un stop (al 50%) igualmente ancho, pero en
+    vez de rechazar la operacion se deja pasar: el sizing por riesgo en dinero
+    fijo (`calculate_volume`) ya reduce el lote proporcionalmente para que el
+    riesgo monetario real no crezca, sin perder la oportunidad de operar.
     """
 
     enabled: bool = True
@@ -248,6 +290,13 @@ class ORBConfig:
     require_max_opening_range_atr: bool = True
     opening_range_atr_period: int = 14
     max_opening_range_atr_multiple: float = 1.5
+    # v107: confluencia de niveles de cuarto ($25/$50/$75/$100), aplicada
+    # SOLO a XAUUSD/microXAUUSD (ver `is_orb_gold_symbol`). Para el resto de
+    # mercados ORB (US30/US_TECH_100/US_500) esta confluencia no aplica.
+    gold_quarter_level_enabled: bool = False
+    gold_quarter_level_increment: float = 25.0
+    gold_quarter_level_tolerance_price: float = 2.0
+    require_gold_quarter_level: bool = False
 
 
 class NewYorkORBStrategy:
@@ -536,7 +585,10 @@ class NewYorkORBStrategy:
                 "valid": False,
                 "strategy_name": "ORB_NEW_YORK",
                 "action": "SYMBOL_NOT_ORB_ELIGIBLE",
-                "reason": "ORB_SOLO_XAUUSD_MICROXAUUSD_WALL_STREET_30_US_TECH_100_US500",
+                "reason": (
+                    "ORB_SOLO_XAUUSD_MICROXAUUSD_XAGUSD_MICROXAGUSD_USOIL_"
+                    "WALL_STREET_30_US_TECH_100_US500"
+                ),
                 "symbol": symbol,
             }
 
@@ -592,30 +644,23 @@ class NewYorkORBStrategy:
         if not math.isfinite(range_size) or range_size <= 0:
             return {**base, "action": "INVALID_OPENING_RANGE", "reason": "RANGO_ORB_SIN_AMPLITUD"}
 
-        # Filtro de amplitud: un rango de apertura demasiado ancho respecto
-        # del ATR reciente implica un stop (al 50%) desproporcionadamente
-        # grande. Se calcula el ATR con las velas previas a la apertura de
-        # la sesion, para no incluir el propio rango en su propia referencia.
+        # Filtro de amplitud del rango de apertura: en vez de bloquear la señal
+        # cuando el rango es inusualmente ancho respecto al ATR reciente, se dej
+        # a pasar la señal y se confía en el sizing por riesgo en dinero fijo
+        # (`calculate_volume` en live_trading_engine.py), que ya reduce el lote
+        # proporcionalmente cuando el stop (50% del rango) es más ancho. Así se
+        # evita perder oportunidades válidas solo por un rango de apertura
+        # amplio; el riesgo monetario real de la cuenta se mantiene controlado
+        # por el cálculo de volumen, no por rechazar la operación.
         pre_open = df[df["time_ny"] < open_ny]
         atr_reference = self._average_true_range(
             pre_open, period=int(getattr(self.config, "opening_range_atr_period", 14))
         )
         max_atr_multiple = float(getattr(self.config, "max_opening_range_atr_multiple", 1.5))
         range_atr_ratio = (range_size / atr_reference) if atr_reference else None
-        if bool(getattr(self.config, "require_max_opening_range_atr", True)) and atr_reference:
-            if range_atr_ratio is not None and range_atr_ratio > max_atr_multiple:
-                return {
-                    **base,
-                    "action": "OPENING_RANGE_TOO_WIDE",
-                    "reason": "RANGO_ORB_EXCEDE_MULTIPLO_MAXIMO_DE_ATR",
-                    "opening_range_high": range_high,
-                    "opening_range_low": range_low,
-                    "opening_range_midpoint": midpoint,
-                    "opening_range_size": range_size,
-                    "opening_range_atr_reference": atr_reference,
-                    "opening_range_atr_ratio": range_atr_ratio,
-                    "opening_range_atr_max_multiple": max_atr_multiple,
-                }
+        opening_range_atr_within_limit = atr_reference is None or bool(
+            range_atr_ratio is not None and range_atr_ratio <= max_atr_multiple
+        )
 
         post_range = session[session["time_ny"] >= range_end_ny].copy()
         if post_range.empty:
@@ -753,6 +798,22 @@ class NewYorkORBStrategy:
             and breakout_volume_confirmed is False
         ):
             failed.append("RUPTURA_SIN_VOLUMEN_SUFICIENTE")
+
+        # v107: niveles de cuarto ($25/$50/$75/$100) SOLO para XAUUSD/microXAUUSD.
+        # El resto de mercados ORB no aplica esta confluencia (ver docstring de
+        # `ORBConfig.gold_quarter_level_enabled`).
+        quarter_level_applicable = bool(
+            self.config.gold_quarter_level_enabled and is_orb_gold_symbol(symbol)
+        )
+        quarter_level_ok = True
+        nearest_quarter_level = None
+        if quarter_level_applicable:
+            increment = max(1e-6, float(self.config.gold_quarter_level_increment))
+            tolerance = max(0.0, float(self.config.gold_quarter_level_tolerance_price))
+            nearest_quarter_level = round(retest_close / increment) * increment
+            quarter_level_ok = abs(retest_close - nearest_quarter_level) <= tolerance
+            if bool(self.config.require_gold_quarter_level) and not quarter_level_ok:
+                failed.append("SIN_CONFLUENCIA_NIVEL_DE_CUARTO_GOLD")
         if failed:
             return {
                 **base, **diagnostics, "direction": direction,
@@ -780,11 +841,11 @@ class NewYorkORBStrategy:
             "new_york_session": True,
             "eligible_market": True,
             "stop_at_orb_50_percent": True,
-            "opening_range_atr_within_limit": atr_reference is None or bool(
-                range_atr_ratio is not None and range_atr_ratio <= max_atr_multiple
-            ),
+            "opening_range_atr_within_limit": opening_range_atr_within_limit,
             "breakout_volume_confirmed": breakout_volume_confirmed is not False,
         }
+        if quarter_level_applicable:
+            confirmations["gold_quarter_level_alignment"] = bool(quarter_level_ok)
         passed = [name for name, ok in confirmations.items() if ok]
         missing = [name for name, ok in confirmations.items() if not ok]
         percentage = round(len(passed) / len(confirmations) * 100.0, 2)

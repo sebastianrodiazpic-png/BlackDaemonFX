@@ -1,16 +1,23 @@
-"""Lógica compartida para comparar Win Rate PRE/POST mejoras (v106).
+"""Lógica compartida para comparar Win Rate PRE/POST mejoras (v107).
 
 Separada de `dashboard/account_metrics.py` (que ya agrupa las operaciones en
 `logical_groups`, una entrada por señal lógica) y de
 `tools/winrate_pre_post_report.py` (CLI de solo lectura), para que ambos
 midan exactamente lo mismo con el mismo criterio de frontera PRE/POST.
 
-Las 3 mejoras de win rate que definen la frontera v106:
-    1. Break-Even con bloqueo de ganancia real (profit lock).
-    2. Filtro de horas de bajo edge en Sintéticos (con excepción de alta
-       confluencia >= 90%).
-    3. Salida por invalidación estructural del análisis, confirmada en velas
-       M15 (sin umbral de RR de pérdida).
+Las mejoras que definen la frontera v107 (además de las 3 ya marcadas en
+v106: Break-Even profit-lock, filtro de horas en Sintéticos, invalidación M15):
+    4. `clean_retest` deja de ser un valor fijo en `True`: ahora exige rechazo
+       real Y que la vela de retest no perfore la zona del OB más allá de un
+       overshoot tolerado (`clean_retest_max_overshoot_ratio`). Ataca
+       directamente el problema real detectado en la auditoría: la mayoría de
+       pérdidas nunca llegaban a +1R, no eran fallos de gestión del SL.
+    5. Patrón chartista y FVG sin rellenar pasan a ser obligatorios
+       (`require_chart_pattern`/`require_fvg`) en las 4 estrategias.
+    6. Sintéticos sin filtro horario obligatorio; Forex sin killzones
+       obligatorias (con cierre automático pre-NY); Gold con confluencia de
+       niveles de cuarto (25/50/75/100) sólo para XAUUSD/microXAUUSD, misma
+       regla aplicada a ORB.
 
 La frontera PRE/POST se determina por el campo `strategy_version` de cada
 señal: cualquier valor cuyo número de versión (esquema `smc-vNNN-...`) sea
@@ -31,7 +38,14 @@ from collections import Counter, defaultdict
 # Versión mínima (inclusive) considerada "POST-mejoras". Cualquier
 # strategy_version con un número de versión >= a este es POST; el resto,
 # PRE. Se apoya en el esquema "smc-vNNN-..." ya usado en el proyecto.
-POST_IMPROVEMENT_MIN_VERSION = 106
+#
+# v107: subida desde 106 porque el fix de esta sesión (clean_retest real,
+# patrón chartista/FVG obligatorios, sin killzones/filtro horario forzado,
+# cuartos Gold/ORB) se etiqueta con `smc-v107-...`. Si se dejara en 106,
+# operaciones viejas ya cerradas con la etiqueta v106 (previas a este cambio
+# de código) se mezclarían con las nuevas en el bucket POST, distorsionando
+# la comparación.
+POST_IMPROVEMENT_MIN_VERSION = 107
 
 _VERSION_NUMBER_RE = re.compile(r"v(\d+)", re.IGNORECASE)
 

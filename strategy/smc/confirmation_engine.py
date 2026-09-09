@@ -40,13 +40,10 @@ def _detect_synthetics_killzone_confirmation(
     favorable_hour_ranges,
     bonus_points: float,
 ) -> dict[str, Any]:
-    """Confluencia (no gate) de "killzone favorable" para Sintéticos.
+    """Confluencia horaria opcional para Sintéticos.
 
-    Complementa a `_synthetics_low_edge_session_gate` (blacklist binaria,
-    sigue vigente sin cambios). Aquí solo se SUMA puntos si la vela de
-    confirmación cae dentro de una franja UTC con WR historico alto
-    (13-15h, 17-18h, 22-23h observado sobre 82 trades reales); nunca resta
-    ni bloquea por sí sola.
+    Solo suma puntos si la vela de confirmación cae dentro de una franja
+    configurada; nunca resta ni bloquea por sí sola.
 
     Returns:
         Dict con `synthetics_killzone_enabled`, `synthetics_killzone_confirmed`,
@@ -103,6 +100,11 @@ class M5ConfirmationConfig:
     require_momentum: bool = False
     minimum_body_ratio: float = 0.65
     minimum_rejection_wick_ratio: float = 0.30
+    # v107: el retest debe ser "limpio", no solo rechazado. Un retest que
+    # perfora muy hondo mas alla del OB antes de girar implica mas riesgo real
+    # del que refleja el SL estructural; eso explicaba parte de las perdidas
+    # que nunca llegaban a +1R (ver auditoria de winrate_pre_post v107).
+    clean_retest_max_overshoot_ratio: float = 0.50
     displacement_range_multiplier: float = 1.35
     momentum_range_multiplier: float = 1.00
     range_lookback: int = 20
@@ -127,7 +129,7 @@ class M5ConfirmationConfig:
     divergence_rsi_period: int = 14
     divergence_lookback_candles: int = 80
     divergence_bonus_points: float = 5.0
-    # v62: patrones chartistas como confluencia SMC opcional y auditable.
+    # La tesis chartista debe estar alineada y no tener patrón opuesto.
     chart_patterns_enabled: bool = True
     chart_patterns_lookback: int = 80
     chart_patterns_pivot_window: int = 2
@@ -140,34 +142,35 @@ class M5ConfirmationConfig:
     require_chart_pattern: bool = False
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
-    # Patrones opuestos de fuerza similar reducen el score, pero no constituyen
-    # por sí solos una invalidación estructural. Sólo domina un patrón contrario
-    # ausente de apoyo o claramente más fuerte.
-    block_similar_chart_pattern_forces: bool = False
-    # v107: Fair Value Gap / imbalance como confluencia SMC ponderada. Antes
-    # solo se dibujaba como contexto visual auxiliar en el dashboard; ahora
-    # también puede sumar bonus de score cuando está alineado con la
-    # dirección de la señal y aún no fue rellenado.
+    # v108: el conflicto solo deja de bloquear cuando el patrón ALINEADO con
+    # la dirección deseada supera al contrario por AL MENOS este margen
+    # (fuerza_alineada - fuerza_contraria, en fracción 0-1: 0.25 = 25 puntos).
+    # Si el contrario es igual o más fuerte que el alineado (p.ej. 83% vs 78%,
+    # el contrario gana por 5 puntos) el conflicto sigue bloqueando, sin
+    # importar qué tan chico sea el margen: solo se desbloquea cuando el
+    # alineado va ganando y por un margen amplio. Por debajo de ese margen
+    # solo se aplica la penalización de puntos
+    # (`chart_pattern_secondary_conflict_penalty`).
+    # Si el detector no informa el delta (por ejemplo mocks de prueba
+    # antiguos), se conserva el comportamiento previo basado solo en el nivel.
+    chart_pattern_conflict_min_margin: float = 0.25
+    # Todo patrón opuesto detectado invalida la entrada; ni la vía adaptativa
+    # puede compensar una tesis chartista en conflicto.
+    block_similar_chart_pattern_forces: bool = True
+    # El FVG alineado, reciente y sin rellenar es obligatorio para entrar.
     fvg_enabled: bool = True
     fvg_lookback: int = 30
     fvg_max_age_candles: int = 10
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
     require_fvg: bool = False
-    # v107: confluencia de "killzone favorable" para Sintéticos. El gate
-    # binario `_synthetics_low_edge_session_gate` (blacklist de horas malas)
-    # se mantiene intacto; esto es una confluencia ADICIONAL y opcional que
-    # suma puntos si la vela de confirmación cae en una franja horaria
-    # históricamente fuerte (50-100% WR real observado). No aplica a
-    # Forex/GOLD por defecto (`synthetics_killzone_enabled=False` salvo que
-    # el pipeline de Sintéticos lo active explícitamente).
+    # Confluencia horaria opcional para Sintéticos; nunca es un veto de entrada.
     synthetics_killzone_enabled: bool = False
     synthetics_favorable_hour_ranges: tuple = ((13, 15), (17, 18), (22, 24))
     synthetics_killzone_bonus_points: float = 5.0
     require_synthetics_killzone: bool = False
-    # v107: niveles psicológicos redondos ($50/$100), confluencia específica
-    # de XAUUSD documentada en la literatura SMC/ICT para gold. Deshabilitada
-    # por defecto: solo el perfil GOLD la activa explícitamente.
+    # Niveles de cuarto ($25/$50/$75/$100), confluencia específica de XAUUSD.
+    # Deshabilitada por defecto: solo el perfil GOLD la activa explícitamente.
     round_number_enabled: bool = False
     round_number_increment: float = 50.0
     round_number_tolerance_price: float = 2.0
@@ -496,9 +499,24 @@ def evaluate_m5_confirmation(
     else:
         strong_close = directional_candle and close_location <= float(config.strong_close_fraction)
 
+    # v107: "retest limpio" real. Antes se marcaba `clean_retest=True` de forma
+    # fija; ahora exige rechazo genuino Y que la vela de retest no haya
+    # perforado la zona demasiado hondo respecto a su propio tamano. Un
+    # overshoot grande implica que el SL estructural (justo detras del OB)
+    # queda mas cerca del ruido normal del precio, lo que explicaba parte de
+    # las perdidas que nunca llegaban a +1R.
+    zone_size = max(ob_high - ob_low, 1e-9)
+    retest_low = _safe_float(retest.get("low"))
+    retest_high = _safe_float(retest.get("high"))
     if direction == "long":
         rejection = retest_metrics["lower_wick_ratio"] >= config.minimum_rejection_wick_ratio and _safe_float(retest.get("close")) >= ob_low
         respects_ob = _safe_float(candle.get("close")) >= ob_low
+        retest_overshoot_ratio = max(0.0, ob_low - retest_low) / zone_size
+        clean_retest = (
+            rejection
+            and respects_ob
+            and retest_overshoot_ratio <= float(config.clean_retest_max_overshoot_ratio)
+        )
         mode_ok = {
             "inside": respects_ob,
             "midpoint": _safe_float(candle.get("close")) >= midpoint,
@@ -507,6 +525,12 @@ def evaluate_m5_confirmation(
     else:
         rejection = retest_metrics["upper_wick_ratio"] >= config.minimum_rejection_wick_ratio and _safe_float(retest.get("close")) <= ob_high
         respects_ob = _safe_float(candle.get("close")) <= ob_high
+        retest_overshoot_ratio = max(0.0, retest_high - ob_high) / zone_size
+        clean_retest = (
+            rejection
+            and respects_ob
+            and retest_overshoot_ratio <= float(config.clean_retest_max_overshoot_ratio)
+        )
         mode_ok = {
             "inside": respects_ob,
             "midpoint": _safe_float(candle.get("close")) <= midpoint,
@@ -629,7 +653,7 @@ def evaluate_m5_confirmation(
         "m15_structure": bool(setup.get("structure_break_ok", False)),
         "premium_discount": bool(setup.get("premium_discount_ok", False)),
         "fresh_order_block": fresh_ob,
-        "clean_retest": True,
+        "clean_retest": clean_retest,
         "rejection": rejection,
         "displacement": displacement,
         "micro_structure": micro_structure,
@@ -666,14 +690,34 @@ def evaluate_m5_confirmation(
         raw_score += float(config.round_number_bonus_points)
 
     conflict_level = str(chart_pattern.get("chart_pattern_conflict_level") or "NONE").upper()
-    material_conflict_levels = {"DOMINANT_CONTRA", "CONTRA_MAS_FUERTE"}
-    if bool(config.block_similar_chart_pattern_forces):
-        material_conflict_levels.add("FUERZAS_SIMILARES")
-    chart_conflict_blocked = bool(
-        config.block_material_chart_pattern_conflict
-        and chart_pattern.get("chart_pattern_conflict")
-        and conflict_level in material_conflict_levels
-    )
+    conflict_delta = chart_pattern.get("chart_pattern_conflict_strength_delta")
+    if conflict_delta is not None:
+        # v108: el conflicto solo deja de bloquear cuando el patrón ALINEADO
+        # con la dirección deseada supera al contrario por AL MENOS este
+        # margen (`chart_pattern_conflict_min_margin`, `fuerza_alineada -
+        # fuerza_contraria`). `conflict_delta` es `fuerza_contraria -
+        # fuerza_alineada`, así que el margen a favor del alineado es su
+        # negativo. Si el contrario es igual o más fuerte (p.ej. 83% vs 78%,
+        # el contrario gana por 5 puntos) el conflicto sigue bloqueando, sin
+        # importar qué tan chico sea el margen.
+        aligned_margin = -float(conflict_delta)
+        chart_conflict_blocked = bool(
+            config.block_material_chart_pattern_conflict
+            and chart_pattern.get("chart_pattern_conflict")
+            and aligned_margin < float(config.chart_pattern_conflict_min_margin)
+        )
+    else:
+        # Compatibilidad retroactiva: si no llega el delta (por ejemplo,
+        # dobles de prueba que solo fijan el nivel), se conserva la
+        # clasificación previa basada únicamente en `conflict_level`.
+        material_conflict_levels = {"DOMINANT_CONTRA", "CONTRA_MAS_FUERTE"}
+        if bool(config.block_similar_chart_pattern_forces):
+            material_conflict_levels.add("FUERZAS_SIMILARES")
+        chart_conflict_blocked = bool(
+            config.block_material_chart_pattern_conflict
+            and chart_pattern.get("chart_pattern_conflict")
+            and conflict_level in material_conflict_levels
+        )
     chart_conflict_penalty = (
         float(config.chart_pattern_secondary_conflict_penalty)
         if chart_pattern.get("chart_pattern_conflict") and not chart_conflict_blocked
@@ -702,13 +746,8 @@ def evaluate_m5_confirmation(
     # degradar el porcentaje adaptativo ni convertir 11/13 en 11/14.
     if config.harmonic_enabled and config.require_harmonic:
         evaluated_keys.append("harmonic_confirmation")
-    # v62: chart-pattern confluence is intentionally not appended to
-    # evaluated_keys unless explicitly required; absence never penalizes legacy SMC.
     if config.require_chart_pattern:
         evaluated_keys.append("chart_pattern_confirmation")
-    # v107: igual criterio que armónicos/patrones chartistas: el FVG es
-    # confluencia opcional, su ausencia solo penaliza el ratio si se exige
-    # explícitamente con `require_fvg`.
     if config.require_fvg:
         evaluated_keys.append("fvg_confirmation")
     if config.require_synthetics_killzone:
@@ -728,6 +767,10 @@ def evaluate_m5_confirmation(
         "premium_discount", "fresh_order_block", "clean_retest",
         "directional_candle", "confirmation_mode_ok",
     ]
+    if config.require_chart_pattern:
+        critical_keys.append("chart_pattern_confirmation")
+    if config.require_fvg:
+        critical_keys.append("fvg_confirmation")
     critical_failures = [key for key in critical_keys if not bool(context.get(key, False))]
 
     # v41: gates estructurales dependientes del tipo de ruptura M15.
@@ -770,6 +813,10 @@ def evaluate_m5_confirmation(
         required_failures.append("STRONG_CLOSE_NOT_CONFIRMED")
     if config.require_harmonic and not harmonic["harmonic_confirmed"]:
         required_failures.append("HARMONIC_PATTERN_NOT_CONFIRMED")
+    if config.require_chart_pattern and not chart_pattern["chart_pattern_confirmed"]:
+        required_failures.append("CHART_PATTERN_NOT_CONFIRMED")
+    if config.require_fvg and not fvg["fvg_confirmed"]:
+        required_failures.append("UNFILLED_ALIGNED_FVG_NOT_CONFIRMED")
     if score < float(config.minimum_trade_score):
         required_failures.append("INSUFFICIENT_TRADE_SCORE")
 
@@ -829,6 +876,8 @@ def evaluate_m5_confirmation(
         "strong_close": strong_close,
         "lower_wick_ratio": metrics["lower_wick_ratio"],
         "upper_wick_ratio": metrics["upper_wick_ratio"],
+        "retest_overshoot_ratio": round(float(retest_overshoot_ratio), 4),
+        "clean_retest": clean_retest,
         "prior_high": prior_high,
         "prior_low": prior_low,
         "confirmations": context,

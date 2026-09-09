@@ -62,7 +62,7 @@ from database.reporting import export_trading_report
 from backtesting.backtest_pipeline import run_full_backtest_pipeline
 from strategy.execution.trade_pipeline import run_trade_pipeline
 from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradingConfig
-from strategy.orb.new_york_orb import discover_orb_symbols, classify_orb_market
+from strategy.orb.new_york_orb import discover_orb_symbols, classify_orb_market, is_orb_index_symbol
 
 
 def _validate_timeframes():
@@ -386,6 +386,9 @@ def run_demo_bot(
     bot_profile: str = "SYNTHETICS",
     magic: int = 26082026,
     auto_export: bool = True,
+    chart_pattern_conflict_min_margin: float = 0.25,
+    hard_risk_tolerance: float = 0.035,
+    recoverable_quarantine_extra_tolerance: float = 0.015,
 ):
     """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
 
@@ -408,6 +411,13 @@ def run_demo_bot(
         magic: identificador de las ordenes de este worker; separa las
             posiciones de cada perfil en el terminal.
         auto_export: exporta el Excel al cerrar cada operacion.
+        chart_pattern_conflict_min_margin: margen minimo (0-1) exigido para
+            que un patron chartista contrario NO bloquee la entrada.
+        hard_risk_tolerance: tolerancia (0-1) de exceso de riesgo post-fill
+            antes de marcar breach del tope duro.
+        recoverable_quarantine_extra_tolerance: tolerancia adicional (0-1)
+            hasta la cual un breach se clasifica como recuperable (cuarentena
+            temporal) en vez de exigir revision manual.
 
     Los imports son diferidos para que la CLI arranque sin exigir MetaTrader5
     en modos que no lo necesitan.
@@ -504,6 +514,9 @@ def run_demo_bot(
         jump_min_confirmation_ratio=0.90,
         jump_min_trade_score=90.0,
         jump_allow_single_fallback=False,
+        chart_pattern_conflict_min_margin=chart_pattern_conflict_min_margin,
+        hard_risk_tolerance=hard_risk_tolerance,
+        recoverable_quarantine_extra_tolerance=recoverable_quarantine_extra_tolerance,
     )
 
     engine = LiveTradingEngine(
@@ -1062,6 +1075,11 @@ BOT_PROFILES = {
         "magic": 26082029,
         "categories": [],
     },
+    "IDX_OPEN": {
+        "mode": "idx-open-daemon",
+        "magic": 26082030,
+        "categories": [],
+    },
 }
 
 SYNTHETIC_SPLIT_PROFILES = (
@@ -1083,7 +1101,7 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB",
+    "GOLD", "ORB", "IDX_OPEN",
 )
 
 
@@ -1133,11 +1151,13 @@ def _assert_full_multibot_architecture(profiles):
 def _selection_profile_for_bot(profile: str) -> str:
     """Traduce el perfil de un worker a su familia de instrumentos.
 
-    Varios perfiles comparten universo (por ejemplo GOLD opera bajo las reglas
-    de ORB), asi que se colapsan a FOREX, ORB o SYNTHETICS.
+    GOLD comparte universo con ORB y por eso colapsa a esa selección. IDX_OPEN
+    tiene su propia selección persistente independiente en /instruments (ver
+    _SELECTION_PROFILES en el dashboard), asi que se mapea a si mismo.
     """
     profile = str(profile or "").upper()
     if profile.startswith("FOREX"): return "FOREX"
+    if profile == "IDX_OPEN": return "IDX_OPEN"
     if profile in {"ORB", "GOLD"}: return "ORB"
     return "SYNTHETICS"
 
@@ -1168,9 +1188,18 @@ def _resolve_live_symbols_for_profile(args, profile: str):
         if profile == "ORB":
             universe = sorted(set(discover_orb_symbols(provider)))
         elif profile == "GOLD":
+            # El worker GOLD comparte el mismo universo completo que ORB
+            # (Oro, Plata, Petroleo e indices US). Los niveles de cuarto
+            # (25/50/75/100) solo se aplican internamente para XAUUSD/
+            # microXAUUSD; el resto de instrumentos opera sin esa confluencia.
+            universe = sorted(set(discover_orb_symbols(provider)))
+        elif profile == "IDX_OPEN":
+            # Apertura Indices Bursatiles: solo los 3 indices US (Wall Street
+            # 30, US Tech 100, US SP 500), reutilizando el mismo descubrimiento
+            # de ORB pero filtrado a is_orb_index_symbol.
             universe = sorted({
                 symbol for symbol in discover_orb_symbols(provider)
-                if classify_orb_market(symbol) == "XAUUSD"
+                if is_orb_index_symbol(symbol)
             })
         else:
             universe = manager.get_active_symbols(
@@ -1228,6 +1257,13 @@ def _build_multi_bot_dashboard_catalog(profiles):
             if profile == "GOLD":
                 # XAUUSD ya aparece en la categoría visual ORB; el perfil GOLD
                 # reutiliza esa selección sin duplicar el instrumento en UI.
+                continue
+            if profile == "IDX_OPEN":
+                # Categoria visual propia en /instruments, ademas de aparecer
+                # bajo ORB (mismos simbolos, seleccion independiente por perfil).
+                for symbol in discover_orb_symbols(provider):
+                    if is_orb_index_symbol(symbol):
+                        categorized.setdefault("idx_open_indices", []).append(symbol)
                 continue
 
             for category in spec.get("categories", []):
@@ -1346,9 +1382,13 @@ def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
     if profile == "ORB":
         universe = list(discover_orb_symbols(provider))
     elif profile == "GOLD":
+        # Mismo universo compartido que ORB; ver nota en
+        # _resolve_live_symbols_for_profile sobre niveles de cuarto.
+        universe = list(discover_orb_symbols(provider))
+    elif profile == "IDX_OPEN":
+        # Apertura Indices Bursatiles: solo los 3 indices US.
         universe = [
-            symbol for symbol in discover_orb_symbols(provider)
-            if classify_orb_market(symbol) == "XAUUSD"
+            s for s in discover_orb_symbols(provider) if is_orb_index_symbol(s)
         ]
     elif profile.startswith("FOREX"):
         try:
@@ -1532,6 +1572,9 @@ def run_unified_multibot_daemon(args, profiles=None):
                 jump_min_confirmation_ratio=0.90,
                 jump_min_trade_score=90.0,
                 jump_allow_single_fallback=False,
+                chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
+                hard_risk_tolerance=args.hard_risk_tolerance,
+                recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             )
             engines[profile] = LiveTradingEngine(
                 provider,
@@ -2756,6 +2799,7 @@ def main():
             "forex-4-daemon",
             "gold-session-daemon",
             "orb-daemon",
+            "idx-open-daemon",
             "synthetics-split-daemon",
             "multi-bot-daemon",
             "unified-multibot-daemon",
@@ -2869,6 +2913,44 @@ def main():
         "--min-rr",
         type=float,
         default=1.5,
+    )
+
+    parser.add_argument(
+        "--chart-pattern-conflict-min-margin",
+        type=float,
+        default=0.15,
+        help=(
+            "Margen minimo (0-1) por el que el patron chartista alineado debe "
+            "superar al contrario para NO bloquear la entrada. Ej: 0.25 exige "
+            "que el alineado sea al menos 25 puntos porcentuales mas fuerte "
+            "que el contrario; por debajo de ese margen (o si el contrario es "
+            "igual o mas fuerte) se bloquea la entrada."
+        ),
+    )
+
+    parser.add_argument(
+        "--hard-risk-tolerance",
+        type=float,
+        default=0.035,
+        help=(
+            "Tolerancia (0-1) sobre el riesgo objetivo antes de considerar "
+            "que el fill excedió el tope duro (hard cap). Ej: 0.035 permite "
+            "hasta un 3.5%% de exceso tras el fill sin marcarlo como breach. "
+            "Súbelo si un símbolo entra seguido en cuarentena por la "
+            "granularidad de su lote mínimo (ej. Step Index 500)."
+        ),
+    )
+    parser.add_argument(
+        "--recoverable-quarantine-extra-tolerance",
+        type=float,
+        default=0.015,
+        help=(
+            "Tolerancia adicional (0-1), sumada a --hard-risk-tolerance, "
+            "hasta la cual un breach de riesgo post-fill se clasifica como "
+            "RECUPERABLE (cuarentena temporal que expira sola) en vez de "
+            "requerir revisión manual. Ej: con hard-risk-tolerance=0.035 y "
+            "este valor en 0.015, un exceso de hasta 5%% se auto-recupera."
+        ),
     )
 
     parser.add_argument(
@@ -3090,6 +3172,7 @@ def main():
         "forex-4-daemon": "FOREX_4",
         "gold-session-daemon": "GOLD",
         "orb-daemon": "ORB",
+        "idx-open-daemon": "IDX_OPEN",
     }
     if args.mode in strategy_worker_modes:
         profile = strategy_worker_modes[args.mode]
@@ -3116,6 +3199,9 @@ def main():
             bot_profile=profile,
             magic=BOT_PROFILES[profile]["magic"],
             auto_export=False,
+            chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
+            hard_risk_tolerance=args.hard_risk_tolerance,
+            recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
         )
         return
 
@@ -3188,6 +3274,9 @@ def main():
                 position_monitor_interval=args.position_monitor_interval,
                 dashboard=args.dashboard,
                 dashboard_port=args.dashboard_port,
+                chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
+                hard_risk_tolerance=args.hard_risk_tolerance,
+                recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             )
 
         else:
@@ -3216,6 +3305,9 @@ def main():
                 position_monitor_interval=args.position_monitor_interval,
                 dashboard=args.dashboard,
                 dashboard_port=args.dashboard_port,
+                chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
+                hard_risk_tolerance=args.hard_risk_tolerance,
+                recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             )
 
         return

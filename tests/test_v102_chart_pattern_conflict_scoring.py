@@ -63,7 +63,12 @@ def _evaluate(monkeypatch, chart_pattern, **config_kwargs):
         retest_index=2,
         confirmation_index=3,
         direction="long",
-        config=M5ConfirmationConfig(minimum_trade_score=70, **config_kwargs),
+        config=M5ConfirmationConfig(
+            minimum_trade_score=70,
+            require_fvg=False,
+            block_similar_chart_pattern_forces=False,
+            **config_kwargs,
+        ),
     )
 
 

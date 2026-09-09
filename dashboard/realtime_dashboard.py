@@ -286,14 +286,19 @@ _CATEGORY_LABELS = {
     "orb_ny_us_500": "S&P 500",
     "orb_ny_xauusd": "XAUUSD",
     "orb_ny_micro_xauusd": "XAUUSD Micro",
+    "orb_ny_xagusd": "Plata (XAGUSD)",
+    "orb_ny_micro_xagusd": "Plata Micro (XAGUSD)",
+    "orb_ny_us_oil": "Petróleo (US Oil)",
+    "idx_open_indices": "Apertura de Índices Bursátiles",
 }
 
-_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB")
+_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN")
 
 def _selection_profile_for_category(category: str) -> str:
     """Mapea una categoria de instrumento a su perfil de worker."""
     value=str(category or "").lower()
     if value == "forex": return "FOREX"
+    if value == "idx_open_indices": return "IDX_OPEN"
     if value.startswith("orb_ny_"): return "ORB"
     return "SYNTHETICS"
 
@@ -418,6 +423,7 @@ _BOT_MAGIC_PROFILE = {
     26082203: "FOREX_3",
     26082204: "FOREX_4",
     26082028: "ORB",
+    26082029: "GOLD",
     26082101: "BOOM",
     26082102: "CRASH",
     26082103: "VOLATILITY",
@@ -428,6 +434,7 @@ _BOT_MAGIC_PROFILE = {
     26082104: "STEP",
     26082105: "JUMP",
     26082106: "FLIP",
+    26082030: "IDX_OPEN",
 }
 
 
@@ -466,6 +473,13 @@ def _infer_symbol_profile(symbol: str) -> str | None:
 
     orb_terms = (
         "xauusd",
+        "xagusd",
+        "silver",
+        "us oil",
+        "usoil",
+        "wti",
+        "crude oil",
+        "brent",
         "us30",
         "wall street",
         "ustec",
@@ -831,7 +845,7 @@ class RealtimeDashboardService:
             "position_health_summary": {"mantener": 0, "vigilar": 0, "proteger": 0, "salida": 0},
             "instrument_catalog": [],
             "selected_symbols": [],
-            "selection_profiles": {"SYNTHETICS": [], "FOREX": [], "ORB": []},
+            "selection_profiles": {"SYNTHETICS": [], "FOREX": [], "ORB": [], "IDX_OPEN": []},
             "selection_profile_versions": {},
             "selection_version": 0,
             "selection_message": "Catálogo pendiente de cargar",
@@ -1595,7 +1609,7 @@ class RealtimeDashboardService:
                 catalog.append({"category":str(category),"selection_profile":_selection_profile_for_category(category),
                                 "label":_CATEGORY_LABELS.get(str(category),str(category).replace("_"," ").title()),
                                 "symbols":symbols})
-        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2}.get(r["selection_profile"],9),r["label"].casefold()))
+        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3}.get(r["selection_profile"],9),r["label"].casefold()))
         allowed=_catalog_symbols_by_profile(catalog); persisted={}
         explicit=_normalize_symbol_list(selected_symbols)
         if self.repository is not None and hasattr(self.repository,"latest_instrument_selection_profiles"):
@@ -1616,12 +1630,12 @@ class RealtimeDashboardService:
             else:
                 chosen=sorted(universe,key=str.casefold)
             selections[profile]=_normalize_symbol_list(chosen)
-        combined=_normalize_symbol_list(selections["SYNTHETICS"]+selections["FOREX"]+selections["ORB"])
+        combined=_normalize_symbol_list(selections["SYNTHETICS"]+selections["FOREX"]+selections["ORB"]+selections["IDX_OPEN"])
         with self._lock:
             self._state["instrument_catalog"]=catalog; self._state["selection_profiles"]=selections
             self._state["selection_profile_versions"]=versions; self._state["selected_symbols"]=combined
             self._state["selection_version"]=int(self._state.get("selection_version") or 0)+1
-            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · selecciones independientes")
+            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · Apertura Índices: {len(selections['IDX_OPEN'])} · selecciones independientes")
             self._state["updated_at"]=_now_iso(); self._persist_state_locked()
         self._invalidate_navigation_caches(instruments=True)
         return combined
@@ -1685,7 +1699,7 @@ class RealtimeDashboardService:
             profiles=dict(self._state.get("selection_profiles") or {p:[] for p in _SELECTION_PROFILES}); profiles[profile]=requested
             versions=dict(self._state.get("selection_profile_versions") or {})
             if persisted: versions[profile]=persisted.get("version")
-            combined=_normalize_symbol_list(profiles.get("SYNTHETICS",[])+profiles.get("FOREX",[])+profiles.get("ORB",[]))
+            combined=_normalize_symbol_list(profiles.get("SYNTHETICS",[])+profiles.get("FOREX",[])+profiles.get("ORB",[])+profiles.get("IDX_OPEN",[]))
             self._state["selection_profiles"]=profiles; self._state["selection_profile_versions"]=versions
             self._state["selected_symbols"]=combined; self._state["selection_version"]=int(self._state.get("selection_version") or 0)+1
             self._state["selection_message"]=f"{profile}: {len(requested)} instrumentos guardados de manera independiente. Se aplicará en el próximo ciclo de ese bot."
@@ -2164,7 +2178,7 @@ class RealtimeDashboardService:
         self._state["selection_profiles"] = profiles
         self._state["selection_profile_versions"] = versions
         self._state["selected_symbols"] = _normalize_symbol_list(
-            profiles.get("SYNTHETICS", []) + profiles.get("FOREX", []) + profiles.get("ORB", [])
+            profiles.get("SYNTHETICS", []) + profiles.get("FOREX", []) + profiles.get("ORB", []) + profiles.get("IDX_OPEN", [])
         )
         self._state["selection_persistence_status"] = "VERIFICADA"
         self._state["selection_persistence_error"] = None
@@ -2431,7 +2445,8 @@ function renderCandidateContext(last){
 }
 function renderWorkers(s){
  const rows=(s.worker_states||[]),grid=$('workerGrid');if(!grid)return;
- const order=['BOOM','CRASH','VOLATILITY','STEP','JUMP','FLIP','FOREX','ORB'];
+ const order=['BOOM','CRASH','VOLATILITY','STEP','JUMP','FLIP','FOREX','ORB','IDX_OPEN'];
+ const workerLabels={'IDX_OPEN':'Apertura Bursátiles'};
  const now=Date.now();
  const sorted=[...rows].sort((a,b)=>{const ai=order.indexOf(String(a.bot_profile||'').toUpperCase()),bi=order.indexOf(String(b.bot_profile||'').toUpperCase());return (ai<0?99:ai)-(bi<0?99:bi)});
  grid.innerHTML=sorted.map(w=>{
@@ -2440,8 +2455,9 @@ function renderWorkers(s){
    const disabled=String(w.status||'').toUpperCase()==='DISABLED';
    const stale=!disabled&&age>120,status=disabled?'DISABLED':(stale?'SIN ACTIVIDAD':(w.status||'RUNNING'));
    const cls=status==='RUNNING'?'good':status==='STARTING'?'warn':'bad';
+   const displayName=workerLabels[String(w.bot_profile||'').toUpperCase()]||(w.bot_profile||'WORKER');
    return `<section class="workerCard ${stale?'workerStale':''}">
-    <div class="workerHead"><div class="workerName">${esc(w.bot_profile||'WORKER')}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
+    <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
     <div class="workerMeta">
       <div><span>PID</span><b>${esc(w.pid||'—')}</b></div>
       <div><span>Magic</span><b>${esc(w.daemon_magic||'—')}</b></div>
@@ -2472,11 +2488,11 @@ _INSTRUMENTS_HTML = r'''<!doctype html>
 .brandStrip{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #5b4514}.brandStrip img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #765719}.brandStrip b{font-size:22px}.brandStrip b span{color:#f3c64c}.card{box-shadow:inset 0 1px 0 rgba(255,211,102,.03)}
 </style></head><body><main class="wrap"><div class="brandStrip"><img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX"><div><b>BLACKDAEMON<span>FX</span></b><div class="sub">Gestión modular de instrumentos</div></div></div>
 <div class="top"><div><div class="title">Instrumentos para nuevas entradas</div><div class="sub">Módulo independiente · catálogo dinámico desde MT5/Deriv · orden alfabético por categoría.</div></div><a class="btn" href="/">← Volver al dashboard</a></div>
-<section class="card"><div class="head"><div class="actions" id="profileTabs"><button class="btn profileTab active" data-profile="SYNTHETICS" type="button">SINTÉTICOS</button><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button></div><div class="actions"><button class="btn" id="selectAll" type="button">Seleccionar todos</button><button class="btn" id="clearAll" type="button">Limpiar</button><button class="btn primary" id="save" type="button">Aplicar selección</button></div></div><div style="margin-top:12px"><input id="search" class="search" type="search" placeholder="Buscar instrumento…" aria-label="Buscar instrumento"></div>
+<section class="card"><div class="head"><div class="actions" id="profileTabs"><button class="btn profileTab active" data-profile="SYNTHETICS" type="button">SINTÉTICOS</button><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button><button class="btn profileTab" data-profile="IDX_OPEN" type="button">APERTURA ÍNDICES BURSÁTILES</button></div><div class="actions"><button class="btn" id="selectAll" type="button">Seleccionar todos</button><button class="btn" id="clearAll" type="button">Limpiar</button><button class="btn primary" id="save" type="button">Aplicar selección</button></div></div><div style="margin-top:12px"><input id="search" class="search" type="search" placeholder="Buscar instrumento…" aria-label="Buscar instrumento"></div>
 <div class="stats"><div class="metric"><span class="sub">Seleccionados</span><b id="selectedCount">0</b></div><div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div><div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div></div>
 <div id="grid" class="instrumentGrid"><div class="sub">Cargando catálogo…</div></div><div id="msg" class="msg"></div>
 <section class="card" style="margin-top:14px"><div class="head"><div><b>Noticias financieras relevantes</b><div class="sub">Fuente RSS en español · prioridad a impacto alto</div></div><span class="sub" id="newsStatus">Cargando…</span></div><div id="newsList" class="msg">Cargando noticias…</div></section>
-<div class="note" id="profileNote"><b>Persistencia independiente:</b> Sintéticos, Forex y ORB se guardan por separado.</div><div class="note"><b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.</div></section>
+<div class="note" id="profileNote"><b>Persistencia independiente:</b> Sintéticos, Forex, ORB y Apertura de Índices Bursátiles se guardan por separado.</div><div class="note"><b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.</div></section>
 </main><script>
 const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));let state=null,dirty=false,activeProfile='SYNTHETICS';
 function groups(s){return (s.instrument_catalog||[]).filter(g=>String(g.selection_profile||'SYNTHETICS').toUpperCase()===activeProfile)}

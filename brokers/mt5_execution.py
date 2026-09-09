@@ -533,10 +533,10 @@ class MT5ExecutionProvider:
         text = " ".join(text.split())
         text = "".join(ch for ch in text if 32 <= ord(ch) <= 126)
         if not text:
-            text = "BOT"
+            text = "BlackDaemonFx"
         encoded = text.encode("ascii", errors="ignore")[:max(1, int(max_bytes))]
         text = encoded.decode("ascii", errors="ignore").strip()
-        return text or "BOT"
+        return text or "BlackDaemonFx"
 
     @staticmethod
     def _last_error_is_invalid_comment(last_error) -> bool:
@@ -571,12 +571,12 @@ class MT5ExecutionProvider:
 
         if check is None and self._last_error_is_invalid_comment(last_error):
             retry_request = dict(first_request)
-            retry_request["comment"] = "BOT"
+            retry_request["comment"] = "BlackDaemonFx"
             check = mt5.order_check(retry_request)
             retry_error = mt5.last_error()
             diagnostic.update({
                 "comment_fallback_used": True,
-                "comment_fallback_value": "BOT",
+                "comment_fallback_value": "BlackDaemonFx",
                 "mt5_last_error_first": last_error,
                 "mt5_last_error": retry_error,
             })
@@ -600,12 +600,12 @@ class MT5ExecutionProvider:
 
         if result is None and self._last_error_is_invalid_comment(last_error):
             retry_request = dict(first_request)
-            retry_request["comment"] = "BOT"
+            retry_request["comment"] = "BlackDaemonFx"
             result = mt5.order_send(retry_request)
             retry_error = mt5.last_error()
             diagnostic.update({
                 "comment_fallback_used": True,
-                "comment_fallback_value": "BOT",
+                "comment_fallback_value": "BlackDaemonFx",
                 "mt5_last_error_first": last_error,
                 "mt5_last_error": retry_error,
             })
