@@ -32,6 +32,8 @@ import re
 
 import pandas as pd
 
+from strategy.smc.volume_utils import select_volume_column
+
 
 NEW_YORK = ZoneInfo("America/New_York")
 
@@ -356,23 +358,12 @@ class NewYorkORBStrategy:
     def _volume_column(df: pd.DataFrame) -> pd.Series:
         """Elige la mejor columna de volumen disponible en las velas.
 
-        Preferencia: `real_volume` (solo si su suma es positiva, ya que
-        muchos brokers la publican vacia), luego `tick_volume`, luego
-        `volume`.
-
-        Ultimo recurso: una serie de unos, que convierte el VWAP en un
-        promedio simple y reparte el POC de forma uniforme. Es peor, pero
-        evita que la estrategia falle por falta del dato.
+        Delegado a `strategy.smc.volume_utils.select_volume_column` (extraído
+        para que `strategy.smc.volume_confirmation` reutilice la misma
+        lógica sin duplicar código). Se conserva este método como alias por
+        compatibilidad con el resto de esta clase.
         """
-        if "real_volume" in df.columns:
-            rv = pd.to_numeric(df["real_volume"], errors="coerce").fillna(0.0)
-            if float(rv.sum()) > 0:
-                return rv.astype(float)
-        if "tick_volume" in df.columns:
-            return pd.to_numeric(df["tick_volume"], errors="coerce").fillna(0.0).astype(float)
-        if "volume" in df.columns:
-            return pd.to_numeric(df["volume"], errors="coerce").fillna(0.0).astype(float)
-        return pd.Series([1.0] * len(df), index=df.index, dtype=float)
+        return select_volume_column(df)
 
     @staticmethod
     def _session_vwap(df: pd.DataFrame) -> float | None:

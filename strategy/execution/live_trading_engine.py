@@ -368,6 +368,34 @@ class LiveTradingConfig:
     fvg_bonus_points: float = 6.0
     require_fvg: bool = False
 
+    # v107: confirmación de convicción por volumen de la vela M5 de
+    # confirmación (ver `strategy.smc.volume_confirmation`). Compara el
+    # volumen de esa vela contra el promedio de `volume_confirmation_lookback`
+    # velas previas; se exige alcanzar al menos
+    # `volume_confirmation_spike_multiplier` veces ese promedio.
+    #
+    # OBLIGATORIA (`require_volume_confirmation=True`) en las 4 estrategias
+    # por defecto: sin participación de volumen medible, la entrada se
+    # rechaza igual que le pasaría a un FVG o patrón chartista ausente
+    # cuando esos son obligatorios.
+    #
+    # CÓMO DESACTIVARLA (por perfil, sin tocar código de motor):
+    # - `volume_confirmation_enabled=False`: apaga la confluencia por
+    #   completo (no aporta bonus ni bloquea).
+    # - `require_volume_confirmation=False`: la deja activa solo como bonus
+    #   de score opcional, sin bloquear la entrada si falta.
+    # - `volume_confirmation_skip_gate_without_reliable_volume=True`
+    #   (default): si el símbolo/broker no publica ninguna columna de
+    #   volumen real (`real_volume`/`tick_volume`/`volume` con suma > 0,
+    #   común en algunos sintéticos), el gate NO rechaza por esa ausencia de
+    #   dato; solo se pierde el bonus de score.
+    volume_confirmation_enabled: bool = True
+    volume_confirmation_lookback: int = 20
+    volume_confirmation_spike_multiplier: float = 1.0
+    volume_confirmation_bonus_points: float = 5.0
+    require_volume_confirmation: bool = True
+    volume_confirmation_skip_gate_without_reliable_volume: bool = True
+
     # Confirmación adicional H1: Doji reciente en extremos relevantes.
     h1_doji_enabled: bool = True
     h1_doji_lookback_candles: int = 100
@@ -552,6 +580,14 @@ class LiveTradingEngine:
             round_number_tolerance_price=float(self.config.gold_quarter_level_tolerance_price),
             round_number_bonus_points=float(self.config.gold_quarter_level_bonus_points),
             require_round_number=bool(self.config.require_gold_quarter_level),
+            volume_confirmation_enabled=bool(getattr(self.config, "volume_confirmation_enabled", True)),
+            volume_confirmation_lookback=int(getattr(self.config, "volume_confirmation_lookback", 20)),
+            volume_confirmation_spike_multiplier=float(getattr(self.config, "volume_confirmation_spike_multiplier", 1.0)),
+            volume_confirmation_bonus_points=float(getattr(self.config, "volume_confirmation_bonus_points", 5.0)),
+            require_volume_confirmation=bool(getattr(self.config, "require_volume_confirmation", True)),
+            volume_confirmation_skip_gate_without_reliable_volume=bool(
+                getattr(self.config, "volume_confirmation_skip_gate_without_reliable_volume", True)
+            ),
             asian_range_sweep_enabled=(
                 str(self.config.bot_profile or "").upper() == "GOLD"
                 and bool(getattr(self.config, "gold_asian_range_sweep_enabled", True))
@@ -2349,6 +2385,27 @@ class LiveTradingEngine:
             return result
         if current_rr is None or not callable(close_position):
             return result
+
+        # NY_INDEX_OPEN: el cierre defensivo por invalidación de análisis
+        # sólo debe operar dentro de la ventana propia de la estrategia
+        # (apertura NY + `m5_confirmation_window_minutes`, 20 min por
+        # defecto). Si la entrada quedó abierta y se sigue gestionando horas
+        # después (fuera de esa ventana), no se cierra anticipadamente por
+        # este mecanismo: se deja que el SL/TP/break-even estructural
+        # gestionen la salida con normalidad.
+        if str(metadata.get("strategy_name") or "").upper() == "NY_INDEX_OPEN":
+            ny_strategy = getattr(self, "ny_index_open_strategy", None)
+            if ny_strategy is not None:
+                try:
+                    now_ny, _bias_start, _confirm_start, open_ny, confirmation_deadline_ny = (
+                        ny_strategy._session_bounds(datetime.now(timezone.utc))
+                    )
+                    if not (open_ny <= now_ny < confirmation_deadline_ny):
+                        return result
+                except Exception:
+                    # Si no se puede determinar la ventana, no bloqueamos el
+                    # mecanismo de protección por prudencia.
+                    pass
 
         symbol = str(trade.get("instrument") or "")
         direction = str(trade.get("direction") or "").upper()

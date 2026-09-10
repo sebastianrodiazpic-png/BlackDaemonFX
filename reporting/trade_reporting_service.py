@@ -295,6 +295,10 @@ class TradeReportingService:
                 else None,
             "details": self._build_details(lifecycle),
         }
+        strategy_version = self._strategy_version(lifecycle)
+        if strategy_version:
+            data["strategy_version"] = strategy_version
+        return data
 
     def _build_open_update(self, lifecycle, volume: float | None):
         """Igual que `_build_open_data` pero sin `execution_key`.
@@ -304,7 +308,7 @@ class TradeReportingService:
         SL puede moverse a break-even, el TP escalarse o el volumen reducirse
         con cierres parciales.
         """
-        return {
+        data = {
             "external_ticket": lifecycle.execution_id or lifecycle.position_ticket,
             "broker_position_ticket": lifecycle.position_ticket,
             "source": self.source,
@@ -328,6 +332,10 @@ class TradeReportingService:
                 else None,
             "details": self._build_details(lifecycle),
         }
+        strategy_version = self._strategy_version(lifecycle)
+        if strategy_version:
+            data["strategy_version"] = strategy_version
+        return data
 
     def _build_details(self, lifecycle):
         """Empaqueta el contexto no consultable en el JSON `details`.
@@ -344,6 +352,25 @@ class TradeReportingService:
             "execution_time": self._safe_value(lifecycle.execution_time),
             "metadata": self._safe_value(dict(lifecycle.metadata or {})),
         }
+
+    @staticmethod
+    def _strategy_version(lifecycle):
+        """Recupera la versión de estrategia guardada en `lifecycle.metadata`.
+
+        El motor (`live_trading_engine.py`) siempre fija
+        `metadata["strategy_version"]` al crear el lifecycle, con la versión
+        vigente en el momento de la señal. Sin esta lectura, la columna
+        dedicada `Trade.strategy_version` nunca se rellenaba y quedaba en su
+        valor por defecto (`smc-v1`), lo que rompía la comparativa PRE/POST
+        del dashboard (`dashboard.winrate_pre_post`), que depende de esta
+        columna para clasificar cada señal.
+
+        Devuelve `None` si no está presente, de modo que la persistencia siga
+        aplicando su propio valor por defecto en vez de sobrescribir con un
+        `None` explícito.
+        """
+        value = (lifecycle.metadata or {}).get("strategy_version")
+        return str(value) if value else None
 
     def _broker(self, lifecycle) -> str:
         """Resuelve el broker por prioridad: configuracion, metadatos, defecto.

@@ -31,6 +31,7 @@ from strategy.smc.harmonic_patterns import HarmonicConfig, detect_harmonic_confi
 from strategy.smc.chart_patterns import ChartPatternConfig, detect_chart_pattern_confirmation
 from strategy.smc.fair_value_gap import FVGConfig, detect_fvg_confirmation
 from strategy.smc.round_number_levels import RoundNumberConfig, detect_round_number_confirmation
+from strategy.smc.volume_confirmation import VolumeConfirmationConfig, detect_volume_confirmation
 
 
 def _detect_synthetics_killzone_confirmation(
@@ -176,6 +177,19 @@ class M5ConfirmationConfig:
     round_number_tolerance_price: float = 2.0
     round_number_bonus_points: float = 4.0
     require_round_number: bool = False
+    # Confirmación por volumen de la vela M5 de confirmación (ver
+    # `strategy.smc.volume_confirmation` para el detalle completo). v107+:
+    # OBLIGATORIA por defecto en las 4 estrategias (Sintéticos/Forex/Gold/ORB
+    # comparten este motor salvo ORB, que tiene su propio gate de volumen en
+    # la ruptura). Para desactivarla, ver
+    # `strategy.execution.live_trading_engine.LiveTradingConfig.volume_confirmation_enabled`
+    # / `require_volume_confirmation`.
+    volume_confirmation_enabled: bool = True
+    volume_confirmation_lookback: int = 20
+    volume_confirmation_spike_multiplier: float = 1.0
+    volume_confirmation_bonus_points: float = 5.0
+    require_volume_confirmation: bool = True
+    volume_confirmation_skip_gate_without_reliable_volume: bool = True
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -628,6 +642,30 @@ def evaluate_m5_confirmation(
         ),
     )
 
+    volume_confirmation = detect_volume_confirmation(
+        data,
+        confirmation_index,
+        VolumeConfirmationConfig(
+            enabled=config.volume_confirmation_enabled,
+            lookback=config.volume_confirmation_lookback,
+            spike_multiplier=config.volume_confirmation_spike_multiplier,
+            bonus_points=config.volume_confirmation_bonus_points,
+            require_pattern=config.require_volume_confirmation,
+            skip_gate_without_reliable_volume=config.volume_confirmation_skip_gate_without_reliable_volume,
+        ),
+    )
+    # Si el símbolo no publica volumen fiable (típico de ciertos sintéticos)
+    # el gate no debe rechazar por un dato que simplemente no existe; se
+    # trata como si la confirmación no aplicara para efectos de exigencia
+    # obligatoria, aunque nunca aporta el bonus tampoco.
+    volume_gate_applicable = bool(
+        config.volume_confirmation_enabled
+        and (
+            volume_confirmation.get("volume_reliable")
+            or not config.volume_confirmation_skip_gate_without_reliable_volume
+        )
+    )
+
     chart_pattern = detect_chart_pattern_confirmation(
         data,
         direction,
@@ -667,6 +705,7 @@ def evaluate_m5_confirmation(
         "fvg_confirmation": bool(fvg["fvg_confirmed"]),
         "synthetics_killzone_confirmation": bool(synthetics_killzone["synthetics_killzone_confirmed"]),
         "round_number_confirmation": bool(round_number["round_number_confirmed"]),
+        "volume_confirmation": bool(volume_confirmation["volume_confirmed"]),
     }
 
     weights = {
@@ -688,6 +727,8 @@ def evaluate_m5_confirmation(
         raw_score += float(config.synthetics_killzone_bonus_points)
     if round_number["round_number_confirmed"]:
         raw_score += float(config.round_number_bonus_points)
+    if volume_confirmation["volume_confirmed"]:
+        raw_score += float(config.volume_confirmation_bonus_points)
 
     conflict_level = str(chart_pattern.get("chart_pattern_conflict_level") or "NONE").upper()
     conflict_delta = chart_pattern.get("chart_pattern_conflict_strength_delta")
@@ -754,6 +795,8 @@ def evaluate_m5_confirmation(
         evaluated_keys.append("synthetics_killzone_confirmation")
     if config.require_round_number:
         evaluated_keys.append("round_number_confirmation")
+    if config.require_volume_confirmation and volume_gate_applicable:
+        evaluated_keys.append("volume_confirmation")
 
     passed_keys = [key for key in evaluated_keys if bool(context.get(key, False))]
     failed_keys = [key for key in evaluated_keys if not bool(context.get(key, False))]
@@ -771,6 +814,8 @@ def evaluate_m5_confirmation(
         critical_keys.append("chart_pattern_confirmation")
     if config.require_fvg:
         critical_keys.append("fvg_confirmation")
+    if config.require_volume_confirmation and volume_gate_applicable:
+        critical_keys.append("volume_confirmation")
     critical_failures = [key for key in critical_keys if not bool(context.get(key, False))]
 
     # v41: gates estructurales dependientes del tipo de ruptura M15.
@@ -817,6 +862,8 @@ def evaluate_m5_confirmation(
         required_failures.append("CHART_PATTERN_NOT_CONFIRMED")
     if config.require_fvg and not fvg["fvg_confirmed"]:
         required_failures.append("UNFILLED_ALIGNED_FVG_NOT_CONFIRMED")
+    if config.require_volume_confirmation and volume_gate_applicable and not volume_confirmation["volume_confirmed"]:
+        required_failures.append("VOLUME_CONFIRMATION_NOT_CONFIRMED")
     if score < float(config.minimum_trade_score):
         required_failures.append("INSUFFICIENT_TRADE_SCORE")
 
@@ -890,4 +937,6 @@ def evaluate_m5_confirmation(
         **fvg,
         **synthetics_killzone,
         **round_number,
+        **volume_confirmation,
+        "volume_confirmation_gate_applicable": volume_gate_applicable,
     }

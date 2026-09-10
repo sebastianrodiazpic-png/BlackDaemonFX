@@ -140,6 +140,16 @@ class PipelineConfig:
     round_number_tolerance_price: float = 2.0
     round_number_bonus_points: float = 4.0
     require_round_number: bool = False
+    # Confirmación por volumen de la vela M5 (ver
+    # `strategy.smc.volume_confirmation`). Obligatoria por defecto desde
+    # v107+; para desactivarla en un perfil ver
+    # `strategy.execution.live_trading_engine.LiveTradingConfig.volume_confirmation_enabled`.
+    volume_confirmation_enabled: bool = True
+    volume_confirmation_lookback: int = 20
+    volume_confirmation_spike_multiplier: float = 1.0
+    volume_confirmation_bonus_points: float = 5.0
+    require_volume_confirmation: bool = True
+    volume_confirmation_skip_gate_without_reliable_volume: bool = True
     # v107: modelo "Asian Range + sweep" (solo GOLD). Cuando está activo, el
     # sweep de `build_setups` solo cuenta si el nivel barrido pertenece al
     # rango de consolidación asiático más reciente (no a cualquier pivote
@@ -534,6 +544,14 @@ def run_trade_pipeline(
         round_number_tolerance_price=getattr(config, "round_number_tolerance_price", 2.0),
         round_number_bonus_points=getattr(config, "round_number_bonus_points", 4.0),
         require_round_number=getattr(config, "require_round_number", False),
+        volume_confirmation_enabled=getattr(config, "volume_confirmation_enabled", True),
+        volume_confirmation_lookback=getattr(config, "volume_confirmation_lookback", 20),
+        volume_confirmation_spike_multiplier=getattr(config, "volume_confirmation_spike_multiplier", 1.0),
+        volume_confirmation_bonus_points=getattr(config, "volume_confirmation_bonus_points", 5.0),
+        require_volume_confirmation=getattr(config, "require_volume_confirmation", True),
+        volume_confirmation_skip_gate_without_reliable_volume=getattr(
+            config, "volume_confirmation_skip_gate_without_reliable_volume", True
+        ),
     )
 
     confirmations = detect_entry_confirmations(

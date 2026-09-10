@@ -1,0 +1,43 @@
+{
+  "worker": "BOOM",
+  "strategy_name": "ALL",
+  "model": {
+    "feature_names": [
+      "trade_score",
+      "confirmation_percentage",
+      "confirmations_ratio",
+      "adx",
+      "adx_normalized",
+      "atr_ratio",
+      "structure_aligned",
+      "chart_pattern_strength",
+      "chart_pattern_conflict",
+      "chart_pattern_strength_delta",
+      "signal_age_candles",
+      "signal_age_minutes",
+      "spread_ratio",
+      "latency_seconds",
+      "planned_rr",
+      "risk_percent",
+      "divergence_confirmed",
+      "harmonic_confirmed",
+      "h1_doji_confirmed",
+      "critical_failures"
+    ],
+    "weights": [],
+    "bias": 0.0,
+    "mean": [],
+    "scale": [],
+    "trained": false,
+    "samples": 0,
+    "positive_rate": 0.0
+  },
+  "calibrator": {
+    "bin_edges": [],
+    "bin_values": [],
+    "trained": false
+  },
+  "trained_at": null,
+  "average_win_rr": 1.0,
+  "average_loss_rr": 1.0
+}
