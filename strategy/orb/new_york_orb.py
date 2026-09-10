@@ -281,6 +281,10 @@ class ORBConfig:
     require_retest: bool = True
     require_vwap_alignment: bool = True
     require_poc_alignment: bool = True
+    # v109: cuando VWAP y POC estan ambos activos, si esto es False basta con
+    # que UNO de los dos este alineado con el retest (no se exigen ambos a la
+    # vez). Ver el uso en la evaluacion de retest para el detalle.
+    vwap_poc_require_both: bool = False
     poc_bins: int = 24
     target_rr: float = 2.0
     stop_mode: str = "MIDPOINT"  # v61: protección estructural al 50% del ORB
@@ -780,10 +784,22 @@ class NewYorkORBStrategy:
         vwap_ok = vwap_buy_ok if direction == "BUY" else vwap_sell_ok
         poc_ok = poc_buy_ok if direction == "BUY" else poc_sell_ok
         failed = []
-        if bool(self.config.require_vwap_alignment) and not vwap_ok:
-            failed.append("VWAP_NO_ALINEADO_CON_RETEST")
-        if bool(self.config.require_poc_alignment) and not poc_ok:
-            failed.append("POC_NO_ALINEADO_CON_RETEST")
+        require_vwap = bool(self.config.require_vwap_alignment)
+        require_poc = bool(self.config.require_poc_alignment)
+        require_both = bool(getattr(self.config, "vwap_poc_require_both", False))
+        if require_vwap and require_poc and not require_both:
+            # v109: basta con que UNO de los dos (VWAP o POC) este alineado con
+            # el retest, en vez de exigir ambos simultaneamente. El analisis de
+            # logs mostro que el 100% de los rechazos de retest en produccion
+            # ya venian acompanados de "RUPTURA_SIN_VOLUMEN_SUFICIENTE" (el
+            # verdadero cuello de botella); VWAP/POC casi nunca bloqueaban solos.
+            if not vwap_ok and not poc_ok:
+                failed.append("VWAP_Y_POC_NO_ALINEADOS_CON_RETEST")
+        else:
+            if require_vwap and not vwap_ok:
+                failed.append("VWAP_NO_ALINEADO_CON_RETEST")
+            if require_poc and not poc_ok:
+                failed.append("POC_NO_ALINEADO_CON_RETEST")
         if (
             bool(getattr(self.config, "require_breakout_volume_confirmation", True))
             and breakout_volume_confirmed is False

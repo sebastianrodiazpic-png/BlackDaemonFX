@@ -297,7 +297,15 @@ class LiveTradingConfig:
     gold_break_even_positive_at_new_york: bool = True
     # v107: modelo "Asian Range + sweep" para GOLD (ver PipelineConfig en
     # trade_pipeline.py). Solo se activa cuando bot_profile == GOLD.
-    gold_asian_range_sweep_enabled: bool = True
+    # v109: desactivado por defecto. Analisis de logs de produccion mostro
+    # que GOLD perdia el 28.4% de sus ciclos activos en `NO_M15_SETUP` (vs.
+    # solo 5.6% en Forex, que no tiene este filtro), es decir, este filtro
+    # exigia que el barrido de liquidez coincidiera casi exacto ($2 de
+    # tolerancia) con el low/high de la sesion asiatica (22:00-06:00 UTC)
+    # para validar el setup, descartando barridos legitimos sobre otros
+    # pivotes. Se conserva el campo (y toda su logica en trade_pipeline.py)
+    # por si se quiere reactivar para pruebas futuras.
+    gold_asian_range_sweep_enabled: bool = False
     gold_asian_range_tolerance_price: float = 2.0
 
     # Riesgo agregado Forex compartido vía SQLAlchemy.
@@ -359,7 +367,15 @@ class LiveTradingConfig:
     # v108: margen mínimo (fracción 0-1) que el patrón chartista alineado con
     # la dirección deseada debe superar al contrario para no bloquear la
     # entrada. Ver detalle en confirmation_engine.M5ConfirmationConfig.
-    chart_pattern_conflict_min_margin: float = 0.25
+    # v109 Fase 2: bajado de 0.25 a 0.18 (relajación de gate estructural,
+    # ver comentario completo en confirmation_engine.M5ConfirmationConfig).
+    chart_pattern_conflict_min_margin: float = 0.18
+    # v109 Fase 1: bajado de 0.30 a 0.25. Configurable por perfil de bot;
+    # ver comentario completo en confirmation_engine.M5ConfirmationConfig.
+    minimum_rejection_wick_ratio: float = 0.25
+    # v109 Fase 3: bajado de 1.35 a 1.20. Configurable por perfil de bot;
+    # ver comentario completo en confirmation_engine.M5ConfirmationConfig.
+    displacement_range_multiplier: float = 1.20
     block_similar_chart_pattern_forces: bool = True
     fvg_enabled: bool = True
     fvg_lookback: int = 30
@@ -410,7 +426,21 @@ class LiveTradingConfig:
     # horario forzado en Sintéticos/Forex, niveles de cuartos en Gold/ORB solo
     # para XAUUSD/microXAUUSD. Nueva frontera PRE/POST (ver
     # `tools/winrate_pre_post_report.py` y `POST_IMPROVEMENT_MIN_VERSION`).
-    strategy_version: str = "smc-v107-clean-retest-real-chart-fvg-mandatory-quarter-levels"
+    # v109 (11-09-2026): relajación medida de 3 gates estructurales que
+    # concentraban el 47%-77% de los rechazos en Sintéticos/Forex (análisis
+    # de 27.816 evaluaciones reales en storage/logs/bots/*.log):
+    #   Fase 1: minimum_rejection_wick_ratio        0.30 -> 0.25
+    #   Fase 2: chart_pattern_conflict_min_margin    0.25 -> 0.18
+    #   Fase 3: displacement_range_multiplier        1.35 -> 1.20
+    # minimum_body_ratio (0.65) y clean_retest_max_overshoot_ratio (0.50) NO
+    # se tocaron. Ademas, mismo dia: ORB relaja VWAP+POC (basta con que uno
+    # de los dos este alineado, ver `ORBConfig.vwap_poc_require_both`) y GOLD
+    # desactiva el filtro "Asian Range + sweep" (`gold_asian_range_sweep_enabled`
+    # False), que bloqueaba el 28.4% de sus ciclos activos en NO_M15_SETUP
+    # (vs. 5.6% en Forex, que no lo usa). Nueva frontera PRE/POST para medir
+    # el efecto real con `tools/winrate_pre_post_report.py` una vez se
+    # acumulen operaciones.
+    strategy_version: str = "smc-v109-relaxed-gates-orb-vwap-poc-gold-asian-sweep-off"
 
 
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
@@ -424,6 +454,11 @@ class LiveTradingConfig:
     orb_opening_range_minutes: int = 15
     orb_require_vwap_alignment: bool = True
     orb_require_poc_alignment: bool = True
+    # v109: cuando VWAP y POC estan ambos activos, basta con que UNO este
+    # alineado con el retest (no se exigen los dos simultaneamente). Ver
+    # `ORBConfig.vwap_poc_require_both` para el detalle y el analisis de logs
+    # que motivo el cambio.
+    orb_vwap_poc_require_both: bool = False
     orb_poc_bins: int = 24
     orb_target_rr: float = 2.0
     # v61 ORB usa siempre 1% por operación lógica, dividido 0.5% + 0.5%.
@@ -436,7 +471,10 @@ class LiveTradingConfig:
     # Tercera estrategia: Apertura Indices Bursatiles (Wall Street 30, US
     # Tech 100, US SP 500) en la apertura de Nueva York (09:30 NY). Sesgo H1
     # 07h/08h + confirmacion M5 + doble entrada 0.5%+0.5% (TP1 1:1, TP2 1:2).
-    idx_open_enabled: bool = True
+    # v109: desactivado por defecto a pedido del usuario (worker retirado de
+    # la operativa activa). El código permanece intacto para poder
+    # reactivarlo simplemente pasando idx_open_enabled=True de nuevo.
+    idx_open_enabled: bool = False
     idx_open_confirmation_window_minutes: int = 20
     idx_open_tp1_rr: float = 1.0
     idx_open_target_rr: float = 2.0
@@ -533,6 +571,12 @@ class LiveTradingEngine:
         self.repository = repository
         self.config = config or LiveTradingConfig()
         self.pipeline_config = pipeline_config or PipelineConfig(
+            minimum_rejection_wick_ratio=float(
+                getattr(self.config, "minimum_rejection_wick_ratio", 0.25)
+            ),
+            displacement_range_multiplier=float(
+                getattr(self.config, "displacement_range_multiplier", 1.20)
+            ),
             harmonic_enabled=bool(self.config.harmonic_enabled),
             harmonic_tolerance=float(self.config.harmonic_tolerance),
             harmonic_minimum_score=float(self.config.harmonic_minimum_score),
@@ -590,7 +634,7 @@ class LiveTradingEngine:
             ),
             asian_range_sweep_enabled=(
                 str(self.config.bot_profile or "").upper() == "GOLD"
-                and bool(getattr(self.config, "gold_asian_range_sweep_enabled", True))
+                and bool(getattr(self.config, "gold_asian_range_sweep_enabled", False))
             ),
             asian_range_tolerance_price=float(getattr(self.config, "gold_asian_range_tolerance_price", 2.0)),
         )
@@ -616,6 +660,9 @@ class LiveTradingEngine:
                 opening_range_minutes=int(self.config.orb_opening_range_minutes),
                 require_vwap_alignment=bool(self.config.orb_require_vwap_alignment),
                 require_poc_alignment=bool(self.config.orb_require_poc_alignment),
+                vwap_poc_require_both=bool(
+                    getattr(self.config, "orb_vwap_poc_require_both", False)
+                ),
                 poc_bins=int(self.config.orb_poc_bins),
                 target_rr=float(self.config.orb_target_rr),
                 stop_mode=str(self.config.orb_stop_mode),
@@ -5750,8 +5797,11 @@ class LiveTradingEngine:
         snapshots = {}
         # El visor ofrece estas cuatro temporalidades exactas independientemente
         # de cambios futuros en la configuración del pipeline.
+        # v109: mínimos reducidos (180/140/120/120 -> 120/100/90/90) como parte
+        # de la optimización de memoria del coordinador: menos velas por
+        # símbolo/timeframe implica JSON más chico persistido y servido.
         tf_map = {"M1": "M1", "M5": "M5", "M15": "M15", "H1": "H1"}
-        counts = {"M1": max(180, int(candle_count)), "M5": max(140, int(candle_count)), "M15": max(120, int(candle_count)), "H1": max(120, int(candle_count))}
+        counts = {"M1": max(120, int(candle_count)), "M5": max(100, int(candle_count)), "M15": max(90, int(candle_count)), "H1": max(90, int(candle_count))}
 
         def _serialize_frame(raw):
             """Convierte un DataFrame de velas a listas JSON con RSI(14) incluido.

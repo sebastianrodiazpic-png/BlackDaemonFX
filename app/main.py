@@ -1098,10 +1098,18 @@ MULTIBOT_SYNTHETIC_PROFILES = (
     "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
 )
 FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
+# v109: IDX_OPEN se retiró de la arquitectura multi-bot activa (desactivado
+# a pedido del usuario, no eliminado). El perfil sigue existiendo en
+# `BOT_PROFILES` y toda su lógica (estrategia, worker, dashboard) permanece
+# intacta por si se quiere reactivar: solo se excluye de la lista que arranca
+# automáticamente con `multi-bot-daemon`/`unified-multibot-daemon`, y su
+# `LiveTradingConfig.idx_open_enabled` quedó en `False` por defecto (ver
+# ese campo en `strategy/execution/live_trading_engine.py`). Para reactivar:
+# volver a incluir "IDX_OPEN" aquí y restaurar `idx_open_enabled=True`.
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB", "IDX_OPEN",
+    "GOLD", "ORB",
 )
 
 
@@ -1632,10 +1640,13 @@ def run_unified_multibot_daemon(args, profiles=None):
                     current_audit = engine._refresh_current_strategy_views()
 
                     # Actualiza gráficos de auditoría sin crear otro servidor/front.
+                    # v109: cadencia 30s->60s y menos velas por snapshot (punto 3
+                    # de la optimización de memoria: reduce el tamaño del JSON
+                    # persistido en trade_visual_audits y servido por /api/state).
                     visual_updated = 0
-                    if time.monotonic() - float(last_visual_by_profile.get(profile) or 0.0) >= 30.0:
+                    if time.monotonic() - float(last_visual_by_profile.get(profile) or 0.0) >= 60.0:
                         try:
-                            charts = engine._dashboard_chart_snapshots()
+                            charts = engine._dashboard_chart_snapshots(candle_count=80)
                             owned = [
                                 t for t in (repo.open_trades(source="DEMO") or [])
                                 if isinstance(t, dict) and engine._trade_owned_by_current_bot(t)

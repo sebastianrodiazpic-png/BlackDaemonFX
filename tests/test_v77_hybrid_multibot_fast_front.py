@@ -15,15 +15,19 @@ def test_unified_multibot_is_explicit_experimental_mode_only():
 def test_dashboard_has_short_full_snapshot_cache():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert "self._dashboard_snapshot_cache_ttl_seconds = 1.5" in text
+    # v109: TTL subida de 1.5s a 4.0s (optimizacion de memoria del
+    # coordinador) para acompanar el polling mas espaciado del navegador.
+    assert "self._dashboard_snapshot_cache_ttl_seconds = 4.0" in text
     assert 'self._dashboard_snapshot_cache = {"at": 0.0, "payload": None}' in text
 
 def test_browser_polling_is_reduced():
     root=Path(__file__).resolve().parents[1]
     dash=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
     account=(root/"dashboard"/"account_page.py").read_text(encoding="utf-8")
-    assert "setInterval(refresh,2000)" in dash
-    assert "setInterval(load,2500)" in dash
+    # v109: polling espaciado de 2000/2500ms a 6000ms (optimizacion de
+    # memoria del coordinador, ver checkpoint de rendimiento).
+    assert "setInterval(refresh,6000)" in dash
+    assert "setInterval(load,6000)" in dash
     assert "setInterval(go,2500)" in account
 
 def test_orb_htf_context_is_preserved_after_rollback():

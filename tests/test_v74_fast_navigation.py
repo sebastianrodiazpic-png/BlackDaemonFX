@@ -74,12 +74,15 @@ def test_dashboard_source_has_dedicated_instruments_endpoint():
 def test_dashboard_main_still_uses_state_endpoint():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert "async function refresh(){try{const r=await fetch('/api/state?ts='" in text
+    assert "async function refresh(){if(document.hidden)return;try{const r=await fetch('/api/state?ts='" in text
 
 
 def test_short_ttls_are_configured():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert "self._account_cache_ttl_seconds = 3.0" in text
-    assert "self._instruments_cache_ttl_seconds = 2.0" in text
-    assert "self._snapshot_aux_cache_ttl_seconds = 2.0" in text
+    # v109: TTLs subidos (optimizacion de memoria del coordinador, ver punto 1
+    # y 3 de la revision de rendimiento) para acompanar el polling mas
+    # espaciado del navegador (6s en vez de 2s).
+    assert "self._account_cache_ttl_seconds = 6.0" in text
+    assert "self._instruments_cache_ttl_seconds = 5.0" in text
+    assert "self._snapshot_aux_cache_ttl_seconds = 5.0" in text
