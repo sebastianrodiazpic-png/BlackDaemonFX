@@ -18,8 +18,8 @@ def test_worker_engine_loads_new_defaults_and_isolates_profiles():
     assert engine.orb_strategy.config.asset_profiles == ASSET_CONFIG
     assert engine.orb_strategy.config.retest_max_candles == 3
     engine.orb_strategy.config.asset_profiles["XAUUSD"]["allowed_modes"].append("MOMENTUM")
-    assert config.orb_asset_profiles["XAUUSD"]["allowed_modes"] == ["RETEST"]
-    assert ASSET_CONFIG["XAUUSD"]["allowed_modes"] == ["RETEST"]
+    assert config.orb_asset_profiles["XAUUSD"]["allowed_modes"] == ["MOMENTUM", "RETEST"]
+    assert ASSET_CONFIG["XAUUSD"]["allowed_modes"] == ["MOMENTUM", "RETEST"]
 
 
 def test_worker_engine_forwards_profile_overrides():

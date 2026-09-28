@@ -74,8 +74,8 @@ def test_retest_near_edge_and_deep_rejection():
     now = datetime(2026, 8, 28, 13, 55, 1, tzinfo=timezone.utc)
     candles.loc[4, "low"] = 105.1
     strategy = NewYorkORBStrategy(FakeProvider(candles, now))
-    result = strategy.analyze_symbol("US500", now)
+    result = strategy.analyze_symbol("US30", now)
     assert result["valid"]
     assert result["orb_entry_mode"] == "ORB_BREAKOUT_RETEST"
     candles.loc[4, "low"] = 102.
-    assert not NewYorkORBStrategy(FakeProvider(candles, now)).analyze_symbol("US500", now)["valid"]
+    assert not NewYorkORBStrategy(FakeProvider(candles, now)).analyze_symbol("US30", now)["valid"]

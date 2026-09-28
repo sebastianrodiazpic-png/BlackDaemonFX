@@ -52,7 +52,7 @@ def test_profiles_in_real_strategy(direction):
     now = datetime(2026, 8, 28, 13, 50, 1, tzinfo=timezone.utc)
     provider = FakeProvider(_session_candles(direction).iloc[:4], now)
     strategy = NewYorkORBStrategy(provider)
-    assert not strategy.analyze_symbol("XAUUSD", now)["valid"]
+    assert strategy.analyze_symbol("XAUUSD", now)["valid"]
     for symbol in ("US30", "NAS100", "BTCUSD"):
         result = strategy.analyze_symbol(symbol, now)
         assert result["valid"], result
@@ -78,7 +78,7 @@ def test_critical_session_stays_cancelled_after_atr_growth():
     frame.loc[:13, "low"] = 101.9
     frame.loc[18, "high"] = 200
     result = NewYorkORBStrategy(FakeProvider(frame, now)).analyze_symbol("US30", now)
-    assert result["range_amplitude"]["isValid"]
+    assert not result["range_amplitude"]["isValid"]
     assert result["action"] == "ORB_SESSION_CANCELLED"
 
 
@@ -150,3 +150,43 @@ def test_metrics_separate_modes_sources_and_ignore_open_and_duplicates():
     assert result[0]["closed"] == 2
     assert result[0]["executions"] == 3
     assert result[1]["expectancy_net_pnl"] == -20
+
+
+def test_frozen_atr_survives_later_volatility_and_restart():
+    now = datetime(2026, 8, 28, 13, 55, 1, tzinfo=timezone.utc)
+    provider = FakeProvider(_session_candles(), now)
+    frame = provider.get_candles("US30", "M5")
+    provider.get_candles = lambda *a, **kw: frame.copy()
+    strategy = NewYorkORBStrategy(provider)
+    first = strategy.analyze_symbol("US30", now)
+    frozen = first["atr_frozen_m5"]
+    frame.loc[frame.time >= pd.Timestamp("2026-08-28 13:45Z"), "high"] = 1000
+    later = strategy.analyze_symbol("US30", now)
+    restarted = NewYorkORBStrategy(provider).analyze_symbol("US30", now)
+    assert frozen == later["atr_frozen_m5"] == restarted["atr_frozen_m5"]
+    assert first["range_amplitude"] == later["range_amplitude"] == restarted["range_amplitude"]
+    frame.loc[frame.time < pd.Timestamp("2026-08-28 13:45Z"), "high"] += 1
+    other = strategy.analyze_symbol("NAS100", now)
+    assert other["atr_frozen_m5"] != frozen
+    frame["time"] += pd.Timedelta(days=3)
+    tomorrow = strategy.analyze_symbol("US30", now + pd.Timedelta(days=3))
+    assert tomorrow["atr_frozen_m5"] == other["atr_frozen_m5"]
+
+
+def test_volume_status_and_fixed_policy_metadata():
+    from strategy.orb.asset_rules import execution_metadata
+    frame = volume_frame()
+    frame[["tick_volume", "real_volume"]] = 0
+    evidence = audit_volume_confirmation(frame, 10, "MOMENTUM", True)
+    assert evidence["status"] == "VOLUMEN_NO_DISPONIBLE_PASSTHROUGH"
+    assert evidence["confirmed"]
+    assert audit_volume_confirmation(volume_frame(101), 10, "MOMENTUM", True)["status"] == "VOLUMEN_CONFIRMADO"
+    assert audit_volume_confirmation(volume_frame(99), 10, "MOMENTUM", True)["status"] == "VOLUMEN_INSUFICIENTE"
+    now = datetime(2026, 8, 28, 13, 55, 1, tzinfo=timezone.utc)
+    signal = NewYorkORBStrategy(FakeProvider(_session_candles(), now)).analyze_symbol("US30", now)["signal"]
+    persisted = execution_metadata(signal)
+    assert persisted["atr_frozen_m5"] == signal["orb_signal_atr"]
+    assert persisted["volume_status"] == "FILTRO_VOLUMEN_DESACTIVADO"
+    assert persisted["orb_runner_plan"] == "FIXED_TP_BE_AFTER_TP1_SPREAD_PROTECTED"
+    rows = [dict(execution_key="x", source="PAPER", instrument="US30", details={"metadata": {**persisted, "volume_status": evidence["status"]}})]
+    assert summarize_orb_trades(rows)[0]["volume_status_counts"][evidence["status"]] == 1

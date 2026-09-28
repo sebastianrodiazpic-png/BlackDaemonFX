@@ -2715,6 +2715,58 @@ class LiveTradingEngine:
         except (TypeError, ValueError, KeyError, AttributeError, RuntimeError):
             return dict(blocked, reason='GOLD_TP1_OR_QUOTE_UNAVAILABLE')
 
+    def process_orb_break_even_management(self, trade, position, metadata, move_stop):
+        """Only protect after this operation's TP1; persist evidence and broker acknowledgement."""
+        entry = float(position.price_open)
+        direction = str(trade.get('direction') or '').upper()
+        mapped = dict(metadata)
+        mapped['gold_tp1_target_price'] = metadata.get('orb_tp1_target_price')
+        mapped['gold_tp1_evidence'] = metadata.get('orb_tp1_evidence')
+        if not mapped['gold_tp1_target_price'] and metadata.get('trade_leg') != 'RUNNER':
+            mapped['gold_tp1_target_price'] = trade.get('take_profit') or getattr(position, 'tp', None)
+        evidence = self._gold_tp1_break_even_guard(trade, mapped, entry,
+            self._break_even_initial_stop(trade, metadata) or entry, direction)
+        evidence['reason'] = evidence['reason'].replace('GOLD_', 'ORB_')
+        result = dict(action=evidence['reason'], activated=False, tp1_evidence=evidence)
+        if not evidence['eligible']:
+            return result
+        metadata['orb_tp1_evidence'] = evidence
+        def persist():
+            self.repository.update_trade(int(trade['id']), {
+                'details': {**(trade.get('details') or {}), 'metadata': metadata}})
+        persist()
+        # A prior successful modification must still exist at the broker.
+        target = metadata.get('break_even_price') if metadata.get('break_even_confirmed') else None
+        stop = float(position.sl or 0)
+        if target and stop > 0 and (stop >= float(target) if direction == 'BUY' else stop <= float(target)):
+            return dict(result, action='ORB_BE_ALREADY_CONFIRMED')
+        metadata['break_even_confirmed'] = False
+        persist()
+        safe = self._gold_protected_be_stop(str(trade['instrument']), direction, entry, 0.0, evidence, 0.0)
+        if safe is None:
+            return dict(result, action='ORB_BE_WAITING_SAFE_STOP')
+        target, offset = safe
+        if stop > 0 and (stop >= target if direction == 'BUY' else stop <= target):
+            modified = {'modified': True}  # Preserve an already more protective broker stop.
+        else:
+            modified = move_stop(position_ticket=str(trade['broker_position_ticket']), stop_loss=target,
+                                 take_profit=float(position.tp or 0), reason='orb_tp1_spread_break_even')
+        if not modified.get('modified', False):
+            return dict(result, action='ORB_BE_MODIFICATION_FAILED', broker_result=modified)
+        actual = self.executor.get_position(int(trade['broker_position_ticket']))
+        actual_sl = float(getattr(actual, 'sl', 0) or 0)
+        confirmed = actual_sl > 0 and (actual_sl >= target if direction == 'BUY' else actual_sl <= target)
+        if not confirmed:
+            return dict(result, action='ORB_BE_AWAITING_BROKER_CONFIRMATION')
+        metadata.update(break_even_confirmed=True, break_even_activated=True,
+            break_even_price=target, break_even_offset=offset,
+            break_even_offset_points=int(self.config.break_even_offset_points),
+            break_even_activation_reason='ORB_TP1_REACHED',
+            break_even_confirmed_at=datetime.now(timezone.utc).isoformat())
+        self.repository.update_trade(int(trade['id']), {'stop_loss': actual_sl,
+            'details': {**(trade.get('details') or {}), 'metadata': metadata}})
+        return dict(result, action='ORB_TP1_BREAK_EVEN_CONFIRMED', activated=True, stop_loss=actual_sl)
+
     def _gold_protected_be_stop(self, symbol, direction, entry, current_sl, evidence, profit_lock):
         """Cover spread and offset; defer if stops/freeze distance prevents safe placement."""
         constraints = self.executor.get_symbol_constraints(symbol)
@@ -4099,8 +4151,12 @@ class LiveTradingEngine:
                     "runner_profit_lock_rr": metadata.get("runner_profit_lock_rr"),
                 })
 
-                # Keep excursion/health auditing, but never alter ORB broker exits.
+                # ORB allows only TP1-gated BE; targets and other exit policies remain fixed.
                 if self._orb_fixed_exit_policy(metadata):
+                    orb_be = self.process_orb_break_even_management(trade, position, metadata, move_stop)
+                    position_snapshots[-1]['orb_break_even'] = orb_be
+                    activated += int(orb_be['activated'])
+                    updates.append({'ticket': str(ticket), 'symbol': trade.get('instrument'), **orb_be})
                     continue
 
                 gold_tp1 = None
@@ -5295,6 +5351,15 @@ class LiveTradingEngine:
                     getattr(self.config, "orb_correlated_entry_min_break_even_offset_points", 2)
                 ),
             )
+            if protected:
+                try:
+                    live = self.executor.get_position(int(trade['broker_position_ticket']))
+                    live_sl = float(getattr(live, 'sl', 0) or 0)
+                    be_target = float(meta.get('break_even_price') or 0)
+                    protected = bool(live_sl > 0 and be_target > 0 and
+                        (live_sl >= be_target if trade.get('direction') == 'BUY' else live_sl <= be_target))
+                except (TypeError, ValueError, AttributeError, RuntimeError):
+                    protected = False
             item["all_at_break_even"] = bool(item["all_at_break_even"] and protected)
             item["trades"].append({
                 "trade_id": trade.get("id"),
@@ -5548,7 +5613,20 @@ class LiveTradingEngine:
                 return self._position_guard_result(exact_symbol, dict(can_analyze=False,
                     status='BLOCKED_SYMBOL_CYCLE', diagnostic_tag='WAITING_SYMBOL_CYCLE',
                     reason='Otro worker esta evaluando o enviando una entrada para este simbolo'))
-            return self._process_symbol_guarded(exact_symbol, sync_before_execution)
+            result = self._process_symbol_guarded(exact_symbol, sync_before_execution)
+            from strategy.orb.signal_payload import log_audit_summary
+            import logging
+            analysis = result.get('analysis') or {}
+            signal = analysis.get('signal') or {}
+            if signal.get('strategy_name') == 'ORB_NEW_YORK' and signal.get('audit_metadata'):
+                action = result.get('action', 'UNKNOWN')
+                passed = True if action in {'ORDER_OPENED', 'SPLIT_ORDER_OPENED', 'DRY_RUN_VALIDATED'} else (
+                    False if action in {'OPERACION_RECHAZADA_POR_RIESGO', 'REJECTED_MARGIN_EXCEEDED',
+                        'REJECTED_RISK_TARGET_UNREACHABLE', 'INVALID_RISK_CONFIGURATION',
+                        'INVALID_RISK_BASE', 'INVALID_RISK_DISTANCE', 'INVALID_SPLIT_RISK_CONFIGURATION'} else None)
+                result['orb_audit_summary'] = log_audit_summary(logging.getLogger('ORB_Audit'), signal,
+                    passed, execution_status=action)
+            return result
 
     def _process_symbol_guarded(self, symbol: str, sync_before_execution: bool = True):
         """Procesa un símbolo de extremo a extremo: análisis, filtros y ejecución.
@@ -5959,7 +6037,7 @@ class LiveTradingEngine:
         # sin superar el 1%, se intenta una única entrada segura (fallback).
         risk_base_name = str(self.config.risk_base).upper()
         if risk_base_name not in {"EQUITY", "BALANCE"}:
-            return {"symbol": exact_symbol, "action": "INVALID_RISK_BASE", "reason": risk_base_name}
+            return {"symbol": exact_symbol, "action": "INVALID_RISK_BASE", "analysis": analysis, "reason": risk_base_name}
         risk_base_value = float(account["equity"] if risk_base_name == "EQUITY" else account["balance"])
         total_risk_percent = self._risk_percent_for_strategy(strategy_name)
         # Contrato operativo v61: esta comprobación explícita evita que una
@@ -5970,21 +6048,21 @@ class LiveTradingEngine:
                 total_risk_percent = min(total_risk_percent, 1.0)
         silver_risk_cap = strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol)
         if risk_base_value <= 0 or not (0 < total_risk_percent <= 100):
-            return {"symbol": exact_symbol, "action": "INVALID_RISK_CONFIGURATION", "risk_base": risk_base_value, "risk_percent": total_risk_percent}
+            return {"symbol": exact_symbol, "action": "INVALID_RISK_CONFIGURATION", "analysis": analysis, "risk_base": risk_base_value, "risk_percent": total_risk_percent}
 
         total_risk_amount = risk_base_value * total_risk_percent / 100.0
         risk_fraction = float(self.config.split_entry_risk_fraction)
         if bool(self.config.split_entries_enabled) and (not (0 < risk_fraction < 1) or abs((risk_fraction * 2.0) - 1.0) > 1e-9):
             return {
                 "symbol": exact_symbol,
-                "action": "INVALID_SPLIT_RISK_CONFIGURATION",
+                "action": "INVALID_SPLIT_RISK_CONFIGURATION", "analysis": analysis,
                 "reason": "LAS_DOS_ENTRADAS_DEBEN_SUMAR_EL_100_POR_CIENTO_DEL_RIESGO",
                 "split_entry_risk_fraction": risk_fraction,
             }
 
         risk_distance = abs(entry - sl)
         if risk_distance <= 0:
-            return {"symbol": exact_symbol, "action": "INVALID_RISK_DISTANCE", "execution_key": key}
+            return {"symbol": exact_symbol, "action": "INVALID_RISK_DISTANCE", "analysis": analysis, "execution_key": key}
 
         min_ratio = max(0.0, float(self.config.min_actual_risk_ratio))
 
@@ -6227,7 +6305,7 @@ class LiveTradingEngine:
                     sf = split_failure or {}
                     return {
                         "symbol": exact_symbol,
-                        "action": "REJECTED_RISK_TARGET_UNREACHABLE",
+                        "action": "REJECTED_RISK_TARGET_UNREACHABLE", "analysis": analysis,
                         "reason": "BROKER_VOLUME_LIMIT_PREVENTS_TARGET_RISK",
                         "leg": sf.get("leg"),
                         "risk_amount": sf.get("risk_amount"),
@@ -6240,7 +6318,7 @@ class LiveTradingEngine:
                     }
                 return {
                     "symbol": exact_symbol,
-                    "action": "OPERACION_RECHAZADA_POR_RIESGO",
+                    "action": "OPERACION_RECHAZADA_POR_RIESGO", "analysis": analysis,
                     "reason": "NI_LA_DIVISION_NI_LA_ENTRADA_UNICA_RESPETAN_EL_RIESGO_MAXIMO",
                     "risk_amount": total_risk_amount,
                     "risk_percent": total_risk_percent,
@@ -6259,13 +6337,23 @@ class LiveTradingEngine:
                 }
             return {
                 "symbol": exact_symbol,
-                "action": "OPERACION_RECHAZADA_POR_RIESGO",
+                "action": "OPERACION_RECHAZADA_POR_RIESGO", "analysis": analysis,
                 "reason": (split_failure or {}).get("code", "PLAN_DE_RIESGO_NO_VIABLE"),
                 "risk_amount": total_risk_amount,
                 "risk_percent": total_risk_percent,
                 "risk_failure": split_failure,
                 "execution_key": key,
             }
+
+        if strategy_name == 'ORB_NEW_YORK':
+            from strategy.orb.signal_payload import build_signal_payload
+            audit = signal.get('audit_metadata') or {}
+            tp1 = next((float(item['take_profit']) for item in legs if item['name'] == 'TP1'), float(legs[-1]['take_profit']))
+            signal.update(build_signal_payload(direction, entry, sl, tp1, legs[-1]['take_profit'],
+                audit.get('technical_quality', 'NO_CLASIFICADA'),
+                atr_frozen_m5=signal.get('atr_frozen_m5'), volume_status=signal.get('volume_status'),
+                range_amplitude_ratio=signal.get('opening_range_atr_ratio'),
+                levels_source='EXECUTION_PLAN', be_enabled=self.config.break_even_enabled))
 
         from strategy.smc.target_obstacles import target_path
         signal["target_path_audit"] = {
@@ -6289,7 +6377,7 @@ class LiveTradingEngine:
                 if required_margin > max_margin + 1e-9:
                     return {
                         "symbol": exact_symbol,
-                        "action": "REJECTED_MARGIN_EXCEEDED",
+                        "action": "REJECTED_MARGIN_EXCEEDED", "analysis": analysis,
                         "reason": "SPLIT_ORDERS_MARGIN_EXCEEDS_LIMIT",
                         "required_margin": required_margin,
                         "max_allowed_margin": max_margin,
@@ -6392,6 +6480,8 @@ class LiveTradingEngine:
                 lifecycle.metadata.update({
                     "execution_key": leg["execution_key"],
                     "parent_execution_key": key,
+                    "orb_tp1_target_price": (next((float(item['take_profit']) for item in legs if item['name']=='TP1'), float(leg['take_profit']))
+                        if str(signal.get('strategy_name')) == 'ORB_NEW_YORK' else None),
                     "gold_tp1_target_price": (next((float(item['take_profit']) for item in legs if item['name']=='TP1'),
                         float(entry)+(1 if direction=='BUY' else -1)*abs(float(entry)-float(sl))*max(1.,float(self.config.first_target_rr)))
                         if is_orb_gold_symbol(exact_symbol) else None),
@@ -6802,6 +6892,8 @@ class LiveTradingEngine:
                     "metadata": {
                         **orb_execution_metadata(signal),
                         "parent_execution_key": key,
+                    "orb_tp1_target_price": (next((float(item['take_profit']) for item in legs if item['name']=='TP1'), float(leg['take_profit']))
+                        if str(signal.get('strategy_name')) == 'ORB_NEW_YORK' else None),
                     "gold_tp1_target_price": (next((float(item['take_profit']) for item in legs if item['name']=='TP1'),
                         float(entry)+(1 if direction=='BUY' else -1)*abs(float(entry)-float(sl))*max(1.,float(self.config.first_target_rr)))
                         if is_orb_gold_symbol(exact_symbol) else None),

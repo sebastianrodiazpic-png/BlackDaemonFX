@@ -7,6 +7,7 @@ def _engine_with_open_trade(trade):
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(source="DEMO", bot_profile="ORB")
     engine.repository = SimpleNamespace(open_trades=lambda source: [trade])
+    engine.executor = SimpleNamespace(get_position=lambda _: SimpleNamespace(sl=trade["stop_loss"]))
     return engine
 
 
@@ -30,6 +31,7 @@ def _orb_trade(
             "parent_execution_key": "ORB-NAS",
             "trade_leg": "RUNNER",
             "break_even_confirmed": break_even_confirmed,
+            "break_even_price": stop_loss if break_even_confirmed else None,
             **(
                 {"break_even_offset_points": break_even_offset_points}
                 if break_even_offset_points is not None else {}
@@ -94,3 +96,10 @@ def test_synthetics_inherit_m5_event_scheduler_without_forex_hours():
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(bot_profile="BOOM", forex_event_scheduler_enabled=True)
     assert engine.config.smc_event_scheduler_enabled is True
+
+
+def test_correlation_rechecks_broker_stop_after_restart():
+    engine = _engine_with_open_trade(_orb_trade('NAS100', stop_loss=20000.2,
+        break_even_confirmed=True, break_even_offset_points=2))
+    engine.executor.get_position = lambda _: SimpleNamespace(sl=19900)
+    assert engine._orb_exposure_guard('US500', 'new', 'ORB_NEW_YORK') is not None

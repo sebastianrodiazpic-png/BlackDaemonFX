@@ -76,7 +76,7 @@ def classify_orb_market(symbol: str) -> str | None:
     # que XAUUSDmicro sea absorbido por la familia XAUUSD estándar.
     if name in {"xauusdmicro", "microxauusd"}:
         return "MICRO_XAUUSD"
-    if name == "xauusd":
+    if name in {"xauusd", "gold"}:
         return "XAUUSD"
 
     # Plata: mismo patron que el Oro, micro evaluado primero.
@@ -88,10 +88,13 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "btcusd":
         return "BTCUSD"
 
+    if name == "cl":
+        return "US_OIL"
+
     aliases = {
         "WALL_STREET_30": ("wallstreet30", "us30", "dj30", "dow30", "dowjones30", "ws30"),
         "US_TECH_100": ("ustech100", "ustec100", "ustec", "nasdaq100", "nas100", "ndx100"),
-        "US_500": ("us500", "sp500", "spx500", "sandp500"),
+        "US_500": ("usa500", "us500", "sp500", "spx500", "sandp500"),
         "US_OIL": ("usoil", "uso", "wti", "wtioil", "crudeoil", "brent", "brentoil"),
     }
     for market, tokens in aliases.items():
@@ -356,6 +359,7 @@ class NewYorkORBStrategy:
         # consume la sesión por construir una candidata que luego puede ser
         # rechazada por HTF, exposición, riesgo o MT5.
         self._session_signal_memory: dict[str, tuple[str, str]] = {}
+        self._frozen_atr_sessions = {}
 
     def mark_signal_used(self, symbol: str, session_date: str, breakout_key: str) -> None:
         """Marca una tesis ORB como utilizada únicamente tras ejecución real."""
@@ -691,7 +695,8 @@ class NewYorkORBStrategy:
             return {**base, "action": "INVALID_OPENING_RANGE", "reason": "RANGO_ORB_SIN_AMPLITUD"}
 
         profile_key = {"MICRO_XAUUSD": "XAUUSD", "WALL_STREET_30": "US30",
-                       "US_TECH_100": "NAS100"}.get(market, market)
+                       "US_TECH_100": "NAS100", "MICRO_XAGUSD": "XAGUSD",
+                       "US_OIL": "USOIL", "US_500": "US500"}.get(market, market)
         cfg = self.config.asset_profiles.get(profile_key, {
             "allowed_modes": ["MOMENTUM", "RETEST"],
             "atr_buffer": self.config.breakout_atr_buffer_fraction,
@@ -699,7 +704,16 @@ class NewYorkORBStrategy:
             "require_volume": self.config.require_breakout_volume_confirmation,
         })
         period = self.config.opening_range_atr_period
-        atr_reference = self._average_true_range(df, period) if len(df) >= period + 1 else None
+        # Anchor to candles CLOSED by range completion (09:40 bar closes 09:45).
+        # Reconstructible after restart; later candles never enter this estimate.
+        session_key = (symbol, str(now_ny.date()))
+        atr_reference = self._frozen_atr_sessions.get(session_key)
+        if atr_reference is None:
+            opening_history = df[df["time_ny"] < range_end_ny]
+            atr_reference = self._average_true_range(opening_history, period) if len(opening_history) >= period + 1 else None
+            if atr_reference is not None:
+                self._frozen_atr_sessions[session_key] = atr_reference
+        base.update(atr_frozen_m5=atr_reference, orb_atr_frozen_at=range_end_ny.isoformat())
         max_atr_multiple = float(cfg["max_range_atr_ratio"])
         amplitude = check_range_amplitude(range_high, range_low, atr_reference, max_atr_multiple)
         range_atr_ratio = amplitude["ratio"]
@@ -716,23 +730,11 @@ class NewYorkORBStrategy:
             "orh": range_high, "orl": range_low, "range_amplitude": amplitude,
             "allowed_modes": allowed_modes, "asset_profile": profile_key,
         }
-        # Replay closed evaluations so cancellation survives ATR growth and restarts.
-        # A rolling series avoids recomputing ATR for every historical prefix.
-        previous_close = pd.to_numeric(df["close"]).shift(1)
-        true_range = pd.concat([
-            pd.to_numeric(df["high"]) - pd.to_numeric(df["low"]),
-            (pd.to_numeric(df["high"]) - previous_close).abs(),
-            (pd.to_numeric(df["low"]) - previous_close).abs(),
-        ], axis=1).max(axis=1)
-        historical_atrs = true_range.rolling(period, min_periods=period).mean()
-        formed = df["time_ny"] >= range_end_ny - pd.Timedelta(minutes=tf_minutes)
-        eligible_history = historical_atrs[formed & (pd.Series(range(len(df)), index=df.index) >= period)]
-        critical_ratios = range_size / eligible_history
-        breaches = critical_ratios[critical_ratios > max_atr_multiple * 1.3]
-        cancelled = not breaches.empty
-        if cancelled:
-            trigger = {"ratio": float(breaches.iloc[0]), "critical_ratio": max_atr_multiple * 1.3,
-                       "candle_time": pd.Timestamp(df.loc[breaches.index[0], "time"]).isoformat()}
+        base["orb_audit"].update(atr_frozen_m5=atr_reference,
+                                  atr_frozen_at=range_end_ny.isoformat())
+        if atr_reference is not None and not amplitude["isValid"]:
+            trigger = {"ratio": range_atr_ratio, "critical_ratio": max_atr_multiple * 1.3,
+                       "candle_time": range_end_ny.isoformat()}
             base["orb_audit"]["session_cancellation"] = trigger
             base["session_cancellation"] = trigger
             return {**base, "action": "ORB_SESSION_CANCELLED", "reason": "RANGO_ORB_SUPERA_UMBRAL_CRITICO"}
@@ -814,7 +816,7 @@ class NewYorkORBStrategy:
             bars_after_breakout = 1
 
         # Retest BUY/SELL: toca el borde y vuelve a cerrar fuera del rango.
-        signal_atr = self._average_true_range(df[df["time"] < retest["time"]], self.config.opening_range_atr_period)
+        signal_atr = atr_reference
         try:
             quote = self.data_provider.get_current_tick(symbol)
             spread = float(quote["ask"]) - float(quote["bid"])
@@ -990,6 +992,7 @@ class NewYorkORBStrategy:
         diagnostics["orb_audit"]["retest"].update(quality=quality, quality_weight=quality_weight,
                                                  rejection_tail_ratio=tail_ratio if quality else None)
         diagnostics["orb_audit"]["volume_evidence"] = volume_evidence
+        diagnostics["volume_status"] = volume_evidence["status"]
 
         vwap_ok = vwap_buy_ok if direction == "BUY" else vwap_sell_ok
         poc_ok = poc_buy_ok if direction == "BUY" else poc_sell_ok
@@ -1113,6 +1116,9 @@ class NewYorkORBStrategy:
             "retest_candle_time_ny": pd.Timestamp(retest["time_ny"]).isoformat() if entry_mode == "ORB_BREAKOUT_RETEST" else None,
             "orb_session_date": session_date_str,
             "volume_evidence": volume_evidence,
+            "volume_status": volume_evidence["status"],
+            "atr_frozen_m5": atr_reference,
+            "orb_atr_frozen_at": range_end_ny.isoformat(),
             "opening_range_atr_ratio": range_atr_ratio,
             "breakout_volume_ratio": (
                 breakout_volume / breakout_volume_reference
@@ -1120,8 +1126,15 @@ class NewYorkORBStrategy:
                 else None
             ),
             "orb_risk_model": "1_PERCENT_TOTAL_SPLIT_0_5_TP1_0_5_RUNNER",
-            "orb_runner_plan": "TP1_1R_RUNNER_2R_DYNAMIC_3R_4R",
+            "orb_runner_plan": "FIXED_TP_BE_AFTER_TP1_SPREAD_PROTECTED",
         }
+
+        from strategy.orb.signal_payload import build_signal_payload
+        signal.update(build_signal_payload(direction, entry_price, stop_loss,
+            entry_price + (1 if direction == "BUY" else -1) * risk_distance, take_profit,
+            {"HIGH_QUALITY": "ALTA", "STANDARD_QUALITY": "ESTÁNDAR", "LOW_QUALITY": "BAJA"}.get(quality, "NO_CLASIFICADA"),
+            atr_frozen_m5=atr_reference, volume_status=volume_evidence["status"],
+            range_amplitude_ratio=range_atr_ratio))
 
         # Evidencia exacta de la decisión ORB. Se entrega al motor únicamente
         # para congelar la auditoría visual; no participa en el score ni en la

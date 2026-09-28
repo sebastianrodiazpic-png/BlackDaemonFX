@@ -1,5 +1,7 @@
 """Per-asset ORB policy; inputs are closed candles from the existing provider."""
 import math
+import logging
+from copy import deepcopy
 
 import pandas as pd
 
@@ -12,20 +14,42 @@ def default_asset_profiles():
 
 
 ASSET_CONFIG = {
-    "XAUUSD": dict(allowed_modes=["RETEST"], atr_buffer=0.08, max_range_atr_ratio=1.5, require_volume=False),
+    "XAUUSD": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
+    "XAGUSD": dict(allowed_modes=["RETEST"], atr_buffer=0.10, max_range_atr_ratio=1.8, require_volume=True),
+    "USOIL": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.07, max_range_atr_ratio=2.0, require_volume=True),
+    "US500": dict(allowed_modes=["MOMENTUM"], atr_buffer=0.04, max_range_atr_ratio=1.4, require_volume=True),
     "US30": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
     "NAS100": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
     "BTCUSD": dict(allowed_modes=["MOMENTUM"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
 }
 
 
+DEFAULT_ORB_PROFILE = dict(atr_buffer=0.05, max_range_atr_ratio=1.5,
+                           allowed_modes=["MOMENTUM", "RETEST"], require_volume=True)
+ASSET_RULES = ASSET_CONFIG
+
+
+def get_asset_rules(symbol):
+    """Resolve broker aliases and return an independent profile."""
+    from strategy.orb.new_york_orb import classify_orb_market
+    market = classify_orb_market(symbol)
+    key = {"MICRO_XAUUSD":"XAUUSD", "MICRO_XAGUSD":"XAGUSD",
+           "US_OIL":"USOIL", "US_500":"US500", "WALL_STREET_30":"US30",
+           "US_TECH_100":"NAS100"}.get(market, market)
+    profile = ASSET_CONFIG.get(key)
+    if profile is None:
+        logging.getLogger(__name__).warning("ORB fallback profile for %s", symbol)
+        profile = DEFAULT_ORB_PROFILE
+    return deepcopy(profile)
+
+
 def execution_metadata(signal):
     """Evidence to persist on every filled leg, including its eventual close."""
     if signal.get("orb_entry_mode") not in ("ORB_BREAKOUT_MOMENTUM", "ORB_BREAKOUT_RETEST"):
         return {}
-    fields = {"strategy_name", "strategy_version", "retest_quality", "retest_quality_weight",
+    fields = {"strategy", "signal", "sl_price", "tp1_price", "tp2_price", "execution_policy", "audit_metadata", "strategy_name", "strategy_version", "retest_quality", "retest_quality_weight",
               "rejection_tail_ratio", "retest_candle_index", "asset_profile", "range_amplitude",
-              "volume_evidence", "opening_range_atr_ratio"}
+              "volume_evidence", "volume_status", "atr_frozen_m5", "opening_range_atr_ratio"}
     return {key: value for key, value in signal.items() if key.startswith("orb_") or key in fields}
 
 
@@ -44,7 +68,9 @@ def audit_volume_confirmation(candles, candle_time, mode, required):
     result = dict(confirmed=True, required=required, volume_source=None,
                   volume=None, average_volume=None, volume_ratio=None,
                   volume_threshold=1.0 if mode == "MOMENTUM" else 0.7,
-                  volume_status="UNAVAILABLE", missing_policy="NEUTRAL_BYPASS")
+                  volume_status="UNAVAILABLE", missing_policy="NEUTRAL_BYPASS",
+                  status="VOLUMEN_NO_DISPONIBLE_PASSTHROUGH",
+                  detail="Operación permitida sin validación de volumen: datos no disponibles o insuficientes.")
     for source in ("real_volume", "tick_volume", "volume"):
         if source not in window:
             continue
@@ -58,10 +84,15 @@ def audit_volume_confirmation(candles, candle_time, mode, required):
         confirmed = current > average if mode == "MOMENTUM" else current >= average * 0.7
         result.update(confirmed=bool(confirmed) if required else True,
                       volume_source=source, volume=current, average_volume=average,
-                      volume_ratio=current / average, volume_status="AVAILABLE")
+                      volume_ratio=current / average, volume_status="AVAILABLE",
+                      status="VOLUMEN_CONFIRMADO" if confirmed else "VOLUMEN_INSUFICIENTE",
+                      detail=f"Volumen {current:g}; promedio {average:g}; umbral {result['volume_threshold']:g}.")
         break
     if not required:
         result["missing_policy"] = "ASSET_FILTER_DISABLED"
+        if result["volume_status"] == "AVAILABLE":
+            result["status"] = "FILTRO_VOLUMEN_DESACTIVADO"
+            result["detail"] += " Filtro desactivado por perfil de activo."
     return result
 
 

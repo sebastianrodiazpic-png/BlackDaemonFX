@@ -154,7 +154,7 @@ def test_orb_rejects_breakout_without_retest():
 def test_orb_sell_requires_m5_breakout_then_retest_and_midpoint_stop():
     candles = _session_candles("SELL", valid_retest=True)
     now = datetime(2026, 8, 28, 13, 55, 30, tzinfo=timezone.utc)
-    result = _strategy(candles, now).analyze_symbol("US500", now)
+    result = _strategy(candles, now).analyze_symbol("US30", now)
     assert result["valid"] is True
     signal=result["signal"]
     assert signal["direction"] == "SELL"

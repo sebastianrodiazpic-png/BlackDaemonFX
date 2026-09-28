@@ -30,8 +30,11 @@ def summarize_orb_trades(records):
         seen.add(identity)
         key = (row.get("source"), row.get("broker"), row.get("instrument"), strategy)
         group = groups.setdefault(key, dict(source=key[0], broker=key[1], symbol=key[2], strategy=strategy,
-                                           executions=0, closed=0, wins=0, losses=0, net_pnl=0.0))
+                                           executions=0, closed=0, wins=0, losses=0, net_pnl=0.0, volume_status_counts={}))
         group["executions"] += 1
+        volume_status = metadata.get("volume_status") or (metadata.get("volume_evidence") or {}).get("status", "UNKNOWN")
+        counts = group["volume_status_counts"]
+        counts[volume_status] = counts.get(volume_status, 0) + 1
         if str(row.get("status", "")).upper() != "CLOSED":
             continue
         try:
