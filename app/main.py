@@ -531,6 +531,8 @@ def run_demo_bot(
         recoverable_quarantine_extra_tolerance=recoverable_quarantine_extra_tolerance,
     )
 
+    from strategy.execution.worker_rules import configure_worker_rules, worker_rules_manifest
+    config = configure_worker_rules(config)
     engine = LiveTradingEngine(
         provider,
         repo,
@@ -541,6 +543,8 @@ def run_demo_bot(
         console_reporter=console_reporter,
         dashboard_service=dashboard_service,
     )
+
+    print("WORKER_RULES_LOADED " + json.dumps(worker_rules_manifest(engine), ensure_ascii=True), flush=True)
 
     try:
         provider.connect()
@@ -636,6 +640,13 @@ def run_demo_bot(
                 print(f"Advertencia de reconciliación MT5/SQLAlchemy: {exc}")
 
         print(f"DAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
+        if config.orb_enabled:
+            print("ORB_RULES_LOADED " + json.dumps({
+                "strategy_version": config.orb_strategy_version,
+                "asset_profiles": engine.orb_strategy.config.asset_profiles,
+                "retest_max_candles": engine.orb_strategy.config.retest_max_candles,
+                "metrics_storage": "trade_journal",
+            }, ensure_ascii=False), flush=True)
         print(
             f"BOT ACTIVO: {str(bot_profile).upper()} | MAGIC={int(magic)} | "
             "ESTRATEGIA=SMC/ORB | "
@@ -1660,6 +1671,8 @@ def run_unified_multibot_daemon(args, profiles=None):
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             )
+            from strategy.execution.worker_rules import configure_worker_rules, worker_rules_manifest
+            config = configure_worker_rules(config)
             engines[profile] = LiveTradingEngine(
                 provider,
                 repo,
@@ -1670,6 +1683,14 @@ def run_unified_multibot_daemon(args, profiles=None):
                 console_reporter=console,
                 dashboard_service=None,
             )
+            print("WORKER_RULES_LOADED " + json.dumps(worker_rules_manifest(engines[profile]), ensure_ascii=True), flush=True)
+            if config.orb_enabled:
+                print("ORB_RULES_LOADED " + json.dumps({
+                    "strategy_version": config.orb_strategy_version,
+                    "asset_profiles": engines[profile].orb_strategy.config.asset_profiles,
+                    "retest_max_candles": engines[profile].orb_strategy.config.retest_max_candles,
+                    "metrics_storage": "trade_journal",
+                }, ensure_ascii=False), flush=True)
             next_due[profile] = time.monotonic() + (0.15 * len(next_due))
             last_visual_by_profile[profile] = 0.0
             repo.upsert_worker_runtime_state(
@@ -1805,7 +1826,8 @@ def run_unified_multibot_daemon(args, profiles=None):
                     delay = min(max(5.0, float(args.interval)), 10.0)
                 else:
                     delay = max(1.0, float(args.interval))
-                next_due[profile] = time.monotonic() + delay
+                from strategy.execution.worker_rules import worker_poll_interval
+                next_due[profile] = time.monotonic() + worker_poll_interval(profile, delay)
 
             if time.monotonic() - last_report >= max(10.0, float(args.report_interval)):
                 try:
@@ -2293,11 +2315,8 @@ def run_multi_bot_daemon(args, profiles=None):
             if existing is not None and existing.poll() is None:
                 return True
         spec = BOT_PROFILES[profile]
-        worker_interval = (
-            min(int(args.interval), 10)
-            if str(profile).startswith("FOREX_") or str(profile) == "GOLD"
-            else int(args.interval)
-        )
+        from strategy.execution.worker_rules import worker_poll_interval
+        worker_interval = worker_poll_interval(profile, args.interval)
         cmd = [
             sys.executable, "-m", "app.main",
             "--mode", spec["mode"],

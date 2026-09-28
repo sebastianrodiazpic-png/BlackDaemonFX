@@ -73,12 +73,19 @@ def test_unified_runtime_has_single_dashboard_and_shared_provider():
     assert "subprocess.Popen" not in block
 
 
-def test_orb_live_audit_includes_htf_context():
-    root=Path(__file__).resolve().parents[1]
-    text=(root/"strategy"/"execution"/"live_trading_engine.py").read_text(encoding="utf-8")
-    assert 'view["higher_timeframe_context"] = htf_context' in text
-    assert 'view["h1_trend"] = htf_context.get("h1_trend")' in text
-    assert 'view["structure_break"] = htf_context.get("m15_structure")' in text
+def test_orb_open_position_audit_pauses_entry_analysis():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    engine=object.__new__(LiveTradingEngine)
+    engine.config=LiveTradingConfig(bot_profile='ORB')
+    engine.repository=SimpleNamespace(open_trades=lambda **kw:[dict(instrument='US SP 500',
+        direction='BUY',details={'metadata':{'strategy_name':'ORB_NEW_YORK'}})])
+    engine._trade_auditable_by_current_bot=lambda trade:True
+    engine._persist_audit_event=Mock()
+    engine.orb_strategy=SimpleNamespace(analyze_symbol=Mock(side_effect=AssertionError('Entry analysis while open')))
+    engine._refresh_current_strategy_views()
+    engine.orb_strategy.analyze_symbol.assert_not_called()
+    assert engine._current_strategy_view_cache['US SP 500']['entry_analysis_paused']
 
 
 def test_orb_entry_uses_native_signal_without_smc_or_score_inflation():
@@ -88,6 +95,8 @@ def test_orb_entry_uses_native_signal_without_smc_or_score_inflation():
         provider=Provider(), repository=ExecutionRepo(), executor=Executor(),
         config=LiveTradingConfig(bot_profile="ORB", execution_enabled=False),
     )
+    engine.executor.get_open_positions = lambda: []
+    engine.executor.get_pending_orders = lambda: []
     def forbidden(symbol):
         raise AssertionError("ORB entry queried SMC")
     engine.multi_timeframe = SimpleNamespace(analyze_symbol=forbidden)

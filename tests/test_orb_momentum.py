@@ -32,7 +32,7 @@ def test_momentum_accepts_first_closed_breakout(direction):
 
 @pytest.mark.parametrize("change,reason", [
     ({"open": 106.1}, "MOMENTUM_BODY_TOO_SMALL"),
-    ({"close": 105.1}, "MOMENTUM_DISPLACEMENT_INSUFFICIENT"),
+    ({"close": 105.3}, "MOMENTUM_DISPLACEMENT_INSUFFICIENT"),
     ({"close": 108., "high": 108.1}, "MOMENTUM_OVEREXTENDED"),
     ({"tick_volume": 0}, "MOMENTUM_VOLUME_UNCONFIRMED"),
 ])

@@ -1470,6 +1470,22 @@ class MT5ExecutionProvider:
             "request": request,
         }
 
+    def get_open_positions(self):
+        """Unfiltered broker state for the entry guard; None is an error, not empty."""
+        self._ensure()
+        rows = mt5.positions_get()
+        if rows is None:
+            raise MT5ExecutionError(f"positions_get failed: {mt5.last_error()}")
+        return list(rows)
+
+    def get_pending_orders(self):
+        """Include manual orders and orders belonging to every worker/magic."""
+        self._ensure()
+        rows = mt5.orders_get()
+        if rows is None:
+            raise MT5ExecutionError(f"orders_get failed: {mt5.last_error()}")
+        return list(rows)
+
     def list_open_positions(self, magic: int | None = None) -> list[dict]:
         """Devuelve un snapshot serializable de las posiciones abiertas de MT5.
 

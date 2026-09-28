@@ -1,7 +1,7 @@
 """SMC 25/30/35/10 scoring; mandatory evidence cannot be bought with points."""
 
 
-def calculate_adaptive_score(h1_data, m15_data, m5_data, confluences):
+def calculate_adaptive_score(h1_data, m15_data, m5_data, confluences, m1_data=None):
     points = dict(h1=0, m15=0, m5=0, confluences=0)
     veto_reasons, veto_codes = [], []
     def veto(code, reason):
@@ -29,10 +29,16 @@ def calculate_adaptive_score(h1_data, m15_data, m5_data, confluences):
         veto("M15_EVIDENCE_REQUIRED", "M15: OB sin desplazamiento ni ruptura minima")
 
     from strategy.smc.m5_freshness import evaluate_m5_confirmation_detailed
-    m5_detail = evaluate_m5_confirmation_detailed(m5_data,
-        current_time_m5=m5_data.get('evaluation_time'),
-        max_age_minutes=m5_data.get('max_age_minutes', 10),
-        check_freshness=m5_data.get('freshness_required', 'choch_timestamp' in m5_data))
+    if m1_data is not None or m5_data.get('dual_trigger_enabled'):
+        from strategy.smc.dual_trigger import evaluate_dual_m5_m1_trigger
+        m5_detail = evaluate_dual_m5_m1_trigger(m5_data, m1_data,
+            max_age_minutes=m5_data.get('max_age_minutes', 10),
+            current_time=m5_data.get('evaluation_time'))
+    else:
+        m5_detail = evaluate_m5_confirmation_detailed(m5_data,
+            current_time_m5=m5_data.get('evaluation_time'),
+            max_age_minutes=m5_data.get('max_age_minutes', 10),
+            check_freshness=m5_data.get('freshness_required', 'choch_timestamp' in m5_data))
     points['m5'] = m5_detail['m5_score']
     veto_reasons.extend(m5_detail['veto_reasons'])
     veto_codes.extend(m5_detail['veto_codes'])
@@ -44,4 +50,4 @@ def calculate_adaptive_score(h1_data, m15_data, m5_data, confluences):
                 status=status, final_score=score, score_breakdown=points, m5_detail=m5_detail,
                 reasons=veto_reasons if veto_reasons else ([f"Puntuacion insuficiente ({score}/70)"] if score < 70 else []),
                 veto_codes=veto_codes,
-                fvg_missing_but_allowed=not m5_data.get("has_fvg", False) and status in {"STRICT_APPROVED", "ADAPTIVE_APPROVED"})
+                fvg_missing_but_allowed=not m5_detail.get("has_fvg", m5_data.get("has_fvg", False)) and status in {"STRICT_APPROVED", "ADAPTIVE_APPROVED"})

@@ -24,7 +24,7 @@ Vinculaciones:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, time, timezone
 from zoneinfo import ZoneInfo
 import math
@@ -33,6 +33,10 @@ import re
 import pandas as pd
 
 from strategy.smc.volume_utils import select_volume_column
+from strategy.orb.asset_rules import (
+    ORB_STRATEGY_VERSION, default_asset_profiles, check_range_amplitude,
+    audit_volume_confirmation, evaluate_retest_quality,
+)
 
 
 NEW_YORK = ZoneInfo("America/New_York")
@@ -80,6 +84,9 @@ def classify_orb_market(symbol: str) -> str | None:
         return "MICRO_XAGUSD"
     if name in {"xagusd", "silver"}:
         return "XAGUSD"
+
+    if name == "btcusd":
+        return "BTCUSD"
 
     aliases = {
         "WALL_STREET_30": ("wallstreet30", "us30", "dj30", "dow30", "dowjones30", "ws30"),
@@ -192,6 +199,9 @@ def discover_orb_symbols(data_provider) -> list[str]:
     """
     terms = (
         "XAUUSD",
+        "BTCUSD",
+        "US30",
+        "NAS100",
         "XAGUSD",
         "Silver",
         "US Oil",
@@ -265,14 +275,11 @@ class ORBConfig:
     tenga volumen por encima del promedio reciente, evitando operar rupturas
     "débiles" sin participación real (causa habitual de falsos breakouts).
 
-    `max_opening_range_atr_multiple` es solo un umbral de referencia para el
-    diagnostico `opening_range_atr_within_limit`; ya NO bloquea la señal. Un
-    rango de apertura ancho implica un stop (al 50%) igualmente ancho, pero en
-    vez de rechazar la operacion se deja pasar: el sizing por riesgo en dinero
-    fijo (`calculate_volume`) ya reduce el lote proporcionalmente para que el
-    riesgo monetario real no crezca, sin perder la oportunidad de operar.
+    Los perfiles controlan modos, buffer ATR y volumen. El rango amplio
+    restringe Momentum; el umbral critico cancela la sesion.
     """
 
+    asset_profiles: dict = field(default_factory=default_asset_profiles)
     enabled: bool = True
     timezone_name: str = "America/New_York"
     opening_hour: int = 9
@@ -639,7 +646,7 @@ class NewYorkORBStrategy:
         base = {
             "valid": False,
             "strategy_name": "ORB_NEW_YORK",
-            "strategy_version": "orb-ny-v3-retest-momentum",
+            "strategy_version": ORB_STRATEGY_VERSION,
             "symbol": symbol,
             "orb_market": market,
             "timezone": self.config.timezone_name,
@@ -683,23 +690,54 @@ class NewYorkORBStrategy:
         if not math.isfinite(range_size) or range_size <= 0:
             return {**base, "action": "INVALID_OPENING_RANGE", "reason": "RANGO_ORB_SIN_AMPLITUD"}
 
-        # Filtro de amplitud del rango de apertura: en vez de bloquear la señal
-        # cuando el rango es inusualmente ancho respecto al ATR reciente, se dej
-        # a pasar la señal y se confía en el sizing por riesgo en dinero fijo
-        # (`calculate_volume` en live_trading_engine.py), que ya reduce el lote
-        # proporcionalmente cuando el stop (50% del rango) es más ancho. Así se
-        # evita perder oportunidades válidas solo por un rango de apertura
-        # amplio; el riesgo monetario real de la cuenta se mantiene controlado
-        # por el cálculo de volumen, no por rechazar la operación.
-        pre_open = df[df["time_ny"] < open_ny]
-        atr_reference = self._average_true_range(
-            pre_open, period=int(getattr(self.config, "opening_range_atr_period", 14))
-        )
-        max_atr_multiple = float(getattr(self.config, "max_opening_range_atr_multiple", 1.5))
-        range_atr_ratio = (range_size / atr_reference) if atr_reference else None
-        opening_range_atr_within_limit = atr_reference is None or bool(
-            range_atr_ratio is not None and range_atr_ratio <= max_atr_multiple
-        )
+        profile_key = {"MICRO_XAUUSD": "XAUUSD", "WALL_STREET_30": "US30",
+                       "US_TECH_100": "NAS100"}.get(market, market)
+        cfg = self.config.asset_profiles.get(profile_key, {
+            "allowed_modes": ["MOMENTUM", "RETEST"],
+            "atr_buffer": self.config.breakout_atr_buffer_fraction,
+            "max_range_atr_ratio": self.config.max_opening_range_atr_multiple,
+            "require_volume": self.config.require_breakout_volume_confirmation,
+        })
+        period = self.config.opening_range_atr_period
+        atr_reference = self._average_true_range(df, period) if len(df) >= period + 1 else None
+        max_atr_multiple = float(cfg["max_range_atr_ratio"])
+        amplitude = check_range_amplitude(range_high, range_low, atr_reference, max_atr_multiple)
+        range_atr_ratio = amplitude["ratio"]
+        opening_range_atr_within_limit = amplitude["allow_momentum"]
+        allowed_modes = list(cfg["allowed_modes"])
+        if not amplitude["allow_momentum"] or not self.config.momentum_enabled:
+            allowed_modes = [mode for mode in allowed_modes if mode != "MOMENTUM"]
+        base.update(asset_profile=profile_key, allowed_modes=allowed_modes,
+                    range_amplitude=amplitude, opening_range_atr_ratio=range_atr_ratio)
+        base["orb_audit"] = {
+            "schema": "orb-audit-v2", "evaluated_at": pd.Timestamp(now_utc).isoformat(),
+            "symbol": symbol, "source": getattr(self.data_provider, "source_name", "UNSPECIFIED_PROVIDER"),
+            "range_start": open_ny.isoformat(), "range_end": range_end_ny.isoformat(),
+            "orh": range_high, "orl": range_low, "range_amplitude": amplitude,
+            "allowed_modes": allowed_modes, "asset_profile": profile_key,
+        }
+        # Replay closed evaluations so cancellation survives ATR growth and restarts.
+        # A rolling series avoids recomputing ATR for every historical prefix.
+        previous_close = pd.to_numeric(df["close"]).shift(1)
+        true_range = pd.concat([
+            pd.to_numeric(df["high"]) - pd.to_numeric(df["low"]),
+            (pd.to_numeric(df["high"]) - previous_close).abs(),
+            (pd.to_numeric(df["low"]) - previous_close).abs(),
+        ], axis=1).max(axis=1)
+        historical_atrs = true_range.rolling(period, min_periods=period).mean()
+        formed = df["time_ny"] >= range_end_ny - pd.Timedelta(minutes=tf_minutes)
+        eligible_history = historical_atrs[formed & (pd.Series(range(len(df)), index=df.index) >= period)]
+        critical_ratios = range_size / eligible_history
+        breaches = critical_ratios[critical_ratios > max_atr_multiple * 1.3]
+        cancelled = not breaches.empty
+        if cancelled:
+            trigger = {"ratio": float(breaches.iloc[0]), "critical_ratio": max_atr_multiple * 1.3,
+                       "candle_time": pd.Timestamp(df.loc[breaches.index[0], "time"]).isoformat()}
+            base["orb_audit"]["session_cancellation"] = trigger
+            base["session_cancellation"] = trigger
+            return {**base, "action": "ORB_SESSION_CANCELLED", "reason": "RANGO_ORB_SUPERA_UMBRAL_CRITICO"}
+        if atr_reference is None:
+            return {**base, "action": "WAITING_ORB_ATR", "reason": "ATR_M5_SIN_HISTORIAL_SUFICIENTE"}
 
         post_range = session[session["time_ny"] >= range_end_ny].copy()
         if post_range.empty:
@@ -733,7 +771,7 @@ class NewYorkORBStrategy:
         buffer = max(
             range_size * max(0.0, float(self.config.breakout_buffer_fraction)),
             (atr_reference or 0.0)
-            * max(0.0, float(getattr(self.config, "breakout_atr_buffer_fraction", 0.05))),
+            * max(0.0, float(cfg["atr_buffer"])),
         )
 
         max_retest = max(1, int(getattr(self.config, "retest_max_candles", 3)))
@@ -786,12 +824,14 @@ class NewYorkORBStrategy:
         tolerance = max(2 * spread, 0.10 * (signal_atr or 0.0))
         retest_buy_ok = bool(breakout_up and midpoint < retest_low <= range_high + tolerance and retest_close > range_high + buffer)
         retest_sell_ok = bool(breakout_down and midpoint > retest_high >= range_low - tolerance and retest_close < range_low - buffer)
+        retest_buy_ok = retest_buy_ok and "RETEST" in allowed_modes
+        retest_sell_ok = retest_sell_ok and "RETEST" in allowed_modes
         direction = "BUY" if retest_buy_ok else "SELL" if retest_sell_ok else None
 
         entry_mode = "ORB_BREAKOUT_RETEST"
         momentum_failures = []
         momentum_audit = {"evaluated":False, "variants":{}, "entry_authorized":False}
-        if direction is None and self.config.momentum_enabled:
+        if direction is None and "MOMENTUM" in allowed_modes:
             previous = float(session[session["time"] < retest["time"]].iloc[-1]["close"])
             up = previous <= range_high + buffer and retest_close > range_high + buffer
             down = previous >= range_low - buffer and retest_close < range_low - buffer
@@ -800,14 +840,15 @@ class NewYorkORBStrategy:
                 body = sign * (retest_close - float(retest["open"]))
                 body_ratio = body / (retest_high - retest_low) if retest_high > retest_low else 0
                 displacement = sign * (retest_close - edge)
-                _, vol, avg = self._breakout_volume_confirmed(df, retest["time"], self.config.breakout_volume_lookback, 1.0)
+                momentum_volume = audit_volume_confirmation(df, retest["time"], "MOMENTUM", cfg["require_volume"])
+                vol, avg = momentum_volume["volume"], momentum_volume["average_volume"]
                 if body_ratio < self.config.momentum_min_body_ratio:
                     momentum_failures.append("MOMENTUM_BODY_TOO_SMALL")
                 if not signal_atr or displacement < self.config.momentum_min_displacement_atr * signal_atr:
                     momentum_failures.append("MOMENTUM_DISPLACEMENT_INSUFFICIENT")
                 if not signal_atr or displacement > self.config.momentum_max_extension_atr * signal_atr:
                     momentum_failures.append("MOMENTUM_OVEREXTENDED")
-                if vol is None or avg is None or not vol > avg > 0:
+                if not momentum_volume["confirmed"]:
                     momentum_failures.append("MOMENTUM_VOLUME_UNCONFIRMED")
                 volume_available = vol is not None and avg is not None and vol > 0 and avg > 0
                 momentum_audit = {
@@ -822,6 +863,7 @@ class NewYorkORBStrategy:
                     "volume_source":self._volume_source(df[df.time <= retest.time]),
                     "volume_ratio":vol / avg if vol is not None and avg and avg > 0 else None,
                     "volume_threshold":1.0,
+                    "volume_evidence":momentum_volume,
                     "live_rejections":list(momentum_failures), "variants":{}, "entry_authorized":False,
                 }
                 # Sensitivity comparisons only: no alternative can set direction.
@@ -854,7 +896,8 @@ class NewYorkORBStrategy:
         diagnostics = {
             "orb_entry_mode": entry_mode,
             "orb_audit": {
-                "schema":"orb-audit-v1", "evaluated_at":pd.Timestamp(now_utc).isoformat(),
+                **base["orb_audit"],
+                "evaluated_at":pd.Timestamp(now_utc).isoformat(),
                 "symbol":symbol, "source":getattr(self.data_provider,"source_name", "UNSPECIFIED_PROVIDER"),
                 "session_timezone":self.config.timezone_name,
                 "range_start":pd.Timestamp(open_ny).isoformat(), "range_end":pd.Timestamp(range_end_ny).isoformat(),
@@ -929,24 +972,23 @@ class NewYorkORBStrategy:
                     "session_previous_breakout_time": remembered[1],
                 }
 
-        breakout_volume_confirmed, breakout_volume, breakout_volume_reference = self._breakout_volume_confirmed(
-            through_candidate,
-            breakout["time"],
-            lookback=int(getattr(self.config, "breakout_volume_lookback", 20)),
-            multiplier=float(getattr(self.config, "breakout_volume_multiplier", 1.2)),
-        )
-        diagnostics["breakout_volume"] = breakout_volume
-        diagnostics["breakout_volume_reference_avg"] = breakout_volume_reference
-        diagnostics["breakout_volume_confirmed"] = breakout_volume_confirmed
-        volume_evidence = {
-            "volume": breakout_volume, "average_volume": breakout_volume_reference,
-            "volume_ratio": breakout_volume / breakout_volume_reference if breakout_volume is not None and breakout_volume_reference else None,
-            "volume_threshold": float(self.config.breakout_volume_multiplier),
-            "volume_source": self._volume_source(through_candidate[through_candidate.time <= breakout.time]),
-            "volume_status": "AVAILABLE" if breakout_volume_confirmed is not None else "UNAVAILABLE_OR_ZERO",
-            "confirmed": breakout_volume_confirmed,
-            "missing_policy": "RETEST_NO_PENALTY_MOMENTUM_REQUIRES_VOLUME",
-        }
+        mode = "MOMENTUM" if entry_mode == "ORB_BREAKOUT_MOMENTUM" else "RETEST"
+        volume_evidence = audit_volume_confirmation(df, breakout["time"], mode, cfg["require_volume"])
+        breakout_volume_confirmed = volume_evidence["confirmed"]
+        breakout_volume = volume_evidence["volume"]
+        breakout_volume_reference = volume_evidence["average_volume"]
+        diagnostics.update(breakout_volume=breakout_volume,
+                           breakout_volume_reference_avg=breakout_volume_reference,
+                           breakout_volume_confirmed=breakout_volume_confirmed)
+        body = abs(retest_close - float(retest["open"]))
+        tail = (min(float(retest["open"]), retest_close) - retest_low if direction == "BUY"
+                else retest_high - max(float(retest["open"]), retest_close))
+        tail_ratio = max(0.0, tail) / max(body, 1e-12)
+        quality = evaluate_retest_quality(bars_after_breakout, tail_ratio) if mode == "RETEST" else None
+        quality_weight = {"HIGH_QUALITY": 1.0, "STANDARD_QUALITY": 0.75, "LOW_QUALITY": 0.5}.get(quality)
+        diagnostics.update(retest_quality=quality, rejection_tail_ratio=tail_ratio if quality else None)
+        diagnostics["orb_audit"]["retest"].update(quality=quality, quality_weight=quality_weight,
+                                                 rejection_tail_ratio=tail_ratio if quality else None)
         diagnostics["orb_audit"]["volume_evidence"] = volume_evidence
 
         vwap_ok = vwap_buy_ok if direction == "BUY" else vwap_sell_ok
@@ -970,7 +1012,7 @@ class NewYorkORBStrategy:
                 failed.append("POC_NO_ALINEADO_CON_RETEST")
         if (
             entry_mode == "ORB_BREAKOUT_RETEST"
-            and bool(getattr(self.config, "require_breakout_volume_confirmation", True))
+            and cfg["require_volume"]
             and breakout_volume_confirmed is False
         ):
             failed.append("RUPTURA_SIN_VOLUMEN_SUFICIENTE")
@@ -1028,8 +1070,15 @@ class NewYorkORBStrategy:
 
         signal = {
             "strategy_name": "ORB_NEW_YORK",
-            "strategy_version": "orb-ny-v3-retest-momentum",
+            "strategy_version": ORB_STRATEGY_VERSION,
             "orb_entry_mode": entry_mode,
+            "orb_metrics_strategy": "ORB_NY_" + mode,
+            "retest_quality": quality,
+            "retest_quality_weight": quality_weight,
+            "rejection_tail_ratio": tail_ratio if quality else None,
+            "retest_candle_index": bars_after_breakout if quality else None,
+            "asset_profile": profile_key,
+            "range_amplitude": amplitude,
             "orb_signal_atr": signal_atr,
             "orb_momentum_max_extension_atr": self.config.momentum_max_extension_atr,
             "timeframe": "M5",

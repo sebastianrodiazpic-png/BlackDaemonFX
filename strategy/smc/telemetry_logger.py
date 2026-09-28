@@ -11,6 +11,13 @@ import re
 import threading
 import time
 
+def _json_default(value):
+    # Dual-trigger evidence carries datetime / pandas.Timestamp values.
+    if isinstance(value, datetime):
+        return value.isoformat()
+    raise TypeError(f"Unsupported telemetry value: {type(value).__name__}")
+
+
 logger = logging.getLogger("SMC_Telemetry")
 logger.setLevel(logging.INFO)
 
@@ -40,6 +47,7 @@ class SMCTelemetryTracker:
             self.veto_reasons_counter = Counter()
             self.m5_rejection_codes = Counter()
             self.h1_context_counts = Counter()
+            self.m5_diagnostic_tags = Counter()
             self.symbol_counts = Counter()
             self.scores_history = deque(maxlen=self.history_capacity)
             self._score_sum = 0.0
@@ -81,6 +89,9 @@ class SMCTelemetryTracker:
             self.total_evaluations += 1
             self.status_counts[status] += 1
             self.symbol_counts[symbol] += 1
+            tag = (evaluation_result.get("m5_detail") or {}).get("diagnostic_tag")
+            if tag:
+                self.m5_diagnostic_tags[tag] += 1
             context = (evaluation_result.get("h1_context") or {}).get("context_type")
             if context:
                 self.h1_context_counts[context] += 1
@@ -91,11 +102,11 @@ class SMCTelemetryTracker:
             reasons = list(dict.fromkeys(evaluation_result.get("reasons") or []))
             if not approved:
                 self.veto_reasons_counter.update(reasons)
-                self.m5_rejection_codes.update({code for code in evaluation_result.get("veto_codes", []) if code.startswith("M5_")})
+                self.m5_rejection_codes.update({code for code in evaluation_result.get("veto_codes", []) if code.startswith(("M5_", "M1_"))})
                 stages = set()
                 for reason in reasons + list(evaluation_result.get("veto_codes") or []):
                     for prefix, stage in (("H1", "H1_LOCATION"), ("M15", "M15_STRUCTURE"),
-                                          ("M5", "M5_CONFIRMATION"), ("RISK", "RISK_EXECUTION")):
+                                          ("M5", "M5_CONFIRMATION"), ("M1", "M5_CONFIRMATION"), ("RISK", "RISK_EXECUTION")):
                         if str(reason).startswith((prefix+":", prefix+"_")):
                             stages.add(stage)
                 self.rejection_stages.update(stages)
@@ -114,7 +125,9 @@ class SMCTelemetryTracker:
     def log_pipeline_result(self, result, evaluation_id=None):
         """Terminal analyzer outcomes, separate from scored candidate statistics."""
         action = str(result.get('action') or 'UNKNOWN')
-        stage = {'NO_H1_CONTEXT':'H1', 'NO_M15_SETUP':'M15',
+        stage = {'BLOCKED_ACTIVE_TRADE':'POSITION_GUARD', 'BLOCKED_PENDING_ORDER':'POSITION_GUARD',
+                 'BLOCKED_POSITION_STATE_UNAVAILABLE':'POSITION_GUARD', 'BLOCKED_SYMBOL_CYCLE':'POSITION_GUARD',
+                 'NO_H1_CONTEXT':'H1', 'NO_M15_SETUP':'M15',
                  'NO_M5_CONFIRMATION':'M5', 'WAITING_M5_AFTER_M15':'M5',
                  'STALE_M5_SIGNAL':'M5', 'ENTRY_LOCATION_BLOCKED':'LOCATION',
                  'DIRECTION_POLICY_BLOCKED':'INSTRUMENT_POLICY'}.get(action)
@@ -160,7 +173,7 @@ class SMCTelemetryTracker:
         with self._lock:
             total = max(1, self.total_evaluations)
             strict, adaptive = self.status_counts['STRICT_APPROVED'], self.status_counts['ADAPTIVE_APPROVED']
-            return dict(bot_name=self.bot_name, pid=os.getpid(),
+            return dict(bot_name=self.bot_name, pid=os.getpid(), telemetry_schema_version=3,
                 start_time=self.start_time.isoformat(), timestamp=datetime.now(timezone.utc).isoformat(),
                 scope="ADAPTIVE_SCORE_CANDIDATES_NOT_EXECUTED_ORDERS",
                 pipeline_funnel=dict(scope="TERMINAL_ANALYSIS_SNAPSHOTS_NOT_TRADES",
@@ -181,7 +194,9 @@ class SMCTelemetryTracker:
                 average_score=round(self._score_sum/max(1,self._score_count),2),
                 scored_evaluations=self._score_count,
                 m5_rejection_codes=dict(self.m5_rejection_codes),
+                m5_diagnostic_tags=dict(self.m5_diagnostic_tags),
                 h1_context_counts=dict(self.h1_context_counts),
+                veto_reason_counts=dict(self.veto_reasons_counter),
                 top_3_rejection_reasons=self.veto_reasons_counter.most_common(3),
                 symbol_counts=dict(self.symbol_counts), last_evaluation=self.last_evaluation)
 
@@ -198,7 +213,7 @@ class SMCTelemetryTracker:
             target = self.output_dir / f'{name}_{os.getpid()}.json'
             temporary = target.with_suffix('.tmp')
             with self._lock:
-                temporary.write_text(json.dumps(self.get_summary_report(), ensure_ascii=True, indent=2), encoding='utf-8')
+                temporary.write_text(json.dumps(self.get_summary_report(), ensure_ascii=True, indent=2, default=_json_default), encoding='utf-8')
                 temporary.replace(target)
         except OSError:
             logger.warning("SMC telemetry snapshot unavailable", exc_info=True)

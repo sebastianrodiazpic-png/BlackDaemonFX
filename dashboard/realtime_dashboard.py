@@ -2257,6 +2257,14 @@ class RealtimeDashboardService:
             state["learning_audit"] = learning_snapshot()
             from dashboard.orb_audit import snapshot as orb_audit_snapshot
             state["orb_audit"] = orb_audit_snapshot()
+            metrics_cache = getattr(self, "_orb_metrics_cache", (0, []))
+            if time.monotonic() - metrics_cache[0] > 60:
+                try:
+                    metrics_cache = (time.monotonic(), self.repository.orb_execution_metrics())
+                    self._orb_metrics_cache = metrics_cache
+                except Exception:
+                    state["orb_metrics_error"] = "ORB_METRICS_UNAVAILABLE"
+            state["orb_execution_metrics"] = metrics_cache[1]
             from strategy.execution.forex_spread_guard import snapshot as forex_spread_snapshot
             state["forex_spread_audit"] = forex_spread_snapshot()
 
@@ -4815,12 +4823,13 @@ _HTML = r'''
                 )
                 .join('') || 'Sin registros: reiniciar los workers para cargar la prueba.';
             const orb = s.orb_audit || {};
+            box.innerHTML += `<details open><summary>ORB · resultados por activo y modalidad</summary><p>Esperanza = PnL neto cerrado / ejecuciones cerradas. Cada pierna cuenta por separado.</p>${(s.orb_execution_metrics || []).map(m => `<p><b>${esc(m.symbol)} · ${esc(m.strategy)}</b> · ${esc(m.source)} / ${esc(m.broker)} · Cerradas ${esc(m.closed)} · Ganadas ${esc(m.wins)} · Perdidas ${esc(m.losses)} · PnL ${esc(m.net_pnl)} · Esperanza ${esc(m.expectancy_net_pnl ?? '—')}</p>`).join('') || 'Sin ejecuciones ORB etiquetadas.'}${s.orb_metrics_error ? '<p>Métricas temporalmente no disponibles.</p>' : ''}</details>`;
             box.innerHTML += `<details open><summary>ORB · rango y rechazos · ${esc(orb.day || 'sin registros')}</summary><p>Actualizado ${esc(orb.updated_at || '—')} · Comparaciones solo en sombra; no autorizan entradas.</p>${Object.values(
               orb.latest || {},
             )
               .map(
                 (a) =>
-                  `<p><b>${esc(a.symbol)}</b> · ${esc(a.reason)}<br>ORH ${esc(a.orh)} / ORL ${esc(a.orl)} · ${esc(a.range_start)} → ${esc(a.range_end)} · ${esc(a.source)}<br>Cuerpo ${a.momentum?.body_ratio == null ? '—' : (100 * a.momentum.body_ratio).toFixed(1) + '%'} · Extensión ${a.momentum?.extension_atr == null ? '—' : Number(a.momentum.extension_atr).toFixed(2) + ' ATR'} · Volumen ${esc((a.volume_evidence || a.momentum)?.volume_status || 'no evaluado')} · Fuente ${esc((a.volume_evidence || a.momentum)?.volume_source || 'sin datos')} · Ruptura ${esc((a.volume_evidence || a.momentum)?.volume ?? '—')} / Media ${esc((a.volume_evidence || a.momentum)?.average_volume ?? '—')} · Ratio ${esc((a.volume_evidence || a.momentum)?.volume_ratio ?? '—')} / Umbral ${esc((a.volume_evidence || a.momentum)?.volume_threshold ?? '—')}</p><details><summary>Velas que forman el rango</summary>${(a.opening_candles || []).map((c) => `<p>${esc(c.time)} · O ${esc(c.open)} H ${esc(c.high)} L ${esc(c.low)} C ${esc(c.close)}</p>`).join('')}</details>`,
+                  `<p><b>${esc(a.symbol)}</b> · ${esc(a.reason)}<br>Perfil ${esc(a.asset_profile || "—")} · Modos ${esc((a.allowed_modes || []).join(", "))} · Rango/ATR ${esc(a.range_amplitude?.ratio ?? "—")} · Calidad retest ${esc(a.retest?.quality || "—")}${a.session_cancellation ? " · Cancelado por ratio " + esc(a.session_cancellation.ratio) + " > " + esc(a.session_cancellation.critical_ratio) : ""}<br>ORH ${esc(a.orh)} / ORL ${esc(a.orl)} · ${esc(a.range_start)} → ${esc(a.range_end)} · ${esc(a.source)}<br>Cuerpo ${a.momentum?.body_ratio == null ? '—' : (100 * a.momentum.body_ratio).toFixed(1) + '%'} · Extensión ${a.momentum?.extension_atr == null ? '—' : Number(a.momentum.extension_atr).toFixed(2) + ' ATR'} · Volumen ${esc((a.volume_evidence || a.momentum)?.volume_status || 'no evaluado')} · Fuente ${esc((a.volume_evidence || a.momentum)?.volume_source || 'sin datos')} · Ruptura ${esc((a.volume_evidence || a.momentum)?.volume ?? '—')} / Media ${esc((a.volume_evidence || a.momentum)?.average_volume ?? '—')} · Ratio ${esc((a.volume_evidence || a.momentum)?.volume_ratio ?? '—')} / Umbral ${esc((a.volume_evidence || a.momentum)?.volume_threshold ?? '—')}</p><details><summary>Velas que forman el rango</summary>${(a.opening_candles || []).map((c) => `<p>${esc(c.time)} · O ${esc(c.open)} H ${esc(c.high)} L ${esc(c.low)} C ${esc(c.close)}</p>`).join('')}</details>`,
               )
               .join(
                 '',

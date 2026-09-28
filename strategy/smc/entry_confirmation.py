@@ -27,6 +27,7 @@ def detect_entry_confirmations(
     max_wait_candles: int = 50,
     min_wait_candles: int = 1,
     confirmation_config: M5ConfirmationConfig | None = None,
+    m5_trigger_data: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
     Detecta confirmaciones de entrada después de un setup SMC.
@@ -268,10 +269,11 @@ def detect_entry_confirmations(
 
             confirmation_start = retest_index + 1
 
-            for j in range(
-                confirmation_start,
-                end_index
-            ):
+            candidates = range(confirmation_start, end_index)
+            if confirmation_config.dual_trigger_enabled and confirmation_config.confirmation_timeframe_minutes == 1:
+                # A recent early trigger must not be hidden behind an older approval.
+                candidates = reversed(candidates)
+            for j in candidates:
 
                 confirmation_candle = (
                     price_data.iloc[j]
@@ -344,6 +346,7 @@ def detect_entry_confirmations(
                             confirmation_index=j,
                             direction="long",
                             config=confirmation_config,
+                            m5_trigger_data=m5_trigger_data,
                         )
 
                         if not quality["confirmation_valid"]:
@@ -443,6 +446,7 @@ def detect_entry_confirmations(
                             confirmation_index=j,
                             direction="short",
                             config=confirmation_config,
+                            m5_trigger_data=m5_trigger_data,
                         )
 
                         if not quality["confirmation_valid"]:

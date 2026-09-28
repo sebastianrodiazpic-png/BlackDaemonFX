@@ -1847,6 +1847,11 @@ class TradingRepository:
                 records.append(d)
             return pd.DataFrame(records)
 
+    def orb_execution_metrics(self, source=None):
+        """Closed net PnL expectancy by source, broker, asset and ORB mode."""
+        from reporting.orb_metrics import summarize_orb_trades
+        return summarize_orb_trades(self.trade_history_dataframe(source).to_dict("records"))
+
     def latest_account_stats_reset(self, source: str = "DEMO"):
         """Devuelve la marca persistente más reciente para reiniciar estadísticas."""
         source = str(source or "DEMO").upper()

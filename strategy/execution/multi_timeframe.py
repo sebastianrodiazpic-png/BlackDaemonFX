@@ -88,6 +88,7 @@ class MultiTimeframeConfig:
     # sólo para el perfil ORB; SMC usa H1 como contexto principal.
     require_h4_h1_convergence: bool = False
     smc_entry_location_enabled: bool = False
+    dual_m5_m1_trigger_enabled: bool = False
     h1_location_only: bool = False
     smc_entry_location_policy: str = "ALL_TIMEFRAMES"
     volatility_entry_location_enabled: bool = False  # Legacy standalone configuration
@@ -1687,6 +1688,7 @@ class MultiTimeframeAnalyzer:
                 config=replace(self.pipeline_config, require_m5_structure_event=True,
                                require_favorable_confirmation=False, require_choch_fvg=False,
                                adaptive_smc_score_enabled=True,
+                               dual_trigger_enabled=self.config.dual_m5_m1_trigger_enabled,
                                m5_evaluation_time=pd.Timestamp.now(tz="UTC").isoformat(),
                                require_fvg=False, fvg_enabled=True, require_chart_pattern=False,
                                block_material_chart_pattern_conflict=False,
@@ -1698,9 +1700,40 @@ class MultiTimeframeAnalyzer:
             expected_direction,
         )
 
+        m1_diagnostics = None
+        native_m5 = (not m5_confirmations.empty and
+            any((value or {}).get('diagnostic_tag') == 'M5_SWEEP_M5_CHOCH_STANDARD'
+                for value in m5_confirmations.get('m5_detailed_confirmation', pd.Series(dtype=object))))
+        if (self.config.h1_location_only and self.config.dual_m5_m1_trigger_enabled
+                and not native_m5):
+            try:
+                m1_data, _, m1_timing = self._get_stage_result(symbol, "M1", self.config.entry_candles * 5)
+                if not m1_data.empty:
+                    m1_result = run_trade_pipeline(
+                        df=m1_data, symbol=symbol, confirmation_setups=selected,
+                        m5_trigger_data=m5_result.get('data'),
+                        config=replace(self.pipeline_config, require_m5_structure_event=True,
+                            require_favorable_confirmation=False, require_choch_fvg=False,
+                            adaptive_smc_score_enabled=True, dual_trigger_enabled=True,
+                            confirmation_timeframe_minutes=1,
+                            max_retest_candles=self.pipeline_config.max_retest_candles * 5,
+                            m5_evaluation_time=pd.Timestamp.now(tz="UTC").isoformat(),
+                            require_fvg=False, fvg_enabled=True, require_chart_pattern=False,
+                            block_material_chart_pattern_conflict=False,
+                            block_similar_chart_pattern_forces=False))
+                    m1_diagnostics = self._pipeline_diagnostics(m1_result, m1_timing)
+                    early = self._m5_confirmations(m1_result, expected_direction)
+                    if not early.empty:
+                        m5_confirmations = early
+                        m5_data, m5_result, m5_timing = m1_data, m1_result, m1_timing
+            except Exception as exc:
+                m1_diagnostics = {'reason': 'M1_TRIGGER_UNAVAILABLE', 'error': str(exc)}
+
         m5_diag = self._pipeline_diagnostics(
             m5_result, m5_timing
         )
+        if m1_diagnostics is not None:
+            m5_diag['m1_trigger'] = m1_diagnostics
 
         (
             m15_setup,
@@ -1736,7 +1769,7 @@ class MultiTimeframeAnalyzer:
         m15_payload["setup"] = m15_setup
 
         m5_payload = {
-            "timeframe": self.config.entry_timeframe,
+            "timeframe": (m5_signal or {}).get("confirmation_timeframe", self.config.entry_timeframe),
             "signal": m5_signal,
             "summary": m5_result.get("summary", {}),
         }
@@ -2043,7 +2076,7 @@ class MultiTimeframeAnalyzer:
                     if value is not None:
                         m5_signal[indicator] = value
 
-        m5_signal["indicator_provenance"] = {"timeframe": "M5", "period": 14,
+        m5_signal["indicator_provenance"] = {"timeframe": m5_signal.get("confirmation_timeframe", "M5"), "period": 14,
             "method": "WILDER_SMA_SEED", "candle_open": str(m5_signal.get("entry_time")),
             "closed_candles_only": True}
 
@@ -2100,9 +2133,7 @@ class MultiTimeframeAnalyzer:
                 )
             ),
 
-            "m5_timeframe": (
-                self.config.entry_timeframe
-            ),
+            "m5_timeframe": m5_signal.get("confirmation_timeframe", self.config.entry_timeframe),
             "m5_confirmation_time": (
                 m5_signal.get("entry_time")
             ),

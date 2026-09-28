@@ -31,6 +31,13 @@ class Provider:
 
 
 class Executor:
+    # Explicit empty broker snapshots for the mandatory entry guard.
+    def get_open_positions(self):
+        return []
+
+    def get_pending_orders(self):
+        return []
+
     def assert_demo_account(self):
         return {"balance": 10000.0, "equity": 10000.0, "server": "Deriv-Demo"}
 

@@ -56,6 +56,12 @@ class MT5TradeExecutor(TradeExecutor):
         self.magic = int(magic)
         self.deviation = int(deviation)
 
+    def get_open_positions(self):
+        return self.execution_provider.get_open_positions()
+
+    def get_pending_orders(self):
+        return self.execution_provider.get_pending_orders()
+
     def execute_trade(self, request: TradeExecutionRequest) -> TradeExecutionResult:
         """Envia una orden a mercado y devuelve el resultado normalizado.
 

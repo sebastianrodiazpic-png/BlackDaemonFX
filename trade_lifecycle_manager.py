@@ -39,6 +39,8 @@ Vinculaciones:
 
 from __future__ import annotations
 
+from strategy.orb.asset_rules import execution_metadata as orb_execution_metadata
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
@@ -330,6 +332,7 @@ class TradeLifecycleManager:
             state=STATE_READY_TO_ENTER,
 
             metadata={
+                **orb_execution_metadata(signal),
                 "source_action": signal.get(
                     "action"
                 ),

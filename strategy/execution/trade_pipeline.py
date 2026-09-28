@@ -144,6 +144,8 @@ class PipelineConfig:
     m15_impulse_bars: int = 8
     m5_choch_fvg_window: int = 3
     m15_fractal_window: int = 3
+    dual_trigger_enabled: bool = False
+    confirmation_timeframe_minutes: int = 5
     m5_evaluation_time: str | None = None
     m5_max_signal_age_minutes: float = 10.0
     telemetry_bot_name: str | None = None
@@ -463,6 +465,7 @@ def run_trade_pipeline(
     config: PipelineConfig | None = None,
     symbol: str | None = None,
     confirmation_setups: pd.DataFrame | None = None,
+    m5_trigger_data: pd.DataFrame | None = None,
 ) -> dict:
     """Ejecuta la cadena SMC completa. Si symbol es Boom/Crash, aplica la política de dirección del activo.
 
@@ -512,6 +515,8 @@ def run_trade_pipeline(
     setups = _filter_by_policy(setups_before_policy, 'setup_type', allowed_direction)
 
     m5_confirmation_config = M5ConfirmationConfig(
+        dual_trigger_enabled=config.dual_trigger_enabled,
+        confirmation_timeframe_minutes=config.confirmation_timeframe_minutes,
         m5_evaluation_time=config.m5_evaluation_time,
         m5_max_signal_age_minutes=config.m5_max_signal_age_minutes,
         telemetry_bot_name=config.telemetry_bot_name,
@@ -594,6 +599,7 @@ def run_trade_pipeline(
         max_wait_candles=config.max_retest_candles,
         min_wait_candles=config.min_retest_wait_candles,
         confirmation_config=m5_confirmation_config,
+        m5_trigger_data=m5_trigger_data,
     )
     rejected_candidates = list(confirmations.attrs.get("rejected_candidates", []))
     # Conditional plans use only prices available at the rejected confirmation.

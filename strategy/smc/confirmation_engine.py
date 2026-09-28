@@ -174,6 +174,8 @@ class M5ConfirmationConfig:
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
     require_fvg: bool = False
+    dual_trigger_enabled: bool = False
+    confirmation_timeframe_minutes: int = 5
     m5_evaluation_time: str | None = None
     m5_max_signal_age_minutes: float = 10.0
     telemetry_bot_name: str | None = None
@@ -447,6 +449,7 @@ def evaluate_m5_confirmation(
     confirmation_index: int,
     direction: str,
     config: M5ConfirmationConfig | None = None,
+    m5_trigger_data: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Evalúa una vela candidata y devuelve un diagnóstico completamente explicable.
 
@@ -681,6 +684,14 @@ def evaluate_m5_confirmation(
                          if pd.to_datetime(data.iloc[i]['time'], utc=True) >= setup_time
                          and pd.notna(data.iloc[i].get(key)) and bool(data.iloc[i].get(key))]
         structure_event = bool(choch_indices)
+    reclassification = {}
+    fvg_structure_indices = choch_indices
+    if config.adaptive_smc_score_enabled and not choch_indices:
+        from strategy.smc.m5_reclassification import detect_m5_reclassification
+        reclassification = detect_m5_reclassification(data, direction, setup_time,
+                                                      confirmation_index, config.m5_choch_fvg_window)
+        fvg_structure_indices = [i for i in (reclassification.get('bos_index'),
+                                             reclassification.get('wick_index')) if i is not None]
     fvg = detect_fvg_confirmation(
         data,
         direction,
@@ -695,7 +706,7 @@ def evaluate_m5_confirmation(
         ),
         zone_low=ob_low,
         zone_high=ob_high,
-        choch_indices=choch_indices,
+        choch_indices=fvg_structure_indices,
         choch_window=config.m5_choch_fvg_window,
     )
 
@@ -1024,21 +1035,47 @@ def evaluate_m5_confirmation(
         invalidated = bool(setup.get('m15_is_invalidated', False))
         m15_evidence = setup.get('m15_structure')
         m15_evidence = m15_evidence if isinstance(m15_evidence, dict) else {}
+        trigger_input = {'has_choch': bool(choch_indices), 'has_sweep': has_sweep,
+             'choch_timestamp': (pd.to_datetime(data.iloc[choch_indices[-1]]['time'], utc=True) + pd.Timedelta(minutes=config.confirmation_timeframe_minutes)) if choch_indices else None,
+             'has_bos_direction_flip': reclassification.get('bos_index') is not None,
+             'bos_timestamp': reclassification.get('bos_timestamp'),
+             'has_wick_break_with_fvg': bool(reclassification.get('wick_index') is not None and fvg['fvg_confirmed']),
+             'wick_break_timestamp': reclassification.get('wick_break_timestamp'),
+             'freshness_required': True,
+             'evaluation_time': config.m5_evaluation_time or (pd.to_datetime(candle['time'], utc=True)+pd.Timedelta(minutes=config.confirmation_timeframe_minutes)),
+             'max_age_minutes': config.m5_max_signal_age_minutes,
+             'has_fvg': bool(fvg['fvg_confirmed']), 'clean_retest': clean_retest}
+        m1_input = None
+        if config.dual_trigger_enabled:
+            trigger_input['dual_trigger_enabled'] = True
+            if config.confirmation_timeframe_minutes == 1:
+                from strategy.smc.dual_trigger import m5_evidence_before_m1
+                m1_input = dict(trigger_input)
+                trigger_input = dict(m5_evidence_before_m1(m5_trigger_data, setup_time,
+                    m1_input['choch_timestamp'] or (pd.to_datetime(candle['time'], utc=True)+pd.Timedelta(minutes=1)),
+                    direction), dual_trigger_enabled=True)
+            else:
+                # Reclassification timestamps also represent completed bars.
+                for key in ('bos_timestamp', 'wick_break_timestamp'):
+                    if trigger_input.get(key) is not None:
+                        trigger_input[key] = pd.to_datetime(trigger_input[key], utc=True) + pd.Timedelta(minutes=5)
+        evaluation_time = config.m5_evaluation_time or (
+            pd.to_datetime(candle['time'], utc=True) + pd.Timedelta(minutes=config.confirmation_timeframe_minutes))
+        if not config.dual_trigger_enabled and choch_indices:
+            trigger_input['choch_timestamp'] = data.iloc[choch_indices[-1]]['time']
         adaptive_score = evaluate_candidate_signal(
             'BUY' if direction == 'long' else 'SELL', close_value, adaptive_bounds,
             {'is_invalidated': invalidated or bool(setup.get('m15_is_invalidated', False)),
              'break_quality': m15_evidence.get('break_quality'),
              'has_displacement': bool(setup.get('m15_has_displacement', False))},
-            {'has_choch': bool(choch_indices), 'has_sweep': has_sweep,
-             'choch_timestamp': data.iloc[choch_indices[-1]]['time'] if choch_indices else None,
-             'freshness_required': True,
-             'evaluation_time': config.m5_evaluation_time or (pd.to_datetime(candle['time'], utc=True)+pd.Timedelta(minutes=5)),
-             'max_age_minutes': config.m5_max_signal_age_minutes,
-             'has_fvg': bool(fvg['fvg_confirmed']), 'clean_retest': clean_retest},
+            trigger_input,
             {'volume_ok': bool(volume_confirmation['volume_confirmed']),
              'exhaustion_or_div': bool(exhaustion or divergence.get('divergence_detected', False))},
-            max_age_minutes=config.m5_max_signal_age_minutes)
+            max_age_minutes=config.m5_max_signal_age_minutes,
+            current_time=evaluation_time, m1_raw=m1_input)
+        has_sweep = bool(trigger_input.get('has_sweep'))
         valid_location = adaptive_score['h1_context']['valid']
+        structure_event = adaptive_score['m5_detail']['effective_has_choch']
         score = raw_score = float(adaptive_score['final_score'])
         confirmation_valid = adaptive_score['approved']
         decision = adaptive_score['status']
@@ -1051,7 +1088,7 @@ def evaluate_m5_confirmation(
         context = {'h1_location': valid_location,
                    'm15_not_invalidated': not (invalidated or bool(setup.get('m15_is_invalidated', False))),
                    'm15_evidence': adaptive_score['score_breakdown']['m15'] > 0,
-                   'm5_choch': bool(choch_indices), 'liquidity_sweep': has_sweep,
+                   'm5_choch': adaptive_score['m5_detail']['effective_has_choch'], 'liquidity_sweep': has_sweep,
                    'fvg_confirmation': bool(fvg['fvg_confirmed']), 'clean_retest': clean_retest,
                    'volume_confirmation': bool(volume_confirmation['volume_confirmed']),
                    'exhaustion_or_div': bool(exhaustion or divergence.get('divergence_detected', False))}
@@ -1066,7 +1103,7 @@ def evaluate_m5_confirmation(
         import json
         evaluation_id = json.dumps([str(setup_time), direction, ob_low, ob_high,
                                     str(retest.get('time')), str(candle.get('time')),
-                                    adaptive_score.get('veto_codes')])
+                                    adaptive_score.get('veto_codes'), config.confirmation_timeframe_minutes])
         try:
             get_telemetry_tracker(config.telemetry_bot_name).log_evaluation(
                 adaptive_score, config.telemetry_symbol, evaluation_id=evaluation_id)
@@ -1125,7 +1162,13 @@ def evaluate_m5_confirmation(
         "upper_wick_ratio": metrics["upper_wick_ratio"],
         "retest_overshoot_ratio": round(float(retest_overshoot_ratio), 4),
         "m5_structure_event": structure_event,
+        "price_action_confirmations": {
+            "rejection": bool(rejection), "micro_structure": bool(micro_structure),
+            "displacement": bool(displacement), "strong_close": bool(strong_close)},
         "m5_choch_indices": choch_indices,
+        "confirmation_timeframe": "M1" if config.confirmation_timeframe_minutes == 1 else "M5",
+        "timeframe": "M1" if config.confirmation_timeframe_minutes == 1 else "M5",
+        "m5_reclassification_evidence": reclassification,
         "m15_structure_evidence": setup.get("m15_structure"),
         "h1_context_type": adaptive_score["h1_context"]["context_type"] if adaptive_score else setup.get("h1_context_type"),
         "ob_close_recovery": close_recovery,

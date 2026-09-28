@@ -27,11 +27,19 @@ def validate_m5_latency(choch_time, max_allowed_minutes=10, current_time=None):
 
 def evaluate_m5_details(m5_data, max_age_minutes=10, current_time=None):
     result = evaluate_m5_confirmation_detailed(m5_data,current_time,max_age_minutes)
-    return dict(result, score=result['m5_score'], vetos=result['veto_reasons'])
+    return dict(result, score=result['m5_score'], vetos=result['veto_reasons'], tag=result['diagnostic_tag'])
+
+
+def evaluate_m5_details_v2(m5_data, max_age_minutes=10, current_time=None):
+    return evaluate_m5_details(m5_data, max_age_minutes, current_time)
+
+
+def evaluate_m5_details_v3(m5_data, max_age_minutes=10, current_time=None):
+    return evaluate_m5_details(m5_data, max_age_minutes, current_time)
 
 
 def evaluate_candidate_signal(signal_type, current_price, h1_raw, m15_raw, m5_raw,
-                              confluences=None, current_time=None, max_age_minutes=10):
+                              confluences=None, current_time=None, max_age_minutes=10, m1_raw=None):
     """Default clock is real UTC; historical callers must supply evaluation time.
 
     Keeps 85/70 modes and optional confluences from the existing score contract.
@@ -41,10 +49,23 @@ def evaluate_candidate_signal(signal_type, current_price, h1_raw, m15_raw, m5_ra
     m5_input = dict(m5_raw, freshness_required=True, max_age_minutes=max_age_minutes)
     if current_time is not None:
         m5_input['evaluation_time'] = current_time
-    result = calculate_adaptive_score(h1_eval,m15_raw,m5_input,confluences or {})
+    result = calculate_adaptive_score(h1_eval,m15_raw,m5_input,confluences or {}, m1_data=m1_raw)
     if not h1_eval['valid']:
         result['reasons'] = [h1_eval['reason'] if reason.startswith('H1:') else reason
                              for reason in result['reasons']]
     return dict(result, h1_context=h1_eval, m15_evidence=dict(m15_raw),
                 signal_type=str(signal_type).upper(), current_price=current_price,
-                evaluator_version='H1_REGIME_M5_FRESHNESS_V1')
+                evaluator_version=('H1_REGIME_DUAL_M5_M1_V4' if m1_raw is not None or m5_raw.get('dual_trigger_enabled')
+                                   else 'H1_REGIME_M5_FRESHNESS_V1'))
+
+
+from strategy.smc.dual_trigger import (evaluate_dual_m5_m1_trigger,
+    evaluate_m5_m1_trigger, validate_signal_latency)
+
+
+def evaluate_candidate_signal_v4(signal_type, current_price, h1_raw, m15_raw,
+                                  m5_raw, m1_raw=None, confluences=None,
+                                  current_time=None, max_age_minutes=10):
+    return evaluate_candidate_signal(signal_type, current_price, h1_raw, m15_raw,
+        dict(m5_raw, dual_trigger_enabled=True), confluences, current_time,
+        max_age_minutes, m1_raw=m1_raw)

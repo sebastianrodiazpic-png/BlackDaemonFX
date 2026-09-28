@@ -19,7 +19,15 @@ class FakeProvider:
 
     def get_candles(self, symbol, timeframe, count=1000):
         assert timeframe == "M5"
-        return self._candles.copy()
+        candles = self._candles.copy()
+        # ORB now requires a complete ATR(14), including the preceding close.
+        if len(candles) and candles.iloc[0]["time"] == pd.Timestamp("2026-08-28 13:30:00+00:00"):
+            history = pd.DataFrame([
+                dict(time=t, open=102., high=104., low=100., close=102., tick_volume=100, real_volume=0)
+                for t in pd.date_range("2026-08-28 12:20:00+00:00", periods=14, freq="5min")
+            ])
+            candles = pd.concat([history, candles], ignore_index=True)
+        return candles
 
     def get_current_tick(self, symbol):
         return {"time": pd.Timestamp(self._now), "bid": 1.0, "ask": 1.0}
