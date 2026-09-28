@@ -60,6 +60,17 @@ def _row_metadata(row) -> dict:
     return {}
 
 
+def externally_closed(row) -> bool:
+    """Manual broker exits are realized outcomes, not autonomous strategy labels."""
+    metadata = _row_metadata(row)
+    if metadata.get('strategy_name') == 'MT5_OBSERVATION':
+        return False  # This separate cohort predicts observation-to-exit price change.
+    broker = metadata.get('broker_exit') or {}
+    reasons = {str(row.get('exit_reason') or '').upper(),
+               str(broker.get('reason') or '').upper()}
+    return bool(reasons & {'CLIENT', 'MOBILE', 'WEB', 'MT5_CLIENT', 'MT5_MOBILE', 'MT5_WEB'})
+
+
 def _trade_label(row) -> int | None:
     """1 si la operación fue ganadora; 0 si fue perdedora. None si es indecisa.
 
@@ -81,7 +92,7 @@ def _trade_label(row) -> int | None:
     - La usa `build_training_dataset` en este mismo modulo.
     """
     status = str(row.get("status") or "").upper()
-    if status == "OPEN":
+    if status == "OPEN" or externally_closed(row):
         return None
     rr = row.get("realized_rr")
     pnl = row.get("net_pnl")
@@ -149,6 +160,75 @@ def _profiles_match(worker, metadata_profile) -> bool:
     return _canonical_profile(wanted) == _canonical_profile(actual) and bool(_canonical_profile(wanted))
 
 
+def _logical_setup_records(records: list[dict], *, exclude_manual=False) -> list[dict]:
+    """Agrupa TP1/Runner para que una tesis aporte una sola etiqueta.
+
+    El RR de cada pierna se pondera por su fracción del riesgo total. De ese
+    modo TP1=+1R al 0,5% y RUNNER=+2R al 0,5% producen +1,5R del setup, no dos
+    muestras independientes que filtrarían información del mismo trade entre
+    entrenamiento y validación.
+    """
+    grouped: dict[str, list[dict]] = {}
+    independent: list[dict] = []
+    for index, row in enumerate(records):
+        if not isinstance(row, dict):
+            continue
+        metadata = _row_metadata(row)
+        parent = str(metadata.get("parent_execution_key") or "").strip()
+        if not parent:
+            independent.append(row)
+            continue
+        grouped.setdefault(parent, []).append(row)
+
+    logical = list(independent)
+    for parent, legs in grouped.items():
+        if exclude_manual and any(externally_closed(leg) for leg in legs):
+            continue
+        if any((_row_metadata(leg).get("target_reconciliation") or {}).get("requires_review") for leg in legs):
+            continue
+        if any(str(leg.get("status") or "").upper() == "OPEN" for leg in legs):
+            continue
+        ordered = sorted(
+            legs,
+            key=lambda leg: pd.to_datetime(leg.get("entry_time"), utc=True, errors="coerce"),
+        )
+        representative = dict(ordered[0])
+        metadata = _row_metadata(representative)
+        operation_risk = _safe_float(metadata.get("operation_risk_percent")) or 0.0
+        weighted_rr = 0.0
+        weight_total = 0.0
+        pnl_total = 0.0
+        for leg in legs:
+            leg_meta = _row_metadata(leg)
+            rr = _safe_float(leg.get("realized_rr"))
+            pnl_total += _safe_float(leg.get("net_pnl")) or 0.0
+            leg_risk = _safe_float(
+                leg_meta.get("risk_percent") or leg.get("risk_percent")
+            ) or 0.0
+            if rr is not None:
+                if operation_risk and leg_risk:
+                    weight = leg_risk / operation_risk
+                else:
+                    weight = 1.0 / max(1, len(legs))
+                weighted_rr += rr * weight
+                weight_total += weight
+        representative["realized_rr"] = weighted_rr if weight_total > 0 else None
+        representative["net_pnl"] = pnl_total
+        exits = pd.to_datetime([leg.get("exit_time") for leg in legs], utc=True, errors="coerce")
+        representative["exit_time"] = exits.max().isoformat() if not exits.isna().any() else None
+        representative["logical_setup_key"] = parent
+        logical.append(representative)
+    return logical
+
+
+def _safe_float(value) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number == number else None
+
+
 def build_training_dataset(
     trades,
     *,
@@ -164,16 +244,24 @@ def build_training_dataset(
     else:
         records = list(trades)
 
+    records = _logical_setup_records(records, exclude_manual=True)
+
     samples = []
     for row in records:
         if not isinstance(row, dict):
             continue
         metadata = _row_metadata(row)
+        if (metadata.get("target_reconciliation") or {}).get("requires_review"):
+            continue
         if worker and not _profiles_match(worker, metadata.get("bot_profile")):
             continue
         if strategy_name and str(metadata.get("strategy_name") or "SMC").upper() != str(strategy_name).upper():
             continue
 
+        # Imported fills lack a contemporaneous strategy context. Audit them,
+        # but never turn default/zero features into training evidence.
+        if (metadata.get("historical_mt5_import") or metadata.get("import_reason")) and not metadata.get("entry_learning_snapshot"):
+            continue
         label = _trade_label(row)
         if label is None:
             continue
@@ -194,12 +282,34 @@ def build_training_dataset(
             },
             evaluated_at=entry_time,
         )
+        snapshot = metadata.get("entry_learning_snapshot")
+        if snapshot is not None:
+            if isinstance(snapshot, dict) and snapshot.get("schema") == "entry-learning-v4":
+                captured_at = pd.to_datetime(snapshot.get("captured_at"), utc=True, errors="coerce")
+                if pd.isna(captured_at) or captured_at > stamp:
+                    continue
+            try:
+                captured = snapshot.get("features") or {}
+                valid = snapshot.get("feature_names") == list(FEATURE_NAMES) and all(
+                    name in captured and np.isfinite(float(captured[name])) for name in FEATURE_NAMES
+                )
+            except (AttributeError, TypeError, ValueError, OverflowError):
+                valid = False
+            if not valid:
+                continue
+            features = captured
         try:
             realized = float(row.get("realized_rr") or 0.0)
         except (TypeError, ValueError):
             realized = 0.0
 
-        samples.append((stamp, feature_vector(features), int(label), realized))
+        exit_stamp = pd.to_datetime(row.get("exit_time"), utc=True, errors="coerce")
+        if snapshot is not None and (pd.isna(exit_stamp) or exit_stamp < stamp):
+            continue
+        # Legacy rows retain compatibility; new captures require a known close.
+        if pd.isna(exit_stamp):
+            exit_stamp = stamp
+        samples.append((stamp, feature_vector(features), int(label), realized, exit_stamp))
 
     samples.sort(key=lambda item: item[0])
     return {
@@ -207,6 +317,7 @@ def build_training_dataset(
         "labels": [item[2] for item in samples],
         "times": [item[0] for item in samples],
         "rr": [item[3] for item in samples],
+        "exit_times": [item[4] for item in samples],
         "rows": len(samples),
         "feature_names": list(FEATURE_NAMES),
     }
@@ -338,17 +449,21 @@ def temporal_validation(
         test_end = min(total, train_end + step)
         if train_end >= total or train_end < 2 or test_end <= train_end:
             break
-        train_labels = labels[:train_end]
+        # A prior entry may still have been open at the test boundary.
+        available = np.array([closed < dataset["times"][train_end]
+                              for closed in dataset["exit_times"][:train_end]])
+        train_features = features[:train_end][available]
+        train_labels = labels[:train_end][available]
         if len(set(train_labels.tolist())) < 2:
             continue
 
-        fold_model = LogisticRegressionModel().fit(features[:train_end], train_labels)
+        fold_model = LogisticRegressionModel().fit(train_features, train_labels)
         calibrator = ProbabilityCalibrator()
         # Calibramos con la cola del bloque de entrenamiento, nunca con el test.
-        inner = max(2, int(train_end * 0.70))
-        if inner < train_end:
+        inner = max(2, int(len(train_labels) * 0.70))
+        if inner < len(train_labels):
             calibrator.fit(
-                fold_model.predict_proba(features[inner:train_end]),
+                fold_model.predict_proba(train_features[inner:]),
                 train_labels[inner:],
             )
 
@@ -361,7 +476,7 @@ def temporal_validation(
         observed.extend(fold_labels)
         report.fold_details.append({
             "fold": index + 1,
-            "train_samples": int(train_end),
+            "train_samples": int(len(train_labels)),
             "test_samples": int(test_end - train_end),
             "test_positive_rate": float(np.mean(fold_labels)) if fold_labels else 0.0,
         })

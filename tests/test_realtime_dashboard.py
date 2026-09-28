@@ -1,3 +1,4 @@
+import re
 from dashboard.realtime_dashboard import RealtimeDashboardService, _enrich_recent_row
 from strategy.execution.live_trading_engine import LiveTradingConfig
 
@@ -240,7 +241,7 @@ def test_dashboard_exposes_separate_instrument_management_route():
     try:
         dash.start()
         assert dash.instruments_url.endswith("/instruments")
-        main = urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8")
+        main = " ".join(urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8").split())
         instruments = urllib.request.urlopen(dash.instruments_url, timeout=2).read().decode("utf-8")
         assert "Administrar instrumentos" in main
         assert "Instrumentos para nuevas entradas" in instruments
@@ -333,7 +334,7 @@ def test_dashboard_html_exposes_audit_layers_and_rsi_panel():
     dash = RealtimeDashboardService(repository=Repo(), host="127.0.0.1", port=0)
     try:
         dash.start()
-        main = urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8")
+        main = " ".join(urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8").split())
         assert "CHOCH / BOS" in main
         assert "Liquidez" in main
         assert "Order Blocks" in main
@@ -539,7 +540,7 @@ def test_dashboard_html_exposes_complete_smc_audit_layers():
     dash = RealtimeDashboardService(repository=Repo(), host='127.0.0.1', port=0)
     try:
         dash.start()
-        main = urllib.request.urlopen(dash.url, timeout=2).read().decode('utf-8')
+        main = ' '.join(urllib.request.urlopen(dash.url, timeout=2).read().decode('utf-8').split())
         assert 'Swings HH/HL/LH/LL' in main
         assert 'BSL / SSL / Sweeps' in main
         assert 'FVG / Imbalances' in main
@@ -637,45 +638,45 @@ def test_dashboard_chart_controls_apply_only_to_graph_and_support_timeframes_nav
     dash = RealtimeDashboardService(repository=Repo(), host="127.0.0.1", port=0)
     try:
         dash.start()
-        main = urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8")
+        main = " ".join(urllib.request.urlopen(dash.url, timeout=2).read().decode("utf-8").split())
         assert 'id="chartViewportShell"' in main
         assert 'id="chartFullscreenBtn"' in main
         assert 'Pantalla completa' in main
         assert 'id="chartMinimizeBtn"' in main
         assert 'Minimizar' in main
-        assert "function chartCard(){return $('chartViewportShell')}" in main
+        assert re.search(r"function\s+chartCard\(\)\s*\{\s*return\s+\$\('chartViewportShell'\);?\s*\}", main)
         assert 'chartPlotCollapsed' in main
         for tf in ("M1", "M5", "M15", "H1"):
             assert f'data-tf="{tf}"' in main
         assert 'id="chartZoomInBtn"' in main
         assert 'id="chartZoomOutBtn"' in main
         assert 'id="chartResetViewBtn"' in main
-        assert "addEventListener('wheel'" in main
-        assert "addEventListener('pointermove'" in main
+        assert "addEventListener('wheel'" in re.sub(r"\s+", "", main)
+        assert "addEventListener('pointermove'" in re.sub(r"\s+", "", main)
         assert 'id="chartZoomBadge"' in main
         assert 'Y 1.0× · X 1.0×' in main
         assert 'Scroll ↑/↓ = escala vertical' in main
         assert 'arrastrar = mover gráfico completo X/Y' in main
         assert 'Ctrl+scroll = zoom de velas' in main
-        assert 'priceZoom:1' in main
-        assert 'dragStartX:0' in main
-        assert 'dragStartOffset:0' in main
-        assert 'chartViewState.dragStartOffset+dx' in main
-        assert 'chartViewState.dragStartPricePan+(dy/height)' in main
-        assert 'maxPriceZoom:20' in main
-        assert "addEventListener('dblclick'" in main
-        assert 'maxZoom:12' in main
-        assert 'minVisible:8' in main
+        assert 'priceZoom:1' in re.sub(r'\s+', '', main)
+        assert 'dragStartX:0' in re.sub(r'\s+', '', main)
+        assert 'dragStartOffset:0' in re.sub(r'\s+', '', main)
+        assert 'chartViewState.dragStartOffset+dx' in re.sub(r'\s+', '', main)
+        assert 'chartViewState.dragStartPricePan+dy/height' in re.sub(r'\s+', '', main).replace('(dy/height)', 'dy/height')
+        assert 'maxPriceZoom:20' in re.sub(r'\s+', '', main)
+        assert "addEventListener('dblclick'" in re.sub(r"\s+", "", main)
+        assert 'maxZoom:12' in re.sub(r'\s+', '', main)
+        assert 'minVisible:8' in re.sub(r'\s+', '', main)
     finally:
         dash.stop()
 
 def test_fvg_zone_labels_follow_chart_time_coordinates_without_viewport_clamp():
     import inspect
     from dashboard import realtime_dashboard
-    source = inspect.getsource(realtime_dashboard)
-    assert 'function chartObjectX(allCandles,win,time,plotW,padLeft)' in source
+    source = re.sub(r'\s+', '', inspect.getsource(realtime_dashboard))
+    assert 'functionchartObjectX(allCandles,win,time,plotW,padLeft)' in source
     assert 'class="zoneChartLabel"' in source
-    assert 'const xx=chartObjectX(allCandles,win,z.time,plotW,pad.l)' in source
+    assert 'constxx=chartObjectX(allCandles,win,z.time,plotW,pad.l)' in source
     assert 'x="${xx+6}"' in source
 
 

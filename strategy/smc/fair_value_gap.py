@@ -67,6 +67,8 @@ def detect_fvg_confirmation(
     config: FVGConfig | None = None,
     zone_low: float | None = None,
     zone_high: float | None = None,
+    choch_indices: list[int] | None = None,
+    choch_window: int | None = None,
 ) -> dict[str, Any]:
     """Busca el Fair Value Gap más reciente y relevante hasta `confirmation_index`.
 
@@ -122,6 +124,13 @@ def detect_fvg_confirmation(
     # Recorre de la vela más reciente hacia atrás para quedarse con el gap
     # más próximo a la confirmación (el más relevante para la entrada actual).
     for i in range(confirmation_index, start - 1, -1):
+        # The actual CHoCH must be the middle or final candle of this gap.
+        if choch_indices is not None:
+            associated = any((j in (i-1, i) if choch_window is None else
+                              j-choch_window <= i-2 and i <= j+choch_window)
+                             for j in choch_indices)
+            if not associated:
+                continue
         if i < 2 or i >= len(data):
             continue
         left = data.iloc[i - 2]

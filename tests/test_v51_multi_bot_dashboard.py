@@ -17,7 +17,7 @@ def test_dashboard_catalog_helper_exists():
 
 def test_split_profiles_remain_same():
     assert set(main.SYNTHETIC_SPLIT_PROFILES) == {
-        "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"
+        "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP"
     }
 
 

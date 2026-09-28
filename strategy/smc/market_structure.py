@@ -100,16 +100,14 @@ def get_current_trend(df):
     Intenta determinar la tendencia actual según
     los últimos puntos de estructura.
 
-    Proceso: toma los ULTIMOS 4 puntos de estructura no nulos y busca
-    coexistencia de patrones. Si aparecen HH y HL juntos la tendencia es
-    alcista; si aparecen LH y LL es bajista.
+    Proceso: compara el último máximo y mínimo estructurales. HH/HL es
+    alcista; LH/LL es bajista; una pareja mixta es neutral.
 
     Atencion a dos comportamientos que conviene tener presentes al depurar:
     - Con menos de 4 puntos de estructura devuelve `UNKNOWN`, no `NEUTRAL`.
       Son estados distintos: `UNKNOWN` significa "faltan datos" y `NEUTRAL`
       significa "hay datos pero no hay patron claro".
-    - La comprobacion alcista se evalua ANTES que la bajista, asi que en una
-      ventana ambigua que contenga HH, HL, LH y LL a la vez gana `BULLISH`.
+    - Una estructura mixta no favorece compras ni ventas.
 
     Args:
         df: DataFrame con la columna `structure` ya calculada por
@@ -133,22 +131,16 @@ def get_current_trend(df):
     if len(structure_points) < 4:
         return "UNKNOWN"
 
-    last_structures = structure_points[
-        "structure"
-    ].tail(4).tolist()
-
-    # Estructura alcista
-    if (
-        "HH" in last_structures
-        and "HL" in last_structures
-    ):
+    # Compare the most recent high and low independently. Old HH/HL must
+    # not override a newer LH/LL pair merely because both fit in four points.
+    structures = structure_points["structure"]
+    highs = structures[structures.isin(["HH", "LH"])]
+    lows = structures[structures.isin(["HL", "LL"])]
+    if highs.empty or lows.empty:
+        return "NEUTRAL"
+    latest_pair = (highs.iloc[-1], lows.iloc[-1])
+    if latest_pair == ("HH", "HL"):
         return "BULLISH"
-
-    # Estructura bajista
-    if (
-        "LH" in last_structures
-        and "LL" in last_structures
-    ):
+    if latest_pair == ("LH", "LL"):
         return "BEARISH"
-
     return "NEUTRAL"

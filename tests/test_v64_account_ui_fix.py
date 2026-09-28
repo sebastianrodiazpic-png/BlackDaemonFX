@@ -28,12 +28,12 @@ def test_account_payload_contains_db_diagnostics(tmp_path):
 def test_account_page_fetch_checks_http_status():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"account_page.py").read_text(encoding="utf-8")
-    assert "if(!r.ok)throw new Error" in text
-    assert "SQLite/API:" in text
+    assert re.sub(r'\s+', '', "if(!r.ok)throw new Error").replace(';}', '}') in re.sub(r'\s+', '', text).replace(';}', '}')
+    assert re.sub(r'\s+', '', "SQLite/API:").replace(';}', '}') in re.sub(r'\s+', '', text).replace(';}', '}')
 
 
 def test_account_page_keeps_persistent_confirmation_audit():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"account_page.py").read_text(encoding="utf-8")
-    assert "Cada auditoría muestra su resumen directamente" in text
-    assert "Ver auditoría completa ↗" in text
+    assert re.sub(r'\s+', '', "Cada auditoría muestra su resumen directamente").replace(';}', '}') in re.sub(r'\s+', '', text).replace(';}', '}')
+    assert re.sub(r'\s+', '', "Ver auditoría completa ↗").replace(';}', '}') in re.sub(r'\s+', '', text).replace(';}', '}')

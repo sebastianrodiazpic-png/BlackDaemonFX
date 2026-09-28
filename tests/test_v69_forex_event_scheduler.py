@@ -50,6 +50,9 @@ def _event_engine():
         forex_event_scheduler_enabled=True,
         forex_event_timeframe="M5",
     )
+    # Isolate candle scheduling from the real wall-clock trading session.
+    e._analysis_session_status=lambda: {"state":"ACTIVE", "active":True, "next_activation":None}
+    e._available_market_symbols=lambda symbols: (symbols, [])
     e.provider=CandleProvider()
     e._forex_last_closed_bar={}
     return e

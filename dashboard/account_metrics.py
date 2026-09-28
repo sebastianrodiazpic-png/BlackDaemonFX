@@ -424,6 +424,13 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
     try:
         if hasattr(repository, "meta_label_decision_summary"):
             meta_labeling = repository.meta_label_decision_summary(source=source)
+            from strategy.ai.continuous_audit import snapshot as learning_snapshot
+            reports = {r.get("worker"):r for r in learning_snapshot() if r.get("source")==source}
+            for worker in meta_labeling.get("by_worker", []):
+                report = reports.get(worker["worker"], {})
+                worker["learning_audit_updated_at"] = report.get("updated_at")
+                worker["learning_strategies"] = report.get("strategies", {})
+
     except Exception as exc:
         meta_labeling = {"error": str(exc)}
 

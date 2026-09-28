@@ -26,6 +26,9 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import uuid
+import inspect
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -45,6 +48,8 @@ class TradeReportExporter:
     """
 
     DISPLAY_TIMEZONE = "America/Santiago"
+    TELEMETRY_ROWS = 1000
+    AUDIT_ROWS = 2000
     AUDIT_EXCEL_SUMMARY_LIMIT = 4000
     AUDIT_EXCEL_SAFE_CELL_LIMIT = 30000
 
@@ -91,6 +96,12 @@ class TradeReportExporter:
         if output_path is None:
             output_path = Path("reports") / "deriv_demo_trades.xlsx"
         self.output_path = Path(output_path)
+
+    @staticmethod
+    def _bounded_read(reader, source, limit):
+        if "limit" in inspect.signature(reader).parameters:
+            return reader(source=source, limit=limit)
+        return reader(source=source).tail(limit)
 
     def export(self, source="DEMO"):
         """Reconstruye el libro completo desde cero para un entorno dado.
@@ -140,19 +151,19 @@ class TradeReportExporter:
         audit_df = pd.DataFrame()
         audit_reader = getattr(self.repository, "audit_events_dataframe", None)
         if callable(audit_reader):
-            audit_df = self._localize_dataframe_timestamps(audit_reader(source=source))
+            audit_df = self._localize_dataframe_timestamps(self._bounded_read(audit_reader, source, self.AUDIT_ROWS))
             audit_df = self._compact_audit_dataframe(audit_df)
 
         # v68: dataset longitudinal Entrada vs. Ahora para investigación.
         entry_vs_now_df = pd.DataFrame()
         entry_now_reader = getattr(self.repository, "trade_audit_snapshots_dataframe", None)
         if callable(entry_now_reader):
-            entry_vs_now_df = self._localize_dataframe_timestamps(entry_now_reader(source=source))
+            entry_vs_now_df = self._localize_dataframe_timestamps(self._bounded_read(entry_now_reader, source, self.TELEMETRY_ROWS))
             if not entry_vs_now_df.empty:
                 for col in ("entry_view_json", "current_view_json", "market_json", "visual_context_json"):
                     if col in entry_vs_now_df.columns:
                         entry_vs_now_df[col] = entry_vs_now_df[col].map(
-                            lambda value: str(value)[: self.AUDIT_EXCEL_SAFE_CELL_LIMIT] if value is not None else ""
+                            lambda value: str(value)[: 1000] if value is not None else ""
                         )
         metadata_df = pd.DataFrame([
             {
@@ -163,22 +174,30 @@ class TradeReportExporter:
                 "total_trades": int(summary.get("total_trades", 0)),
                 "open_trades": int(summary.get("open_trades", 0)),
                 "closed_trades": int(summary.get("closed_trades", 0)),
-                "report_version": "daemonblackfx-v68-entry-vs-now-history",
+                "report_version": "bounded-telemetry-v2",
+                "audit_row_limit": self.AUDIT_ROWS,
+                "snapshot_row_limit": self.TELEMETRY_ROWS,
+                "full_history": "SQLite; Excel contains recent telemetry only",
                 "entry_vs_now_snapshots": int(len(entry_vs_now_df)),
             }
         ])
 
-        with pd.ExcelWriter(self.output_path, engine="openpyxl") as writer:
-            trades.to_excel(writer, sheet_name="Trades", index=False)
-            open_positions.to_excel(writer, sheet_name="Open Positions", index=False)
-            summary_df.to_excel(writer, sheet_name="Summary", index=False)
-            instruments_df.to_excel(writer, sheet_name="Instruments", index=False)
-            account_df.to_excel(writer, sheet_name="Account", index=False)
-            audit_df.to_excel(writer, sheet_name="Audit Log", index=False)
-            entry_vs_now_df.to_excel(writer, sheet_name="Entrada vs Ahora", index=False)
-            metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
+        temporary = self.output_path.with_name(self.output_path.stem + "." + uuid.uuid4().hex + ".tmp.xlsx")
+        try:
+            with pd.ExcelWriter(temporary, engine="openpyxl") as writer:
+                trades.to_excel(writer, sheet_name="Trades", index=False)
+                open_positions.to_excel(writer, sheet_name="Open Positions", index=False)
+                summary_df.to_excel(writer, sheet_name="Summary", index=False)
+                instruments_df.to_excel(writer, sheet_name="Instruments", index=False)
+                account_df.to_excel(writer, sheet_name="Account", index=False)
+                audit_df.to_excel(writer, sheet_name="Audit Log", index=False)
+                entry_vs_now_df.to_excel(writer, sheet_name="Entrada vs Ahora", index=False)
+                metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
 
-        self._format_workbook()
+            self._format_workbook(path=temporary)
+            os.replace(temporary, self.output_path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
         return {
             "path": str(self.output_path.resolve()),
@@ -766,14 +785,15 @@ class TradeReportExporter:
     def _get_account_snapshots(self):
         """Snapshots de cuenta, o DataFrame vacio si el repositorio no los expone."""
         if hasattr(self.repository, "account_snapshots_dataframe"):
-            return self.repository.account_snapshots_dataframe()
+            reader = self.repository.account_snapshots_dataframe
+            return reader(limit=self.TELEMETRY_ROWS) if "limit" in inspect.signature(reader).parameters else reader().tail(self.TELEMETRY_ROWS)
         return pd.DataFrame()
 
     # ------------------------------------------------------------------
     # FORMATO Y DASHBOARD
     # ------------------------------------------------------------------
 
-    def _format_workbook(self):
+    def _format_workbook(self, path=None):
         """Da formato al libro y construye el dashboard de la hoja Summary.
 
         Si `openpyxl` no esta instalado sale en silencio: el libro ya contiene
@@ -786,7 +806,7 @@ class TradeReportExporter:
         except ImportError:
             return
 
-        workbook = load_workbook(self.output_path)
+        workbook = load_workbook(path or self.output_path)
         blue = "1F4E78"
         white = "FFFFFF"
 
@@ -838,7 +858,8 @@ class TradeReportExporter:
 
         summary_ws = workbook["Summary"]
         self._build_summary_dashboard(summary_ws, trades_ws, PieChart, Reference, Font, PatternFill, Alignment)
-        workbook.save(self.output_path)
+        workbook.save(path or self.output_path)
+        workbook.close()
 
     def _build_summary_dashboard(self, ws, trades_ws, PieChart, Reference, Font, PatternFill, Alignment):
         """Dibuja el panel de KPIs y el grafico circular sobre la hoja Summary.

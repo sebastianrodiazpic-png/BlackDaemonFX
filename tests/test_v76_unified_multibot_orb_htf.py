@@ -30,28 +30,19 @@ def _engine(trend="BEARISH", structure="bos_bearish"):
     return e
 
 
-def test_orb_buy_is_blocked_against_bearish_h1_and_m15():
-    e=_engine("BEARISH","bos_bearish")
-    c=e._orb_higher_timeframe_context("XAUUSD","BUY")
-    assert c["blocked"] is True
-    assert c["h1_alignment"] is False
-    assert c["m15_alignment"] is False
-    assert c["reason"]=="ORB_BREAKOUT_CONTRA_H1_Y_M15"
-
-
-def test_orb_sell_is_aligned_with_bearish_context():
-    e=_engine("BEARISH","bos_bearish")
-    c=e._orb_higher_timeframe_context("Wall Street 30","SELL")
-    assert c["blocked"] is False
-    assert c["h1_alignment"] is True
-    assert c["m15_alignment"] is True
-
-
-def test_neutral_h1_does_not_block_orb():
-    e=_engine("RANGE",None)
-    c=e._orb_higher_timeframe_context("XAUUSD","BUY")
-    assert c["blocked"] is False
-    assert c["h1_alignment"] is None
+def test_orb_context_does_not_call_smc_even_with_legacy_flags():
+    for direction in ("BUY", "SELL"):
+        for momentum in (False, True):
+            e = _engine()
+            def forbidden(symbol):
+                raise AssertionError("ORB must not query SMC")
+            e.multi_timeframe.analyze_symbol = forbidden
+            c = e._orb_higher_timeframe_context("XAUUSD", direction, momentum=momentum)
+            assert c["blocked"] is False
+            assert c["enabled"] is False
+            assert c["h1_alignment"] is None
+            assert c["m15_alignment"] is None
+            assert c["policy"] == "ORB_NATIVE_ONLY"
 
 
 def test_unified_runtime_remains_available_explicitly():
@@ -88,3 +79,24 @@ def test_orb_live_audit_includes_htf_context():
     assert 'view["higher_timeframe_context"] = htf_context' in text
     assert 'view["h1_trend"] = htf_context.get("h1_trend")' in text
     assert 'view["structure_break"] = htf_context.get("m15_structure")' in text
+
+
+def test_orb_entry_uses_native_signal_without_smc_or_score_inflation():
+    from types import SimpleNamespace
+    from test_demo_daemon_integration import Provider, ExecutionRepo, Executor
+    engine = LiveTradingEngine(
+        provider=Provider(), repository=ExecutionRepo(), executor=Executor(),
+        config=LiveTradingConfig(bot_profile="ORB", execution_enabled=False),
+    )
+    def forbidden(symbol):
+        raise AssertionError("ORB entry queried SMC")
+    engine.multi_timeframe = SimpleNamespace(analyze_symbol=forbidden)
+    signal = {"direction":"BUY", "strategy_name":"ORB_NEW_YORK",
+              "risk_reward_ratio":0, "confirmations":{"orb_retest_confirmed":True},
+              "confirmation_percentage":80, "trade_score":80}
+    engine.orb_strategy = SimpleNamespace(analyze_symbol=lambda symbol: {
+        "valid":True, "strategy_name":"ORB_NEW_YORK", "signal":signal})
+    result = engine.process_symbol("US SP 500")
+    assert result["action"] == "RR_TOO_LOW"
+    assert signal["confirmations"] == {"orb_retest_confirmed":True}
+    assert signal["trade_score"] == 80

@@ -353,6 +353,9 @@ def detect_entry_confirmations(
                                 "confirmation_time": confirmation_time,
                                 "setup_type": "long",
                                 "direction": "BUY",
+                                "entry_price": candle_close,
+                                "stop_loss": ob_low,
+                                "entry_time": confirmation_time,
                                 **quality,
                             })
                             continue
@@ -449,6 +452,9 @@ def detect_entry_confirmations(
                                 "confirmation_time": confirmation_time,
                                 "setup_type": "short",
                                 "direction": "SELL",
+                                "entry_price": candle_close,
+                                "stop_loss": ob_high,
+                                "entry_time": confirmation_time,
                                 **quality,
                             })
                             continue

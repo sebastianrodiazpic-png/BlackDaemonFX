@@ -1,0 +1,48 @@
+DAEMONBLACKFX v116 - AUDITORÍA VISUAL DERIV ANOTADA
+===================================================
+
+REQUISITO
+---------
+Tener instalada la versión:
+v115-h4-smc-deriv-lock-watchdog-fix
+
+INSTALACIÓN
+-----------
+1. Detener completamente el coordinador con Ctrl+C.
+2. Descomprimir este ZIP en una carpeta temporal.
+3. Activar el entorno:
+
+   cd /d C:\TradingBoot\smc_synthetic_bot
+   .venv\Scripts\activate
+
+4. Ejecutar:
+
+   python C:\RUTA_TEMPORAL\DaemonBlackFx_v116_Update\apply_v116_update.py --project C:\TradingBoot\smc_synthetic_bot
+
+5. Verificar:
+
+   python -c "from daemon_version import DAEMONBLACKFX_VERSION; print(DAEMONBLACKFX_VERSION)"
+
+   Debe mostrar:
+   v116-deriv-annotated-trade-audit
+
+6. Iniciar con el mismo comando habitual.
+
+CAMBIOS
+-------
+- Gráfico OHLC persistido con velas obtenidas de Deriv Charts.
+- Navegación H4, H1, M15 y M5.
+- Modos separados: Momento de entrada y Evolución posterior.
+- Capas activables: estructura, OB/FVG, liquidez, entrada/SL/TP y volumen.
+- Panel permanente "Por qué se tomó" con score y confirmaciones.
+- Evidencia SMC congelada desde la caché exacta de la decisión.
+- Evidencia ORB con rango NY, breakout, retest, VWAP y POC.
+- H4/H1/M15/M5 reutilizan caché; sólo consultan Deriv si falta la etapa.
+
+INTEGRIDAD
+----------
+- El gráfico de entrada no se recalcula con velas posteriores.
+- Un trade antiguo sin gráfico muestra "NO DISPONIBLE"; no usa datos futuros.
+- No cambia señales, score, riesgo, lotaje, SL, TP ni gestión activa.
+- No modifica SQLite, .env, .venv, logs, XLSX ni cuarentenas.
+- Crea respaldo en storage\update_backups\pre_v116_FECHA_HORA.

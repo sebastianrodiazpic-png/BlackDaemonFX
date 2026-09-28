@@ -155,11 +155,21 @@ class TestPenaltyReachesVisibleScore:
         )
         assert conflicted["trade_score"] == 0.0
 
-    def test_blocked_conflict_replaces_penalty_with_gate_failure(self, monkeypatch):
+    def test_narrow_conflict_is_penalty_instead_of_gate_failure(self, monkeypatch):
         blocked = _evaluate(monkeypatch, _conflict_pattern(level="CONTRA_MAS_FUERTE"))
+        assert blocked["chart_pattern_conflict_blocked"] is False
+        assert blocked["chart_pattern_conflict_penalty"] > 0.0
+        assert "MATERIAL_CHART_PATTERN_CONFLICT" not in blocked["structural_gate_failures"]
+
+    def test_dominant_strong_contrary_pattern_remains_structural_gate(self, monkeypatch):
+        pattern = _conflict_pattern(level="DOMINANT_CONTRA")
+        pattern.update({
+            "chart_pattern_supporting_strength": 0.70,
+            "chart_pattern_conflicting_strength": 0.85,
+            "chart_pattern_conflict_strength_delta": 0.15,
+        })
+        blocked = _evaluate(monkeypatch, pattern)
         assert blocked["chart_pattern_conflict_blocked"] is True
-        # Un conflicto bloqueante no penaliza: invalida por gate estructural.
-        assert blocked["chart_pattern_conflict_penalty"] == 0.0
         assert "MATERIAL_CHART_PATTERN_CONFLICT" in blocked["structural_gate_failures"]
 
 
@@ -174,12 +184,9 @@ class TestRegressionOfReportedTrade:
         assert level == "CONTRA_MAS_FUERTE"
 
         result = _evaluate(monkeypatch, _conflict_pattern(level=level))
-        assert result["chart_pattern_conflict_blocked"] is True
-        assert "MATERIAL_CHART_PATTERN_CONFLICT" in result["structural_gate_failures"]
-        assert "CHART_PATTERN_CONFLICT_BLOCKED" in result["strict_rejection_reasons"]
-        # El gate crítico impide incluso la validación adaptativa.
-        assert result["confirmation_valid"] is False
-        assert result["confirmation_decision"] == "REJECTED"
+        assert result["chart_pattern_conflict_blocked"] is False
+        assert result["chart_pattern_conflict_penalty"] > 0.0
+        assert "MATERIAL_CHART_PATTERN_CONFLICT" not in result["structural_gate_failures"]
 
 
 if __name__ == "__main__":

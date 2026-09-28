@@ -1,0 +1,63 @@
+DAEMONBLACKFX v115 - H4 SMC + HOTFIX DERIV/WATCHDOG
+===================================================
+
+REQUISITO
+---------
+Tener instalada la versión:
+v114-deriv-rate-limit-recovery
+
+El actualizador se bloquea si detecta otra versión.
+
+INSTALACIÓN
+-----------
+1. Detener completamente el coordinador con Ctrl+C.
+2. Descomprimir este paquete en una carpeta temporal.
+3. Activar el entorno del proyecto:
+
+   cd /d C:\TradingBoot\smc_synthetic_bot
+   .venv\Scripts\activate
+
+4. Ejecutar el actualizador indicando la carpeta del proyecto:
+
+   python C:\RUTA_TEMPORAL\DaemonBlackFx_v115_Update\apply_v115_update.py --project C:\TradingBoot\smc_synthetic_bot
+
+5. Verificar:
+
+   python -c "from daemon_version import DAEMONBLACKFX_VERSION; print(DAEMONBLACKFX_VERSION)"
+
+   Debe mostrar:
+   v115-h4-smc-deriv-lock-watchdog-fix
+
+6. Iniciar nuevamente:
+
+   python -m app.main --mode multi-bot-daemon --market-data-mode external --execute --interval 30 --position-monitor-interval 2 --risk-percent 1.0 --min-rr 1.5 --dashboard --dashboard-port 8765
+
+SEGURIDAD
+---------
+- El actualizador no toca SQLite, XLSX, logs, .env, .venv ni cuarentenas.
+- Crea un respaldo de cada archivo reemplazado en:
+  storage\update_backups\pre_v115_FECHA_HORA
+- MT5 conserva exclusivamente metadatos, riesgo, ejecución y gestión DEMO.
+
+CAMBIO ESTRATÉGICO
+------------------
+El pipeline SMC queda así:
+
+H4 tendencia mayor -> H1 convergencia -> M15 setup -> M5 confirmación fresca
+
+H4 es obligatorio para SMC. Si H4 no tiene dirección, termina como
+NO_H4_CONTEXT. Si H4 y H1 divergen, termina como HTF_TREND_DIVERGENCE y no
+descarga M15/M5 para esa evaluación.
+
+ORB conserva su lógica exclusiva de apertura New York y no recibe este filtro.
+La divergencia H4/H1 bloquea entradas nuevas; no se usa por sí sola para cerrar
+una posición abierta.
+
+CORRECCIONES OPERATIVAS
+-----------------------
+- El lock Deriv combina exclusión entre hilos y procesos, con reintentos para
+  evitar Permission denied / Resource deadlock avoided.
+- El watchdog mide avance por la telemetría de ciclos y no por la fecha del
+  archivo log, que Windows escribe en bloques.
+- Un worker sólo se reinicia tras falta real de progreso; nunca se reinicia si
+  administra posiciones abiertas.

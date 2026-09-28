@@ -4,7 +4,7 @@ from database.repository import TradingRepository
 from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradingEngine
 
 
-def test_orb_unknown_htf_context_is_blocked():
+def test_orb_unknown_htf_context_is_not_required():
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(
         bot_profile="ORB", orb_require_known_htf_context=True,
@@ -14,8 +14,8 @@ def test_orb_unknown_htf_context_is_blocked():
         analyze_symbol=lambda symbol: {"h1": {}, "m15": {}, "action": "NO_SETUP"}
     )
     result = engine._orb_higher_timeframe_context("XAUUSDmicro", "BUY")
-    assert result["blocked"] is True
-    assert result["reason"] == "ORB_HTF_CONTEXT_UNAVAILABLE"
+    assert result["blocked"] is False
+    assert result["reason"] == "ORB_HTF_NOT_REQUIRED"
 
 
 def test_orb_non_correlated_markets_do_not_share_a_global_one_percent_cap():

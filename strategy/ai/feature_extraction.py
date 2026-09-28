@@ -10,7 +10,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 import pandas as pd
+import math
 
+
+FEATURE_SCHEMA = "meta-features-v4"
 
 FEATURE_NAMES: tuple[str, ...] = (
     "trade_score",
@@ -26,13 +29,20 @@ FEATURE_NAMES: tuple[str, ...] = (
     "signal_age_candles",
     "signal_age_minutes",
     "spread_ratio",
-    "latency_seconds",
+    "signal_open_age_seconds", "decision_delay_seconds", "decision_delay_available",
+    "processing_seconds", "processing_available",
     "planned_rr",
     "risk_percent",
     "divergence_confirmed",
     "harmonic_confirmed",
     "h1_doji_confirmed",
+    "exhaustion_reversal_confirmed",
+    "orb_range_atr_ratio",
+    "breakout_volume_ratio",
+    "breakout_volume_available",
+    "direction_buy",
     "critical_failures",
+    "adx_available", "atr_available", "spread_available", "structure_available",
 )
 
 
@@ -58,6 +68,19 @@ def _to_float(value: Any, default: float = 0.0) -> float:
     if number != number or number in (float("inf"), float("-inf")):
         return default
     return number
+
+
+def _available(value):
+    try:
+        return float(value is not None and math.isfinite(float(value)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _unit_strength(value):
+    """Accept native fractions and explicitly older percent-style values."""
+    value = _to_float(value)
+    return value / 100.0 if abs(value) > 1.0 else value
 
 
 def _to_bool_float(value: Any) -> float:
@@ -141,6 +164,16 @@ def _signal_latency_seconds(signal: dict, evaluated_at: Any) -> float:
     return max(0.0, float((now - signal_time).total_seconds()))
 
 
+def _elapsed(reference, evaluated_at):
+    if reference is None or evaluated_at is None:
+        return 0.0, 0.0
+    try:
+        seconds = (pd.to_datetime(evaluated_at, utc=True) - pd.to_datetime(reference, utc=True)).total_seconds()
+        return (float(seconds), 1.0) if math.isfinite(seconds) and seconds >= 0 else (0.0, 0.0)
+    except (ValueError, TypeError):
+        return 0.0, 0.0
+
+
 def extract_meta_features(
     *,
     signal: dict | None = None,
@@ -172,18 +205,26 @@ def extract_meta_features(
     )
     critical_count = float(len(critical)) if isinstance(critical, (list, tuple, set)) else 0.0
 
+    exhaustion = _first(
+        signal.get("exhaustion_reversal_shadow"),
+        analysis.get("exhaustion_reversal_shadow"),
+        default={},
+    )
+    exhaustion = exhaustion if isinstance(exhaustion, dict) else {}
+
     atr = _to_float(_first(signal.get("atr"), analysis.get("atr"), market.get("atr")))
     entry_price = _to_float(
         _first(signal.get("entry_price"), market.get("current_price"), market.get("entry_price"))
     )
     atr_ratio = (atr / entry_price) if entry_price > 0 and atr > 0 else 0.0
 
-    spread = _to_float(_first(market.get("spread"), signal.get("spread")))
+    spread_raw = market["spread"] if "spread" in market else signal.get("spread")
+    spread = _to_float(spread_raw)
     spread_ratio = (spread / entry_price) if entry_price > 0 and spread > 0 else 0.0
 
     adx = _to_float(_first(signal.get("adx"), analysis.get("adx"), market.get("adx")))
 
-    supporting = _to_float(
+    supporting = _unit_strength(
         _first(
             signal.get("chart_pattern_supporting_strength"),
             analysis.get("chart_pattern_supporting_strength"),
@@ -191,7 +232,7 @@ def extract_meta_features(
             analysis.get("chart_pattern_strength"),
         )
     )
-    conflicting = _to_float(
+    conflicting = _unit_strength(
         _first(
             signal.get("chart_pattern_conflicting_strength"),
             analysis.get("chart_pattern_conflicting_strength"),
@@ -203,9 +244,9 @@ def extract_meta_features(
         analysis.get("chart_pattern_conflict_strength_delta"),
     )
     strength_delta = (
-        _to_float(published_delta) / 100.0
+        _unit_strength(published_delta)
         if published_delta is not None
-        else (supporting - conflicting) / 100.0
+        else (supporting - conflicting)
     )
 
     features = {
@@ -217,6 +258,10 @@ def extract_meta_features(
         "adx": adx,
         "adx_normalized": min(adx / 50.0, 2.0) if adx > 0 else 0.0,
         "atr_ratio": atr_ratio,
+        "adx_available": _available(_first(signal.get("adx"), analysis.get("adx"), market.get("adx"))),
+        "atr_available": float(atr > 0),
+        "spread_available": _available(spread_raw),
+        "structure_available": float(_first(signal.get("m15_structure_break_type"), signal.get("structure_break"), analysis.get("structure_break")) is not None),
         "structure_aligned": _structure_alignment(
             _first(signal.get("direction"), analysis.get("direction")),
             _first(
@@ -225,9 +270,9 @@ def extract_meta_features(
                 analysis.get("structure_break"),
             ),
         ),
-        "chart_pattern_strength": _to_float(
+        "chart_pattern_strength": _unit_strength(
             _first(signal.get("chart_pattern_strength"), analysis.get("chart_pattern_strength"))
-        ) / 100.0,
+        ),
         "chart_pattern_conflict": _to_bool_float(
             _first(signal.get("chart_pattern_conflict"), analysis.get("chart_pattern_conflict"))
         ),
@@ -235,7 +280,11 @@ def extract_meta_features(
         "signal_age_candles": _to_float(signal_age.get("age_candles")),
         "signal_age_minutes": _to_float(signal_age.get("age_minutes")),
         "spread_ratio": spread_ratio,
-        "latency_seconds": _signal_latency_seconds(signal, evaluated_at),
+        "signal_open_age_seconds": _signal_latency_seconds(signal, evaluated_at),
+        "decision_delay_seconds": _elapsed(signal.get("confirmation_closed_at"), evaluated_at)[0],
+        "decision_delay_available": _elapsed(signal.get("confirmation_closed_at"), evaluated_at)[1],
+        "processing_seconds": _elapsed(signal.get("detected_at"), evaluated_at)[0],
+        "processing_available": _elapsed(signal.get("detected_at"), evaluated_at)[1],
         "planned_rr": _to_float(
             _first(
                 signal.get("risk_reward_ratio"),
@@ -253,6 +302,19 @@ def extract_meta_features(
         "h1_doji_confirmed": _to_bool_float(
             _first(signal.get("h1_doji_confirmation"), analysis.get("h1_doji_confirmed"))
         ),
+        "exhaustion_reversal_confirmed": _to_bool_float(exhaustion.get("valid")),
+        "orb_range_atr_ratio": _to_float(
+            _first(
+                signal.get("opening_range_atr_ratio"),
+                analysis.get("opening_range_atr_ratio"),
+                diagnostics.get("opening_range_atr_ratio"),
+            )
+        ),
+        "breakout_volume_ratio": _to_float(
+            _first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio"))
+        ),
+        "breakout_volume_available": float(math.isfinite(_to_float(_first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio")), float("nan")))),
+        "direction_buy": 1.0 if str(_first(signal.get("direction"), analysis.get("direction"), default="")).upper() == "BUY" else 0.0,
         "critical_failures": critical_count,
     }
     return {name: float(features.get(name, 0.0)) for name in FEATURE_NAMES}

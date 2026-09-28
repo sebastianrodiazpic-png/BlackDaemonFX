@@ -101,6 +101,7 @@ class M5ConfirmationConfig:
     require_momentum: bool = False
     minimum_body_ratio: float = 0.65
     minimum_rejection_wick_ratio: float = 0.30
+    retest_tolerance_mode: str = "STRICT"  # STRICT | ATR_BOUNDED
     # v107: el retest debe ser "limpio", no solo rechazado. Un retest que
     # perfora muy hondo mas alla del OB antes de girar implica mas riesgo real
     # del que refleja el SL estructural; eso explicaba parte de las perdidas
@@ -141,6 +142,9 @@ class M5ConfirmationConfig:
     chart_patterns_minimum_strength: float = 0.72
     chart_patterns_bonus_points: float = 8.0
     require_chart_pattern: bool = False
+    require_m5_structure_event: bool = False
+    allow_ob_close_recovery: bool = False
+    require_favorable_confirmation: bool = False
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
     # v108: el conflicto solo deja de bloquear cuando el patrón ALINEADO con
@@ -155,6 +159,11 @@ class M5ConfirmationConfig:
     # Si el detector no informa el delta (por ejemplo mocks de prueba
     # antiguos), se conserva el comportamiento previo basado solo en el nivel.
     chart_pattern_conflict_min_margin: float = 0.25
+    # Un patrón contrario sólo se convierte en gate crítico cuando es fuerte
+    # por sí mismo y supera claramente al patrón alineado. Los conflictos
+    # estrechos siguen restando score, pero no sustituyen la estructura SMC.
+    chart_pattern_contrary_min_strength: float = 0.80
+    chart_pattern_contrary_min_advantage: float = 0.10
     # Todo patrón opuesto detectado invalida la entrada; ni la vía adaptativa
     # puede compensar una tesis chartista en conflicto.
     block_similar_chart_pattern_forces: bool = True
@@ -165,6 +174,13 @@ class M5ConfirmationConfig:
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
     require_fvg: bool = False
+    m5_evaluation_time: str | None = None
+    m5_max_signal_age_minutes: float = 10.0
+    telemetry_bot_name: str | None = None
+    telemetry_symbol: str = "UNKNOWN"
+    adaptive_smc_score_enabled: bool = False
+    require_choch_fvg: bool = False
+    m5_choch_fvg_window: int = 3
     # Confluencia horaria opcional para Sintéticos; nunca es un veto de entrada.
     synthetics_killzone_enabled: bool = False
     synthetics_favorable_hour_ranges: tuple = ((13, 15), (17, 18), (22, 24))
@@ -398,6 +414,31 @@ def detect_rsi_divergence(
     }
 
 
+def same_setup_exhaustion(data, setup_time, retest_index, confirmation_index,
+                          direction, ob_low, ob_high):
+    """OB exhaustion wick followed by a directional close beyond its extreme."""
+    if not (0 <= retest_index < confirmation_index < len(data)):
+        return False
+    retest, confirmation = data.iloc[retest_index], data.iloc[confirmation_index]
+    if pd.isna(setup_time) or pd.to_datetime(retest["time"], utc=True) < setup_time:
+        return False
+    if confirmation_index - retest_index > 2:
+        return False
+    metrics = candle_metrics(retest)
+    touches = float(retest["low"]) <= ob_high and float(retest["high"]) >= ob_low
+    if not touches or metrics["body_ratio"] > 0.35:
+        return False
+    if direction == "long":
+        return bool(metrics["lower_wick_ratio"] >= 0.45 and float(retest["close"]) >= ob_low
+                    and float(confirmation["close"]) > float(retest["high"])
+                    and float(confirmation["close"]) > float(confirmation["open"]))
+    if direction == "short":
+        return bool(metrics["upper_wick_ratio"] >= 0.45 and float(retest["close"]) <= ob_high
+                    and float(confirmation["close"]) < float(retest["low"])
+                    and float(confirmation["close"]) < float(confirmation["open"]))
+    return False
+
+
 def evaluate_m5_confirmation(
     *,
     data: pd.DataFrame,
@@ -520,6 +561,18 @@ def evaluate_m5_confirmation(
     # queda mas cerca del ruido normal del precio, lo que explicaba parte de
     # las perdidas que nunca llegaban a +1R.
     zone_size = max(ob_high - ob_low, 1e-9)
+    if config.retest_tolerance_mode not in {"STRICT", "ATR_BOUNDED"}:
+        raise ValueError("Unknown retest tolerance mode")
+    # Use only bars BEFORE the retest; no future confirmation candle in ATR.
+    prior = data.iloc[:retest_index].tail(15)
+    previous_close = prior["close"].shift(1)
+    tr = pd.concat([(prior["high"] - prior["low"]),
+                    (prior["high"] - previous_close).abs(),
+                    (prior["low"] - previous_close).abs()], axis=1).max(axis=1)
+    atr = float(tr.tail(14).mean()) if len(prior) >= 15 else 0.0
+    strict_limit = float(config.clean_retest_max_overshoot_ratio)
+    atr_limit = max(strict_limit, min(0.75, 0.10 * atr / zone_size))
+    overshoot_limit = atr_limit if config.retest_tolerance_mode == "ATR_BOUNDED" else strict_limit
     retest_low = _safe_float(retest.get("low"))
     retest_high = _safe_float(retest.get("high"))
     if direction == "long":
@@ -529,7 +582,7 @@ def evaluate_m5_confirmation(
         clean_retest = (
             rejection
             and respects_ob
-            and retest_overshoot_ratio <= float(config.clean_retest_max_overshoot_ratio)
+            and retest_overshoot_ratio <= overshoot_limit
         )
         mode_ok = {
             "inside": respects_ob,
@@ -543,7 +596,7 @@ def evaluate_m5_confirmation(
         clean_retest = (
             rejection
             and respects_ob
-            and retest_overshoot_ratio <= float(config.clean_retest_max_overshoot_ratio)
+            and retest_overshoot_ratio <= overshoot_limit
         )
         mode_ok = {
             "inside": respects_ob,
@@ -551,6 +604,21 @@ def evaluate_m5_confirmation(
             "break_ob": _safe_float(candle.get("close")) < ob_low,
         }.get(str(config.confirmation_mode).lower(), False)
 
+    close_recovery = bool(
+        retest_index < confirmation_index <= retest_index + 2
+        and pd.to_datetime(retest["time"], utc=True) >= setup_time
+        and retest_low <= ob_high and retest_high >= ob_low
+        and directional_candle and strong_close
+        and ((direction == "long" and close_value > retest_high and close_value > ob_high)
+             or (direction == "short" and close_value < retest_low and close_value < ob_low))
+    )
+    if config.allow_ob_close_recovery and close_recovery:
+        rejection = True
+        clean_retest = bool(respects_ob and retest_overshoot_ratio <= overshoot_limit)
+    structure_event = any(
+        pd.notna(candle.get(key)) and bool(candle.get(key))
+        for key in (("bos_bullish", "choch_bullish") if direction == "long" else ("bos_bearish", "choch_bearish"))
+    )
     avg_range = _average_range(data, confirmation_index, config.range_lookback)
     displacement = (
         directional_candle
@@ -606,6 +674,13 @@ def evaluate_m5_confirmation(
         confirmation_index=confirmation_index,
     )
 
+    choch_indices = None
+    if config.require_choch_fvg or config.adaptive_smc_score_enabled:
+        key = 'choch_bullish' if direction == 'long' else 'choch_bearish'
+        choch_indices = [i for i in range(max(0, confirmation_index - config.m5_choch_fvg_window), confirmation_index + 1)
+                         if pd.to_datetime(data.iloc[i]['time'], utc=True) >= setup_time
+                         and pd.notna(data.iloc[i].get(key)) and bool(data.iloc[i].get(key))]
+        structure_event = bool(choch_indices)
     fvg = detect_fvg_confirmation(
         data,
         direction,
@@ -620,6 +695,8 @@ def evaluate_m5_confirmation(
         ),
         zone_low=ob_low,
         zone_high=ob_high,
+        choch_indices=choch_indices,
+        choch_window=config.m5_choch_fvg_window,
     )
 
     synthetics_killzone = _detect_synthetics_killzone_confirmation(
@@ -666,10 +743,14 @@ def evaluate_m5_confirmation(
         )
     )
 
+    # The favorable pattern must form inside this setup, using no future bars.
+    pattern_start = start_index - 1 if len(setup_positions) else confirmation_index + 1
+    pattern_start = max(0, pattern_start)
+    pattern_data = data.iloc[pattern_start:confirmation_index + 1].reset_index(drop=True)
     chart_pattern = detect_chart_pattern_confirmation(
-        data,
+        pattern_data if config.require_favorable_confirmation else data,
         direction,
-        confirmation_index,
+        len(pattern_data) - 1 if config.require_favorable_confirmation else confirmation_index,
         ChartPatternConfig(
             enabled=config.chart_patterns_enabled,
             lookback=config.chart_patterns_lookback,
@@ -683,6 +764,17 @@ def evaluate_m5_confirmation(
             require_pattern=config.require_chart_pattern,
         ),
     )
+
+    exhaustion = same_setup_exhaustion(data, setup_time, retest_index, confirmation_index,
+                                       direction, ob_low, ob_high)
+    favorable = {
+        "required": config.require_favorable_confirmation,
+        "chart_pattern": bool(chart_pattern["chart_pattern_confirmed"]),
+        "exhaustion": exhaustion,
+        "setup_time": str(setup_time),
+        "confirmation_time": str(candle.get("time")),
+    }
+    favorable["confirmed"] = favorable["chart_pattern"] or exhaustion
 
     context = {
         "h1_trend": bool(setup.get("trend_ok", False)),
@@ -708,6 +800,19 @@ def evaluate_m5_confirmation(
         "volume_confirmation": bool(volume_confirmation["volume_confirmed"]),
     }
 
+    if setup.get('setup_origin') == 'M15_DISPLACEMENT_OB':
+        # Preserve every critical gate, assigning evidence to its actual timeframe.
+        context['h1_trend'] = setup.get('h1_location_direction') == ('BUY' if direction == 'long' else 'SELL')
+        context['m15_structure'] = bool(setup.get('structure_break_ok', False))
+        sweep_key = 'bullish_sweep' if direction == 'long' else 'bearish_sweep'
+        window = data.iloc[:confirmation_index+1]
+        window = window[pd.to_datetime(window['time'], utc=True) >= setup_time]
+        context['liquidity_sweep'] = bool(
+            sweep_key in window and window[sweep_key].fillna(False).astype(bool).any())
+        context['premium_discount'] = bool(
+            setup.get('premium_discount_ok', False)
+            and setup.get('zone') == ('discount' if direction == 'long' else 'premium'))
+
     weights = {
         "h1_trend": 15, "m15_setup": 15, "liquidity_sweep": 10,
         "m15_structure": 10, "premium_discount": 10, "fresh_order_block": 10,
@@ -732,20 +837,18 @@ def evaluate_m5_confirmation(
 
     conflict_level = str(chart_pattern.get("chart_pattern_conflict_level") or "NONE").upper()
     conflict_delta = chart_pattern.get("chart_pattern_conflict_strength_delta")
+    supporting_strength = float(chart_pattern.get("chart_pattern_supporting_strength") or 0.0)
+    conflicting_strength = float(chart_pattern.get("chart_pattern_conflicting_strength") or 0.0)
     if conflict_delta is not None:
-        # v108: el conflicto solo deja de bloquear cuando el patrón ALINEADO
-        # con la dirección deseada supera al contrario por AL MENOS este
-        # margen (`chart_pattern_conflict_min_margin`, `fuerza_alineada -
-        # fuerza_contraria`). `conflict_delta` es `fuerza_contraria -
-        # fuerza_alineada`, así que el margen a favor del alineado es su
-        # negativo. Si el contrario es igual o más fuerte (p.ej. 83% vs 78%,
-        # el contrario gana por 5 puntos) el conflicto sigue bloqueando, sin
-        # importar qué tan chico sea el margen.
-        aligned_margin = -float(conflict_delta)
+        contrary_advantage = float(conflict_delta)
         chart_conflict_blocked = bool(
             config.block_material_chart_pattern_conflict
             and chart_pattern.get("chart_pattern_conflict")
-            and aligned_margin < float(config.chart_pattern_conflict_min_margin)
+            and conflicting_strength >= float(config.chart_pattern_contrary_min_strength)
+            and (
+                supporting_strength <= 0
+                or contrary_advantage >= float(config.chart_pattern_contrary_min_advantage)
+            )
         )
     else:
         # Compatibilidad retroactiva: si no llega el delta (por ejemplo,
@@ -758,7 +861,14 @@ def evaluate_m5_confirmation(
             config.block_material_chart_pattern_conflict
             and chart_pattern.get("chart_pattern_conflict")
             and conflict_level in material_conflict_levels
+            and conflicting_strength >= float(config.chart_pattern_contrary_min_strength)
         )
+    # Similar forces are an independent entry veto, including when delta=0
+    # and strengths are below the separate dominant-opponent threshold.
+    if (config.block_similar_chart_pattern_forces
+            and chart_pattern.get("chart_pattern_conflict")
+            and conflict_level == "FUERZAS_SIMILARES"):
+        chart_conflict_blocked = True
     chart_conflict_penalty = (
         float(config.chart_pattern_secondary_conflict_penalty)
         if chart_pattern.get("chart_pattern_conflict") and not chart_conflict_blocked
@@ -810,6 +920,8 @@ def evaluate_m5_confirmation(
         "premium_discount", "fresh_order_block", "clean_retest",
         "directional_candle", "confirmation_mode_ok",
     ]
+    if config.require_favorable_confirmation and not favorable["confirmed"]:
+        critical_keys.append("favorable_confirmation")
     if config.require_chart_pattern:
         critical_keys.append("chart_pattern_confirmation")
     if config.require_fvg:
@@ -822,6 +934,10 @@ def evaluate_m5_confirmation(
     # Un porcentaje adaptativo alto ya NO puede compensar estos faltantes.
     structure_break_type = str(setup.get("structure_break_type") or "").lower()
     structural_gate_failures = []
+    if config.require_choch_fvg and not fvg['fvg_confirmed']:
+        structural_gate_failures.append('M5_CHOCH_FVG_REQUIRED')
+    if config.require_m5_structure_event and not structure_event:
+        structural_gate_failures.append("M5_BOS_CHOCH_REQUIRED")
     if "bos" in structure_break_type and not rejection:
         structural_gate_failures.append("BOS_REQUIRES_REJECTION")
     if "choch" in structure_break_type and not micro_structure:
@@ -894,11 +1010,95 @@ def evaluate_m5_confirmation(
             final_reasons.append("VIABLE_TRADE_SCORE_BELOW_THRESHOLD")
         final_reasons = list(dict.fromkeys(final_reasons))
 
+    adaptive_score = None
+    if config.adaptive_smc_score_enabled:
+        from strategy.smc.candidate_evaluator import evaluate_candidate_signal
+        adaptive_bounds = setup.get('h1_adaptive_bounds')
+        if not isinstance(adaptive_bounds, dict):
+            adaptive_bounds = dict(low=setup.get('h1_range_low'), high=setup.get('h1_range_high'),
+                                   source=setup.get('h1_range_source'), adaptive_context_enabled=False)
+        active = data.iloc[:confirmation_index+1]
+        active = active[pd.to_datetime(active['time'], utc=True) >= setup_time]
+        sweep_key = 'bullish_sweep' if direction == 'long' else 'bearish_sweep'
+        has_sweep = bool(sweep_key in active and active[sweep_key].fillna(False).astype(bool).any())
+        invalidated = bool(setup.get('m15_is_invalidated', False))
+        m15_evidence = setup.get('m15_structure')
+        m15_evidence = m15_evidence if isinstance(m15_evidence, dict) else {}
+        adaptive_score = evaluate_candidate_signal(
+            'BUY' if direction == 'long' else 'SELL', close_value, adaptive_bounds,
+            {'is_invalidated': invalidated or bool(setup.get('m15_is_invalidated', False)),
+             'break_quality': m15_evidence.get('break_quality'),
+             'has_displacement': bool(setup.get('m15_has_displacement', False))},
+            {'has_choch': bool(choch_indices), 'has_sweep': has_sweep,
+             'choch_timestamp': data.iloc[choch_indices[-1]]['time'] if choch_indices else None,
+             'freshness_required': True,
+             'evaluation_time': config.m5_evaluation_time or (pd.to_datetime(candle['time'], utc=True)+pd.Timedelta(minutes=5)),
+             'max_age_minutes': config.m5_max_signal_age_minutes,
+             'has_fvg': bool(fvg['fvg_confirmed']), 'clean_retest': clean_retest},
+            {'volume_ok': bool(volume_confirmation['volume_confirmed']),
+             'exhaustion_or_div': bool(exhaustion or divergence.get('divergence_detected', False))},
+            max_age_minutes=config.m5_max_signal_age_minutes)
+        valid_location = adaptive_score['h1_context']['valid']
+        score = raw_score = float(adaptive_score['final_score'])
+        confirmation_valid = adaptive_score['approved']
+        decision = adaptive_score['status']
+        critical_failures = list(adaptive_score['veto_codes'])
+        structural_gate_failures = list(critical_failures)
+        required_failures = list(adaptive_score['reasons'])
+        final_reasons = list(required_failures)
+        chart_conflict_penalty = 0.0
+        chart_conflict_blocked = False
+        context = {'h1_location': valid_location,
+                   'm15_not_invalidated': not (invalidated or bool(setup.get('m15_is_invalidated', False))),
+                   'm15_evidence': adaptive_score['score_breakdown']['m15'] > 0,
+                   'm5_choch': bool(choch_indices), 'liquidity_sweep': has_sweep,
+                   'fvg_confirmation': bool(fvg['fvg_confirmed']), 'clean_retest': clean_retest,
+                   'volume_confirmation': bool(volume_confirmation['volume_confirmed']),
+                   'exhaustion_or_div': bool(exhaustion or divergence.get('divergence_detected', False))}
+        passed_keys = [key for key, value in context.items() if value]
+        failed_keys = [key for key, value in context.items() if not value]
+        evaluated_keys = list(context)
+        confirmation_percentage = 100 * len(passed_keys) / len(evaluated_keys)
+
+    if adaptive_score is not None and config.telemetry_bot_name:
+        from strategy.smc.telemetry_logger import get_telemetry_tracker
+        import logging
+        import json
+        evaluation_id = json.dumps([str(setup_time), direction, ob_low, ob_high,
+                                    str(retest.get('time')), str(candle.get('time')),
+                                    adaptive_score.get('veto_codes')])
+        try:
+            get_telemetry_tracker(config.telemetry_bot_name).log_evaluation(
+                adaptive_score, config.telemetry_symbol, evaluation_id=evaluation_id)
+        except Exception:
+            # Observability must never alter a trading decision or stop a worker.
+            logging.getLogger('SMC_Telemetry').exception('SMC telemetry recording failed')
+
+    from strategy.smc.sequence_shadow import compare
+    prior_displacement = displacement
+    for candidate_index in range(max(0, confirmation_index-2), confirmation_index):
+        prior_candle = data.iloc[candidate_index]
+        stamp = pd.to_datetime(prior_candle.get("time"), utc=True)
+        if pd.isna(setup_time) or stamp < setup_time or (pd.to_datetime(candle.get("time"), utc=True)-stamp).total_seconds()>600:
+            continue
+        span = _safe_float(prior_candle.get("high"))-_safe_float(prior_candle.get("low"))
+        body = _safe_float(prior_candle.get("close"))-_safe_float(prior_candle.get("open"))
+        signed_body = body if direction == "long" else -body
+        reference = _average_range(data, candidate_index, config.range_lookback)
+        prior_displacement = prior_displacement or (span>0 and signed_body/span>=config.minimum_body_ratio
+            and (reference<=0 or span>=reference*config.displacement_range_multiplier))
+    sequence_shadow = compare(data, setup, direction, confirmation_index, critical_failures, prior_displacement)
     return {
+        "setup_sequence_shadow": sequence_shadow,
+        "adaptive_score": adaptive_score,
+        "m5_detailed_confirmation": adaptive_score.get("m5_detail") if adaptive_score else None,
+        "fvg_missing_but_allowed": bool(adaptive_score and adaptive_score["fvg_missing_but_allowed"]),
         "trade_score": round(score, 2),
         "raw_trade_score": round(raw_score, 2),
         "chart_pattern_conflict_penalty": round(chart_conflict_penalty, 2),
         "chart_pattern_conflict_blocked": chart_conflict_blocked,
+        "chart_pattern_contrary_min_strength": float(config.chart_pattern_contrary_min_strength),
+        "chart_pattern_contrary_min_advantage": float(config.chart_pattern_contrary_min_advantage),
         "trade_grade": _grade(score),
         "structure_break_type": structure_break_type,
         "structural_gate_failures": structural_gate_failures,
@@ -924,6 +1124,18 @@ def evaluate_m5_confirmation(
         "lower_wick_ratio": metrics["lower_wick_ratio"],
         "upper_wick_ratio": metrics["upper_wick_ratio"],
         "retest_overshoot_ratio": round(float(retest_overshoot_ratio), 4),
+        "m5_structure_event": structure_event,
+        "m5_choch_indices": choch_indices,
+        "m15_structure_evidence": setup.get("m15_structure"),
+        "h1_context_type": adaptive_score["h1_context"]["context_type"] if adaptive_score else setup.get("h1_context_type"),
+        "ob_close_recovery": close_recovery,
+        "favorable_confirmation": favorable,
+        "retest_comparison": {
+            "mode": config.retest_tolerance_mode, "atr_before_retest": atr,
+            "strict_limit": strict_limit, "atr_bounded_limit": atr_limit,
+            "strict_clean": bool(rejection and respects_ob and retest_overshoot_ratio <= strict_limit),
+            "atr_bounded_clean": bool(rejection and respects_ob and retest_overshoot_ratio <= atr_limit),
+        },
         "clean_retest": clean_retest,
         "prior_high": prior_high,
         "prior_low": prior_low,

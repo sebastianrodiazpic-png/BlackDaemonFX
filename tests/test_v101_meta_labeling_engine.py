@@ -128,6 +128,24 @@ class TestTraining:
         })
         assert build_training_dataset(trades, worker="SYNTHETICS")["rows"] == 10
 
+    def test_split_legs_are_one_logical_setup_with_risk_weighted_rr(self):
+        legs = []
+        for leg_name, rr in (("TP1", 1.0), ("RUNNER", 2.0)):
+            row = _trade(1, win=True, score=90.0, profile="FOREX_1")
+            row["realized_rr"] = rr
+            row["details"]["metadata"].update({
+                "parent_execution_key": "EURUSD:2024-05-01:BUY",
+                "trade_leg": leg_name,
+                "risk_percent": 0.5,
+                "operation_risk_percent": 1.0,
+            })
+            legs.append(row)
+
+        dataset = build_training_dataset(legs, worker="FOREX")
+
+        assert dataset["rows"] == 1
+        assert dataset["rr"][0] == pytest.approx(1.5)
+
     def test_model_learns_signal_quality(self):
         model = train_worker_model(_history(), worker="SYNTHETICS")
         assert model.trained is True
@@ -144,6 +162,33 @@ class TestTraining:
     def test_net_expectancy_grows_with_probability(self):
         model = train_worker_model(_history(), worker="SYNTHETICS")
         assert model.net_expectancy_r(0.80) > model.net_expectancy_r(0.30)
+
+
+class TestPreExecutionRankingMode:
+    def test_ranking_mode_is_not_shadow_and_never_blocks_when_untrained(self):
+        engine = MetaLabelingEngine(
+            MetaLabelingConfig(mode="RANKING"), worker="FOREX_1"
+        )
+        decision = engine.score_signal(
+            symbol="EURUSD", signal=_signal(), analysis={}, strategy_name="SMC"
+        )
+        assert decision.shadow is False
+        assert decision.allowed is True
+        assert decision.trained is False
+
+    def test_live_engine_only_enables_pre_execution_ranking_explicitly(self):
+        from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradingEngine
+
+        live = LiveTradingEngine.__new__(LiveTradingEngine)
+        live.config = LiveTradingConfig(
+            execution_enabled=True,
+            meta_labeling_enabled=True,
+            meta_labeling_ranking_enabled=True,
+            meta_labeling_mode="RANKING",
+        )
+        assert live._pre_execution_ranking_enabled() is True
+        live.config.meta_labeling_mode = "SHADOW"
+        assert live._pre_execution_ranking_enabled() is False
 
 
 class TestTemporalValidation:

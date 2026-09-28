@@ -84,6 +84,10 @@ class MT5TradeExecutor(TradeExecutor):
             magic=self.magic,
             comment=comment,
             deviation=self.deviation,
+            **({"max_risk_amount": request.metadata["pre_send_risk_cap"]}
+               if request.metadata and "pre_send_risk_cap" in request.metadata else {}),
+            **({"minimum_executable_rr": request.metadata["minimum_executable_rr"]}
+               if request.metadata.get("minimum_executable_rr") is not None else {}),
         )
 
         position_ticket = (
@@ -116,7 +120,7 @@ class MT5TradeExecutor(TradeExecutor):
             symbol=request.symbol,
             timeframe=request.timeframe,
             direction=request.direction,
-            volume=float(request.volume),
+            volume=float(placed.get("filled_volume") or (placed.get("request") or {}).get("volume") or request.volume),
             requested_entry_price=float(request.entry_price),
             filled_price=float(placed.get("entry_price") or request.entry_price),
             stop_loss=float(request.stop_loss),
@@ -129,6 +133,8 @@ class MT5TradeExecutor(TradeExecutor):
                 "deal_ticket": placed.get("deal_ticket"),
                 "selected_filling": placed.get("selected_filling"),
                 "selected_filling_name": placed.get("selected_filling_name"),
+                "risk_resize": placed.get("risk_resize"),
+                "executable_rr_audit": placed.get("executable_rr_audit"),
             },
         )
 

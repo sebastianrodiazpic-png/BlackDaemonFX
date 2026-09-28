@@ -23,7 +23,7 @@ def test_workers_still_do_not_start_individual_dashboards():
 
 def test_split_profiles_are_exactly_six():
     assert tuple(main.SYNTHETIC_SPLIT_PROFILES)==(
-        "BOOM","CRASH","VOLATILITY","STEP","JUMP","FLIP"
+        "BOOM","CRASH","VOLATILITY","STEP","JUMP"
     )
 
 def test_coordinator_starts_and_stops_one_central_dashboard():

@@ -133,6 +133,7 @@ class _Analyzer:
             "valid": True,
             "signal": {
                 "direction": "BUY",
+                "entry_location_ranges": {tf: {"low": 90., "high": 120.} for tf in ("H1", "M15", "M5")},
                 "entry_time": "2026-09-03T12:00:00+00:00",
                 "entry_price": 100.0,
                 "stop_loss": 90.0,

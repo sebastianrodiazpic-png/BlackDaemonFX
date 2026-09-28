@@ -914,7 +914,7 @@ class TradingRepository:
                 })
             return result
 
-    def audit_events_dataframe(self, source: str | None = None) -> pd.DataFrame:
+    def audit_events_dataframe(self, source: str | None = None, limit: int | None = None) -> pd.DataFrame:
         """Devuelve todos los eventos de auditoría como DataFrame.
 
         Cada `payload_json` se decodifica en la columna `payload`; si no es
@@ -933,7 +933,11 @@ class TradingRepository:
             )
             if source:
                 stmt = stmt.where(DaemonAuditEvent.source == str(source).upper())
+            if limit is not None:
+                stmt = stmt.order_by(None).order_by(DaemonAuditEvent.id.desc()).limit(max(1, int(limit)))
             rows = session.execute(stmt).scalars().all()
+            if limit is not None:
+                rows.reverse()
             records = []
             for row in rows:
                 record = {c.name: getattr(row, c.name) for c in row.__table__.columns}
@@ -1390,7 +1394,7 @@ class TradingRepository:
                 stmt = stmt.where(TradeAuditSnapshot.trade_id == int(trade_id))
             stmt = stmt.order_by(TradeAuditSnapshot.snapshot_at.desc(), TradeAuditSnapshot.id.desc())
             if limit is not None:
-                stmt = stmt.limit(max(1, int(limit)))
+                stmt = stmt.order_by(None).order_by(TradeAuditSnapshot.id.desc()).limit(max(1, int(limit)))
             rows = session.execute(stmt).scalars().all()
 
             def decode(value):
@@ -1460,7 +1464,7 @@ class TradingRepository:
             if trade_id is not None
         }
 
-    def trade_audit_snapshots_dataframe(self, source: str = "DEMO"):
+    def trade_audit_snapshots_dataframe(self, source: str = "DEMO", limit=None):
         """Aplana los snapshots de auditoría en un DataFrame comparable.
 
         Extrae de las estructuras anidadas los campos relevantes y los coloca
@@ -1477,7 +1481,7 @@ class TradingRepository:
         Returns:
             DataFrame con una fila por snapshot.
         """
-        rows = self.trade_audit_snapshots(source=source)
+        rows = self.trade_audit_snapshots(source=source, limit=limit)
         flat = []
         for row in rows:
             entry = row.get("entry_view") or {}
@@ -2753,6 +2757,22 @@ class TradingRepository:
                     f"No existe trade id={trade_id}"
                 )
 
+            from reporting.target_audit import target_changes
+            changes = target_changes(
+                {name: getattr(row, name) for name in ("stop_loss", "take_profit")}, data)
+            if changes:
+                session.add(DaemonAuditEvent(
+                    event_time=datetime.now(timezone.utc), source=row.source,
+                    event_type="TRADE_TARGET_CHANGE", instrument=row.instrument,
+                    execution_key=row.execution_key,
+                    broker_position_ticket=row.broker_position_ticket,
+                    action="TARGET_VALUES_RECORDED",
+                    payload_json=self._json_or_none({"trade_id": row.id,
+                        "changes": changes, "actor": "UNKNOWN",
+                        "source": data.get("target_change_source", "REPOSITORY_UPDATE"),
+                        "changed_at": None}),
+                ))
+
             for key, value in data.items():
 
                 if key == "details":
@@ -3433,6 +3453,14 @@ class TradingRepository:
             )
 
             if position is not None:
+                from reporting.target_audit import target_changes
+                observed = {}
+                for field, broker_field in (("stop_loss", "sl"), ("take_profit", "tp")):
+                    value = position.get(broker_field, position.get(field)) if isinstance(position, dict) else getattr(position, broker_field, None)
+                    if isinstance(value, (int, float)) and math.isfinite(value):
+                        observed[field] = value
+                if target_changes(trade, observed):
+                    self.update_trade(trade["id"], {**observed, "target_change_source": "MT5_POSITION_SNAPSHOT"})
                 continue
 
             try:
@@ -3490,7 +3518,37 @@ class TradingRepository:
                 + swap
             )
 
-            exit_deal = deals[-1]
+            exit_deals = [d for d in deals if getattr(d, "entry", None) in (1, 2, 3)]
+            exit_deal = max(exit_deals or deals, key=lambda d: (getattr(d, "time_msc", 0) or getattr(d, "time", 0)*1000, getattr(d, "ticket", 0)))
+            reason_code = getattr(exit_deal, "reason", None)
+            reason_name = {0:"CLIENT", 1:"MOBILE", 2:"WEB", 3:"EXPERT", 4:"SL", 5:"TP", 6:"SO", 7:"ROLLOVER", 8:"VMARGIN", 9:"SPLIT"}.get(reason_code, "UNKNOWN")
+            details = dict(trade.get("details") or {})
+            metadata = dict(details.get("metadata") or {})
+            metadata["broker_exit"] = {
+                "reason_code": reason_code, "reason": reason_name,
+                "deal_ticket": getattr(exit_deal, "ticket", None),
+                "deal_entry": getattr(exit_deal, "entry", None),
+                "comment": getattr(exit_deal, "comment", None),
+                "magic": getattr(exit_deal, "magic", None),
+                "last_recorded_sl": trade.get("stop_loss"),
+                "last_recorded_tp": trade.get("take_profit"),
+                "bid_ask_at_exit": None, "quote_provenance": "NOT_AVAILABLE_FROM_DEAL",
+            }
+            from reporting.target_audit import exit_target_evidence
+            metadata["target_reconciliation"] = exit_target_evidence(
+                trade, reason_name, getattr(exit_deal, "comment", None))
+            # Last sampled quote is evidence near exit, never the exact deal quote.
+            observations = metadata.get("forex_execution_quotes") or []
+            exit_stamp = pd.to_datetime(getattr(exit_deal, "time_msc", 0) or getattr(exit_deal, "time", 0)*1000, unit="ms", utc=True)
+            prior_quotes = []
+            for observation in observations:
+                stamp = pd.to_datetime(observation.get("spread_captured_at"), utc=True, errors="coerce")
+                if pd.notna(stamp) and stamp <= exit_stamp:
+                    prior_quotes.append((stamp, observation))
+            last_quote = max(prior_quotes, key=lambda x:x[0]) if prior_quotes else None
+            metadata["broker_exit"]["last_sampled_quote"] = last_quote[1] if last_quote else None
+            metadata["broker_exit"]["last_sample_age_seconds"] = (exit_stamp-last_quote[0]).total_seconds() if last_quote else None
+            details["metadata"] = metadata
 
             exit_price = (
                 float(
@@ -3558,9 +3616,8 @@ class TradingRepository:
                     "swap": swap,
                     "net_pnl": net,
                     "realized_rr": realized_rr,
-                    "exit_reason": (
-                        "mt5_history_sync"
-                    ),
+                    "exit_reason": "mt5_" + reason_name.lower() if reason_name != "UNKNOWN" else "mt5_history_sync",
+                    "details": details,
                 },
             )
 
@@ -3580,6 +3637,7 @@ class TradingRepository:
         include_external: bool = True,
         external_source: str = "MT5_EXTERNAL",
         timeframe: str = "M5",
+        excluded_external_magics: tuple = (),
     ):
         """Descubre posiciones abiertas en MT5 que todavía no existen en SQLite.
 
@@ -3621,6 +3679,9 @@ class TradingRepository:
 
             position_magic = int(position.get("magic") or 0)
             daemon_owned = magic is not None and position_magic == int(magic)
+            if not daemon_owned and position_magic in excluded_external_magics:
+                skipped += 1
+                continue
             if not daemon_owned and not include_external:
                 skipped += 1
                 continue
@@ -4022,23 +4083,19 @@ class TradingRepository:
             ),
         }
 
-    def account_snapshots_dataframe(self):
+    def account_snapshots_dataframe(self, limit=None):
         """Devuelve la serie completa de snapshots de cuenta como DataFrame.
 
         Es la base para reconstruir la curva de capital y calcular el
         drawdown en la pantalla de Cuenta.
         """
         with self.Session() as session:
-            rows = (
-                session.execute(
-                    select(AccountSnapshot).order_by(
-                        AccountSnapshot.snapshot_time,
-                        AccountSnapshot.id,
-                    )
-                )
-                .scalars()
-                .all()
-            )
+            stmt = select(AccountSnapshot).order_by(AccountSnapshot.snapshot_time, AccountSnapshot.id)
+            if limit is not None:
+                stmt = stmt.order_by(None).order_by(AccountSnapshot.snapshot_time.desc(), AccountSnapshot.id.desc()).limit(max(1,int(limit)))
+            rows = session.execute(stmt).scalars().all()
+            if limit is not None:
+                rows.reverse()
 
         return pd.DataFrame([
             {

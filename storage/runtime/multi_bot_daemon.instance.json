@@ -1,8 +1,0 @@
-{
-  "pid": 19932,
-  "started_at": "2026-09-10T16:00:59.790924-03:00",
-  "project_root": "C:\\TradingBoot\\smc_synthetic_bot",
-  "command": "C:\\TradingBoot\\smc_synthetic_bot\\app\\main.py --mode multi-bot-daemon --execute --interval 30 --position-monitor-interval 2 --risk-percent 1.0 --min-rr 1.5 --dashboard --dashboard-port 8765",
-  "version": "v107-clean-retest-real-chart-fvg-mandatory-quarter-levels",
-  "active": true
-}

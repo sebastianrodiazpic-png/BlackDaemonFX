@@ -111,6 +111,11 @@ def is_orb_silver_symbol(symbol: str) -> bool:
     return classify_orb_market(symbol) in {"XAGUSD", "MICRO_XAGUSD"}
 
 
+def orb_session_asset(symbol: str) -> str:
+    """Silver contracts share an ORB session; other instruments keep their identity."""
+    return "XAGUSD" if is_orb_silver_symbol(symbol) else str(symbol)
+
+
 def is_orb_oil_symbol(symbol: str) -> bool:
     """True únicamente para el contrato de Petróleo autorizado por ORB."""
     return classify_orb_market(symbol) == "US_OIL"
@@ -276,9 +281,22 @@ class ORBConfig:
     session_close_hour: int = 16
     session_close_minute: int = 0
     timeframe: str = "M5"
-    candle_count: int = 1000
+    # La estrategia sólo necesita contexto previo para ATR/volumen y las velas
+    # de la sesión vigente. 350 M5 cubren holgadamente ese contrato y evitan
+    # descargar 1000 barras en cada evaluación del worker ORB.
+    candle_count: int = 350
     breakout_buffer_fraction: float = 0.0
+    # Buffer mínimo adaptativo para no considerar ruptura un cierre de apenas
+    # un tick fuera del rango. Se expresa como fracción del ATR M5 previo.
+    breakout_atr_buffer_fraction: float = 0.05
+    # Una ruptura puede retestear el borde durante las siguientes N velas M5.
+    # La ventana sigue siendo corta y cerrada para no perseguir señales viejas.
+    retest_max_candles: int = 3
     require_retest: bool = True
+    momentum_enabled: bool = True
+    momentum_min_body_ratio: float = 0.65
+    momentum_min_displacement_atr: float = 0.15
+    momentum_max_extension_atr: float = 0.50
     require_vwap_alignment: bool = True
     require_poc_alignment: bool = True
     # v109: cuando VWAP y POC estan ambos activos, si esto es False basta con
@@ -310,8 +328,8 @@ class NewYorkORBStrategy:
 
     - Rango: 09:30 <= NY < 09:45.
     - Rupturas: desde 09:45 hasta antes de 16:00 NY.
-    - Ruptura confirmada en M5 y entrada sólo tras retesteo del borde roto del ORB.
-    - El retesteo debe tocar/reingresar al borde y cerrar nuevamente fuera del rango.
+    - Ruptura M5 con retesteo o alternativa de momentum controlada.
+    - El retesteo admite max(2 * spread, 0.10 * ATR M5) y cierre fuera del rango.
     - VWAP de sesión y POC aproximado por perfil de volumen se usan como filtros de contexto.
     """
 
@@ -326,11 +344,20 @@ class NewYorkORBStrategy:
         self.data_provider = data_provider
         self.config = config or ORBConfig()
         self.tz = ZoneInfo(self.config.timezone_name)
-        # Memoria de "una señal por sesión": guarda, por símbolo, la fecha NY
-        # y la vela de ruptura ya aprovechada. Vive en memoria del proceso;
-        # se reinicia solo al reiniciar el daemon, lo cual es correcto porque
-        # cada día NY es una sesión nueva de todas formas.
+        # Memoria de "una señal por sesión": sólo se actualiza mediante
+        # `mark_signal_used`, después de un fill confirmado. El analizador no
+        # consume la sesión por construir una candidata que luego puede ser
+        # rechazada por HTF, exposición, riesgo o MT5.
         self._session_signal_memory: dict[str, tuple[str, str]] = {}
+
+    def mark_signal_used(self, symbol: str, session_date: str, breakout_key: str) -> None:
+        """Marca una tesis ORB como utilizada únicamente tras ejecución real."""
+        if not (is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True))):
+            return
+        if session_date and breakout_key:
+            self._session_signal_memory[orb_session_asset(symbol)] = (
+                str(session_date), str(breakout_key)
+            )
 
     def _session_bounds(self, now_utc: datetime):
         """Calcula los hitos horarios de la sesión para el día en curso.
@@ -493,7 +520,15 @@ class NewYorkORBStrategy:
             `confirmado` es `None` cuando no hay volumen fiable disponible
             (no penaliza al desconocer el dato).
         """
-        volume = NewYorkORBStrategy._volume_column(df)
+        # Unit weights used by VWAP/POC are not evidence of breakout volume.
+        from strategy.smc.volume_utils import has_reliable_volume
+        df = df[df["time"] <= breakout_time]
+        if not has_reliable_volume(df):
+            return None, None, None
+        source = NewYorkORBStrategy._volume_source(df)
+        if source is None:
+            return None, None, None
+        volume = pd.to_numeric(df[source], errors="coerce")
         if float(volume.sum()) <= 0:
             return None, None, None
         prior = df[df["time"] < breakout_time]
@@ -505,10 +540,19 @@ class NewYorkORBStrategy:
             return None, None, None
         breakout_volume = float(volume.loc[breakout_rows.index[-1]])
         avg_volume = float(reference.mean())
+        if not math.isfinite(breakout_volume) or not math.isfinite(avg_volume) or breakout_volume < 0 or reference.isna().any() or (reference < 0).any():
+            return None, None, None
         if avg_volume <= 0:
             return None, breakout_volume, avg_volume
         confirmed = breakout_volume >= avg_volume * max(0.0, float(multiplier))
         return bool(confirmed), breakout_volume, avg_volume
+
+    @staticmethod
+    def _volume_source(df):
+        for name in ("real_volume", "tick_volume", "volume"):
+            if name in df and pd.to_numeric(df[name], errors="coerce").fillna(0).sum() > 0:
+                return name
+        return None
 
     def _prepare_candles(self, symbol: str, now_utc: datetime) -> pd.DataFrame:
         """Descarga las velas y descarta las que aún no han cerrado.
@@ -595,7 +639,7 @@ class NewYorkORBStrategy:
         base = {
             "valid": False,
             "strategy_name": "ORB_NEW_YORK",
-            "strategy_version": "orb-ny-v1-vwap-poc",
+            "strategy_version": "orb-ny-v3-retest-momentum",
             "symbol": symbol,
             "orb_market": market,
             "timezone": self.config.timezone_name,
@@ -669,10 +713,9 @@ class NewYorkORBStrategy:
                 "opening_range_size": range_size,
             }
 
-        # v61 ORB: secuencia obligatoria en M5 = BREAKOUT -> RETEST -> ENTRADA.
-        # El breakout debe ser la vela cerrada inmediatamente anterior al retest,
-        # evitando perseguir rupturas antiguas.
-        if len(post_range) < 2:
+        # ORB: BREAKOUT -> RETEST -> ENTRADA. El retest puede aparecer durante
+        # las siguientes 1..N velas cerradas, sin perseguir rupturas antiguas.
+        if len(post_range) < 2 and not self.config.momentum_enabled:
             return {
                 **base,
                 "action": "WAITING_M5_BREAKOUT_RETEST",
@@ -683,28 +726,122 @@ class NewYorkORBStrategy:
                 "opening_range_size": range_size,
             }
 
-        breakout = post_range.iloc[-2]
         retest = post_range.iloc[-1]
-        before_breakout = session[session["time"] < breakout["time"]]
-        prev_close = (
-            float(before_breakout.iloc[-1]["close"])
-            if not before_breakout.empty
-            else float(opening.iloc[-1]["close"])
-        )
-        breakout_close = float(breakout["close"])
         retest_close = float(retest["close"])
         retest_high = float(retest["high"])
         retest_low = float(retest["low"])
-        buffer = range_size * max(0.0, float(self.config.breakout_buffer_fraction))
+        buffer = max(
+            range_size * max(0.0, float(self.config.breakout_buffer_fraction)),
+            (atr_reference or 0.0)
+            * max(0.0, float(getattr(self.config, "breakout_atr_buffer_fraction", 0.05))),
+        )
 
-        breakout_up = prev_close <= range_high + buffer and breakout_close > range_high + buffer
-        breakout_down = prev_close >= range_low - buffer and breakout_close < range_low - buffer
+        max_retest = max(1, int(getattr(self.config, "retest_max_candles", 3)))
+        candidates = []
+        first_candidate = max(0, len(post_range) - max_retest - 1)
+        for breakout_index in range(len(post_range) - 2, first_candidate - 1, -1):
+            candidate = post_range.iloc[breakout_index]
+            before_breakout = session[session["time"] < candidate["time"]]
+            prev = (
+                float(before_breakout.iloc[-1]["close"])
+                if not before_breakout.empty
+                else float(opening.iloc[-1]["close"])
+            )
+            close = float(candidate["close"])
+            breakout_up_candidate = prev <= range_high + buffer and close > range_high + buffer
+            breakout_down_candidate = prev >= range_low - buffer and close < range_low - buffer
+            bars_after = len(post_range) - 1 - breakout_index
+            if not (breakout_up_candidate or breakout_down_candidate):
+                continue
 
-        # Retest BUY: vuelve a tocar el OR high pero confirma cerrando por encima.
-        # Retest SELL: vuelve a tocar el OR low pero confirma cerrando por debajo.
-        retest_buy_ok = breakout_up and retest_low <= range_high + buffer and retest_close > range_high + buffer
-        retest_sell_ok = breakout_down and retest_high >= range_low - buffer and retest_close < range_low - buffer
+            intermediate = post_range.iloc[breakout_index + 1:-1]
+            invalidated = False
+            if breakout_up_candidate and not intermediate.empty:
+                invalidated = bool((pd.to_numeric(intermediate["close"]) <= midpoint).any())
+            elif breakout_down_candidate and not intermediate.empty:
+                invalidated = bool((pd.to_numeric(intermediate["close"]) >= midpoint).any())
+            if invalidated:
+                continue
+            candidates.append((candidate, prev, close, breakout_up_candidate, breakout_down_candidate, bars_after))
+            break
+
+        if candidates:
+            breakout, prev_close, breakout_close, breakout_up, breakout_down, bars_after_breakout = candidates[0]
+        else:
+            breakout = post_range.iloc[-2] if len(post_range) >= 2 else post_range.iloc[-1]
+            before_breakout = session[session["time"] < breakout["time"]]
+            prev_close = float(before_breakout.iloc[-1]["close"]) if not before_breakout.empty else float(opening.iloc[-1]["close"])
+            breakout_close = float(breakout["close"])
+            breakout_up = breakout_down = False
+            bars_after_breakout = 1
+
+        # Retest BUY/SELL: toca el borde y vuelve a cerrar fuera del rango.
+        signal_atr = self._average_true_range(df[df["time"] < retest["time"]], self.config.opening_range_atr_period)
+        try:
+            quote = self.data_provider.get_current_tick(symbol)
+            spread = float(quote["ask"]) - float(quote["bid"])
+            spread = spread if math.isfinite(spread) and spread >= 0 else 0.0
+        except (KeyError, TypeError, ValueError, AttributeError):
+            spread = 0.0
+        tolerance = max(2 * spread, 0.10 * (signal_atr or 0.0))
+        retest_buy_ok = bool(breakout_up and midpoint < retest_low <= range_high + tolerance and retest_close > range_high + buffer)
+        retest_sell_ok = bool(breakout_down and midpoint > retest_high >= range_low - tolerance and retest_close < range_low - buffer)
         direction = "BUY" if retest_buy_ok else "SELL" if retest_sell_ok else None
+
+        entry_mode = "ORB_BREAKOUT_RETEST"
+        momentum_failures = []
+        momentum_audit = {"evaluated":False, "variants":{}, "entry_authorized":False}
+        if direction is None and self.config.momentum_enabled:
+            previous = float(session[session["time"] < retest["time"]].iloc[-1]["close"])
+            up = previous <= range_high + buffer and retest_close > range_high + buffer
+            down = previous >= range_low - buffer and retest_close < range_low - buffer
+            if up or down:
+                sign, edge = (1, range_high) if up else (-1, range_low)
+                body = sign * (retest_close - float(retest["open"]))
+                body_ratio = body / (retest_high - retest_low) if retest_high > retest_low else 0
+                displacement = sign * (retest_close - edge)
+                _, vol, avg = self._breakout_volume_confirmed(df, retest["time"], self.config.breakout_volume_lookback, 1.0)
+                if body_ratio < self.config.momentum_min_body_ratio:
+                    momentum_failures.append("MOMENTUM_BODY_TOO_SMALL")
+                if not signal_atr or displacement < self.config.momentum_min_displacement_atr * signal_atr:
+                    momentum_failures.append("MOMENTUM_DISPLACEMENT_INSUFFICIENT")
+                if not signal_atr or displacement > self.config.momentum_max_extension_atr * signal_atr:
+                    momentum_failures.append("MOMENTUM_OVEREXTENDED")
+                if vol is None or avg is None or not vol > avg > 0:
+                    momentum_failures.append("MOMENTUM_VOLUME_UNCONFIRMED")
+                volume_available = vol is not None and avg is not None and vol > 0 and avg > 0
+                momentum_audit = {
+                    "evaluated":True, "direction":"BUY" if up else "SELL",
+                    "confirmation_time":pd.Timestamp(retest["time"]).isoformat(),
+                    "body_ratio":body_ratio, "minimum_body_ratio":self.config.momentum_min_body_ratio,
+                    "atr":signal_atr, "extension_atr":displacement/signal_atr if signal_atr else None,
+                    "maximum_extension_atr":self.config.momentum_max_extension_atr,
+                    "minimum_displacement_atr":self.config.momentum_min_displacement_atr,
+                    "volume":vol, "average_volume":avg,
+                    "volume_status":"AVAILABLE" if volume_available else "UNAVAILABLE_OR_ZERO",
+                    "volume_source":self._volume_source(df[df.time <= retest.time]),
+                    "volume_ratio":vol / avg if vol is not None and avg and avg > 0 else None,
+                    "volume_threshold":1.0,
+                    "live_rejections":list(momentum_failures), "variants":{}, "entry_authorized":False,
+                }
+                # Sensitivity comparisons only: no alternative can set direction.
+                for extension_limit in (.50, .75, 1.0, 1.5, 2.0):
+                    for allow_missing_volume in (False, True):
+                        failures = [f for f in momentum_failures if f != "MOMENTUM_OVEREXTENDED"]
+                        if not signal_atr or displacement > extension_limit * signal_atr:
+                            failures.append("MOMENTUM_OVEREXTENDED")
+                        if allow_missing_volume and not volume_available:
+                            failures = [f for f in failures if f != "MOMENTUM_VOLUME_UNCONFIRMED"]
+                        name = f"EXT_{extension_limit:.2f}_" + ("MISSING_VOLUME_SHADOW" if allow_missing_volume else "VOLUME_REQUIRED")
+                        momentum_audit["variants"][name] = {"maximum_extension_atr":extension_limit,
+                            "missing_volume_exception":allow_missing_volume and not volume_available,
+                            "remaining_failures":failures, "momentum_checks_pass":not failures,
+                            "other_execution_checks":"NOT_EVALUATED", "entry_authorized":False}
+                if not momentum_failures:
+                    direction = "BUY" if up else "SELL"
+                    entry_mode = "ORB_BREAKOUT_MOMENTUM"
+                    breakout, breakout_close, prev_close = retest, retest_close, previous
+                    breakout_up, breakout_down, bars_after_breakout = up, down, 0
 
         through_candidate = session[session["time"] <= retest["time"]].copy()
         vwap = self._session_vwap(through_candidate)
@@ -715,6 +852,22 @@ class NewYorkORBStrategy:
         poc_sell_ok = poc is not None and retest_close < float(poc)
 
         diagnostics = {
+            "orb_entry_mode": entry_mode,
+            "orb_audit": {
+                "schema":"orb-audit-v1", "evaluated_at":pd.Timestamp(now_utc).isoformat(),
+                "symbol":symbol, "source":getattr(self.data_provider,"source_name", "UNSPECIFIED_PROVIDER"),
+                "session_timezone":self.config.timezone_name,
+                "range_start":pd.Timestamp(open_ny).isoformat(), "range_end":pd.Timestamp(range_end_ny).isoformat(),
+                "orh":range_high, "orl":range_low, "buffer":buffer, "retest_tolerance":tolerance,
+                "opening_candles":[{"time":pd.Timestamp(r["time"]).isoformat(),
+                    **{k:float(r[k]) for k in ("open","high","low","close")}} for _,r in opening.iterrows()],
+                "momentum":momentum_audit,
+                "retest":{"buy_ok":retest_buy_ok,"sell_ok":retest_sell_ok,
+                    "bars_after_breakout":int(bars_after_breakout), "maximum_bars":max_retest},
+            },
+            "orb_signal_atr": signal_atr,
+            "retest_tolerance": tolerance,
+            "momentum_rejection_reasons": momentum_failures,
             "opening_range_high": range_high,
             "opening_range_low": range_low,
             "opening_range_midpoint": midpoint,
@@ -722,8 +875,8 @@ class NewYorkORBStrategy:
             "breakout_candle_time": pd.Timestamp(breakout["time"]).isoformat(),
             "breakout_candle_time_ny": pd.Timestamp(breakout["time_ny"]).isoformat(),
             "breakout_close": breakout_close,
-            "retest_candle_time": pd.Timestamp(retest["time"]).isoformat(),
-            "retest_candle_time_ny": pd.Timestamp(retest["time_ny"]).isoformat(),
+            "retest_candle_time": pd.Timestamp(retest["time"]).isoformat() if entry_mode == "ORB_BREAKOUT_RETEST" else None,
+            "retest_candle_time_ny": pd.Timestamp(retest["time_ny"]).isoformat() if entry_mode == "ORB_BREAKOUT_RETEST" else None,
             "retest_close": retest_close,
             "retest_high": retest_high,
             "retest_low": retest_low,
@@ -736,6 +889,9 @@ class NewYorkORBStrategy:
             "poc_sell_ok": bool(poc_sell_ok),
             "breakout_up": bool(breakout_up),
             "breakout_down": bool(breakout_down),
+            "breakout_buffer": float(buffer),
+            "bars_after_breakout": int(bars_after_breakout),
+            "retest_max_candles": int(max_retest),
             "retest_buy_ok": bool(retest_buy_ok),
             "retest_sell_ok": bool(retest_sell_ok),
             "volume_source": (
@@ -754,6 +910,8 @@ class NewYorkORBStrategy:
                 if not (breakout_up or breakout_down)
                 else "BREAKOUT_M5_SIN_RETEST_CONFIRMADO_AL_ORB"
             )
+            if momentum_audit["evaluated"] and momentum_failures:
+                reason = "ORB_MOMENTUM_REJECTED:" + ",".join(momentum_failures)
             return {**base, **diagnostics, "action": "WAITING_M5_BREAKOUT_RETEST", "reason": reason}
 
         # one_signal_per_session: si ya se aprovechó una ruptura distinta ese
@@ -761,13 +919,13 @@ class NewYorkORBStrategy:
         # basadas en otra vela de ruptura (evita sobre-operar el mismo día).
         session_date_str = str(now_ny.date())
         breakout_key = str(pd.Timestamp(breakout["time"]).isoformat())
-        if bool(getattr(self.config, "one_signal_per_session", True)):
-            remembered = self._session_signal_memory.get(str(symbol))
-            if remembered is not None and remembered[0] == session_date_str and remembered[1] != breakout_key:
+        if is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True)):
+            remembered = self._session_signal_memory.get(orb_session_asset(symbol))
+            if remembered is not None and remembered[0] == session_date_str and (is_orb_silver_symbol(symbol) or remembered[1] != breakout_key):
                 return {
                     **base, **diagnostics, "direction": direction,
                     "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
-                    "reason": "YA_SE_UTILIZO_UNA_RUPTURA_DISTINTA_ESTA_SESION",
+                    "reason": "ORB_SILVER_SESSION_ALREADY_USED" if is_orb_silver_symbol(symbol) else "YA_SE_UTILIZO_UNA_RUPTURA_DISTINTA_ESTA_SESION",
                     "session_previous_breakout_time": remembered[1],
                 }
 
@@ -780,6 +938,16 @@ class NewYorkORBStrategy:
         diagnostics["breakout_volume"] = breakout_volume
         diagnostics["breakout_volume_reference_avg"] = breakout_volume_reference
         diagnostics["breakout_volume_confirmed"] = breakout_volume_confirmed
+        volume_evidence = {
+            "volume": breakout_volume, "average_volume": breakout_volume_reference,
+            "volume_ratio": breakout_volume / breakout_volume_reference if breakout_volume is not None and breakout_volume_reference else None,
+            "volume_threshold": float(self.config.breakout_volume_multiplier),
+            "volume_source": self._volume_source(through_candidate[through_candidate.time <= breakout.time]),
+            "volume_status": "AVAILABLE" if breakout_volume_confirmed is not None else "UNAVAILABLE_OR_ZERO",
+            "confirmed": breakout_volume_confirmed,
+            "missing_policy": "RETEST_NO_PENALTY_MOMENTUM_REQUIRES_VOLUME",
+        }
+        diagnostics["orb_audit"]["volume_evidence"] = volume_evidence
 
         vwap_ok = vwap_buy_ok if direction == "BUY" else vwap_sell_ok
         poc_ok = poc_buy_ok if direction == "BUY" else poc_sell_ok
@@ -801,7 +969,8 @@ class NewYorkORBStrategy:
             if require_poc and not poc_ok:
                 failed.append("POC_NO_ALINEADO_CON_RETEST")
         if (
-            bool(getattr(self.config, "require_breakout_volume_confirmation", True))
+            entry_mode == "ORB_BREAKOUT_RETEST"
+            and bool(getattr(self.config, "require_breakout_volume_confirmation", True))
             and breakout_volume_confirmed is False
         ):
             failed.append("RUPTURA_SIN_VOLUMEN_SUFICIENTE")
@@ -824,7 +993,7 @@ class NewYorkORBStrategy:
         if failed:
             return {
                 **base, **diagnostics, "direction": direction,
-                "action": "ORB_RETEST_FILTERED", "reason": ",".join(failed),
+                "action": "ORB_RETEST_FILTERED" if entry_mode == "ORB_BREAKOUT_RETEST" else "ORB_MOMENTUM_FILTERED", "reason": ",".join(failed),
                 "rejection_reasons": failed,
             }
 
@@ -842,14 +1011,14 @@ class NewYorkORBStrategy:
         confirmations = {
             "opening_range_complete": True,
             "m5_fresh_breakout": True,
-            "orb_retest_confirmed": True,
+            ("orb_retest_confirmed" if entry_mode == "ORB_BREAKOUT_RETEST" else "orb_momentum_confirmed"): True,
             "vwap_alignment": bool(vwap_ok),
             "poc_alignment": bool(poc_ok),
             "new_york_session": True,
             "eligible_market": True,
             "stop_at_orb_50_percent": True,
             "opening_range_atr_within_limit": opening_range_atr_within_limit,
-            "breakout_volume_confirmed": breakout_volume_confirmed is not False,
+            "breakout_volume_confirmed": entry_mode == "ORB_BREAKOUT_MOMENTUM" or breakout_volume_confirmed is not False,
         }
         if quarter_level_applicable:
             confirmations["gold_quarter_level_alignment"] = bool(quarter_level_ok)
@@ -857,12 +1026,12 @@ class NewYorkORBStrategy:
         missing = [name for name, ok in confirmations.items() if not ok]
         percentage = round(len(passed) / len(confirmations) * 100.0, 2)
 
-        if bool(getattr(self.config, "one_signal_per_session", True)):
-            self._session_signal_memory[str(symbol)] = (session_date_str, breakout_key)
-
         signal = {
             "strategy_name": "ORB_NEW_YORK",
-            "strategy_version": "orb-ny-v2-m5-breakout-retest-midpoint",
+            "strategy_version": "orb-ny-v3-retest-momentum",
+            "orb_entry_mode": entry_mode,
+            "orb_signal_atr": signal_atr,
+            "orb_momentum_max_extension_atr": self.config.momentum_max_extension_atr,
             "timeframe": "M5",
             "valid": True,
             "direction": direction,
@@ -872,7 +1041,7 @@ class NewYorkORBStrategy:
             "take_profit": float(take_profit),
             "risk_reward_ratio": target_rr,
             "confirmation_ok": True,
-            "confirmation_decision": "ORB_NY_M5_BREAKOUT_RETEST_CONFIRMED",
+            "confirmation_decision": entry_mode + "_CONFIRMED",
             "confirmation_percentage": percentage,
             "confirmations_passed": len(passed),
             "confirmations_total": len(confirmations),
@@ -891,9 +1060,94 @@ class NewYorkORBStrategy:
             "session_vwap": vwap,
             "session_poc": poc,
             "breakout_candle_time_ny": pd.Timestamp(breakout["time_ny"]).isoformat(),
-            "retest_candle_time_ny": pd.Timestamp(retest["time_ny"]).isoformat(),
+            "breakout_candle_time": breakout_key,
+            "retest_candle_time_ny": pd.Timestamp(retest["time_ny"]).isoformat() if entry_mode == "ORB_BREAKOUT_RETEST" else None,
+            "orb_session_date": session_date_str,
+            "volume_evidence": volume_evidence,
+            "opening_range_atr_ratio": range_atr_ratio,
+            "breakout_volume_ratio": (
+                breakout_volume / breakout_volume_reference
+                if breakout_volume is not None and breakout_volume_reference not in (None, 0)
+                else None
+            ),
             "orb_risk_model": "1_PERCENT_TOTAL_SPLIT_0_5_TP1_0_5_RUNNER",
             "orb_runner_plan": "TP1_1R_RUNNER_2R_DYNAMIC_3R_4R",
+        }
+
+        # Evidencia exacta de la decisión ORB. Se entrega al motor únicamente
+        # para congelar la auditoría visual; no participa en el score ni en la
+        # ejecución. Incluye sólo velas ya cerradas para evitar repintado.
+        audit_candles = []
+        volume_column = next(
+            (name for name in ("tick_volume", "real_volume", "volume") if name in df.columns),
+            None,
+        )
+        for _, candle in df.tail(140).iterrows():
+            raw_volume = candle.get(volume_column) if volume_column else None
+            audit_candles.append({
+                "time": pd.Timestamp(candle["time"]).isoformat(),
+                "open": float(candle["open"]),
+                "high": float(candle["high"]),
+                "low": float(candle["low"]),
+                "close": float(candle["close"]),
+                "volume": float(raw_volume) if raw_volume is not None and pd.notna(raw_volume) else None,
+            })
+        audit_chart_seed = {
+            "data_source": "DERIV_CHARTS",
+            "evidence_mode": "ENTRY_DECISION_CACHE",
+            "timeframes": {
+                "M5": {
+                    "symbol": symbol,
+                    "timeframe": "M5",
+                    "candles": audit_candles,
+                    "events": [
+                        {
+                            "time": pd.Timestamp(breakout["time"]).isoformat(),
+                            "type": "orb_breakout",
+                            "label": "Breakout ORB",
+                            "direction": direction,
+                            "price": breakout_close,
+                            "layer": "structure",
+                        },
+                        {
+                            "time": pd.Timestamp(retest["time"]).isoformat(),
+                            "type": "orb_retest" if entry_mode == "ORB_BREAKOUT_RETEST" else "orb_momentum",
+                            "label": "Retest ORB confirmado" if entry_mode == "ORB_BREAKOUT_RETEST" else "Momentum ORB confirmado",
+                            "direction": direction,
+                            "price": retest_close,
+                            "layer": "structure",
+                        },
+                    ],
+                    "zones": [{
+                        "time": open_ny.isoformat(),
+                        "type": "orb_opening_range",
+                        "label": "Rango apertura NY 09:30–09:45",
+                        "low": range_low,
+                        "high": range_high,
+                        "direction": direction,
+                        "status": "CONFIRMADO",
+                        "layer": "orb",
+                    }],
+                    "levels": [
+                        {"type": "orb_high", "label": "ORB High", "price": range_high},
+                        {"type": "orb_low", "label": "ORB Low", "price": range_low},
+                        {"type": "orb_mid", "label": "ORB 50%", "price": midpoint},
+                        {"type": "vwap", "label": "VWAP sesión", "price": vwap},
+                        {"type": "poc", "label": "POC sesión", "price": poc},
+                    ],
+                    "smc_context": {
+                        "range_high": range_high,
+                        "range_low": range_low,
+                        "equilibrium": midpoint,
+                        "zone": "ORB",
+                    },
+                    "context_mode": "ESTRATEGIA_ORB",
+                    "evidence_mode": "ENTRY_DECISION_CACHE",
+                    "updated_at": pd.Timestamp(retest["time"]).isoformat(),
+                }
+            },
+            "available_timeframes": ["M5"],
+            "captured_at": pd.Timestamp(retest["time"]).isoformat(),
         }
 
         return {
@@ -901,7 +1155,7 @@ class NewYorkORBStrategy:
             **diagnostics,
             "valid": True,
             "action": "ORB_SIGNAL_CONFIRMED",
-            "reason": "BREAKOUT_M5_MAS_RETEST_ORB_CONFIRMADO_CON_VWAP_Y_POC",
+            "reason": entry_mode + "_CONFIRMADO_CON_VWAP_Y_POC",
             "direction": direction,
             "signal": signal,
             "entry": signal,
@@ -910,4 +1164,5 @@ class NewYorkORBStrategy:
             "m15_structure_break_type": None,
             "m15_zone": None,
             "diagnostics": diagnostics,
+            "audit_chart_seed": audit_chart_seed,
         }

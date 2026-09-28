@@ -57,6 +57,7 @@ class Analyzer:
             "valid": True,
             "signal": {
                 "direction": "BUY",
+                "entry_location_ranges": {tf: {"low": 90., "high": 120.} for tf in ("H1", "M15", "M5")},
                 "entry_time": "2026-08-26T00:00:00+00:00",
                 "entry_price": 100.0,
                 "stop_loss": 90.0,
@@ -73,6 +74,7 @@ def test_rejects_trade_when_broker_max_volume_cannot_reach_risk_target():
             execution_enabled=False,
             max_entry_drift_r=None,
             min_actual_risk_ratio=0.95,
+            allow_reduced_risk=False,
             validate_order_in_dry_run=False,
         ),
         executor=Executor(),

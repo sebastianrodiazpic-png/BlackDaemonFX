@@ -95,6 +95,14 @@ class ExecutionRepo:
     def get_trade_by_execution_key(self, key):
         return self.rows.get(key)
 
+    def create_trade_once(self, payload):
+        row = {"id": len(self.rows) + 1, **payload}
+        self.rows[payload["execution_key"]] = row
+        return row["id"], True
+
+    def get_trade(self, trade_id):
+        return next((r for r in self.rows.values() if r["id"] == trade_id), None)
+
     def open_trades(self, source=None):
         return []
 
@@ -149,8 +157,12 @@ class Analyzer:
     def analyze_symbol(self, symbol):
         return {
             "valid": True,
+            "diagnostics": {"m5": {"last_candle_time": "2026-08-26T00:00:00+00:00"}},
             "signal": {
                 "direction": "BUY",
+                "chart_pattern_supporting_strength": 0.78,
+                "chart_pattern_conflicting_strength": 0.65,
+                "entry_location_ranges": {"H1": {"low": 90., "high": 120.}},
                 "entry_time": "2026-08-26T00:00:00+00:00",
                 "entry_price": 100.0,
                 "stop_loss": 95.0,
@@ -174,6 +186,14 @@ def test_execution_path_uses_lifecycle_manager_when_configured():
     result = engine.process_symbol("Volatility 90 Index")
 
     assert result["action"] == "SPLIT_ORDER_OPENED"
+    assert result["opened_legs"][0]["lifecycle"]["metadata"]["stage_data"]["m5"]["last_candle_time"] == "2026-08-26T00:00:00+00:00"
+    assert len(repo.rows) == 2
+    metadata=result["opened_legs"][0]["lifecycle"]["metadata"]
+    assert metadata["entry_learning_snapshot"]["schema"] == "entry-learning-v1"
+    assert metadata["entry_learning_snapshot"]["features"]
+    assert metadata["chart_pattern_supporting_strength"] == .78
+    assert metadata["chart_pattern_conflicting_strength"] == .65
+    assert metadata["target_path_audit"]["TP1"]["mode"] == "INFORMATION_ONLY"
     assert len(result["opened_legs"]) == 2
     assert [leg["leg"] for leg in result["opened_legs"]] == ["TP1", "RUNNER"]
     assert all(leg["position_ticket"] == "67890" for leg in result["opened_legs"])

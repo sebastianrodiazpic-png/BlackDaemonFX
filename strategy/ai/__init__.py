@@ -11,6 +11,7 @@ from strategy.ai.feature_extraction import (
 )
 from strategy.ai.meta_labeling import (
     FILTER_MODE,
+    RANKING_MODE,
     SHADOW_MODE,
     MetaLabelDecision,
     MetaLabelingConfig,
@@ -32,6 +33,7 @@ from strategy.ai.training import (
 __all__ = [
     "FEATURE_NAMES",
     "FILTER_MODE",
+    "RANKING_MODE",
     "SHADOW_MODE",
     "extract_meta_features",
     "feature_vector",

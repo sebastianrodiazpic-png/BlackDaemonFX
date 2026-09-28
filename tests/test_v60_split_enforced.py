@@ -15,7 +15,7 @@ def test_historical_daemon_aliases_route_to_split():
 
 def test_split_still_exact_six():
     assert tuple(main.SYNTHETIC_SPLIT_PROFILES)==(
-        "BOOM","CRASH","VOLATILITY","STEP","JUMP","FLIP"
+        "BOOM","CRASH","VOLATILITY","STEP","JUMP"
     )
 
 def test_legacy_runtime_is_superseded_by_coordinator():

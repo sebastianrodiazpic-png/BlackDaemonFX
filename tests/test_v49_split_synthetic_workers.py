@@ -19,7 +19,7 @@ def _engine(profile, magic):
 
 
 def test_synthetic_split_profiles_exist_and_have_unique_magic():
-    expected = {"BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
+    expected = {"BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP"}
     assert set(SYNTHETIC_SPLIT_PROFILES) == expected
     magics = [BOT_PROFILES[p]["magic"] for p in SYNTHETIC_SPLIT_PROFILES]
     assert len(magics) == len(set(magics))
@@ -42,7 +42,7 @@ def test_full_multi_bot_uses_split_synthetics_plus_forex_orb():
     assert "SYNTHETICS" not in FULL_MULTI_BOT_PROFILES
     assert "VOLATILITY" not in FULL_MULTI_BOT_PROFILES
     for profile in (
-        "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
+        "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP",
         "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "ORB",
     ):
         assert profile in FULL_MULTI_BOT_PROFILES

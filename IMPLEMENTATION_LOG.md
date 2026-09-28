@@ -528,3 +528,11 @@ python -m app.main --mode demo-daemon --execute --interval 30 --risk-percent 1.0
 - /account muestra conteo, último estado y últimas 20 observaciones por trade.
 - XLSX agrega hoja Entrada vs Ahora con una fila por snapshot.
 - Se corrige el join de auditoría usando source_trade_id del trade_journal.
+
+### 2026-09-24 — Calidad de ejecución y auditoría (2026-09-24.1)
+Corregido error de exposición ORB; RR ejecutable por pata y conservación de primera posición ante rechazo de segunda; historial transaccional de cambios SL/TP y exclusión de discrepancias del aprendizaje; volumen ausente diferenciado; capturas causales v4, cohortes externas independientes, comparación por versión y ciclos vacíos muestreados. Detalle y evidencia en TRADE_QUALITY_20260924.md. Validación: 125 pruebas, JavaScript y diff-check. Reconciliación histórica con copia de seguridad; recarga sin posiciones abiertas y manteniendo parámetros existentes.
+
+
+## 2026-09-25 — Calidad de registros antes de flexibilizar entradas
+
+Persistencia SMC con reintentos acotados; cierres manuales excluidos de etiquetas autónomas y comparados por separado; captura causal externa al aparecer SL válido; claridad del corredor mínimo frente al TP y visibilidad en dashboard. Sin cambios de filtros, riesgo ni gestión de órdenes. Ver QUALITY_RECORDS_20260925.md. Validación: 80 pruebas focalizadas y sintaxis JavaScript. Sin reinicio de procesos operativos.

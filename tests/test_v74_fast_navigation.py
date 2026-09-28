@@ -74,7 +74,8 @@ def test_dashboard_source_has_dedicated_instruments_endpoint():
 def test_dashboard_main_still_uses_state_endpoint():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert "async function refresh(){if(document.hidden)return;try{const r=await fetch('/api/state?ts='" in text
+    assert "fetch('/api/state?ts='" in text
+    assert "if(document.hidden||refreshBusy)return" in text
 
 
 def test_short_ttls_are_configured():

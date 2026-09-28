@@ -12,13 +12,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from strategy.ai.feature_extraction import extract_meta_features, feature_vector
+from strategy.ai.feature_extraction import FEATURE_SCHEMA, FEATURE_NAMES, extract_meta_features, feature_vector
 from strategy.ai.model import CalibratedLogisticModel
 from strategy.ai.training import build_training_dataset, temporal_validation, train_worker_model
 
 
 SHADOW_MODE = "SHADOW"
 FILTER_MODE = "FILTER"
+RANKING_MODE = "RANKING"
 
 
 @dataclass
@@ -148,6 +149,17 @@ class MetaLabelingEngine:
                     model = CalibratedLogisticModel.from_dict(
                         json.loads(path.read_text(encoding="utf-8"))
                     )
+                    # El vector v112 añade contexto ORB/agotamiento. Un modelo
+                    # v111 con otra dimensionalidad no puede reutilizarse sin
+                    # reentrenar; se degrada de forma segura a no entrenado.
+                    if (
+                        tuple(model.model.feature_names) != tuple(FEATURE_NAMES)
+                        or (model.model.weights and len(model.model.weights) != len(FEATURE_NAMES))
+                    ):
+                        model = CalibratedLogisticModel(
+                            worker=self.worker,
+                            strategy_name=str(strategy_name or "ALL"),
+                        )
                 except Exception:
                     # Un modelo corrupto nunca debe frenar la operativa.
                     model = CalibratedLogisticModel(
@@ -168,7 +180,7 @@ class MetaLabelingEngine:
         path = self._model_path(model.strategy_name)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            json.dumps(model.to_dict(), ensure_ascii=False, indent=2),
+            json.dumps({**model.to_dict(), "feature_schema": FEATURE_SCHEMA}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         with self._lock:
@@ -254,7 +266,7 @@ class MetaLabelingEngine:
         model = self.load_model(strategy_name)
         probability = model.probability(feature_vector(features)) if model.trained else 0.0
         expectancy = model.net_expectancy_r(probability) if model.trained else 0.0
-        shadow = mode != FILTER_MODE
+        shadow = mode == SHADOW_MODE
 
         if not model.trained:
             allowed = not bool(self.config.block_when_untrained) or shadow
@@ -262,6 +274,12 @@ class MetaLabelingEngine:
         elif shadow:
             allowed = True
             reason = "SHADOW_MODE_SCORED_WITHOUT_BLOCKING"
+        elif mode == RANKING_MODE:
+            # RANKING no aplica un umbral individual: todas las señales
+            # entrenadas pasan a la comparación del ciclo y sólo las de mayor
+            # expectativa se seleccionan antes de ejecutar.
+            allowed = True
+            reason = "RANKING_MODE_ELIGIBLE_FOR_CYCLE_SELECTION"
         elif probability + 1e-9 < thresholds["min_probability"]:
             allowed = False
             reason = "PROBABILITY_BELOW_THRESHOLD"

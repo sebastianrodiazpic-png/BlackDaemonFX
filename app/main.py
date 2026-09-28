@@ -204,6 +204,7 @@ def run_collector(
     once: bool = False,
     symbol=None,
     categories=None,
+    market_data_mode: str | None = None,
 ):
     """Modo `collector`: recolecta historicos en bucle hasta interrumpirlo.
 
@@ -220,7 +221,12 @@ def run_collector(
     from brokers.mt5_data import MT5DataProvider
 
     connector = MT5Connector()
-    provider = MT5DataProvider(connector)
+    metadata = MT5DataProvider(connector)
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+    provider = build_market_data_provider(
+        metadata,
+        settings=ExternalMarketDataSettings.from_environment(market_data_mode),
+    )
     repo = TradingRepository()
 
     try:
@@ -389,6 +395,7 @@ def run_demo_bot(
     chart_pattern_conflict_min_margin: float = 0.25,
     hard_risk_tolerance: float = 0.035,
     recoverable_quarantine_extra_tolerance: float = 0.015,
+    market_data_mode: str | None = None,
 ):
     """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
 
@@ -438,7 +445,12 @@ def run_demo_bot(
     )
 
     connector = MT5Connector()
-    provider = MT5DataProvider(connector)
+    mt5_metadata_provider = MT5DataProvider(connector)
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+    market_data_settings = ExternalMarketDataSettings.from_environment(market_data_mode)
+    provider = build_market_data_provider(
+        mt5_metadata_provider, settings=market_data_settings,
+    )
     repo = TradingRepository()
 
     execution_provider = MT5ExecutionProvider(connector)
@@ -500,7 +512,7 @@ def run_demo_bot(
         runner_extension_enabled=(
             not str(bot_profile).upper().startswith(("FOREX", "VOLATILITY"))
             and str(bot_profile).upper() not in {
-                "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP",
+                "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB",
             }
         ),
         runner_extension_first_trigger_rr=2.0,
@@ -565,6 +577,11 @@ def run_demo_bot(
             print("La selección de instrumentos se aplica desde el siguiente ciclo.")
 
         account = engine.executor.assert_demo_account()
+
+        print(
+            f"MARKET DATA: {market_data_settings.mode.upper()} · "
+            f"PROVIDER={market_data_settings.provider.upper()} · MT5=EXECUTION_ONLY"
+        )
 
         # Cuenta activa v24: NO reconstruye ni importa automáticamente el
         # historial completo de la cuenta MT5. La vista de Cuenta activa se
@@ -673,6 +690,7 @@ def run_live_paper(
     interval_seconds: int,
     once: bool,
     volume: float,
+    market_data_mode: str | None = None,
 ):
     """Modo `paper`: opera en simulacion con precios reales de MT5.
 
@@ -712,7 +730,12 @@ def run_live_paper(
     )
 
     connector = MT5Connector()
-    provider = MT5DataProvider(connector)
+    metadata = MT5DataProvider(connector)
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+    provider = build_market_data_provider(
+        metadata,
+        settings=ExternalMarketDataSettings.from_environment(market_data_mode),
+    )
 
     multi_timeframe_config = MultiTimeframeConfig(
         structure_timeframe=TIMEFRAMES["structure"],
@@ -932,7 +955,14 @@ def _resolve_live_symbols(args):
     from brokers.mt5_data import MT5DataProvider
 
     connector = MT5Connector()
-    provider = MT5DataProvider(connector)
+    mt5_metadata_provider = MT5DataProvider(connector)
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+    market_data_settings = ExternalMarketDataSettings.from_environment(
+        getattr(args, "market_data_mode", None)
+    )
+    provider = build_market_data_provider(
+        mt5_metadata_provider, settings=market_data_settings,
+    )
 
     try:
         provider.connect()
@@ -1082,20 +1112,21 @@ BOT_PROFILES = {
     },
 }
 
+# FLIP remains available for explicit manual launch, but is excluded from
+# every automatic worker group because Deriv Charts has no matching data.
 SYNTHETIC_SPLIT_PROFILES = (
     "BOOM",
     "CRASH",
     "VOLATILITY",
     "STEP",
     "JUMP",
-    "FLIP",
 )
 
 VOLATILITY_SHARD_PROFILES = (
     "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
 )
 MULTIBOT_SYNTHETIC_PROFILES = (
-    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
+    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP",
 )
 FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 # v109: IDX_OPEN se retiró de la arquitectura multi-bot activa (desactivado
@@ -1121,7 +1152,6 @@ def _assert_synthetic_split_architecture():
         "VOLATILITY": ("volatility-daemon", 26082103, ("volatility",)),
         "STEP": ("step-daemon", 26082104, ("step",)),
         "JUMP": ("jump-daemon", 26082105, ("jump",)),
-        "FLIP": ("flip-daemon", 26082106, ("flip",)),
     }
     if tuple(SYNTHETIC_SPLIT_PROFILES) != tuple(expected):
         raise RuntimeError("SYNTHETIC_SPLIT_ARCHITECTURE_ERROR: perfiles alterados.")
@@ -1179,6 +1209,40 @@ def _stable_symbol_shard(symbols, shard_index: int, shard_count: int):
     return [s for i, s in enumerate(ordered) if i % shard_count == shard_index]
 
 
+def _forex_native_family_key(symbol):
+    """Agrupa contratos MT5 que comparten el mismo mercado Deriv.
+
+    No se elimina ninguna variante de ejecución: el usuario puede seleccionar
+    el contrato standard o micro según su lotaje. La clave sólo garantiza que
+    ambas variantes pertenezcan al mismo worker y no dupliquen el análisis
+    entre procesos distintos.
+    """
+    normalized = "".join(ch for ch in str(symbol).casefold() if ch.isalnum())
+    for suffix in ("micro", "mini", "pro", "raw"):
+        if normalized.endswith(suffix):
+            return normalized[:-len(suffix)]
+    return normalized
+
+
+def _stable_grouped_symbol_shard(symbols, shard_index: int, shard_count: int, key):
+    """Reparte familias completas sin separar sus variantes de ejecución."""
+    shard_count = max(1, int(shard_count))
+    shard_index = int(shard_index)
+    groups = {}
+    for symbol in sorted({str(s) for s in symbols if s}, key=str.casefold):
+        groups.setdefault(str(key(symbol)), []).append(symbol)
+    selected_keys = {
+        group_key
+        for index, group_key in enumerate(sorted(groups, key=str.casefold))
+        if index % shard_count == shard_index
+    }
+    return [
+        symbol
+        for group_key in sorted(selected_keys, key=str.casefold)
+        for symbol in groups[group_key]
+    ]
+
+
 def _resolve_live_symbols_for_profile(args, profile: str):
     """Resuelve únicamente el universo perteneciente al bot solicitado."""
     from brokers.mt5_connector import MT5Connector
@@ -1216,10 +1280,15 @@ def _resolve_live_symbols_for_profile(args, profile: str):
 
         spec = BOT_PROFILES[profile]
         if spec.get("shard_count"):
-            universe = _stable_symbol_shard(
+            shard_args = (
                 universe,
                 int(spec.get("shard_index", 0)),
                 int(spec.get("shard_count", 1)),
+            )
+            universe = (
+                _stable_grouped_symbol_shard(*shard_args, key=_forex_native_family_key)
+                if profile.startswith("FOREX")
+                else _stable_symbol_shard(*shard_args)
             )
 
         if args.symbol:
@@ -1476,7 +1545,14 @@ def run_unified_multibot_daemon(args, profiles=None):
     _run_startup_database_maintenance(repo, args)
 
     connector = MT5Connector()
-    provider = MT5DataProvider(connector)
+    mt5_metadata_provider = MT5DataProvider(connector)
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+    market_data_settings = ExternalMarketDataSettings.from_environment(
+        getattr(args, "market_data_mode", None)
+    )
+    provider = build_market_data_provider(
+        mt5_metadata_provider, settings=market_data_settings,
+    )
     execution_provider = MT5ExecutionProvider(connector)
     reporting = TradeReportingService(
         repository=repo,
@@ -1569,7 +1645,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 single_entry_target_rr=2.0,
                 runner_extension_enabled=bool(
                     not profile.startswith(("FOREX", "VOLATILITY"))
-                    and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP"}
+                    and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB"}
                 ),
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
@@ -1614,6 +1690,10 @@ def run_unified_multibot_daemon(args, profiles=None):
         print(
             f"DAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION} | "
             f"MULTIBOT UNIFICADO PID={pid} | perfiles={len(engines)}"
+        )
+        print(
+            f"MARKET DATA: {market_data_settings.mode.upper()} · "
+            f"PROVIDER={market_data_settings.provider.upper()} · MT5=EXECUTION_ONLY"
         )
         print(f"Cuenta DEMO: {account.get('login')} · {account.get('server')}")
 
@@ -1677,6 +1757,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                     ) if due_symbols else []
                     engine._commit_forex_processed_symbols(results)
 
+                    session = getattr(engine, "_analysis_session_diagnostics", {})
                     last_action = (
                         str((results[-1] or {}).get("action") or "WAITING")
                         if results else "WAITING_NEXT_EVENT"
@@ -1685,13 +1766,14 @@ def run_unified_multibot_daemon(args, profiles=None):
                         profile,
                         int(spec["magic"]),
                         source="DEMO",
-                        status="RUNNING_UNIFIED",
+                        status=session.get("state") if not session.get("active", True) else "RUNNING_UNIFIED",
                         pid=pid,
                         symbols_total=len(symbols),
                         symbols_processed=len(results),
                         current_symbol=None,
                         last_action=last_action,
-                        last_reason="Proceso único MultiBot",
+                        last_reason=(f"Próxima apertura UTC: {session.get('next_activation')}; gestión de posiciones activa"
+                                     if not session.get("active", True) else "Proceso único MultiBot"),
                         details={
                             "version": DAEMONBLACKFX_VERSION,
                             "runtime_mode": "UNIFIED_PROCESS",
@@ -2182,7 +2264,12 @@ def run_multi_bot_daemon(args, profiles=None):
 
     workers = {}
     log_handles = {}
+    worker_started_at = {}
+    worker_progress_fingerprints = {}
+    worker_last_progress_at = {}
+    worker_stall_warning_at = {}
     disabled_profiles = set()
+    blocked_profiles = set()
     worker_lock = threading.RLock()
     shared_db_path = str(Path(repo.db_path).resolve())
 
@@ -2200,7 +2287,7 @@ def run_multi_bot_daemon(args, profiles=None):
             bool: `True` si el worker quedo en ejecucion.
         """
         with worker_lock:
-            if profile in disabled_profiles:
+            if profile in disabled_profiles or profile in blocked_profiles:
                 return False
             existing = workers.get(profile)
             if existing is not None and existing.poll() is None:
@@ -2220,6 +2307,11 @@ def run_multi_bot_daemon(args, profiles=None):
             "--min-rr", str(args.min_rr),
             "--coordinated-worker",
         ]
+        selected_market_data_mode = (
+            getattr(args, "market_data_mode", None)
+            or os.getenv("DAEMON_MARKET_DATA_MODE", "shadow")
+        )
+        cmd.extend(["--market-data-mode", str(selected_market_data_mode)])
         if args.execute:
             cmd.append("--execute")
         if args.verbose:
@@ -2243,6 +2335,9 @@ def run_multi_bot_daemon(args, profiles=None):
         with worker_lock:
             workers[profile] = proc
             log_handles[profile] = handle
+            worker_started_at[profile] = time.monotonic()
+            worker_progress_fingerprints.pop(profile, None)
+            worker_last_progress_at[profile] = time.monotonic()
         repo.save_audit_event(
             "BOT_WORKER_STARTED",
             source="DEMO",
@@ -2305,6 +2400,7 @@ def run_multi_bot_daemon(args, profiles=None):
         with worker_lock:
             if enabled:
                 disabled_profiles.discard(profile)
+                blocked_profiles.discard(profile)
                 started = start_worker(profile)
                 action = "WORKER_REACTIVATED" if started else "WORKER_ALREADY_RUNNING"
                 reason = "Reactivado desde el dashboard"
@@ -2324,6 +2420,7 @@ def run_multi_bot_daemon(args, profiles=None):
                         ),
                     }
                 disabled_profiles.add(profile)
+                blocked_profiles.discard(profile)
                 proc = workers.pop(profile, None)
                 handle = log_handles.pop(profile, None)
                 action = "STRATEGY_DISABLED_FROM_DASHBOARD"
@@ -2361,8 +2458,14 @@ def run_multi_bot_daemon(args, profiles=None):
     if dashboard_service is not None:
         dashboard_service.set_worker_controller(set_worker_enabled)
 
+    startup_stagger = max(
+        0.0,
+        float(os.getenv("DAEMON_WORKER_START_STAGGER_SECONDS", "1.0")),
+    )
     for profile in profiles:
         start_worker(profile)
+        if startup_stagger:
+            time.sleep(startup_stagger)
 
     print(f"\nDAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
     print("COORDINADOR MULTI-BOT ACTIVO")
@@ -2447,6 +2550,70 @@ def run_multi_bot_daemon(args, profiles=None):
                             row.get("bot_profile"): row
                             for row in repo.worker_runtime_states(source="DEMO")
                         }.get(profile, {})
+
+                        # El progreso se mide con telemetría del propio worker,
+                        # no con mtime del log: stdout se almacena en bloques en
+                        # Windows y puede permanecer sin cambios varios minutos.
+                        fingerprint = (
+                            existing.get("cycle_number"),
+                            existing.get("status"),
+                            existing.get("symbols_processed"),
+                            existing.get("symbols_total"),
+                            existing.get("current_symbol"),
+                            existing.get("last_action"),
+                            existing.get("last_reason"),
+                        )
+                        if worker_progress_fingerprints.get(profile) != fingerprint:
+                            worker_progress_fingerprints[profile] = fingerprint
+                            worker_last_progress_at[profile] = now
+
+                        progress_age = now - worker_last_progress_at.get(
+                            profile, worker_started_at.get(profile, now)
+                        )
+                        stall_timeout = max(
+                            60.0,
+                            float(os.getenv(
+                                "DAEMON_WORKER_STALL_TIMEOUT_SECONDS", "300"
+                            )),
+                        )
+                        if progress_age >= stall_timeout:
+                            open_positions = []
+                            for trade in repo.open_trades(source="DEMO") or []:
+                                details = trade.get("details") if isinstance(trade, dict) else {}
+                                metadata = details.get("metadata") if isinstance(details, dict) else {}
+                                if str(metadata.get("bot_profile") or "").upper() == profile:
+                                    open_positions.append(trade)
+                            last_warning = worker_stall_warning_at.get(profile, 0.0)
+                            if now - last_warning >= 60.0:
+                                worker_stall_warning_at[profile] = now
+                                reason = (
+                                    f"Sin avance de telemetría durante {progress_age:.0f}s; "
+                                    f"posiciones_abiertas={len(open_positions)}"
+                                )
+                                print(f"[WORKER STALL] {profile}: {reason}", file=sys.stderr)
+                                try:
+                                    repo.save_audit_event(
+                                        "BOT_WORKER_STALLED",
+                                        source="DEMO",
+                                        action=(
+                                            "STALL_RESTART_REQUESTED"
+                                            if not open_positions
+                                            else "STALL_RESTART_BLOCKED_OPEN_POSITIONS"
+                                        ),
+                                        reason=profile,
+                                        payload={
+                                            "profile": profile,
+                                            "pid": proc.pid,
+                                            "progress_age_seconds": progress_age,
+                                            "open_positions": len(open_positions),
+                                        },
+                                    )
+                                except Exception:
+                                    pass
+                            if not open_positions:
+                                proc.terminate()
+                                continue
+
                         repo.upsert_worker_runtime_state(
                             profile,
                             BOT_PROFILES[profile]["magic"],
@@ -2458,6 +2625,8 @@ def run_multi_bot_daemon(args, profiles=None):
                                     "WAITING_NEW_M5_BAR",
                                     "WAITING_NEW_M1_BAR",
                                     "WAITING_FOREX_DATA",
+                                    "OUTSIDE_SESSION",
+                                    "SESSION_WARMUP",
                                 }
                                 else "RUNNING"
                             ),
@@ -2474,6 +2643,52 @@ def run_multi_bot_daemon(args, profiles=None):
                         print(f"[RUNTIME HEARTBEAT ERROR] {profile}: {exc}", file=sys.stderr)
                     continue
                 if profile in disabled_profiles:
+                    continue
+                worker_stall_warning_at.pop(profile, None)
+                worker_started_at.pop(profile, None)
+                worker_progress_fingerprints.pop(profile, None)
+                worker_last_progress_at.pop(profile, None)
+                if code == 2:
+                    # Exit 2 significa que una salvaguarda de arranque (cuenta
+                    # DEMO o datos de mercado) bloqueo al worker. Reiniciarlo
+                    # cada cinco segundos no puede corregir la configuracion y
+                    # oculta el diagnostico bajo un estado STARTING perpetuo.
+                    with worker_lock:
+                        blocked_profiles.add(profile)
+                        workers.pop(profile, None)
+                        handle = log_handles.pop(profile, None)
+                    try:
+                        if handle is not None:
+                            handle.close()
+                    except Exception:
+                        pass
+                    repo.save_audit_event(
+                        "BOT_WORKER_PREFLIGHT_BLOCKED",
+                        source="DEMO",
+                        action="PREFLIGHT_BLOCKED",
+                        reason=profile,
+                        payload={"profile": profile, "exit_code": code},
+                    )
+                    try:
+                        repo.upsert_worker_runtime_state(
+                            profile,
+                            BOT_PROFILES[profile]["magic"],
+                            source="DEMO",
+                            status="BLOCKED_PREFLIGHT",
+                            pid=None,
+                            last_action="PREFLIGHT_BLOCKED",
+                            last_reason=(
+                                "Preflight rechazado; revise el log del worker y "
+                                "reactívelo después de corregir la causa"
+                            ),
+                            details={"exit_code": code, "restart_suppressed": True},
+                        )
+                    except Exception:
+                        pass
+                    print(
+                        f"[BLOCKED] {profile} no superó el preflight (código 2). "
+                        "No se reiniciará automáticamente; revise su log."
+                    )
                     continue
                 repo.save_audit_event(
                     "BOT_WORKER_STOPPED",
@@ -2757,6 +2972,130 @@ def run_reset_account_stats(confirm: bool = False):
     print("El historial no fue borrado; sólo se inició una nueva ventana estadística.")
     return result
 
+def run_market_data_preflight(args, symbols=None):
+    """Valida Deriv Charts contra los símbolos ejecutables de MT5 sin órdenes."""
+    from brokers.mt5_connector import MT5Connector
+    from brokers.mt5_data import MT5DataProvider
+    from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
+
+    connector = MT5Connector()
+    metadata = MT5DataProvider(connector)
+    settings = ExternalMarketDataSettings.from_environment("external")
+    provider = build_market_data_provider(metadata, settings=settings)
+    maximum_relative_drift = float(
+        os.getenv("DAEMON_PREFLIGHT_MAX_RELATIVE_PRICE_DRIFT", "0.05")
+    )
+    if symbols is None:
+        # Mantener el valor solicitado sin resolver permite que el error de un
+        # simbolo no publicado por Deriv se informe dentro del resultado del
+        # preflight, sin terminar la CLI con un traceback.
+        if getattr(args, "symbol", None):
+            symbols = [str(args.symbol)]
+        elif getattr(args, "categories", None):
+            symbols = _resolve_live_symbols(args)
+        else:
+            catalog = _build_multi_bot_dashboard_catalog(FULL_MULTI_BOT_PROFILES)
+            symbols = sorted(
+                {str(item) for values in catalog.values() for item in values if item},
+                key=str.casefold,
+            )
+
+    def transient_failure(message):
+        value = str(message or "").casefold()
+        return any(marker in value for marker in (
+            "rate limit",
+            "too many request",
+            "no devolvió ticks",
+            "no closed",
+            "websocket no respondió",
+            "websocket no respondio",
+            "timed out",
+            "timeout",
+            "market closed",
+        ))
+
+    results = []
+    try:
+        provider.connect()
+        for requested in symbols:
+            symbol = str(requested)
+            try:
+                symbol = provider.ensure_symbol(requested)
+                timeframes = {}
+                # M5 valida resolución, histórico, vela cerrada y normalización.
+                # Pedir cuatro timeframes aquí quintuplicaba el arranque; los
+                # demás se validan naturalmente en el primer ciclo del motor.
+                for timeframe, count in (("M5", 40),):
+                    frame = provider.get_candles(symbol, timeframe=timeframe, count=count)
+                    closed = frame[frame["complete"].astype(bool)]
+                    if closed.empty:
+                        raise RuntimeError(f"DERIV_NO_CLOSED_{timeframe}_CANDLE")
+                    timeframes[timeframe] = {
+                        "rows": len(frame),
+                        "latest_closed": closed.iloc[-1]["time"].isoformat(),
+                    }
+                deriv_tick = provider.get_current_tick(symbol)
+                mt5_tick = metadata.get_current_tick(symbol)
+                deriv_mid = (float(deriv_tick["bid"]) + float(deriv_tick["ask"])) / 2
+                mt5_mid = (float(mt5_tick["bid"]) + float(mt5_tick["ask"])) / 2
+                relative_drift = abs(deriv_mid - mt5_mid) / max(abs(mt5_mid), 1e-12)
+                if relative_drift > maximum_relative_drift:
+                    raise RuntimeError(
+                        f"DERIV_MT5_PRICE_MISMATCH relative_drift={relative_drift:.6f} "
+                        f"limit={maximum_relative_drift:.6f}"
+                    )
+                results.append({
+                    "symbol": symbol,
+                    "ok": True,
+                    "native_symbol": deriv_tick.get("native_symbol"),
+                    "source": deriv_tick.get("source"),
+                    "relative_price_drift": relative_drift,
+                    "timeframes": timeframes,
+                })
+            except Exception as exc:
+                message = str(exc)
+                results.append({
+                    "symbol": symbol,
+                    "ok": False,
+                    "deferred": transient_failure(message),
+                    "error": message,
+                })
+    finally:
+        provider.disconnect()
+
+    successful = [row for row in results if row["ok"]]
+    deferred = [row for row in results if not row["ok"] and row.get("deferred")]
+    failed = [row for row in results if not row["ok"] and not row.get("deferred")]
+    print("=" * 72)
+    print("DAEMONBLACKFX · PREFLIGHT DERIV CHARTS → MT5")
+    print("=" * 72)
+    for row in results:
+        if row["ok"]:
+            print(
+                f"[OK] {row['symbol']} -> {row['native_symbol']} | "
+                f"drift={row['relative_price_drift']:.6f} | M5/TICK=OK"
+            )
+        elif row.get("deferred"):
+            print(f"[DEFERRED] {row['symbol']} -> {row['error']}")
+        else:
+            print(f"[ERROR] {row['symbol']} -> {row['error']}")
+    print(
+        f"Resumen: OK={len(successful)} DEFERRED={len(deferred)} "
+        f"ERROR={len(failed)}"
+    )
+    runnable = successful + deferred
+    return {
+        # Un instrumento exclusivo de MT5 no debe detener una familia entera.
+        # Sólo los símbolos verificados pasan al worker de análisis/ejecución.
+        "ready": bool(runnable),
+        "all_supported": not failed,
+        "symbols": [row["symbol"] for row in runnable],
+        "results": results,
+        "deferred": deferred,
+        "failed": failed,
+    }
+
+
 def main():
     """CLI del proyecto: interpreta los argumentos y despacha el modo elegido.
 
@@ -2816,6 +3155,7 @@ def main():
             "unified-multibot-daemon",
             "report-daemon",
             "train-meta-labeling",
+            "market-data-preflight",
         ],
         default="collect",
     )
@@ -2825,6 +3165,16 @@ def main():
         type=int,
         default=60,
         help="Segundos entre ciclos en modo daemon",
+    )
+
+    parser.add_argument(
+        "--market-data-mode",
+        choices=["external", "shadow", "mt5"],
+        default=None,
+        help=(
+            "Fuente de análisis: external=Deriv, shadow=Deriv comparado con MT5, "
+            "mt5=legado. v113.1 usa shadow por defecto."
+        ),
     )
 
     parser.add_argument(
@@ -3080,6 +3430,12 @@ def main():
 
     args = parser.parse_args()
 
+    if args.mode == "market-data-preflight":
+        result = run_market_data_preflight(args)
+        if not result["ready"]:
+            raise SystemExit(2)
+        return
+
     if args.mode == "train-meta-labeling":
         run_train_meta_labeling(
             profiles=args.meta_labeling_profiles,
@@ -3194,6 +3550,16 @@ def main():
             preflight = run_demo_preflight(symbols)
             if not preflight["ready"]:
                 raise SystemExit(2)
+            market_preflight = run_market_data_preflight(args, symbols=symbols)
+            if not market_preflight["ready"]:
+                raise SystemExit(2)
+            symbols = market_preflight["symbols"]
+            if market_preflight["failed"]:
+                print(
+                    f"[MARKET DATA DEGRADED] {profile}: "
+                    f"{len(market_preflight['failed'])} instrumento(s) excluido(s); "
+                    f"{len(symbols)} validado(s) continúan."
+                )
         run_demo_bot(
             symbols,
             args.timeframe,
@@ -3213,6 +3579,7 @@ def main():
             chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
             hard_risk_tolerance=args.hard_risk_tolerance,
             recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
+            market_data_mode=args.market_data_mode,
         )
         return
 
@@ -3257,6 +3624,7 @@ def main():
                 args.interval,
                 once=True,
                 volume=args.paper_volume,
+                market_data_mode=args.market_data_mode,
             )
 
         elif args.mode == "live-paper-daemon":
@@ -3265,6 +3633,7 @@ def main():
                 args.interval,
                 once=False,
                 volume=args.paper_volume,
+                market_data_mode=args.market_data_mode,
             )
 
         elif args.mode == "demo":
@@ -3272,6 +3641,10 @@ def main():
                 preflight = run_demo_preflight(symbols)
                 if not preflight["ready"]:
                     raise SystemExit(2)
+                market_preflight = run_market_data_preflight(args, symbols=symbols)
+                if not market_preflight["ready"]:
+                    raise SystemExit(2)
+                symbols = market_preflight["symbols"]
             run_demo_bot(
                 symbols,
                 args.timeframe,
@@ -3288,6 +3661,7 @@ def main():
                 chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
+                market_data_mode=args.market_data_mode,
             )
 
         else:
@@ -3303,6 +3677,10 @@ def main():
                 preflight = run_demo_preflight(symbols)
                 if not preflight["ready"]:
                     raise SystemExit(2)
+                market_preflight = run_market_data_preflight(args, symbols=symbols)
+                if not market_preflight["ready"]:
+                    raise SystemExit(2)
+                symbols = market_preflight["symbols"]
             run_demo_bot(
                 symbols,
                 args.timeframe,
@@ -3319,6 +3697,7 @@ def main():
                 chart_pattern_conflict_min_margin=args.chart_pattern_conflict_min_margin,
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
+                market_data_mode=args.market_data_mode,
             )
 
         return
@@ -3328,6 +3707,7 @@ def main():
             once=True,
             symbol=args.symbol,
             categories=args.categories,
+            market_data_mode=args.market_data_mode,
         )
 
     elif args.mode == "daemon":
@@ -3341,6 +3721,7 @@ def main():
             once=False,
             symbol=args.symbol,
             categories=args.categories,
+            market_data_mode=args.market_data_mode,
         )
 
     elif args.mode == "report":

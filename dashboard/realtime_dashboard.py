@@ -46,7 +46,12 @@ from typing import Any
 from urllib.parse import urlparse
 
 from dashboard.account_metrics import build_account_payload
+from dashboard.quarantine_view import quarantine_snapshot
+from dashboard.smc_trial import snapshot as smc_trial_snapshot
+from strategy.ai.continuous_audit import snapshot as learning_snapshot
+from strategy.ai.trade_observation import eligibility as trade_learning_eligibility
 from dashboard.account_page import ACCOUNT_HTML
+from dashboard.page_loading import with_page_loading
 from dashboard.trade_audit_page import TRADE_AUDIT_HTML
 from reporting.trade_audit_excel_exporter import TradeAuditExcelExporter
 from services.financial_news_service import FinancialNewsService
@@ -103,6 +108,11 @@ _ACTION_LABELS_ES = {
     "MARKET_INVALIDATED_SIGNAL": "El mercado invalidó la señal antes de ejecutar",
     "ERROR": "Error durante el análisis o la ejecución",
     "NO_H1_CONTEXT": "Esperando contexto válido de H1",
+    "NO_H4_CONTEXT": "Esperando tendencia válida de H4",
+    "HTF_TREND_DIVERGENCE": "H4 y H1 no convergen",
+    "OUTSIDE_SESSION": "Fuera de sesión · análisis pausado",
+    "SESSION_WARMUP": "Preparando próxima sesión",
+    "ENTRY_LOCATION_BLOCKED": "Precio de entrada incompatible con premium/discount",
     "NO_M15_SETUP": "Esperando setup válido de M15",
     "NO_M5_CONFIRMATION": "Esperando confirmación de M5",
     "NO_M5_DATA_OR_SIGNAL": "Esperando datos o señal válida de M5",
@@ -112,11 +122,13 @@ _ACTION_LABELS_ES = {
     "WAITING_NEW_M1_BAR": "Esperando el cierre de una nueva vela M1",
     "WAITING_FOREX_DATA": "Esperando datos Forex",
     "NO_DIRECTIONAL_H1_TREND": "Esperando tendencia direccional en H1",
+    "NO_DIRECTIONAL_H4_TREND": "Esperando tendencia direccional en H4",
     "NO_DIRECTIONAL_M15_SETUP": "Esperando setup direccional en M15",
     "NO_DIRECTIONAL_M5_CONFIRMATION": "Esperando confirmación direccional en M5",
     "INVALID_DIRECTION": "Esperando una dirección BUY o SELL válida",
     "WAITING_M5_CONFIRMATION": "Esperando confirmación de M5",
     "NO_H1_DATA": "Esperando suficientes datos de H1",
+    "NO_H4_DATA": "Esperando suficientes datos de H4",
     "NO_M5_DATA_OR_SIGNAL": "Esperando datos o señal válida de M5",
     "NO_OWNED_OPEN_POSITIONS": "Sin posiciones abiertas propias para gestionar",
     "FOREX_CURRENCY_EXPOSURE_LIMIT": "Entrada bloqueada: límite de exposición por divisa",
@@ -152,6 +164,10 @@ _REASON_LABELS_ES = {
     "NO_DIRECTIONAL_M15_SETUP": "M15 no presenta todavía un setup direccional SMC válido.",
     "NO_DIRECTIONAL_M5_CONFIRMATION": "M5 no presenta todavía una confirmación direccional válida para ejecutar.",
     "NO_H1_CONTEXT": "No se pudo construir un contexto H1 válido para evaluar esta oportunidad.",
+    "NO_H4_CONTEXT": "No se pudo construir una tendencia H4 válida para evaluar esta oportunidad.",
+    "H4_H1_TREND_DIVERGENCE": "La tendencia mayor H4 y el contexto H1 apuntan en direcciones contrarias.",
+    "NO_DIRECTIONAL_H4_TREND": "H4 todavía no presenta una tendencia mayor suficientemente clara.",
+    "NO_H4_DATA": "No hay suficientes velas H4 disponibles para realizar el análisis.",
     "NO_H1_DATA": "No hay suficientes velas H1 disponibles para realizar el análisis.",
     "NO_M15_SETUP": "No se encontró un setup SMC válido en M15.",
     "NO_M5_CONFIRMATION": "El setup existe, pero M5 todavía no confirma la entrada.",
@@ -816,6 +832,7 @@ class RealtimeDashboardService:
         # v74: cachés cortas de lectura para navegación. No son fuente de verdad;
         # SQLAlchemy sigue siendo autoritativo.
         self._account_cache = {"at": 0.0, "payload": None}
+        self._account_build_lock = threading.Lock()
         self._instruments_cache = {"at": 0.0, "payload": None}
         self._snapshot_aux_cache = {"at": 0.0, "recent": None, "workers": None, "candidates": None}
         self._dashboard_snapshot_cache = {"at": 0.0, "payload": None}
@@ -913,6 +930,12 @@ class RealtimeDashboardService:
             return
 
     def _cached_account_payload(self, force=False):
+        # Only one HTTP request rebuilds the account at a time. Waiting readers
+        # recheck the TTL after the first reader has published its result.
+        with self._account_build_lock:
+            return self._build_cached_account_payload(force=force)
+
+    def _build_cached_account_payload(self, force=False):
         """Payload de cuenta con cache de corta duracion.
 
         Evita recalcular las metricas en cada refresco del navegador.
@@ -929,7 +952,7 @@ class RealtimeDashboardService:
         ):
             return cached["payload"]
         payload = _json_safe(build_account_payload(self.repository, source="DEMO"))
-        self._account_cache = {"at": now, "payload": payload}
+        self._account_cache = {"at": time.monotonic(), "payload": payload}
         return payload
 
     def _trade_audit_detail_payload(self, trade_id, account_payload=None):
@@ -966,7 +989,7 @@ class RealtimeDashboardService:
             try:
                 snapshots = self.repository.trade_audit_snapshots(
                     trade_id=trade_id,
-                    source="DEMO",
+                    source=trade.get("source") or "DEMO",
                     limit=None,
                 ) or []
             except Exception:
@@ -1020,7 +1043,7 @@ class RealtimeDashboardService:
         if hasattr(self.repository, "trade_visual_audits"):
             try:
                 visual_audit = next((
-                    row for row in (self.repository.trade_visual_audits(source="DEMO") or [])
+                    row for row in (self.repository.trade_visual_audits(source=trade.get("source") or "DEMO") or [])
                     if int(row.get("trade_id") or -1) == trade_id
                     and str(row.get("instrument") or "") == expected_instrument
                     and (
@@ -1095,7 +1118,8 @@ class RealtimeDashboardService:
                 "instrument": expected_instrument,
                 "broker_position_ticket": visual_audit.get("broker_position_ticket") or expected_ticket or None,
                 "snapshot_at": visual_audit.get("latest_updated_at") or visual_audit.get("entry_captured_at"),
-                "entry_view": entry_view,
+                "learning_eligibility": trade_learning_eligibility(trade),
+            "entry_view": entry_view,
                 "current_view": latest_market.get("current_strategy_view") or entry_view,
                 "market": latest_market,
                 "visual_context": {
@@ -1106,10 +1130,27 @@ class RealtimeDashboardService:
         return _json_safe({
             "ok": True,
             "trade": trade,
+            "learning_eligibility": trade_learning_eligibility(trade),
             "entry_view": entry_view,
             "latest": snapshots[-1] if snapshots else {},
             "snapshots": snapshots,
             "snapshot_count": len(snapshots),
+            "charts": {
+                "entry": visual_audit.get("entry_chart") or {},
+                "latest": visual_audit.get("latest_chart") or {},
+            },
+            "chart_integrity": {
+                "entry_chart_present": bool(visual_audit.get("entry_chart")),
+                "latest_chart_present": bool(visual_audit.get("latest_chart")),
+                "entry_is_immutable": True,
+                "data_source": (
+                    (visual_audit.get("entry_chart") or {}).get("data_source")
+                    or (visual_audit.get("latest_chart") or {}).get("data_source")
+                    or "DERIV_CHARTS"
+                ),
+                "entry_captured_at": visual_audit.get("entry_captured_at"),
+                "latest_updated_at": visual_audit.get("latest_updated_at"),
+            },
             "audit_integrity": {
                 # Los snapshots contradictorios ya fueron excluidos. Su presencia
                 # genera una advertencia, no invalida la descarga saneada.
@@ -2211,6 +2252,13 @@ class RealtimeDashboardService:
             self._refresh_open_positions_locked()
             self._refresh_account_locked()
             state = dict(self._state)
+            state["risk_quarantine"] = quarantine_snapshot()
+            state["smc_trial"] = smc_trial_snapshot()
+            state["learning_audit"] = learning_snapshot()
+            from dashboard.orb_audit import snapshot as orb_audit_snapshot
+            state["orb_audit"] = orb_audit_snapshot()
+            from strategy.execution.forex_spread_guard import snapshot as forex_spread_snapshot
+            state["forex_spread_audit"] = forex_spread_snapshot()
 
             now = time.monotonic()
             aux = self._snapshot_aux_cache
@@ -2293,214 +2341,3349 @@ class RealtimeDashboardService:
             return payload
 
 
-_HTML = r'''<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DaemonBlackFx - Calidad en tiempo real</title>
-<style>
-:root{color-scheme:dark;--bg:#071018;--panel:#0d1822;--panel2:#122231;--text:#e9f1f7;--muted:#8fa2b3;--line:#233647;--good:#31c48d;--warn:#f5b942;--bad:#ef6a6a;--accent:#53a7ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:1480px;margin:auto;padding:18px}.top{display:flex;gap:16px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16px}.title{font-size:22px;font-weight:800}.sub{color:var(--muted)}.badge{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}.kpi{grid-column:span 3}.wide{grid-column:span 8}.side{grid-column:span 4}.full{grid-column:1/-1}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.value{font-size:24px;font-weight:800;margin-top:5px}.progress{height:9px;background:#172633;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;background:var(--accent);width:0;transition:width .25s}.quality{display:flex;align-items:center;gap:18px}.ring{--p:0;display:grid;place-items:center;width:126px;height:126px;border-radius:50%;background:conic-gradient(var(--good) calc(var(--p)*1%),#213241 0)}.ring:after{content:"";width:94px;height:94px;border-radius:50%;background:var(--panel);position:absolute}.ring span{position:relative;z-index:1;font-size:25px;font-weight:800}.checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}.checklist{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px}.ok{color:var(--good)}.miss{color:var(--warn)}.critical{color:var(--bad)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:11px;text-transform:uppercase;position:sticky;top:0;background:var(--panel)}.tablebox{overflow:auto;max-height:440px}.score{font-weight:800}.pill{display:inline-block;padding:3px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:11px}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}.neutral{color:var(--muted)}.statusPill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:800;white-space:nowrap}.statusPill.good{background:rgba(49,196,141,.10)}.statusPill.warn{background:rgba(245,185,66,.10)}.statusPill.bad{background:rgba(239,106,106,.10)}.statusPill.neutral{background:var(--panel2)}.technical{display:block;color:var(--muted);font-size:10px;margin-top:3px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.empty{color:var(--muted);padding:20px 0}.row{display:flex;gap:10px;flex-wrap:wrap}.metric{background:var(--panel2);padding:9px 10px;border-radius:10px;min-width:110px}.metric b{display:block;margin-top:3px}.selectorHead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;padding:8px 11px;cursor:pointer}.btn.primary{background:var(--accent);color:#06111b;border-color:transparent;font-weight:800}.profileTab.active{background:var(--accent);color:#06111b;font-weight:800}.btn:disabled{opacity:.45;cursor:not-allowed}.instrumentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.instrumentGroup{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2)}.instrumentGroup h3{margin:0 0 8px;font-size:13px}.instrumentItem{display:flex;align-items:flex-start;gap:8px;padding:5px 2px}.instrumentItem input{margin-top:3px}.selectionMsg{margin-top:10px;color:var(--muted)}@media(max-width:1100px){.instrumentGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}.chartWrap{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#08131c;padding:10px;overflow:hidden}.chartSvg{width:100%;height:auto;display:block;min-height:300px}.chartHead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}.chartMeta{display:flex;gap:7px;flex-wrap:wrap}.chartLegend{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;color:var(--muted);font-size:12px}.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}.chartGrid{display:grid;grid-template-columns:1fr;gap:12px}.auditPanel{width:100%}.auditPanel{border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:11px}.auditPanel h4{margin:0 0 8px}.auditPanel #chartAudit{display:block}.auditPanel .compareGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.auditPanel .compareBox{min-height:100%}.auditList{margin:0;padding-left:18px}.auditList li{margin:4px 0}.viewBtn{white-space:nowrap}.selectedRow{background:#112536}.priceLabel{font-size:11px;font-weight:700}.layerBar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.layerToggle{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);padding:6px 9px;border-radius:999px;cursor:pointer;font-size:12px}.layerToggle input{accent-color:var(--accent)}.compareGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}.compareBox{border:1px solid var(--line);border-radius:9px;padding:9px;background:#0a1620}.compareBox h5{margin:0 0 6px;font-size:12px;text-transform:uppercase;color:var(--muted)}.entryTag{font-size:11px;font-weight:700}.rsiLabel{font-size:10px;fill:#8fa2b3}@media(max-width:700px){.compareGrid{grid-template-columns:1fr}}@media(max-width:900px){.chartGrid{grid-template-columns:1fr}}@media(max-width:900px){.kpi{grid-column:span 6}.wide,.side{grid-column:1/-1}}@media(max-width:520px){.kpi{grid-column:1/-1}.checks,.instrumentGrid{grid-template-columns:1fr}.wrap{padding:10px}.value{font-size:20px}}
+_HTML = r'''
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DaemonBlackFx - Calidad en tiempo real</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #071018;
+        --panel: #0d1822;
+        --panel2: #122231;
+        --text: #e9f1f7;
+        --muted: #8fa2b3;
+        --line: #233647;
+        --good: #31c48d;
+        --warn: #f5b942;
+        --bad: #ef6a6a;
+        --accent: #53a7ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 1480px;
+        margin: auto;
+        padding: 18px;
+      }
+      .top {
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .title {
+        font-size: 22px;
+        font-weight: 800;
+      }
+      .sub {
+        color: var(--muted);
+      }
+      .badge {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        min-width: 0;
+      }
+      .kpi {
+        grid-column: span 3;
+      }
+      .wide {
+        grid-column: span 8;
+      }
+      .side {
+        grid-column: span 4;
+      }
+      .full {
+        grid-column: 1/-1;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .value {
+        font-size: 24px;
+        font-weight: 800;
+        margin-top: 5px;
+      }
+      .progress {
+        height: 9px;
+        background: #172633;
+        border-radius: 99px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .bar {
+        height: 100%;
+        background: var(--accent);
+        width: 0;
+        transition: width 0.25s;
+      }
+      .quality {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .ring {
+        --p: 0;
+        display: grid;
+        place-items: center;
+        width: 126px;
+        height: 126px;
+        border-radius: 50%;
+        background: conic-gradient(var(--good) calc(var(--p) * 1%), #213241 0);
+      }
+      .ring:after {
+        content: '';
+        width: 94px;
+        height: 94px;
+        border-radius: 50%;
+        background: var(--panel);
+        position: absolute;
+      }
+      .ring span {
+        position: relative;
+        z-index: 1;
+        font-size: 25px;
+        font-weight: 800;
+      }
+      .checks {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .checklist {
+        max-height: 250px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .ok {
+        color: var(--good);
+      }
+      .miss {
+        color: var(--warn);
+      }
+      .critical {
+        color: var(--bad);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        position: sticky;
+        top: 0;
+        background: var(--panel);
+      }
+      .tablebox {
+        overflow: auto;
+        max-height: 440px;
+      }
+      .score {
+        font-weight: 800;
+      }
+      .pill {
+        display: inline-block;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        font-size: 11px;
+      }
+      .good {
+        color: var(--good);
+      }
+      .warn {
+        color: var(--warn);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .neutral {
+        color: var(--muted);
+      }
+      .statusPill {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .statusPill.good {
+        background: rgba(49, 196, 141, 0.1);
+      }
+      .statusPill.warn {
+        background: rgba(245, 185, 66, 0.1);
+      }
+      .statusPill.bad {
+        background: rgba(239, 106, 106, 0.1);
+      }
+      .statusPill.neutral {
+        background: var(--panel2);
+      }
+      .technical {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-top: 3px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      .empty {
+        color: var(--muted);
+        padding: 20px 0;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .metric {
+        background: var(--panel2);
+        padding: 9px 10px;
+        border-radius: 10px;
+        min-width: 110px;
+      }
+      .metric b {
+        display: block;
+        margin-top: 3px;
+      }
+      .selectorHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--text);
+        border-radius: 9px;
+        padding: 8px 11px;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #06111b;
+        border-color: transparent;
+        font-weight: 800;
+      }
+      .profileTab.active {
+        background: var(--accent);
+        color: #06111b;
+        font-weight: 800;
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .instrumentGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .instrumentGroup {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        background: var(--panel2);
+      }
+      .instrumentGroup h3 {
+        margin: 0 0 8px;
+        font-size: 13px;
+      }
+      .instrumentItem {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 5px 2px;
+      }
+      .instrumentItem input {
+        margin-top: 3px;
+      }
+      .selectionMsg {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      @media (max-width: 1100px) {
+        .instrumentGrid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .chartWrap {
+        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #08131c;
+        padding: 10px;
+        overflow: hidden;
+      }
+      .chartSvg {
+        width: 100%;
+        height: auto;
+        display: block;
+        min-height: 300px;
+      }
+      .chartHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .chartMeta {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .chartLegend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 8px 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 4px;
+      }
+      .chartGrid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .auditPanel {
+        width: 100%;
+      }
+      .auditPanel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel2);
+        padding: 11px;
+      }
+      .auditPanel h4 {
+        margin: 0 0 8px;
+      }
+      .auditPanel #chartAudit {
+        display: block;
+      }
+      .auditPanel .compareGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .auditPanel .compareBox {
+        min-height: 100%;
+      }
+      .auditList {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .auditList li {
+        margin: 4px 0;
+      }
+      .viewBtn {
+        white-space: nowrap;
+      }
+      .selectedRow {
+        background: #112536;
+      }
+      .priceLabel {
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .layerBar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 10px 0;
+      }
+      .layerToggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        padding: 6px 9px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .layerToggle input {
+        accent-color: var(--accent);
+      }
+      .compareGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-bottom: 10px;
+      }
+      .compareBox {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 9px;
+        background: #0a1620;
+      }
+      .compareBox h5 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .entryTag {
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .rsiLabel {
+        font-size: 10px;
+        fill: #8fa2b3;
+      }
+      @media (max-width: 700px) {
+        .compareGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 900px) {
+        .chartGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 900px) {
+        .kpi {
+          grid-column: span 6;
+        }
+        .wide,
+        .side {
+          grid-column: 1/-1;
+        }
+      }
+      @media (max-width: 520px) {
+        .kpi {
+          grid-column: 1/-1;
+        }
+        .checks,
+        .instrumentGrid {
+          grid-template-columns: 1fr;
+        }
+        .wrap {
+          padding: 10px;
+        }
+        .value {
+          font-size: 20px;
+        }
+      }
 
-/* BlackDaemonFX visual identity v17 */
-:root{--bg:#050708;--panel:#090d10;--panel2:#10161a;--text:#f5f5f2;--muted:#9fa5aa;--line:#5b4514;--good:#00db79;--warn:#f4b71b;--bad:#ff453a;--accent:#d79b19;--gold:#d79b19;--gold2:#f6cb57}
-body{background:radial-gradient(circle at 78% 0,rgba(215,155,25,.08),transparent 28%),#050708}
-.appShell{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}.brandSidebar{border-right:1px solid #6b4d13;background:linear-gradient(180deg,#050708,#070b0d 65%,#090806);padding:18px 14px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh}.brandLogo{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1px solid #7b5816;box-shadow:0 0 28px rgba(215,155,25,.12)}.brandName{font-size:20px;font-weight:950;letter-spacing:.05em;text-align:center}.brandName span{color:var(--gold2)}.brandTag{text-align:center;color:#c9a34a;font-size:11px;letter-spacing:.18em;text-transform:uppercase}.sideNav{display:grid;gap:7px;margin-top:4px}.sideNav a{color:#d9dde0;text-decoration:none;padding:11px 12px;border:1px solid transparent;border-radius:9px;font-weight:650}.sideNav a:hover,.sideNav a.active{background:linear-gradient(90deg,rgba(215,155,25,.24),rgba(215,155,25,.05));border-color:#6f5015;color:#ffd465}.sideStatus{margin-top:auto;border:1px solid #725116;background:#0d1214;border-radius:12px;padding:12px}.sideStatus b{color:var(--good)}.wrap{max-width:none;margin:0;padding:18px 20px 28px}.top{border-bottom:1px solid #513b12;padding-bottom:14px}.title{font-size:27px;letter-spacing:.02em}.title strong{color:var(--gold2)}.card{background:linear-gradient(145deg,#0b1013,#080b0d);border-color:#564014;box-shadow:inset 0 1px 0 rgba(255,214,111,.025)}.card:hover{border-color:#765719}.label{color:#c8a14a}.btn{border-color:#5b4514;background:#0d1215}.btn:hover{border-color:#b17e18;color:#ffd465}.btn.primary{background:linear-gradient(180deg,#f2c34b,#c58a11);color:#171000}.badge{border-color:#5b4514;background:#0c1114}.metric,.instrumentGroup,.auditPanel,.compareBox{background:#0d1215;border-color:#463711}.progress{background:#171b1d}.bar{background:linear-gradient(90deg,#9b690d,#f4c74c)}.ring{background:conic-gradient(var(--gold2) calc(var(--p)*1%),#202326 0)}.ring:after{background:#0a0e10}.pill{border-color:#4f3d14;background:#12171a}.chartWrap{background:#050809;border-color:#4f3d14}th{background:#0a0e10;color:#c6a14e}td,th{border-bottom-color:#25220f}.selectedRow{background:#18150b}.qualityKpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;grid-column:1/-1}.acctKpi{padding:16px}.acctKpi .value{font-size:26px}.acctKpi .trend{font-size:12px;margin-top:5px;color:var(--muted)}
-@media(max-width:1050px){.appShell{grid-template-columns:1fr}.brandSidebar{position:relative;height:auto;display:grid;grid-template-columns:90px 1fr;align-items:center}.brandLogo{width:90px}.sideNav{grid-column:1/-1;grid-template-columns:repeat(4,1fr)}.sideStatus{display:none}.qualityKpis{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:620px){.sideNav{grid-template-columns:1fr 1fr}.qualityKpis{grid-template-columns:1fr}.brandSidebar{grid-template-columns:72px 1fr;padding:10px}.brandLogo{width:72px}.wrap{padding:10px}}
-.workerGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.workerCard{border:1px solid #564014;border-radius:12px;background:#0d1215;padding:12px}.workerHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.workerName{font-size:18px;font-weight:900;color:#f6cb57}.workerMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}.workerMeta div{background:#10161a;border-radius:8px;padding:7px}.workerMeta span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}.workerMeta b{display:block;margin-top:2px}.workerProgress{height:7px;background:#171b1d;border-radius:99px;overflow:hidden;margin-top:10px}.workerProgress>div{height:100%;background:linear-gradient(90deg,#9b690d,#f4c74c)}.workerReason{margin-top:8px;color:var(--muted);font-size:11px;min-height:30px}.workerControl{margin-top:10px;width:100%}.workerStale{opacity:.58}.botTabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.botTab{border:1px solid #564014;background:#0d1215;color:var(--text);border-radius:999px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:800}.botTab.active{background:#d6a62d;color:#081015;border-color:#d6a62d}.candidateContext{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}@media(max-width:1100px){.workerGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.workerGrid{grid-template-columns:1fr}}
-/* v25: visor de auditoría expandible */
-.chartViewerActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}.chartViewerActions .btn{display:inline-flex;align-items:center;gap:6px;font-weight:750}.chartViewerActions .icon{font-size:15px;line-height:1}.chartCollapsible{display:block}.chartCollapsed .chartCollapsible{display:none}.chartCollapsed{padding-bottom:12px}.chartCollapsed .chartHead{align-items:center}.chartCollapsed #chartSubtitle{display:none}.chartCollapsed .chartMeta{margin-top:4px}.chartCollapsed #chartMinimizeBtn .minText:after{content:"Restaurar"}.chartCollapsed #chartMinimizeBtn .minText{font-size:0}.chartCollapsed #chartMinimizeBtn .minText:after{font-size:14px}.chartCollapsed #chartMinimizeBtn .icon{transform:rotate(180deg)}
-.chartFallbackFullscreen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;margin:0!important;border-radius:0!important;padding:16px 18px!important;background:#050708!important;overflow:auto!important;display:flex!important;flex-direction:column!important;z-index:99999}.chartFallbackFullscreen .chartCollapsible{display:flex;flex:1;min-height:0;flex-direction:column}.chartFallbackFullscreen .chartGrid{flex:1;min-height:0;grid-template-columns:1fr}.chartFallbackFullscreen .chartWrap{height:100%;min-height:0;overflow:auto}.chartFallbackFullscreen .chartSvg{width:100%;height:100%;min-height:620px}.chartFallbackFullscreen .auditPanel{overflow:auto;max-height:calc(100vh - 235px)}
-#positionChartCard:fullscreen,#positionChartCard:-webkit-full-screen{width:100vw;height:100vh;max-width:none;margin:0;border-radius:0;padding:16px 18px;background:#050708;overflow:auto;display:flex;flex-direction:column;z-index:99999}#positionChartCard:fullscreen .chartCollapsible,#positionChartCard:-webkit-full-screen .chartCollapsible{display:flex;flex:1;min-height:0;flex-direction:column}#positionChartCard:fullscreen .chartGrid,#positionChartCard:-webkit-full-screen .chartGrid{flex:1;min-height:0;grid-template-columns:1fr}#positionChartCard:fullscreen .chartWrap,#positionChartCard:-webkit-full-screen .chartWrap{min-height:0;height:100%;overflow:auto}#positionChartCard:fullscreen .chartSvg,#positionChartCard:-webkit-full-screen .chartSvg{width:100%;height:100%;min-height:620px}#positionChartCard:fullscreen .auditPanel,#positionChartCard:-webkit-full-screen .auditPanel{overflow:auto;max-height:calc(100vh - 235px)}#positionChartCard:fullscreen #chartFullscreenBtn,#positionChartCard:-webkit-full-screen #chartFullscreenBtn{border-color:#b17e18;color:#ffd465}.chartFullscreenHint{display:none;color:var(--muted);font-size:11px;margin-left:4px}#positionChartCard:fullscreen .chartFullscreenHint,#positionChartCard:-webkit-full-screen .chartFullscreenHint{display:inline}
-@media(max-width:900px){#positionChartCard:fullscreen .chartGrid,#positionChartCard:-webkit-full-screen .chartGrid{grid-template-columns:1fr}#positionChartCard:fullscreen .auditPanel,#positionChartCard:-webkit-full-screen .auditPanel{max-height:none}}
+      /* BlackDaemonFX visual identity v17 */
+      :root {
+        --bg: #050708;
+        --panel: #090d10;
+        --panel2: #10161a;
+        --text: #f5f5f2;
+        --muted: #9fa5aa;
+        --line: #5b4514;
+        --good: #00db79;
+        --warn: #f4b71b;
+        --bad: #ff453a;
+        --accent: #d79b19;
+        --gold: #d79b19;
+        --gold2: #f6cb57;
+      }
+      body {
+        background:
+          radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
+      }
+      .appShell {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .brandSidebar {
+        border-right: 1px solid #6b4d13;
+        background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .brandLogo {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1px solid #7b5816;
+        box-shadow: 0 0 28px rgba(215, 155, 25, 0.12);
+      }
+      .brandName {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+      .brandName span {
+        color: var(--gold2);
+      }
+      .brandTag {
+        text-align: center;
+        color: #c9a34a;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .sideNav {
+        display: grid;
+        gap: 7px;
+        margin-top: 4px;
+      }
+      .sideNav a {
+        color: #d9dde0;
+        text-decoration: none;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-weight: 650;
+      }
+      .sideNav a:hover,
+      .sideNav a.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.24), rgba(215, 155, 25, 0.05));
+        border-color: #6f5015;
+        color: #ffd465;
+      }
+      .sideStatus {
+        margin-top: auto;
+        border: 1px solid #725116;
+        background: #0d1214;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .sideStatus b {
+        color: var(--good);
+      }
+      .wrap {
+        max-width: none;
+        margin: 0;
+        padding: 18px 20px 28px;
+      }
+      .top {
+        border-bottom: 1px solid #513b12;
+        padding-bottom: 14px;
+      }
+      .title {
+        font-size: 27px;
+        letter-spacing: 0.02em;
+      }
+      .title strong {
+        color: var(--gold2);
+      }
+      .card {
+        background: linear-gradient(145deg, #0b1013, #080b0d);
+        border-color: #564014;
+        box-shadow: inset 0 1px 0 rgba(255, 214, 111, 0.025);
+      }
+      .card:hover {
+        border-color: #765719;
+      }
+      .label {
+        color: #c8a14a;
+      }
+      .btn {
+        border-color: #5b4514;
+        background: #0d1215;
+      }
+      .btn:hover {
+        border-color: #b17e18;
+        color: #ffd465;
+      }
+      .btn.primary {
+        background: linear-gradient(180deg, #f2c34b, #c58a11);
+        color: #171000;
+      }
+      .badge {
+        border-color: #5b4514;
+        background: #0c1114;
+      }
+      .metric,
+      .instrumentGroup,
+      .auditPanel,
+      .compareBox {
+        background: #0d1215;
+        border-color: #463711;
+      }
+      .progress {
+        background: #171b1d;
+      }
+      .bar {
+        background: linear-gradient(90deg, #9b690d, #f4c74c);
+      }
+      .ring {
+        background: conic-gradient(var(--gold2) calc(var(--p) * 1%), #202326 0);
+      }
+      .ring:after {
+        background: #0a0e10;
+      }
+      .pill {
+        border-color: #4f3d14;
+        background: #12171a;
+      }
+      .chartWrap {
+        background: #050809;
+        border-color: #4f3d14;
+      }
+      th {
+        background: #0a0e10;
+        color: #c6a14e;
+      }
+      td,
+      th {
+        border-bottom-color: #25220f;
+      }
+      .selectedRow {
+        background: #18150b;
+      }
+      .qualityKpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        grid-column: 1/-1;
+      }
+      .acctKpi {
+        padding: 16px;
+      }
+      .acctKpi .value {
+        font-size: 26px;
+      }
+      .acctKpi .trend {
+        font-size: 12px;
+        margin-top: 5px;
+        color: var(--muted);
+      }
+      @media (max-width: 1050px) {
+        .appShell {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          position: relative;
+          height: auto;
+          display: grid;
+          grid-template-columns: 90px 1fr;
+          align-items: center;
+        }
+        .brandLogo {
+          width: 90px;
+        }
+        .sideNav {
+          grid-column: 1/-1;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sideStatus {
+          display: none;
+        }
+        .qualityKpis {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 620px) {
+        .sideNav {
+          grid-template-columns: 1fr 1fr;
+        }
+        .qualityKpis {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          grid-template-columns: 72px 1fr;
+          padding: 10px;
+        }
+        .brandLogo {
+          width: 72px;
+        }
+        .wrap {
+          padding: 10px;
+        }
+      }
+      .workerGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .workerCard {
+        border: 1px solid #564014;
+        border-radius: 12px;
+        background: #0d1215;
+        padding: 12px;
+      }
+      .workerHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+      }
+      .workerName {
+        font-size: 18px;
+        font-weight: 900;
+        color: #f6cb57;
+      }
+      .workerMeta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 10px;
+      }
+      .workerMeta div {
+        background: #10161a;
+        border-radius: 8px;
+        padding: 7px;
+      }
+      .workerMeta span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .workerMeta b {
+        display: block;
+        margin-top: 2px;
+      }
+      .workerProgress {
+        height: 7px;
+        background: #171b1d;
+        border-radius: 99px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .workerProgress > div {
+        height: 100%;
+        background: linear-gradient(90deg, #9b690d, #f4c74c);
+      }
+      .workerReason {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        min-height: 30px;
+      }
+      .workerControl {
+        margin-top: 10px;
+        width: 100%;
+      }
+      .workerStale {
+        opacity: 0.58;
+      }
+      .workerPaused {
+        opacity: 0.65;
+        border-color: #59616a;
+      }
+      .workerPaused .workerName {
+        color: #aab5bf;
+      }
+      .workerPaused .workerProgress > div {
+        background: #59616a;
+      }
+      .botTabs {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .botTab {
+        border: 1px solid #564014;
+        background: #0d1215;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .botTab.active {
+        background: #d6a62d;
+        color: #081015;
+        border-color: #d6a62d;
+      }
+      .candidateContext {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-top: 7px;
+      }
+      @media (max-width: 1100px) {
+        .workerGrid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 650px) {
+        .workerGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* v25: visor de auditoría expandible */
+      .chartViewerActions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+      .chartViewerActions .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 750;
+      }
+      .chartViewerActions .icon {
+        font-size: 15px;
+        line-height: 1;
+      }
+      .chartCollapsible {
+        display: block;
+      }
+      .chartCollapsed .chartCollapsible {
+        display: none;
+      }
+      .chartCollapsed {
+        padding-bottom: 12px;
+      }
+      .chartCollapsed .chartHead {
+        align-items: center;
+      }
+      .chartCollapsed #chartSubtitle {
+        display: none;
+      }
+      .chartCollapsed .chartMeta {
+        margin-top: 4px;
+      }
+      .chartCollapsed #chartMinimizeBtn .minText:after {
+        content: 'Restaurar';
+      }
+      .chartCollapsed #chartMinimizeBtn .minText {
+        font-size: 0;
+      }
+      .chartCollapsed #chartMinimizeBtn .minText:after {
+        font-size: 14px;
+      }
+      .chartCollapsed #chartMinimizeBtn .icon {
+        transform: rotate(180deg);
+      }
+      .chartFallbackFullscreen {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 16px 18px !important;
+        background: #050708 !important;
+        overflow: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 99999;
+      }
+      .chartFallbackFullscreen .chartCollapsible {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        flex-direction: column;
+      }
+      .chartFallbackFullscreen .chartGrid {
+        flex: 1;
+        min-height: 0;
+        grid-template-columns: 1fr;
+      }
+      .chartFallbackFullscreen .chartWrap {
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+      }
+      .chartFallbackFullscreen .chartSvg {
+        width: 100%;
+        height: 100%;
+        min-height: 620px;
+      }
+      .chartFallbackFullscreen .auditPanel {
+        overflow: auto;
+        max-height: calc(100vh - 235px);
+      }
+      #positionChartCard:fullscreen,
+      #positionChartCard:-webkit-full-screen {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        margin: 0;
+        border-radius: 0;
+        padding: 16px 18px;
+        background: #050708;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        z-index: 99999;
+      }
+      #positionChartCard:fullscreen .chartCollapsible,
+      #positionChartCard:-webkit-full-screen .chartCollapsible {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        flex-direction: column;
+      }
+      #positionChartCard:fullscreen .chartGrid,
+      #positionChartCard:-webkit-full-screen .chartGrid {
+        flex: 1;
+        min-height: 0;
+        grid-template-columns: 1fr;
+      }
+      #positionChartCard:fullscreen .chartWrap,
+      #positionChartCard:-webkit-full-screen .chartWrap {
+        min-height: 0;
+        height: 100%;
+        overflow: auto;
+      }
+      #positionChartCard:fullscreen .chartSvg,
+      #positionChartCard:-webkit-full-screen .chartSvg {
+        width: 100%;
+        height: 100%;
+        min-height: 620px;
+      }
+      #positionChartCard:fullscreen .auditPanel,
+      #positionChartCard:-webkit-full-screen .auditPanel {
+        overflow: auto;
+        max-height: calc(100vh - 235px);
+      }
+      #positionChartCard:fullscreen #chartFullscreenBtn,
+      #positionChartCard:-webkit-full-screen #chartFullscreenBtn {
+        border-color: #b17e18;
+        color: #ffd465;
+      }
+      .chartFullscreenHint {
+        display: none;
+        color: var(--muted);
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      #positionChartCard:fullscreen .chartFullscreenHint,
+      #positionChartCard:-webkit-full-screen .chartFullscreenHint {
+        display: inline;
+      }
+      @media (max-width: 900px) {
+        #positionChartCard:fullscreen .chartGrid,
+        #positionChartCard:-webkit-full-screen .chartGrid {
+          grid-template-columns: 1fr;
+        }
+        #positionChartCard:fullscreen .auditPanel,
+        #positionChartCard:-webkit-full-screen .auditPanel {
+          max-height: none;
+        }
+      }
 
-/* v26: controles aplicados únicamente al gráfico + navegación temporal */
-.chartPlotColumn{min-width:0}.chartViewportShell{border:1px solid #4f3d14;border-radius:12px;background:#050809;overflow:hidden;min-width:0}.chartPlotToolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 10px;border-bottom:1px solid #342a12;background:#090d10}.timeframeBar,.chartNavTools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.tfBtn{min-width:44px;padding:6px 10px;font-weight:850}.tfBtn.active,.auditModeBtn.active{background:linear-gradient(180deg,#f2c34b,#c58a11);color:#171000;border-color:#d9a11d}.chartNavTools .btn{padding:6px 9px}.chartViewportShell .chartWrap{margin-top:0;border:0;border-radius:0;min-height:390px;cursor:grab;touch-action:none;user-select:none}.chartViewportShell .chartWrap.dragging{cursor:grabbing}.chartPlotCollapsed .chartWrap{display:none}.chartPlotCollapsed .chartPlotToolbar{border-bottom:0}.chartPlotCollapsed #chartMinimizeBtn .minText{font-size:0}.chartPlotCollapsed #chartMinimizeBtn .minText:after{content:"Restaurar";font-size:14px}.chartPlotCollapsed #chartMinimizeBtn .icon{transform:rotate(180deg)}.chartViewportShell:fullscreen,.chartViewportShell:-webkit-full-screen{width:100vw;height:100vh;background:#050708;border-radius:0;border:0;display:flex;flex-direction:column}.chartViewportShell:fullscreen .chartPlotToolbar,.chartViewportShell:-webkit-full-screen .chartPlotToolbar{flex:0 0 auto;padding:12px 16px}.chartViewportShell:fullscreen .chartWrap,.chartViewportShell:-webkit-full-screen .chartWrap{display:block!important;flex:1;min-height:0;height:calc(100vh - 62px);overflow:hidden}.chartViewportShell:fullscreen .chartSvg,.chartViewportShell:-webkit-full-screen .chartSvg{width:100%;height:100%;min-height:0}.chartManipHint{font-size:11px;color:var(--muted)}.chartZoomBadge{min-width:72px;text-align:center;font-variant-numeric:tabular-nums}.chartWrap.zooming{cursor:zoom-in}.chartWrap[data-zoomed="true"]{cursor:grab}.chartTfMode{font-size:11px}.chartTfMode.aux{color:var(--warn)}.chartTfMode.strategy{color:var(--good)}
-</style></head><body><div class="appShell"><aside class="brandSidebar"><img class="brandLogo" src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX"><div><div class="brandName">BLACKDAEMON<span>FX</span></div><div class="brandTag">Estrategia · Disciplina · Resultados</div></div><nav class="sideNav"><a class="active" href="/">▦ Dashboard</a><a href="/instruments">▥ Instrumentos</a><a href="/account">▣ Cuenta activa</a><a href="#openPositions">◈ Posiciones abiertas</a><a href="#recentAnalysis">◷ Análisis recientes</a></nav><div class="sideStatus"><b>● Daemon Online</b><div class="sub">Panel local conectado al motor</div></div></aside><main class="wrap">
-<div class="top"><div><div class="title">BLACKDAEMON<strong>FX</strong> · Control operativo</div><div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Dashboard en tiempo real</div></div><div class="actions"><a class="btn" href="/account">Cuenta activa</a><a class="btn" href="/instruments">Instrumentos</a><div class="badge" id="status">Conectando…</div></div></div>
-<div class="grid">
-<div class="qualityKpis"><div class="card acctKpi"><div class="label">Balance</div><div class="value" id="accountBalance">—</div><div class="trend">Saldo de la cuenta activa</div></div><div class="card acctKpi"><div class="label">Equity</div><div class="value" id="accountEquity">—</div><div class="trend">Capital incluyendo P&amp;L flotante</div></div><div class="card acctKpi"><div class="label">P&amp;L flotante</div><div class="value" id="accountProfit">—</div><div class="trend">Resultado de posiciones abiertas</div></div><div class="card acctKpi"><div class="label">Margen libre</div><div class="value" id="accountFreeMargin">—</div><div class="trend">Disponible para operar</div></div></div>
-<div class="card kpi"><div class="label">Workers activos</div><div class="value" id="cycle">—</div><div class="sub">Familias en ejecución</div></div>
-<div class="card kpi"><div class="label">Progreso agregado</div><div class="value" id="progressText">—</div><div class="progress"><div class="bar" id="progressBar"></div></div></div>
-<div class="card kpi"><div class="label">Actividad más reciente</div><div class="value" id="current" style="font-size:18px">—</div></div>
-<div class="card kpi"><div class="label">Operaciones abiertas</div><div class="value" id="openCount">0</div><div class="sub" id="healthSummary">Sin posiciones</div></div>
-<div class="card full"><div class="label">Procesos sintéticos por familia</div><div class="sub">Cada tarjeta representa un worker independiente y su ciclo real persistido en SQLAlchemy.</div><div class="workerGrid" id="workerGrid"><div class="empty">Esperando estado de los workers…</div></div></div>
-<div class="card full"><div class="selectorHead"><div><div class="label">Configuración de instrumentos</div><div class="sub">La selección para nuevas entradas fue separada del dashboard operativo.</div></div><div class="actions"><a class="btn primary" href="/instruments">Administrar instrumentos</a></div></div><div class="selectionMsg" id="selectionSummary">Cargando selección actual…</div></div>
-<div class="card wide"><div class="label">Último candidato analizado · contexto por bot</div><div class="sub">Selecciona el worker cuya lectura quieres auditar. TODOS muestra el worker con actividad más reciente.</div><div class="botTabs" id="candidateBotTabs"></div><div class="candidateContext" id="candidateContext"></div><div class="quality" style="margin-top:12px"><div class="ring" id="ring"><span id="score">—</span></div><div style="flex:1;min-width:220px"><div class="value" id="lastSymbol">Sin datos</div><div class="row" id="lastMeta"></div><div style="margin-top:10px" id="decision" class="sub"></div></div></div></div>
-<div class="card side"><div class="label">Confluencias</div><div class="row" style="margin-top:12px"><div class="metric"><span class="sub">Divergencia</span><b id="divergence">—</b></div><div class="metric"><span class="sub">Armónico</span><b id="harmonic">—</b></div><div class="metric"><span class="sub">Doji H1 extremo</span><b id="h1doji">—</b></div><div class="metric"><span class="sub">Estructura</span><b id="structure">—</b></div><div class="metric"><span class="sub">Zona</span><b id="zone">—</b></div></div></div>
-<div class="card full"><div class="label">Confirmaciones del último candidato</div><div class="checks" style="margin-top:12px"><div><div class="sub">Cumplidas</div><div class="checklist" id="passed"></div></div><div><div class="sub">Faltantes / críticas</div><div class="checklist" id="missing"></div></div></div></div>
-<div class="card full" id="openPositions"><div class="label">Salud de posiciones abiertas · telemetría por owner/worker</div><div class="sub" style="margin:4px 0 10px">La salud sólo se calcula con telemetría suficiente. Posiciones externas o inconsistentes quedan como NO EVALUABLE.</div><div class="tablebox"><table><thead><tr><th>Instrumento</th><th>Bot / Owner</th><th>Dir.</th><th>Salud</th><th>Recomendación</th><th>R actual</th><th>BE</th><th>Score entrada</th><th>Confirm.</th><th>Precio actual</th><th>Razones</th><th>Gráfico</th></tr></thead><tbody id="openBody"></tbody></table></div></div>
-<div class="card full" id="positionChartCard"><div class="chartHead"><div><div class="label">Auditoría visual SMC de la posición abierta</div><div class="value" id="chartTitle" style="font-size:19px">Selecciona una posición</div><div class="sub" id="chartSubtitle">Navega M1 / M5 / M15 / H1; el gráfico usa todo el ancho y la comparación Entrada vs. Ahora queda debajo.</div></div><div class="chartMeta" id="chartMeta"></div></div><div class="chartCollapsible" id="chartCollapsible"><div class="layerBar" id="chartLayers"><label class="layerToggle"><input type="checkbox" data-layer="trade" checked>Trade / SL / TP / BE</label><label class="layerToggle"><input type="checkbox" data-layer="swings" checked>Swings HH/HL/LH/LL</label><label class="layerToggle"><input type="checkbox" data-layer="structure" checked>CHOCH / BOS</label><label class="layerToggle"><input type="checkbox" data-layer="liquidity" checked>Liquidez · BSL / SSL / Sweeps</label><label class="layerToggle"><input type="checkbox" data-layer="orderblock" checked>Order Blocks</label><label class="layerToggle"><input type="checkbox" data-layer="fvg" checked>FVG / Imbalances*</label><label class="layerToggle"><input type="checkbox" data-layer="premiumdiscount" checked>Premium / Discount</label><label class="layerToggle"><input type="checkbox" data-layer="confluence" checked>Divergencia / Doji / Armónico</label><label class="layerToggle"><input type="checkbox" data-layer="rsi" checked>RSI 14</label></div><div class="chartLegend"><span><i class="dot" style="background:#53a7ff"></i>Entrada</span><span><i class="dot" style="background:#ef6a6a"></i>SL</span><span><i class="dot" style="background:#31c48d"></i>TP</span><span><i class="dot" style="background:#f5b942"></i>BE / SL actual</span><span>△/▽ eventos · zonas sombreadas = OB/FVG · *FVG es contexto auxiliar</span></div><div class="chartGrid"><div class="chartPlotColumn"><div class="chartViewportShell" id="chartViewportShell"><div class="chartPlotToolbar"><div class="timeframeBar" id="chartTimeframes"><span class="sub">Vista</span><button type="button" class="btn auditModeBtn active" data-audit-mode="ENTRY">ENTRADA</button><button type="button" class="btn auditModeBtn" data-audit-mode="CURRENT">ACTUAL</button><span class="sub">Temporalidad</span><button type="button" class="btn tfBtn" data-tf="M1">M1</button><button type="button" class="btn tfBtn active" data-tf="M5">M5</button><button type="button" class="btn tfBtn" data-tf="M15">M15</button><button type="button" class="btn tfBtn" data-tf="H1">H1</button><span class="pill chartTfMode strategy" id="chartTfMode">ESTRATEGIA</span></div><div class="chartNavTools"><span class="chartManipHint">Scroll ↑/↓ = escala vertical · arrastrar = mover gráfico completo X/Y · Ctrl+scroll = zoom de velas · doble clic = autoescala · M1 = contexto SMC auxiliar</span><span class="pill chartZoomBadge" id="chartZoomBadge">Y 1.0× · X 1.0×</span><button type="button" class="btn" id="chartZoomOutBtn" title="Reducir escala vertical">−</button><button type="button" class="btn" id="chartZoomInBtn" title="Ampliar escala vertical">+</button><button type="button" class="btn" id="chartResetViewBtn" title="Restaurar autoescala y velas recientes">Autoescala</button><button type="button" class="btn" id="chartFullscreenBtn" title="Ampliar sólo el gráfico"><span class="icon">⛶</span><span id="chartFullscreenText">Pantalla completa</span></button><button type="button" class="btn" id="chartMinimizeBtn" title="Minimizar sólo el gráfico"><span class="icon">⌃</span><span class="minText">Minimizar</span></button></div></div><div class="chartWrap" id="chartWrap"><div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div></div></div></div><aside class="auditPanel"><h4>Entrada vs. ahora</h4><div id="chartAudit" class="sub">Sin posición seleccionada.</div></aside></div></div></div>
-<div class="card full" id="financialNews"><div class="label">Agenda económica y noticias financieras</div><div class="sub" style="margin:4px 0 10px">Próximos eventos macroeconómicos en horario de Chile (Santiago). Los titulares RSS se muestran en español y se priorizan por impacto.</div><div id="economicCalendar" class="sub">Cargando agenda económica…</div><div class="label" style="margin-top:14px">Titulares recientes</div><div id="dashboardNews" class="sub">Cargando noticias…</div></div><div class="card full" id="recentAnalysis"><div class="label">Análisis recientes</div><div class="sub" style="margin:4px 0 10px">Los textos principales están traducidos a lenguaje operativo. El código técnico se conserva debajo para auditoría. La vista se equilibra por worker para que ORB, FOREX y sintéticos tengan representación.</div><div class="tablebox"><table><thead><tr><th>Bot</th><th>Instrumento</th><th>Estado</th><th>Acción</th><th>Score</th><th>% confirm.</th><th>Grado</th><th>Dirección</th><th>Divergencia</th><th>Armónico</th><th>Tiempo</th><th>Motivo explicado</th></tr></thead><tbody id="recentBody"></tbody></table></div></div>
-</div></div><script>
-const $=id=>document.getElementById(id);const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function pct(v){return v==null?'—':Number(v).toFixed(1)+'%'}function n(v,d=1){return v==null?'—':Number(v).toFixed(d)}function scoreClass(v){return v>=75?'good':v>=60?'warn':'bad'}
-function renderList(el,items,cls){el.innerHTML=(items&&items.length)?items.map(x=>`<div class="${cls}">${cls==='ok'?'✓':'•'} ${esc(x)}</div>`).join(''):'<div class="empty">Ninguna</div>'}
-let selectionDirty=false;let lastSelectionVersion=null;
-function renderCatalog(s){const summary=$('selectionSummary');if(summary){const selected=(s.selected_symbols||[]);summary.textContent=`${selected.length} instrumentos habilitados para nuevas entradas · cambios disponibles en /instruments`;return}const grid=$('instrumentGrid');if(!grid)return;}
-function currentSelection(){const grid=$('instrumentGrid');if(!grid)return [];return [...grid.querySelectorAll('input[data-symbol]:checked')].map(x=>x.dataset.symbol).sort((a,b)=>a.localeCompare(b,'es'));}
-async function saveSelection(){const selected=currentSelection();if(!selected.length){$('selectionMsg').textContent='Debes mantener al menos un instrumento seleccionado.';return}$('saveSelection').disabled=true;try{const r=await fetch('/api/instruments/selection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selected_symbols:selected})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'No se pudo guardar');selectionDirty=false;lastSelectionVersion=data.selection_version;$('selectionMsg').textContent=data.message||'Selección guardada';}catch(e){$('selectionMsg').textContent='Error: '+e.message}finally{$('saveSelection').disabled=false}}
-let latestState=null;let selectedTradeId=null;let selectedCandidateBot='TODOS';
-function priceFmt(v){if(v==null||!Number.isFinite(Number(v)))return '—';const x=Number(v);return Math.abs(x)>=10000?x.toFixed(2):Math.abs(x)>=100?x.toFixed(3):x.toFixed(5)}
-function svgEl(tag,attrs,text=''){const a=Object.entries(attrs||{}).map(([k,v])=>`${k}="${esc(v)}"`).join(' ');return `<${tag} ${a}>${text}</${tag}>`}
-const chartLayerState={trade:true,swings:true,structure:true,liquidity:true,orderblock:true,fvg:true,premiumdiscount:true,confluence:true,rsi:true};
-const chartViewState={timeframe:'M5',auditMode:'ENTRY',zoom:1,offset:0,priceZoom:1,pricePan:0,dragging:false,dragStartX:0,dragStartY:0,dragStartOffset:0,dragStartPricePan:0,maxZoom:12,maxPriceZoom:20,minVisible:8};
-function chartCard(){return $('chartViewportShell')}
-function isChartFullscreen(){const el=chartCard();return document.fullscreenElement===el||document.webkitFullscreenElement===el}
-function updateChartViewerButtons(){const full=isChartFullscreen(),shell=chartCard(),btn=$('chartFullscreenBtn'),txt=$('chartFullscreenText');if(txt)txt.textContent=full?'Salir':'Pantalla completa';if(btn)btn.setAttribute('aria-pressed',full?'true':'false');const min=$('chartMinimizeBtn');if(min)min.setAttribute('aria-expanded',shell&&!shell.classList.contains('chartPlotCollapsed')?'true':'false')}
-async function toggleChartFullscreen(){const el=chartCard();if(!el)return;try{if(isChartFullscreen()){if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}else{el.classList.remove('chartPlotCollapsed');if(el.requestFullscreen)await el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}}catch(e){console.warn('No se pudo ampliar el gráfico',e)}finally{updateChartViewerButtons()}}
-function toggleChartMinimized(){const el=chartCard();if(!el)return;if(isChartFullscreen()){const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit){try{exit.call(document)}catch(e){}}}el.classList.toggle('chartPlotCollapsed');updateChartViewerButtons();if(!el.classList.contains('chartPlotCollapsed'))rerenderSelectedChart()}
-function rerenderSelectedChart(){if(!selectedTradeId)return;const t=(latestState?.open_positions||[]).find(x=>String(x.id)===String(selectedTradeId));if(t)requestAnimationFrame(()=>renderPositionChart(t))}
-function setAuditMode(mode){mode=String(mode||'ENTRY').toUpperCase();if(!['ENTRY','CURRENT'].includes(mode))return;chartViewState.auditMode=mode;chartViewState.zoom=1;chartViewState.offset=0;chartViewState.priceZoom=1;chartViewState.pricePan=0;document.querySelectorAll('.auditModeBtn[data-audit-mode]').forEach(b=>b.classList.toggle('active',b.dataset.auditMode===mode));rerenderSelectedChart()}
-function setChartTimeframe(tf){tf=String(tf||'M5').toUpperCase();if(!['M1','M5','M15','H1'].includes(tf))return;chartViewState.timeframe=tf;chartViewState.zoom=1;chartViewState.offset=0;chartViewState.priceZoom=1;chartViewState.pricePan=0;updateChartZoomBadge();document.querySelectorAll('.tfBtn[data-tf]').forEach(b=>b.classList.toggle('active',b.dataset.tf===tf));rerenderSelectedChart()}
-function updateChartZoomBadge(){const b=$('chartZoomBadge');if(b)b.textContent='Y '+chartViewState.priceZoom.toFixed(1)+'× · X '+chartViewState.zoom.toFixed(1)+'×';const w=$('chartWrap');if(w)w.dataset.zoomed=(chartViewState.zoom>1.01||chartViewState.priceZoom>1.01||Math.abs(chartViewState.pricePan)>.001)?'true':'false'}
-function changeChartZoom(multiplier,anchorRatio=null){const t=(latestState?.open_positions||[]).find(x=>String(x.id)===String(selectedTradeId));const ec=t?.entry_chart||{},c=(chartViewState.auditMode==='ENTRY'&&Object.keys(ec).length)?ec:(t?.chart||{}),tf=(c.timeframes||{})[chartViewState.timeframe]||c,all=tf.candles||[],total=all.length;if(!total)return;const oldZoom=chartViewState.zoom,oldVisible=Math.max(chartViewState.minVisible,Math.min(total,Math.round(Math.min(total,80)/oldZoom))),oldMax=Math.max(0,total-oldVisible),oldOffset=Math.max(0,Math.min(oldMax,chartViewState.offset));const ratio=(anchorRatio==null)?0.5:Math.max(0,Math.min(1,anchorRatio));const oldEnd=total-oldOffset,oldStart=Math.max(0,oldEnd-oldVisible),anchorIndex=oldStart+ratio*Math.max(0,oldVisible-1);chartViewState.zoom=Math.max(1,Math.min(chartViewState.maxZoom,oldZoom*multiplier));const newVisible=Math.max(chartViewState.minVisible,Math.min(total,Math.round(Math.min(total,80)/chartViewState.zoom)));let newStart=anchorIndex-ratio*Math.max(0,newVisible-1);newStart=Math.max(0,Math.min(Math.max(0,total-newVisible),newStart));chartViewState.offset=Math.max(0,total-(newStart+newVisible));updateChartZoomBadge();rerenderSelectedChart()}
-function changePriceZoom(multiplier,anchorRatioY=.5){const oldZoom=chartViewState.priceZoom,oldSpan=1/oldZoom,ratio=Math.max(0,Math.min(1,anchorRatioY==null?0.5:anchorRatioY)),anchor=chartViewState.pricePan+(0.5-ratio)*oldSpan;chartViewState.priceZoom=Math.max(1,Math.min(chartViewState.maxPriceZoom,oldZoom*multiplier));const newSpan=1/chartViewState.priceZoom;chartViewState.pricePan=anchor-(0.5-ratio)*newSpan;chartViewState.pricePan=Math.max(-3,Math.min(3,chartViewState.pricePan));updateChartZoomBadge();rerenderSelectedChart()}
-function resetChartView(){chartViewState.zoom=1;chartViewState.offset=0;chartViewState.priceZoom=1;chartViewState.pricePan=0;updateChartZoomBadge();rerenderSelectedChart()}
-function chartWindow(allCandles){const total=allCandles.length;if(!total)return {candles:[],start:0,end:0};const base=Math.min(total,80);const visible=Math.max(chartViewState.minVisible,Math.min(total,Math.round(base/chartViewState.zoom)));const maxOffset=Math.max(0,total-visible);chartViewState.offset=Math.max(0,Math.min(maxOffset,Math.round(chartViewState.offset)));const end=total-chartViewState.offset;const start=Math.max(0,end-visible);return {candles:allCandles.slice(start,end),start,end}}
-function bindChartManipulation(){const wrap=$('chartWrap');if(!wrap||wrap.dataset.navBound==='1')return;wrap.dataset.navBound='1';wrap.addEventListener('wheel',e=>{if(!selectedTradeId)return;e.preventDefault();const rect=wrap.getBoundingClientRect();if(e.ctrlKey){const anchorX=rect.width>0?(e.clientX-rect.left)/rect.width:.5;changeChartZoom(e.deltaY<0?1.18:1/1.18,anchorX);return}const anchorY=rect.height>0?(e.clientY-rect.top)/rect.height:.5;changePriceZoom(e.deltaY<0?1.16:1/1.16,anchorY)},{passive:false});wrap.addEventListener('dblclick',e=>{if(!selectedTradeId)return;e.preventDefault();resetChartView()});wrap.addEventListener('pointerdown',e=>{if(!selectedTradeId||e.button!==0)return;chartViewState.dragging=true;chartViewState.dragStartX=e.clientX;chartViewState.dragStartY=e.clientY;chartViewState.dragStartOffset=chartViewState.offset;chartViewState.dragStartPricePan=chartViewState.pricePan;wrap.classList.add('dragging');try{wrap.setPointerCapture(e.pointerId)}catch(_){}});wrap.addEventListener('pointermove',e=>{if(!chartViewState.dragging)return;const dx=e.clientX-chartViewState.dragStartX,dy=e.clientY-chartViewState.dragStartY,width=Math.max(1,wrap.clientWidth),height=Math.max(1,wrap.clientHeight);const t=(latestState?.open_positions||[]).find(x=>String(x.id)===String(selectedTradeId));const ec=t?.entry_chart||{},c=(chartViewState.auditMode==='ENTRY'&&Object.keys(ec).length)?ec:(t?.chart||{}),tf=(c.timeframes||{})[chartViewState.timeframe]||c,all=tf.candles||[],total=all.length,baseVisible=Math.min(total,80);const visible=Math.max(chartViewState.minVisible,Math.min(total,Math.round(baseVisible/Math.max(1,chartViewState.zoom))));const pxPerCandle=width/Math.max(1,visible);const maxOffset=Math.max(0,total-visible);chartViewState.offset=Math.max(0,Math.min(maxOffset,chartViewState.dragStartOffset+dx/Math.max(1,pxPerCandle)));chartViewState.pricePan=chartViewState.dragStartPricePan+(dy/height)/Math.max(1,chartViewState.priceZoom);chartViewState.pricePan=Math.max(-3,Math.min(3,chartViewState.pricePan));updateChartZoomBadge();rerenderSelectedChart()});const stop=e=>{if(!chartViewState.dragging)return;chartViewState.dragging=false;wrap.classList.remove('dragging');if(e&&e.pointerId!=null){try{wrap.releasePointerCapture(e.pointerId)}catch(_){}}};wrap.addEventListener('pointerup',stop);wrap.addEventListener('pointercancel',stop);updateChartZoomBadge()}
-function eventLayer(ev){if(ev&&ev.layer)return String(ev.layer);const t=String(ev?.type||ev||'');if(t.includes('swing'))return 'swings';if(t.includes('choch')||t.includes('bos'))return 'structure';if(t.includes('liquidity')||t.includes('sweep'))return 'liquidity';if(t.includes('order_block'))return 'orderblock';if(t.includes('fvg'))return 'fvg';return 'confluence'}
-function nearestCandleIndex(candles,time,clamp=false){if(!time||!candles.length)return null;const target=new Date(time).getTime();if(!Number.isFinite(target))return null;const first=new Date(candles[0].time).getTime(),last=new Date(candles[candles.length-1].time).getTime();if(!clamp&&Number.isFinite(first)&&Number.isFinite(last)&&(target<first||target>last))return null;let best=null,dist=Infinity;candles.forEach((q,i)=>{const d=Math.abs(new Date(q.time).getTime()-target);if(d<dist){dist=d;best=i}});return best}
-function chartObjectX(allCandles,win,time,plotW,padLeft){const gi=nearestCandleIndex(allCandles,time,true);if(gi==null)return null;return padLeft+((gi-win.start)+.5)*plotW/Math.max(1,win.end-win.start)}
-function viewBoxHtml(title,v){const passed=(v.passed||[]).slice(0,9),missing=[...(v.missing||[]),...(v.critical_failures||[]).map(x=>'CRÍTICA: '+x)].slice(0,7),stamp=v.evaluated_at?`<div class="sub">Actualizado ${new Date(v.evaluated_at).toLocaleTimeString('es-CL')}</div>`:'';const cf=[];if(v.divergence_confirmed)cf.push('Divergencia: '+(v.divergence_type||'confirmada'));if(v.h1_doji_confirmed)cf.push('Doji H1: '+(v.h1_doji_type||'confirmado')+(v.h1_doji_zone?' · '+v.h1_doji_zone:''));if(v.harmonic_confirmed)cf.push('Armónico: '+(v.harmonic_pattern||'confirmado'));if(v.chart_pattern_confirmed)cf.push('Chartista: '+(v.chart_pattern_name||'confirmado')+' · fuerza '+(v.chart_pattern_strength==null?'—':n(Number(v.chart_pattern_strength)*100,0)+'%'));if(v.chart_pattern_conflict){const sp=v.chart_pattern_supporting_pattern,sd=v.chart_pattern_supporting_direction,ss=v.chart_pattern_supporting_strength,cp=v.chart_pattern_conflicting_pattern,cd=v.chart_pattern_conflicting_direction,cs=v.chart_pattern_conflicting_strength;cf.push('Conflicto chartista: '+(v.chart_pattern_conflict_reason||'patrones opuestos detectados'));if(sp)cf.push('A favor: '+String(sp).replaceAll('_',' ')+' · '+(sd||'—')+' · '+(ss==null?'—':n(Number(ss)*100,0)+'%'));if(cp)cf.push('En contra: '+String(cp).replaceAll('_',' ')+' · '+(cd||'—')+' · '+(cs==null?'—':n(Number(cs)*100,0)+'%'));if(v.chart_pattern_conflict_level)cf.push('Nivel conflicto: '+String(v.chart_pattern_conflict_level).replaceAll('_',' '));}return `<section class="compareBox"><h5>${esc(title)}</h5>${stamp}<div><b>${esc(v.decision||v.state||'Sin registro')}</b></div><div>${esc(v.direction||'—')} · score ${v.score==null?'—':n(v.score,0)} · ${pct(v.confirmation_percentage)}</div>${v.h1_trend?`<div>H1 ${esc(v.h1_trend)} · ${esc(v.structure_break||'—')} · ${esc(v.zone||'—')}</div>`:''}${cf.length?`<div class="warn">${cf.map(esc).join('<br>')}</div>`:''}${passed.length?`<div class="good" style="margin-top:5px">✓ ${passed.map(esc).join(' · ')}</div>`:''}${missing.length?`<div class="warn" style="margin-top:5px">• ${missing.map(esc).join(' · ')}</div>`:''}</section>`}
-function mtfAuditHtml(mtf){const order=['H1','M15','M5','M1'];return `<div style="margin-top:10px"><b>Contexto SMC multi-timeframe:</b>${order.map(tf=>{const q=mtf?.[tf]||{},c=q.context||{},ev=(q.recent_events||[]).slice(-4);return `<div class="compareBox" style="margin-top:6px"><h5>${tf}</h5><div>Zona: <b>${esc(c.zone||'—')}</b> · EQ: ${priceFmt(c.equilibrium)}</div><div>Rango: ${priceFmt(c.range_low)} → ${priceFmt(c.range_high)}</div>${ev.length?`<div style="margin-top:4px">${ev.map(x=>`<span class="pill">${esc(x.label)}</span>`).join(' ')}</div>`:'<div class="sub">Sin eventos recientes publicados.</div>'}</div>`}).join('')}</div>`}
-function renderPositionChart(t){
- if(!t){$('chartTitle').textContent='Selecciona una posición';$('chartSubtitle').textContent='Navega M1 / M5 / M15 / H1; el gráfico usa todo el ancho y la comparación Entrada vs. Ahora queda debajo.';$('chartMeta').innerHTML='';$('chartWrap').innerHTML='<div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div>';$('chartAudit').innerHTML='Sin posición seleccionada.';return}
- const requestedEntry=chartViewState.auditMode==='ENTRY',entryChart=t.entry_chart||{},hasEntry=Object.keys(entryChart).length>0,c=(requestedEntry&&hasEntry)?entryChart:(t.chart||{}),tfMap=c.timeframes||{},tf=tfMap[chartViewState.timeframe]||c,allCandles=(tf.candles||[]),win=chartWindow(allCandles),candles=win.candles,events=(tf.events||[]),zones=(tf.zones||[]),liqLevels=(tf.levels||[]),smc=tf.smc_context||{},mtf=c.multi_timeframe||{},sv=t.latest_strategy_view||{},entryView=t.entry_strategy_view||{};
- const activeTf=tf.timeframe||chartViewState.timeframe||'M5',mode=tf.context_mode||((activeTf==='M1')?'AUXILIAR':'ESTRATEGIA');
- document.querySelectorAll('.tfBtn[data-tf]').forEach(b=>b.classList.toggle('active',b.dataset.tf===chartViewState.timeframe));const modeEl=$('chartTfMode');if(modeEl){modeEl.textContent=mode;modeEl.className='pill chartTfMode '+(mode==='AUXILIAR'?'aux':'strategy')}
- $('chartTitle').textContent=`${t.symbol} · ${t.direction} · ${t.leg||'POSICIÓN'} · ${t.owner_profile||'OWNER ?'}`;const auditLabel=(requestedEntry&&hasEntry)?'EVIDENCIA DE ENTRADA PERSISTIDA':'ESTADO ACTUAL';const auditTime=(requestedEntry&&hasEntry)?t.entry_chart_captured_at:t.visual_audit_updated_at;$('chartSubtitle').textContent=`${auditLabel} · ${activeTf} · ${mode==='AUXILIAR'?'contexto visual auxiliar':'capas SMC de estrategia'} · auditoría ${auditTime?new Date(auditTime).toLocaleTimeString():'pendiente'} · owner ${t.chart_owner_profile||t.owner_profile||'—'} · recomendación ${t.recommendation||'—'}`;$('chartMeta').innerHTML=`<span class="pill ${t.health_score==null?'neutral':scoreClass(t.health_score)}">Salud ${t.health_score==null?'N/D':n(t.health_score,0)+'/100'}</span><span class="pill">${esc(t.managed_by_daemon?'GESTIONADA':'SOLO VISUAL')}</span><span class="pill">Magic ${esc(t.owner_magic||'—')}</span><span class="pill">${esc(t.current_rr==null?'R —':n(t.current_rr,2)+'R')}</span><span class="pill">Entrada ${priceFmt(t.entry_price)}</span><span class="pill">Actual ${priceFmt(t.current_price)}</span><span class="pill">${activeTf} · ${candles.length}/${allCandles.length} velas</span>`;
- const audit=[];audit.push(`<div class="compareGrid">${viewBoxHtml('Tesis al abrir',entryView)}${viewBoxHtml('Lo que ve ahora',sv)}</div>`);audit.push(`<div><b>Recomendación:</b> <span class="${t.recommendation==='MANTENER'?'good':t.recommendation==='VIGILAR'?'warn':'bad'}">${esc(t.recommendation||'—')}</span></div>`);audit.push(`<div style="margin-top:7px"><b>Mapa SMC ${esc(activeTf)}:</b> ${events.length} eventos · ${liqLevels.length} niveles de liquidez · ${zones.filter(z=>z.layer==='orderblock').length} OB · ${zones.filter(z=>z.layer==='fvg').length} FVG</div>`);audit.push(mtfAuditHtml(mtf));audit.push(`<div style="margin-top:7px"><b>Razones de salud:</b><ul class="auditList">${(t.reasons||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>Sin razones suficientes.</li>'}</ul></div>`);audit.push(`<div class="sub" style="margin-top:8px">M1 es navegación auxiliar y no modifica las condiciones de entrada. M5/M15/H1 muestran las capas SMC publicadas por el pipeline cuando están disponibles.</div>`);$('chartAudit').innerHTML=audit.join('');
- if(!candles.length){$('chartWrap').innerHTML=`<div class="empty">Auditoría visual pendiente para ${esc(t.symbol)} · owner ${esc(t.owner_profile||'no identificado')}. El worker debe publicar un snapshot persistente ${esc(activeTf)}.${tf.error?' · '+esc(tf.error):''}</div>`;return}
- const W=1000,H=540,pad={l:18,r:94,t:18,b:28},rsiH=100,rsiGap=22;const priceBottom=H-pad.b-rsiH-rsiGap,priceH=priceBottom-pad.t;const lows=candles.map(x=>Number(x.low)),highs=candles.map(x=>Number(x.high));const levelVals=[t.entry_price,t.stop_loss,t.take_profit,t.current_stop_loss,t.current_price,smc.range_high,smc.range_low,smc.equilibrium].map(Number).filter(Number.isFinite);let min=Math.min(...lows,...levelVals),max=Math.max(...highs,...levelVals);let span=max-min;if(!(span>0))span=Math.max(1,Math.abs(max)*.01);min-=span*.08;max+=span*.08;const autoCenter=(min+max)/2,autoSpan=Math.max(1e-12,max-min),visibleSpan=autoSpan/Math.max(1,chartViewState.priceZoom),visibleCenter=autoCenter+chartViewState.pricePan*autoSpan;min=visibleCenter-visibleSpan/2;max=visibleCenter+visibleSpan/2;const plotW=W-pad.l-pad.r;const x=i=>pad.l+(i+.5)*plotW/candles.length;const y=v=>pad.t+(max-Number(v))/(max-min)*priceH;const cw=Math.max(2,plotW/candles.length*.55);const rsiTop=priceBottom+rsiGap,rsiY=v=>rsiTop+(100-Number(v))/100*rsiH;
- let out=`<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Auditoría SMC ${esc(activeTf)} de ${esc(t.symbol)}"><defs><clipPath id="chartPriceClip"><rect x="${pad.l}" y="${pad.t}" width="${plotW}" height="${priceH}"/></clipPath></defs>`;
- for(let i=0;i<=5;i++){const yy=pad.t+i*priceH/5,val=max-i*(max-min)/5;out+=`<line x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="#18303f" stroke-width="1"/><text x="${W-pad.r+7}" y="${yy+4}" fill="#8fa2b3" font-size="11">${priceFmt(val)}</text>`}
- if(chartLayerState.premiumdiscount&&smc.premium_discount_available){const eq=Number(smc.equilibrium),rh=Number(smc.range_high),rl=Number(smc.range_low);if([eq,rh,rl].every(Number.isFinite)){const top=y(Math.min(rh,max)),mid=y(eq),bot=y(Math.max(rl,min));out+=`<rect x="${pad.l}" y="${top}" width="${plotW}" height="${Math.max(0,mid-top)}" fill="#ef6a6a" opacity=".035"/><rect x="${pad.l}" y="${mid}" width="${plotW}" height="${Math.max(0,bot-mid)}" fill="#31c48d" opacity=".035"/><line x1="${pad.l}" y1="${mid}" x2="${W-pad.r}" y2="${mid}" stroke="#d6a62d" stroke-width="1" stroke-dasharray="5 5" opacity=".7"/><text x="${W-pad.r-58}" y="${Math.max(pad.t+11,top+12)}" fill="#ef9d9d" font-size="10">PREMIUM</text><text x="${W-pad.r-62}" y="${Math.min(priceBottom-4,bot-5)}" fill="#8dd8bc" font-size="10">DISCOUNT</text><text x="${W-pad.r-42}" y="${mid-4}" fill="#d6a62d" font-size="10">EQ 50%</text>`}}
- zones.filter(z=>chartLayerState[z.layer]).forEach(z=>{const xx=chartObjectX(allCandles,win,z.time,plotW,pad.l);if(xx==null)return;const lo=Number(z.low),hi=Number(z.high);if(!Number.isFinite(lo)||!Number.isFinite(hi))return;const yy1=y(hi),yy2=y(lo),zoneTop=Math.min(yy1,yy2),zoneHeight=Math.max(2,Math.abs(yy2-yy1)),zoneRight=W-pad.r,w=zoneRight-xx;if(w<=0)return;const bullish=z.direction==='BUY',col=z.layer==='fvg'?(bullish?'#7c6cff':'#bb6cff'):(bullish?'#31c48d':'#ef6a6a'),opacity=z.status==='INVALIDADA'||z.status==='RELLENADA'?'.035':'.10',zoneName=z.layer==='fvg'?'FVG':'OB';out+=`<g clip-path="url(#chartPriceClip)"><rect x="${xx}" y="${zoneTop}" width="${w}" height="${zoneHeight}" fill="${col}" opacity="${opacity}" stroke="${col}" stroke-width=".7" stroke-dasharray="${z.layer==='fvg'?'4 3':'0'}"><title>${esc(z.label)} · ${esc(z.status||'')}</title></rect><text class="zoneChartLabel" x="${xx+6}" y="${zoneTop+12}" fill="${col}" font-size="9" font-weight="700">${esc(zoneName)} ${esc(z.status||'')}</text></g>`});
- liqLevels.filter(()=>chartLayerState.liquidity).forEach(l=>{const xx=chartObjectX(allCandles,win,l.time,plotW,pad.l),pv=Number(l.price);if(xx==null||!Number.isFinite(pv))return;const yy=y(pv),col=l.type==='buy_side_liquidity'?'#f5b942':'#53a7ff';if(xx>=W-pad.r)return;out+=`<g clip-path="url(#chartPriceClip)"><line x1="${xx}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="${col}" stroke-width="1" stroke-dasharray="2 5" opacity=".65"><title>${esc(l.label)}</title></line><text x="${xx+5}" y="${yy-4}" fill="${col}" font-size="9">${l.type==='buy_side_liquidity'?'BSL':'SSL'}</text></g>`});
- candles.forEach((q,i)=>{const xx=x(i),yo=y(q.open),yc=y(q.close),yh=y(q.high),yl=y(q.low),up=Number(q.close)>=Number(q.open),col=up?'#31c48d':'#ef6a6a';out+=`<line x1="${xx}" y1="${yh}" x2="${xx}" y2="${yl}" stroke="${col}" stroke-width="1.2"/>`;out+=`<rect x="${xx-cw/2}" y="${Math.min(yo,yc)}" width="${cw}" height="${Math.max(1,Math.abs(yc-yo))}" fill="${col}" opacity=".88"/>`});
- if(chartLayerState.trade){const tradeLevels=[['Entrada',t.entry_price,'#53a7ff'],['SL',t.stop_loss,'#ef6a6a'],['TP',t.take_profit,'#31c48d'],['SL actual / BE',t.current_stop_loss,'#f5b942'],['Precio',t.current_price,'#d7e5ef']];tradeLevels.forEach(([lab,val,col])=>{val=Number(val);if(!Number.isFinite(val))return;const yy=y(val);out+=`<line x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity=".9"/><text class="priceLabel" x="${pad.l+5}" y="${yy-4}" fill="${col}">${esc(lab)} ${priceFmt(val)}</text>`});const ei=nearestCandleIndex(candles,t.entry_time);if(ei!=null){const ex=x(ei);out+=`<line x1="${ex}" y1="${pad.t}" x2="${ex}" y2="${priceBottom}" stroke="#53a7ff" stroke-width="1.5" stroke-dasharray="3 4" opacity=".85"/><text class="entryTag" x="${Math.min(ex+5,W-pad.r-170)}" y="${pad.t+14}" fill="#53a7ff">ENTRADA · ${entryView.score==null?'score —':'score '+n(entryView.score,0)} · ${pct(entryView.confirmation_percentage)}</text>`}}
- const timeIndex=new Map(candles.map((q,i)=>[String(q.time).slice(0,16),i]));events.filter(e=>chartLayerState[eventLayer(e)]).forEach(e=>{let i=timeIndex.get(String(e.time).slice(0,16));if(i==null)return;const xx=x(i),py=y(e.price!=null?e.price:(e.direction==='BUY'?candles[i].low:candles[i].high)),bull=e.direction==='BUY';if(e.layer==='swings'){const col=bull?'#80bfff':'#ffd36b',dy=bull?15:-7;out+=`<text x="${xx}" y="${py+dy}" text-anchor="middle" fill="${col}" font-size="9" font-weight="800"><title>${esc(e.label)}</title>${esc(e.label)}</text>`;return}const col=bull?'#53a7ff':'#f5b942',pts=bull?`${xx},${py-13} ${xx-6},${py-3} ${xx+6},${py-3}`:`${xx},${py+13} ${xx-6},${py+3} ${xx+6},${py+3}`;out+=`<polygon points="${pts}" fill="${col}"><title>${esc(e.label)}</title></polygon>`});
- if(chartLayerState.confluence){const ei=nearestCandleIndex(candles,t.entry_time);if(ei!=null){let ty=pad.t+31;const con=[];if(entryView.divergence_confirmed)con.push('DIV RSI');if(entryView.h1_doji_confirmed)con.push('DOJI H1');if(entryView.harmonic_confirmed)con.push('ARMÓNICO');if(entryView.chart_pattern_confirmed)con.push('PATRÓN '+String(entryView.chart_pattern_name||'CHARTISTA').replaceAll('_',' '));con.forEach(label=>{out+=`<text x="${Math.min(x(ei)+5,W-pad.r-100)}" y="${ty}" fill="#f5b942" font-size="10" font-weight="700">+ ${esc(label)}</text>`;ty+=13})}if(entryView.h1_doji_confirmed&&entryView.h1_doji_time){const di=nearestCandleIndex(candles,entryView.h1_doji_time);if(di!=null){const xx=x(di),py=y(candles[di].low);out+=`<circle cx="${xx}" cy="${py+11}" r="5" fill="#f5b942"><title>${esc(entryView.h1_doji_type||'Doji H1 en extremo')}</title></circle>`}}}
- if(chartLayerState.confluence&&entryView.chart_pattern_confirmed){const pe=entryView.chart_pattern_evidence||{},anchors=pe.anchors||[],pts=[];anchors.forEach(a=>{const ai=nearestCandleIndex(candles,a.time),pv=Number(a.price);if(ai==null||!Number.isFinite(pv))return;pts.push([x(ai),y(pv)]);out+=`<circle cx="${x(ai)}" cy="${y(pv)}" r="5" fill="none" stroke="#f5b942" stroke-width="2"><title>${esc(pe.pattern||entryView.chart_pattern_name||'Patrón chartista')}</title></circle>`});if(pts.length>1)out+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#f5b942" stroke-width="1.6" stroke-dasharray="5 4" opacity=".9"/>`;if(pts.length)out+=`<text x="${Math.min(pts[pts.length-1][0]+7,W-pad.r-220)}" y="${Math.max(pad.t+15,pts[pts.length-1][1]-8)}" fill="#f5b942" font-size="10" font-weight="800">${esc(String(pe.pattern||entryView.chart_pattern_name||'PATRÓN').replaceAll('_',' '))}</text>`}
- if(chartLayerState.rsi){[30,50,70].forEach(v=>{const yy=rsiY(v);out+=`<line x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}" stroke="${v===50?'#294052':'#523d28'}" stroke-width="1" stroke-dasharray="4 4"/><text class="rsiLabel" x="${W-pad.r+7}" y="${yy+3}">RSI ${v}</text>`});let pts=[];candles.forEach((q,i)=>{const rv=Number(q.rsi14);if(Number.isFinite(rv))pts.push(`${x(i)},${rsiY(rv)}`)});if(pts.length>1)out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#b6c9d7" stroke-width="1.6"/><text x="${pad.l+4}" y="${rsiTop+12}" fill="#8fa2b3" font-size="11">RSI 14 · evidencia visual para divergencias</text>`}
- const ticks=[0,Math.floor((candles.length-1)/2),candles.length-1];ticks.forEach(i=>{const d=new Date(candles[i].time);out+=`<text x="${x(i)}" y="${H-7}" text-anchor="middle" fill="#8fa2b3" font-size="11">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</text>`});out+='</svg>';$('chartWrap').innerHTML=out
-}
-function selectTrade(id){selectedTradeId=String(id);const t=(latestState?.open_positions||[]).find(x=>String(x.id)===selectedTradeId);renderPositionChart(t);renderOpenRows(latestState?.open_positions||[])}
-function renderOpenRows(rows){
- $('openBody').innerHTML=(rows||[]).map(t=>{
-   const rec=t.recommendation||'SIN DATOS';
-   const cls=rec==='MANTENER'?'good':rec==='VIGILAR'?'warn':rec==='SIN VALIDACIÓN EN VIVO'||rec==='SIN TELEMETRÍA DEL WORKER'||rec==='WORKER SIN ACTIVIDAD'?'neutral':'bad';
-   const rs=(t.reasons||[]).slice(0,5).map(x=>`• ${esc(x)}`).join('<br>');
-   const sel=String(t.id)===String(selectedTradeId)?'selectedRow':'';
-   const persisted=t.persistence_status==='PERSISTED'?'<span class="statusPill warn">PERSISTIDA · SIN CONEXIÓN</span>':'<span class="statusPill good">EN VIVO</span>';
-   const health=t.health_score==null?'—':n(t.health_score,0)+'/100';
-   const owner=t.owner_profile||'NO IDENTIFICADO';
-   const ownerStatus=t.ownership_status||'—';
-   const ownerCls=t.managed_by_daemon?'good':'warn';
-   const chartAvailable=t.chart&&Object.keys(t.chart).length;
-   return `<tr class="${sel}">
+      /* v26: controles aplicados únicamente al gráfico + navegación temporal */
+      .chartPlotColumn {
+        min-width: 0;
+      }
+      .chartViewportShell {
+        border: 1px solid #4f3d14;
+        border-radius: 12px;
+        background: #050809;
+        overflow: hidden;
+        min-width: 0;
+      }
+      .chartPlotToolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 9px 10px;
+        border-bottom: 1px solid #342a12;
+        background: #090d10;
+      }
+      .timeframeBar,
+      .chartNavTools {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .tfBtn {
+        min-width: 44px;
+        padding: 6px 10px;
+        font-weight: 850;
+      }
+      .tfBtn.active,
+      .auditModeBtn.active {
+        background: linear-gradient(180deg, #f2c34b, #c58a11);
+        color: #171000;
+        border-color: #d9a11d;
+      }
+      .chartNavTools .btn {
+        padding: 6px 9px;
+      }
+      .chartViewportShell .chartWrap {
+        margin-top: 0;
+        border: 0;
+        border-radius: 0;
+        min-height: 390px;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+      }
+      .chartViewportShell .chartWrap.dragging {
+        cursor: grabbing;
+      }
+      .chartPlotCollapsed .chartWrap {
+        display: none;
+      }
+      .chartPlotCollapsed .chartPlotToolbar {
+        border-bottom: 0;
+      }
+      .chartPlotCollapsed #chartMinimizeBtn .minText {
+        font-size: 0;
+      }
+      .chartPlotCollapsed #chartMinimizeBtn .minText:after {
+        content: 'Restaurar';
+        font-size: 14px;
+      }
+      .chartPlotCollapsed #chartMinimizeBtn .icon {
+        transform: rotate(180deg);
+      }
+      .chartViewportShell:fullscreen,
+      .chartViewportShell:-webkit-full-screen {
+        width: 100vw;
+        height: 100vh;
+        background: #050708;
+        border-radius: 0;
+        border: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .chartViewportShell:fullscreen .chartPlotToolbar,
+      .chartViewportShell:-webkit-full-screen .chartPlotToolbar {
+        flex: 0 0 auto;
+        padding: 12px 16px;
+      }
+      .chartViewportShell:fullscreen .chartWrap,
+      .chartViewportShell:-webkit-full-screen .chartWrap {
+        display: block !important;
+        flex: 1;
+        min-height: 0;
+        height: calc(100vh - 62px);
+        overflow: hidden;
+      }
+      .chartViewportShell:fullscreen .chartSvg,
+      .chartViewportShell:-webkit-full-screen .chartSvg {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+      }
+      .chartManipHint {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .chartZoomBadge {
+        min-width: 72px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .chartWrap.zooming {
+        cursor: zoom-in;
+      }
+      .chartWrap[data-zoomed='true'] {
+        cursor: grab;
+      }
+      .chartTfMode {
+        font-size: 11px;
+      }
+      .chartTfMode.aux {
+        color: var(--warn);
+      }
+      .chartTfMode.strategy {
+        color: var(--good);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="appShell">
+      <aside class="brandSidebar">
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <div>
+          <div class="brandName">BLACKDAEMON<span>FX</span></div>
+          <div class="brandTag">Estrategia · Disciplina · Resultados</div>
+        </div>
+        <nav class="sideNav">
+          <a class="active" href="/">▦ Dashboard</a><a href="/instruments">▥ Instrumentos</a
+          ><a href="/account">▣ Cuenta activa</a><a href="#openPositions">◈ Posiciones abiertas</a
+          ><a href="#recentAnalysis">◷ Análisis recientes</a>
+        </nav>
+        <div class="sideStatus">
+          <b>● Daemon Online</b>
+          <div class="sub">Panel local conectado al motor</div>
+        </div>
+      </aside>
+      <main class="wrap">
+        <div class="top">
+          <div>
+            <div class="title">BLACKDAEMON<strong>FX</strong> · Control operativo</div>
+            <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Dashboard en tiempo real</div>
+          </div>
+          <div class="actions">
+            <a class="btn" href="/account">Cuenta activa</a
+            ><a class="btn" href="/instruments">Instrumentos</a>
+            <div class="badge" id="status">Conectando…</div>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="qualityKpis">
+            <div class="card acctKpi">
+              <div class="label">Balance</div>
+              <div class="value" id="accountBalance">—</div>
+              <div class="trend">Saldo de la cuenta activa</div>
+            </div>
+            <div class="card acctKpi">
+              <div class="label">Equity</div>
+              <div class="value" id="accountEquity">—</div>
+              <div class="trend">Capital incluyendo P&amp;L flotante</div>
+            </div>
+            <div class="card acctKpi">
+              <div class="label">P&amp;L flotante</div>
+              <div class="value" id="accountProfit">—</div>
+              <div class="trend">Resultado de posiciones abiertas</div>
+            </div>
+            <div class="card acctKpi">
+              <div class="label">Margen libre</div>
+              <div class="value" id="accountFreeMargin">—</div>
+              <div class="trend">Disponible para operar</div>
+            </div>
+          </div>
+          <div class="card kpi">
+            <div class="label">Workers activos</div>
+            <div class="value" id="cycle">—</div>
+            <div class="sub">Familias en ejecución</div>
+          </div>
+          <div class="card kpi">
+            <div class="label">Progreso agregado</div>
+            <div class="value" id="progressText">—</div>
+            <div class="progress"><div class="bar" id="progressBar"></div></div>
+          </div>
+          <div class="card kpi">
+            <div class="label">Actividad más reciente</div>
+            <div class="value" id="current" style="font-size: 18px">—</div>
+          </div>
+          <div class="card kpi">
+            <div class="label">Operaciones abiertas</div>
+            <div class="value" id="openCount">0</div>
+            <div class="sub" id="healthSummary">Sin posiciones</div>
+          </div>
+          <div class="card full">
+            <div class="label">Prueba SMC · H1 y retesteo ATR</div>
+            <div class="sub">
+              Evaluaciones desde el arranque de cada worker. Las señales caducadas se agrupan; no se
+              reutilizan para entrar. Actualización y reglas efectivas visibles por worker.
+            </div>
+            <div id="learningAuditPanel"></div>
+            <div id="smcTrialPanel">Esperando datos de la prueba…</div>
+          </div>
+          <div class="card full">
+            <div class="label">Instrumentos en cuarentena</div>
+            <div class="sub">
+              Bloqueos para nuevas entradas · la liberación sigue las reglas del motor de riesgo.
+            </div>
+            <div id="quarantinePanel">Cargando cuarentena…</div>
+          </div>
+          <div class="card full">
+            <div class="label">Procesos sintéticos por familia</div>
+            <div class="sub">
+              Cada tarjeta representa un worker independiente y su ciclo real persistido en
+              SQLAlchemy.
+            </div>
+            <div class="workerGrid" id="workerGrid">
+              <div class="empty">Esperando estado de los workers…</div>
+            </div>
+          </div>
+          <div class="card full">
+            <div class="selectorHead">
+              <div>
+                <div class="label">Configuración de instrumentos</div>
+                <div class="sub">
+                  La selección para nuevas entradas fue separada del dashboard operativo.
+                </div>
+              </div>
+              <div class="actions">
+                <a class="btn primary" href="/instruments">Administrar instrumentos</a>
+              </div>
+            </div>
+            <div class="selectionMsg" id="selectionSummary">Cargando selección actual…</div>
+          </div>
+          <div class="card wide">
+            <div class="label">Último candidato analizado · contexto por bot</div>
+            <div class="sub">
+              Selecciona el worker cuya lectura quieres auditar. TODOS muestra el worker con
+              actividad más reciente.
+            </div>
+            <div class="botTabs" id="candidateBotTabs"></div>
+            <div class="candidateContext" id="candidateContext"></div>
+            <div class="quality" style="margin-top: 12px">
+              <div class="ring" id="ring"><span id="score">—</span></div>
+              <div style="flex: 1; min-width: 220px">
+                <div class="value" id="lastSymbol">Sin datos</div>
+                <div class="row" id="lastMeta"></div>
+                <div style="margin-top: 10px" id="decision" class="sub"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card side">
+            <div class="label">Confluencias</div>
+            <div class="row" style="margin-top: 12px">
+              <div class="metric"><span class="sub">Divergencia</span><b id="divergence">—</b></div>
+              <div class="metric"><span class="sub">Armónico</span><b id="harmonic">—</b></div>
+              <div class="metric"><span class="sub">Doji H1 extremo</span><b id="h1doji">—</b></div>
+              <div class="metric"><span class="sub">Estructura</span><b id="structure">—</b></div>
+              <div class="metric"><span class="sub">Zona</span><b id="zone">—</b></div>
+            </div>
+          </div>
+          <div class="card full">
+            <div class="label">Confirmaciones del último candidato</div>
+            <div class="checks" style="margin-top: 12px">
+              <div>
+                <div class="sub">Cumplidas</div>
+                <div class="checklist" id="passed"></div>
+              </div>
+              <div>
+                <div class="sub">Faltantes / críticas</div>
+                <div class="checklist" id="missing"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card full" id="openPositions">
+            <div class="label">Salud de posiciones abiertas · telemetría por owner/worker</div>
+            <div class="sub" style="margin: 4px 0 10px">
+              La salud sólo se calcula con telemetría suficiente. Posiciones externas o
+              inconsistentes quedan como NO EVALUABLE.
+            </div>
+            <div class="tablebox">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Instrumento</th>
+                    <th>Bot / Owner</th>
+                    <th>Dir.</th>
+                    <th>Salud</th>
+                    <th>Recomendación</th>
+                    <th>R actual</th>
+                    <th>BE</th>
+                    <th>Score entrada</th>
+                    <th>Confirm.</th>
+                    <th>Precio actual</th>
+                    <th>Razones</th>
+                    <th>Gráfico</th>
+                  </tr>
+                </thead>
+                <tbody id="openBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card full" id="positionChartCard">
+            <div class="chartHead">
+              <div>
+                <div class="label">Auditoría visual SMC de la posición abierta</div>
+                <div class="value" id="chartTitle" style="font-size: 19px">
+                  Selecciona una posición
+                </div>
+                <div class="sub" id="chartSubtitle">
+                  Navega M1 / M5 / M15 / H1; el gráfico usa todo el ancho y la comparación Entrada
+                  vs. Ahora queda debajo.
+                </div>
+              </div>
+              <div class="chartMeta" id="chartMeta"></div>
+            </div>
+            <div class="chartCollapsible" id="chartCollapsible">
+              <div class="layerBar" id="chartLayers">
+                <label class="layerToggle"
+                  ><input type="checkbox" data-layer="trade" checked />Trade / SL / TP / BE</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="swings" checked />Swings HH/HL/LH/LL</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="structure" checked />CHOCH / BOS</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="liquidity" checked />Liquidez · BSL / SSL /
+                  Sweeps</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="orderblock" checked />Order Blocks</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="fvg" checked />FVG / Imbalances*</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="premiumdiscount" checked />Premium /
+                  Discount</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="confluence" checked />Divergencia / Doji /
+                  Armónico</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="rsi" checked />RSI 14</label
+                >
+              </div>
+              <div class="chartLegend">
+                <span><i class="dot" style="background: #53a7ff"></i>Entrada</span
+                ><span><i class="dot" style="background: #ef6a6a"></i>SL</span
+                ><span><i class="dot" style="background: #31c48d"></i>TP</span
+                ><span><i class="dot" style="background: #f5b942"></i>BE / SL actual</span
+                ><span>△/▽ eventos · zonas sombreadas = OB/FVG · *FVG es contexto auxiliar</span>
+              </div>
+              <div class="chartGrid">
+                <div class="chartPlotColumn">
+                  <div class="chartViewportShell" id="chartViewportShell">
+                    <div class="chartPlotToolbar">
+                      <div class="timeframeBar" id="chartTimeframes">
+                        <span class="sub">Vista</span
+                        ><button
+                          type="button"
+                          class="btn auditModeBtn active"
+                          data-audit-mode="ENTRY"
+                        >
+                          ENTRADA</button
+                        ><button type="button" class="btn auditModeBtn" data-audit-mode="CURRENT">
+                          ACTUAL</button
+                        ><span class="sub">Temporalidad</span
+                        ><button type="button" class="btn tfBtn" data-tf="M1">M1</button
+                        ><button type="button" class="btn tfBtn active" data-tf="M5">M5</button
+                        ><button type="button" class="btn tfBtn" data-tf="M15">M15</button
+                        ><button type="button" class="btn tfBtn" data-tf="H1">H1</button
+                        ><span class="pill chartTfMode strategy" id="chartTfMode">ESTRATEGIA</span>
+                      </div>
+                      <div class="chartNavTools">
+                        <span class="chartManipHint"
+                          >Scroll ↑/↓ = escala vertical · arrastrar = mover gráfico completo X/Y ·
+                          Ctrl+scroll = zoom de velas · doble clic = autoescala · M1 = contexto SMC
+                          auxiliar</span
+                        ><span class="pill chartZoomBadge" id="chartZoomBadge">Y 1.0× · X 1.0×</span
+                        ><button
+                          type="button"
+                          class="btn"
+                          id="chartZoomOutBtn"
+                          title="Reducir escala vertical"
+                        >
+                          −</button
+                        ><button
+                          type="button"
+                          class="btn"
+                          id="chartZoomInBtn"
+                          title="Ampliar escala vertical"
+                        >
+                          +</button
+                        ><button
+                          type="button"
+                          class="btn"
+                          id="chartResetViewBtn"
+                          title="Restaurar autoescala y velas recientes"
+                        >
+                          Autoescala</button
+                        ><button
+                          type="button"
+                          class="btn"
+                          id="chartFullscreenBtn"
+                          title="Ampliar sólo el gráfico"
+                        >
+                          <span class="icon">⛶</span
+                          ><span id="chartFullscreenText">Pantalla completa</span></button
+                        ><button
+                          type="button"
+                          class="btn"
+                          id="chartMinimizeBtn"
+                          title="Minimizar sólo el gráfico"
+                        >
+                          <span class="icon">⌃</span><span class="minText">Minimizar</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="chartWrap" id="chartWrap">
+                      <div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div>
+                    </div>
+                  </div>
+                </div>
+                <aside class="auditPanel">
+                  <h4>Entrada vs. ahora</h4>
+                  <div id="chartAudit" class="sub">Sin posición seleccionada.</div>
+                </aside>
+              </div>
+            </div>
+          </div>
+          <div class="card full" id="financialNews">
+            <div class="label">Agenda económica y noticias financieras</div>
+            <div class="sub" style="margin: 4px 0 10px">
+              Próximos eventos macroeconómicos en horario de Chile (Santiago). Los titulares RSS se
+              muestran en español y se priorizan por impacto.
+            </div>
+            <div id="economicCalendar" class="sub">Cargando agenda económica…</div>
+            <div class="label" style="margin-top: 14px">Titulares recientes</div>
+            <div id="dashboardNews" class="sub">Cargando noticias…</div>
+          </div>
+          <div class="card full" id="recentAnalysis">
+            <div class="label">Análisis recientes</div>
+            <div class="sub" style="margin: 4px 0 10px">
+              Los textos principales están traducidos a lenguaje operativo. El código técnico se
+              conserva debajo para auditoría. La vista se equilibra por worker para que ORB, FOREX y
+              sintéticos tengan representación.
+            </div>
+            <div class="tablebox">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bot</th>
+                    <th>Instrumento</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                    <th>Score</th>
+                    <th>% confirm.</th>
+                    <th>Grado</th>
+                    <th>Dirección</th>
+                    <th>Divergencia</th>
+                    <th>Armónico</th>
+                    <th>Tiempo</th>
+                    <th>Motivo explicado</th>
+                  </tr>
+                </thead>
+                <tbody id="recentBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <script>
+          const $ = (id) => document.getElementById(id);
+          const esc = (v) =>
+            String(v ?? '—').replace(
+              /[&<>"']/g,
+              (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+            );
+          function pct(v) {
+            return v == null ? '—' : Number(v).toFixed(1) + '%';
+          }
+          function n(v, d = 1) {
+            return v == null ? '—' : Number(v).toFixed(d);
+          }
+          function scoreClass(v) {
+            return v >= 75 ? 'good' : v >= 60 ? 'warn' : 'bad';
+          }
+          function renderList(el, items, cls) {
+            el.innerHTML =
+              items && items.length
+                ? items
+                    .map((x) => `<div class="${cls}">${cls === 'ok' ? '✓' : '•'} ${esc(x)}</div>`)
+                    .join('')
+                : '<div class="empty">Ninguna</div>';
+          }
+          let selectionDirty = false;
+          let lastSelectionVersion = null;
+          function renderCatalog(s) {
+            const summary = $('selectionSummary');
+            if (summary) {
+              const selected = s.selected_symbols || [];
+              summary.textContent = `${selected.length} instrumentos habilitados para nuevas entradas · cambios disponibles en /instruments`;
+              return;
+            }
+            const grid = $('instrumentGrid');
+            if (!grid) return;
+          }
+          function currentSelection() {
+            const grid = $('instrumentGrid');
+            if (!grid) return [];
+            return [...grid.querySelectorAll('input[data-symbol]:checked')]
+              .map((x) => x.dataset.symbol)
+              .sort((a, b) => a.localeCompare(b, 'es'));
+          }
+          async function saveSelection() {
+            const selected = currentSelection();
+            if (!selected.length) {
+              $('selectionMsg').textContent =
+                'Debes mantener al menos un instrumento seleccionado.';
+              return;
+            }
+            $('saveSelection').disabled = true;
+            try {
+              const r = await fetch('/api/instruments/selection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selected_symbols: selected }),
+              });
+              const data = await r.json();
+              if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar');
+              selectionDirty = false;
+              lastSelectionVersion = data.selection_version;
+              $('selectionMsg').textContent = data.message || 'Selección guardada';
+            } catch (e) {
+              $('selectionMsg').textContent = 'Error: ' + e.message;
+            } finally {
+              $('saveSelection').disabled = false;
+            }
+          }
+          let latestState = null;
+          let selectedTradeId = null;
+          let selectedCandidateBot = 'TODOS';
+          function priceFmt(v) {
+            if (v == null || !Number.isFinite(Number(v))) return '—';
+            const x = Number(v);
+            return Math.abs(x) >= 10000
+              ? x.toFixed(2)
+              : Math.abs(x) >= 100
+                ? x.toFixed(3)
+                : x.toFixed(5);
+          }
+          function svgEl(tag, attrs, text = '') {
+            const a = Object.entries(attrs || {})
+              .map(([k, v]) => `${k}="${esc(v)}"`)
+              .join(' ');
+            return `<${tag} ${a}>${text}</${tag}>`;
+          }
+          const chartLayerState = {
+            trade: true,
+            swings: true,
+            structure: true,
+            liquidity: true,
+            orderblock: true,
+            fvg: true,
+            premiumdiscount: true,
+            confluence: true,
+            rsi: true,
+          };
+          const chartViewState = {
+            timeframe: 'M5',
+            auditMode: 'ENTRY',
+            zoom: 1,
+            offset: 0,
+            priceZoom: 1,
+            pricePan: 0,
+            dragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragStartOffset: 0,
+            dragStartPricePan: 0,
+            maxZoom: 12,
+            maxPriceZoom: 20,
+            minVisible: 8,
+          };
+          function chartCard() {
+            return $('chartViewportShell');
+          }
+          function isChartFullscreen() {
+            const el = chartCard();
+            return document.fullscreenElement === el || document.webkitFullscreenElement === el;
+          }
+          function updateChartViewerButtons() {
+            const full = isChartFullscreen(),
+              shell = chartCard(),
+              btn = $('chartFullscreenBtn'),
+              txt = $('chartFullscreenText');
+            if (txt) txt.textContent = full ? 'Salir' : 'Pantalla completa';
+            if (btn) btn.setAttribute('aria-pressed', full ? 'true' : 'false');
+            const min = $('chartMinimizeBtn');
+            if (min)
+              min.setAttribute(
+                'aria-expanded',
+                shell && !shell.classList.contains('chartPlotCollapsed') ? 'true' : 'false',
+              );
+          }
+          async function toggleChartFullscreen() {
+            const el = chartCard();
+            if (!el) return;
+            try {
+              if (isChartFullscreen()) {
+                if (document.exitFullscreen) await document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+              } else {
+                el.classList.remove('chartPlotCollapsed');
+                if (el.requestFullscreen) await el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+              }
+            } catch (e) {
+              console.warn('No se pudo ampliar el gráfico', e);
+            } finally {
+              updateChartViewerButtons();
+            }
+          }
+          function toggleChartMinimized() {
+            const el = chartCard();
+            if (!el) return;
+            if (isChartFullscreen()) {
+              const exit = document.exitFullscreen || document.webkitExitFullscreen;
+              if (exit) {
+                try {
+                  exit.call(document);
+                } catch (e) {}
+              }
+            }
+            el.classList.toggle('chartPlotCollapsed');
+            updateChartViewerButtons();
+            if (!el.classList.contains('chartPlotCollapsed')) rerenderSelectedChart();
+          }
+          function rerenderSelectedChart() {
+            if (!selectedTradeId) return;
+            const t = (latestState?.open_positions || []).find(
+              (x) => String(x.id) === String(selectedTradeId),
+            );
+            if (t) requestAnimationFrame(() => renderPositionChart(t));
+          }
+          function setAuditMode(mode) {
+            mode = String(mode || 'ENTRY').toUpperCase();
+            if (!['ENTRY', 'CURRENT'].includes(mode)) return;
+            chartViewState.auditMode = mode;
+            chartViewState.zoom = 1;
+            chartViewState.offset = 0;
+            chartViewState.priceZoom = 1;
+            chartViewState.pricePan = 0;
+            document
+              .querySelectorAll('.auditModeBtn[data-audit-mode]')
+              .forEach((b) => b.classList.toggle('active', b.dataset.auditMode === mode));
+            rerenderSelectedChart();
+          }
+          function setChartTimeframe(tf) {
+            tf = String(tf || 'M5').toUpperCase();
+            if (!['M1', 'M5', 'M15', 'H1'].includes(tf)) return;
+            chartViewState.timeframe = tf;
+            chartViewState.zoom = 1;
+            chartViewState.offset = 0;
+            chartViewState.priceZoom = 1;
+            chartViewState.pricePan = 0;
+            updateChartZoomBadge();
+            document
+              .querySelectorAll('.tfBtn[data-tf]')
+              .forEach((b) => b.classList.toggle('active', b.dataset.tf === tf));
+            rerenderSelectedChart();
+          }
+          function updateChartZoomBadge() {
+            const b = $('chartZoomBadge');
+            if (b)
+              b.textContent =
+                'Y ' +
+                chartViewState.priceZoom.toFixed(1) +
+                '× · X ' +
+                chartViewState.zoom.toFixed(1) +
+                '×';
+            const w = $('chartWrap');
+            if (w)
+              w.dataset.zoomed =
+                chartViewState.zoom > 1.01 ||
+                chartViewState.priceZoom > 1.01 ||
+                Math.abs(chartViewState.pricePan) > 0.001
+                  ? 'true'
+                  : 'false';
+          }
+          function changeChartZoom(multiplier, anchorRatio = null) {
+            const t = (latestState?.open_positions || []).find(
+              (x) => String(x.id) === String(selectedTradeId),
+            );
+            const ec = t?.entry_chart || {},
+              c =
+                chartViewState.auditMode === 'ENTRY' && Object.keys(ec).length
+                  ? ec
+                  : t?.chart || {},
+              tf = (c.timeframes || {})[chartViewState.timeframe] || c,
+              all = tf.candles || [],
+              total = all.length;
+            if (!total) return;
+            const oldZoom = chartViewState.zoom,
+              oldVisible = Math.max(
+                chartViewState.minVisible,
+                Math.min(total, Math.round(Math.min(total, 80) / oldZoom)),
+              ),
+              oldMax = Math.max(0, total - oldVisible),
+              oldOffset = Math.max(0, Math.min(oldMax, chartViewState.offset));
+            const ratio = anchorRatio == null ? 0.5 : Math.max(0, Math.min(1, anchorRatio));
+            const oldEnd = total - oldOffset,
+              oldStart = Math.max(0, oldEnd - oldVisible),
+              anchorIndex = oldStart + ratio * Math.max(0, oldVisible - 1);
+            chartViewState.zoom = Math.max(
+              1,
+              Math.min(chartViewState.maxZoom, oldZoom * multiplier),
+            );
+            const newVisible = Math.max(
+              chartViewState.minVisible,
+              Math.min(total, Math.round(Math.min(total, 80) / chartViewState.zoom)),
+            );
+            let newStart = anchorIndex - ratio * Math.max(0, newVisible - 1);
+            newStart = Math.max(0, Math.min(Math.max(0, total - newVisible), newStart));
+            chartViewState.offset = Math.max(0, total - (newStart + newVisible));
+            updateChartZoomBadge();
+            rerenderSelectedChart();
+          }
+          function changePriceZoom(multiplier, anchorRatioY = 0.5) {
+            const oldZoom = chartViewState.priceZoom,
+              oldSpan = 1 / oldZoom,
+              ratio = Math.max(0, Math.min(1, anchorRatioY == null ? 0.5 : anchorRatioY)),
+              anchor = chartViewState.pricePan + (0.5 - ratio) * oldSpan;
+            chartViewState.priceZoom = Math.max(
+              1,
+              Math.min(chartViewState.maxPriceZoom, oldZoom * multiplier),
+            );
+            const newSpan = 1 / chartViewState.priceZoom;
+            chartViewState.pricePan = anchor - (0.5 - ratio) * newSpan;
+            chartViewState.pricePan = Math.max(-3, Math.min(3, chartViewState.pricePan));
+            updateChartZoomBadge();
+            rerenderSelectedChart();
+          }
+          function resetChartView() {
+            chartViewState.zoom = 1;
+            chartViewState.offset = 0;
+            chartViewState.priceZoom = 1;
+            chartViewState.pricePan = 0;
+            updateChartZoomBadge();
+            rerenderSelectedChart();
+          }
+          function chartWindow(allCandles) {
+            const total = allCandles.length;
+            if (!total) return { candles: [], start: 0, end: 0 };
+            const base = Math.min(total, 80);
+            const visible = Math.max(
+              chartViewState.minVisible,
+              Math.min(total, Math.round(base / chartViewState.zoom)),
+            );
+            const maxOffset = Math.max(0, total - visible);
+            chartViewState.offset = Math.max(
+              0,
+              Math.min(maxOffset, Math.round(chartViewState.offset)),
+            );
+            const end = total - chartViewState.offset;
+            const start = Math.max(0, end - visible);
+            return { candles: allCandles.slice(start, end), start, end };
+          }
+          function bindChartManipulation() {
+            const wrap = $('chartWrap');
+            if (!wrap || wrap.dataset.navBound === '1') return;
+            wrap.dataset.navBound = '1';
+            wrap.addEventListener(
+              'wheel',
+              (e) => {
+                if (!selectedTradeId) return;
+                e.preventDefault();
+                const rect = wrap.getBoundingClientRect();
+                if (e.ctrlKey) {
+                  const anchorX = rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0.5;
+                  changeChartZoom(e.deltaY < 0 ? 1.18 : 1 / 1.18, anchorX);
+                  return;
+                }
+                const anchorY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
+                changePriceZoom(e.deltaY < 0 ? 1.16 : 1 / 1.16, anchorY);
+              },
+              { passive: false },
+            );
+            wrap.addEventListener('dblclick', (e) => {
+              if (!selectedTradeId) return;
+              e.preventDefault();
+              resetChartView();
+            });
+            wrap.addEventListener('pointerdown', (e) => {
+              if (!selectedTradeId || e.button !== 0) return;
+              chartViewState.dragging = true;
+              chartViewState.dragStartX = e.clientX;
+              chartViewState.dragStartY = e.clientY;
+              chartViewState.dragStartOffset = chartViewState.offset;
+              chartViewState.dragStartPricePan = chartViewState.pricePan;
+              wrap.classList.add('dragging');
+              try {
+                wrap.setPointerCapture(e.pointerId);
+              } catch (_) {}
+            });
+            wrap.addEventListener('pointermove', (e) => {
+              if (!chartViewState.dragging) return;
+              const dx = e.clientX - chartViewState.dragStartX,
+                dy = e.clientY - chartViewState.dragStartY,
+                width = Math.max(1, wrap.clientWidth),
+                height = Math.max(1, wrap.clientHeight);
+              const t = (latestState?.open_positions || []).find(
+                (x) => String(x.id) === String(selectedTradeId),
+              );
+              const ec = t?.entry_chart || {},
+                c =
+                  chartViewState.auditMode === 'ENTRY' && Object.keys(ec).length
+                    ? ec
+                    : t?.chart || {},
+                tf = (c.timeframes || {})[chartViewState.timeframe] || c,
+                all = tf.candles || [],
+                total = all.length,
+                baseVisible = Math.min(total, 80);
+              const visible = Math.max(
+                chartViewState.minVisible,
+                Math.min(total, Math.round(baseVisible / Math.max(1, chartViewState.zoom))),
+              );
+              const pxPerCandle = width / Math.max(1, visible);
+              const maxOffset = Math.max(0, total - visible);
+              chartViewState.offset = Math.max(
+                0,
+                Math.min(maxOffset, chartViewState.dragStartOffset + dx / Math.max(1, pxPerCandle)),
+              );
+              chartViewState.pricePan =
+                chartViewState.dragStartPricePan +
+                dy / height / Math.max(1, chartViewState.priceZoom);
+              chartViewState.pricePan = Math.max(-3, Math.min(3, chartViewState.pricePan));
+              updateChartZoomBadge();
+              rerenderSelectedChart();
+            });
+            const stop = (e) => {
+              if (!chartViewState.dragging) return;
+              chartViewState.dragging = false;
+              wrap.classList.remove('dragging');
+              if (e && e.pointerId != null) {
+                try {
+                  wrap.releasePointerCapture(e.pointerId);
+                } catch (_) {}
+              }
+            };
+            wrap.addEventListener('pointerup', stop);
+            wrap.addEventListener('pointercancel', stop);
+            updateChartZoomBadge();
+          }
+          function eventLayer(ev) {
+            if (ev && ev.layer) return String(ev.layer);
+            const t = String(ev?.type || ev || '');
+            if (t.includes('swing')) return 'swings';
+            if (t.includes('choch') || t.includes('bos')) return 'structure';
+            if (t.includes('liquidity') || t.includes('sweep')) return 'liquidity';
+            if (t.includes('order_block')) return 'orderblock';
+            if (t.includes('fvg')) return 'fvg';
+            return 'confluence';
+          }
+          function nearestCandleIndex(candles, time, clamp = false) {
+            if (!time || !candles.length) return null;
+            const target = new Date(time).getTime();
+            if (!Number.isFinite(target)) return null;
+            const first = new Date(candles[0].time).getTime(),
+              last = new Date(candles[candles.length - 1].time).getTime();
+            if (
+              !clamp &&
+              Number.isFinite(first) &&
+              Number.isFinite(last) &&
+              (target < first || target > last)
+            )
+              return null;
+            let best = null,
+              dist = Infinity;
+            candles.forEach((q, i) => {
+              const d = Math.abs(new Date(q.time).getTime() - target);
+              if (d < dist) {
+                dist = d;
+                best = i;
+              }
+            });
+            return best;
+          }
+          function chartObjectX(allCandles, win, time, plotW, padLeft) {
+            const gi = nearestCandleIndex(allCandles, time, true);
+            if (gi == null) return null;
+            return padLeft + ((gi - win.start + 0.5) * plotW) / Math.max(1, win.end - win.start);
+          }
+          function viewBoxHtml(title, v) {
+            const passed = (v.passed || []).slice(0, 9),
+              missing = [
+                ...(v.missing || []),
+                ...(v.critical_failures || []).map((x) => 'CRÍTICA: ' + x),
+              ].slice(0, 7),
+              stamp = v.evaluated_at
+                ? `<div class="sub">Actualizado ${new Date(v.evaluated_at).toLocaleTimeString('es-CL')}</div>`
+                : '';
+            const cf = [];
+            if (v.divergence_confirmed)
+              cf.push('Divergencia: ' + (v.divergence_type || 'confirmada'));
+            if (v.h1_doji_confirmed)
+              cf.push(
+                'Doji H1: ' +
+                  (v.h1_doji_type || 'confirmado') +
+                  (v.h1_doji_zone ? ' · ' + v.h1_doji_zone : ''),
+              );
+            if (v.harmonic_confirmed) cf.push('Armónico: ' + (v.harmonic_pattern || 'confirmado'));
+            if (v.chart_pattern_confirmed)
+              cf.push(
+                'Chartista: ' +
+                  (v.chart_pattern_name || 'confirmado') +
+                  ' · fuerza ' +
+                  (v.chart_pattern_strength == null
+                    ? '—'
+                    : n(Number(v.chart_pattern_strength) * 100, 0) + '%'),
+              );
+            if (v.chart_pattern_conflict) {
+              const sp = v.chart_pattern_supporting_pattern,
+                sd = v.chart_pattern_supporting_direction,
+                ss = v.chart_pattern_supporting_strength,
+                cp = v.chart_pattern_conflicting_pattern,
+                cd = v.chart_pattern_conflicting_direction,
+                cs = v.chart_pattern_conflicting_strength;
+              cf.push(
+                'Conflicto chartista: ' +
+                  (v.chart_pattern_conflict_reason || 'patrones opuestos detectados'),
+              );
+              if (sp)
+                cf.push(
+                  'A favor: ' +
+                    String(sp).replaceAll('_', ' ') +
+                    ' · ' +
+                    (sd || '—') +
+                    ' · ' +
+                    (ss == null ? '—' : n(Number(ss) * 100, 0) + '%'),
+                );
+              if (cp)
+                cf.push(
+                  'En contra: ' +
+                    String(cp).replaceAll('_', ' ') +
+                    ' · ' +
+                    (cd || '—') +
+                    ' · ' +
+                    (cs == null ? '—' : n(Number(cs) * 100, 0) + '%'),
+                );
+              if (v.chart_pattern_conflict_level)
+                cf.push(
+                  'Nivel conflicto: ' + String(v.chart_pattern_conflict_level).replaceAll('_', ' '),
+                );
+            }
+            return `<section class="compareBox"><h5>${esc(title)}</h5>${stamp}<div><b>${esc(v.decision || v.state || 'Sin registro')}</b></div><div>${esc(v.direction || '—')} · score ${v.score == null ? '—' : n(v.score, 0)} · ${pct(v.confirmation_percentage)}</div>${v.h1_trend ? `<div>H1 ${esc(v.h1_trend)} · ${esc(v.structure_break || '—')} · ${esc(v.zone || '—')}</div>` : ''}${cf.length ? `<div class="warn">${cf.map(esc).join('<br>')}</div>` : ''}${passed.length ? `<div class="good" style="margin-top:5px">✓ ${passed.map(esc).join(' · ')}</div>` : ''}${missing.length ? `<div class="warn" style="margin-top:5px">• ${missing.map(esc).join(' · ')}</div>` : ''}</section>`;
+          }
+          function mtfAuditHtml(mtf) {
+            const order = ['H1', 'M15', 'M5', 'M1'];
+            return `<div style="margin-top:10px"><b>Contexto SMC multi-timeframe:</b>${order
+              .map((tf) => {
+                const q = mtf?.[tf] || {},
+                  c = q.context || {},
+                  ev = (q.recent_events || []).slice(-4);
+                return `<div class="compareBox" style="margin-top:6px"><h5>${tf}</h5><div>Zona: <b>${esc(c.zone || '—')}</b> · EQ: ${priceFmt(c.equilibrium)}</div><div>Rango: ${priceFmt(c.range_low)} → ${priceFmt(c.range_high)}</div>${ev.length ? `<div style="margin-top:4px">${ev.map((x) => `<span class="pill">${esc(x.label)}</span>`).join(' ')}</div>` : '<div class="sub">Sin eventos recientes publicados.</div>'}</div>`;
+              })
+              .join('')}</div>`;
+          }
+          function renderPositionChart(t) {
+            if (!t) {
+              $('chartTitle').textContent = 'Selecciona una posición';
+              $('chartSubtitle').textContent =
+                'Navega M1 / M5 / M15 / H1; el gráfico usa todo el ancho y la comparación Entrada vs. Ahora queda debajo.';
+              $('chartMeta').innerHTML = '';
+              $('chartWrap').innerHTML =
+                '<div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div>';
+              $('chartAudit').innerHTML = 'Sin posición seleccionada.';
+              return;
+            }
+            const requestedEntry = chartViewState.auditMode === 'ENTRY',
+              entryChart = t.entry_chart || {},
+              hasEntry = Object.keys(entryChart).length > 0,
+              c = requestedEntry && hasEntry ? entryChart : t.chart || {},
+              tfMap = c.timeframes || {},
+              tf = tfMap[chartViewState.timeframe] || c,
+              allCandles = tf.candles || [],
+              win = chartWindow(allCandles),
+              candles = win.candles,
+              events = tf.events || [],
+              zones = tf.zones || [],
+              liqLevels = tf.levels || [],
+              smc = tf.smc_context || {},
+              mtf = c.multi_timeframe || {},
+              sv = t.latest_strategy_view || {},
+              entryView = t.entry_strategy_view || {};
+            const activeTf = tf.timeframe || chartViewState.timeframe || 'M5',
+              mode = tf.context_mode || (activeTf === 'M1' ? 'AUXILIAR' : 'ESTRATEGIA');
+            document
+              .querySelectorAll('.tfBtn[data-tf]')
+              .forEach((b) =>
+                b.classList.toggle('active', b.dataset.tf === chartViewState.timeframe),
+              );
+            const modeEl = $('chartTfMode');
+            if (modeEl) {
+              modeEl.textContent = mode;
+              modeEl.className = 'pill chartTfMode ' + (mode === 'AUXILIAR' ? 'aux' : 'strategy');
+            }
+            $('chartTitle').textContent =
+              `${t.symbol} · ${t.direction} · ${t.leg || 'POSICIÓN'} · ${t.owner_profile || 'OWNER ?'}`;
+            const auditLabel =
+              requestedEntry && hasEntry ? 'EVIDENCIA DE ENTRADA PERSISTIDA' : 'ESTADO ACTUAL';
+            const auditTime =
+              requestedEntry && hasEntry ? t.entry_chart_captured_at : t.visual_audit_updated_at;
+            $('chartSubtitle').textContent =
+              `${auditLabel} · ${activeTf} · ${mode === 'AUXILIAR' ? 'contexto visual auxiliar' : 'capas SMC de estrategia'} · auditoría ${auditTime ? new Date(auditTime).toLocaleTimeString() : 'pendiente'} · owner ${t.chart_owner_profile || t.owner_profile || '—'} · recomendación ${t.recommendation || '—'}`;
+            $('chartMeta').innerHTML =
+              `<span class="pill ${t.health_score == null ? 'neutral' : scoreClass(t.health_score)}">Salud ${t.health_score == null ? 'N/D' : n(t.health_score, 0) + '/100'}</span><span class="pill">${esc(t.managed_by_daemon ? 'GESTIONADA' : 'SOLO VISUAL')}</span><span class="pill">Magic ${esc(t.owner_magic || '—')}</span><span class="pill">${esc(t.current_rr == null ? 'R —' : n(t.current_rr, 2) + 'R')}</span><span class="pill">Entrada ${priceFmt(t.entry_price)}</span><span class="pill">Actual ${priceFmt(t.current_price)}</span><span class="pill">${activeTf} · ${candles.length}/${allCandles.length} velas</span>`;
+            const audit = [];
+            audit.push(
+              `<div class="compareGrid">${viewBoxHtml('Tesis al abrir', entryView)}${viewBoxHtml('Lo que ve ahora', sv)}</div>`,
+            );
+            audit.push(
+              `<div><b>Recomendación:</b> <span class="${t.recommendation === 'MANTENER' ? 'good' : t.recommendation === 'VIGILAR' ? 'warn' : 'bad'}">${esc(t.recommendation || '—')}</span></div>`,
+            );
+            audit.push(
+              `<div style="margin-top:7px"><b>Mapa SMC ${esc(activeTf)}:</b> ${events.length} eventos · ${liqLevels.length} niveles de liquidez · ${zones.filter((z) => z.layer === 'orderblock').length} OB · ${zones.filter((z) => z.layer === 'fvg').length} FVG</div>`,
+            );
+            audit.push(mtfAuditHtml(mtf));
+            audit.push(
+              `<div style="margin-top:7px"><b>Razones de salud:</b><ul class="auditList">${(t.reasons || []).map((x) => `<li>${esc(x)}</li>`).join('') || '<li>Sin razones suficientes.</li>'}</ul></div>`,
+            );
+            audit.push(
+              `<div class="sub" style="margin-top:8px">M1 es navegación auxiliar y no modifica las condiciones de entrada. M5/M15/H1 muestran las capas SMC publicadas por el pipeline cuando están disponibles.</div>`,
+            );
+            $('chartAudit').innerHTML = audit.join('');
+            if (!candles.length) {
+              $('chartWrap').innerHTML =
+                `<div class="empty">Auditoría visual pendiente para ${esc(t.symbol)} · owner ${esc(t.owner_profile || 'no identificado')}. El worker debe publicar un snapshot persistente ${esc(activeTf)}.${tf.error ? ' · ' + esc(tf.error) : ''}</div>`;
+              return;
+            }
+            const W = 1000,
+              H = 540,
+              pad = { l: 18, r: 94, t: 18, b: 28 },
+              rsiH = 100,
+              rsiGap = 22;
+            const priceBottom = H - pad.b - rsiH - rsiGap,
+              priceH = priceBottom - pad.t;
+            const lows = candles.map((x) => Number(x.low)),
+              highs = candles.map((x) => Number(x.high));
+            const levelVals = [
+              t.entry_price,
+              t.stop_loss,
+              t.take_profit,
+              t.current_stop_loss,
+              t.current_price,
+              smc.range_high,
+              smc.range_low,
+              smc.equilibrium,
+            ]
+              .map(Number)
+              .filter(Number.isFinite);
+            let min = Math.min(...lows, ...levelVals),
+              max = Math.max(...highs, ...levelVals);
+            let span = max - min;
+            if (!(span > 0)) span = Math.max(1, Math.abs(max) * 0.01);
+            min -= span * 0.08;
+            max += span * 0.08;
+            const autoCenter = (min + max) / 2,
+              autoSpan = Math.max(1e-12, max - min),
+              visibleSpan = autoSpan / Math.max(1, chartViewState.priceZoom),
+              visibleCenter = autoCenter + chartViewState.pricePan * autoSpan;
+            min = visibleCenter - visibleSpan / 2;
+            max = visibleCenter + visibleSpan / 2;
+            const plotW = W - pad.l - pad.r;
+            const x = (i) => pad.l + ((i + 0.5) * plotW) / candles.length;
+            const y = (v) => pad.t + ((max - Number(v)) / (max - min)) * priceH;
+            const cw = Math.max(2, (plotW / candles.length) * 0.55);
+            const rsiTop = priceBottom + rsiGap,
+              rsiY = (v) => rsiTop + ((100 - Number(v)) / 100) * rsiH;
+            let out = `<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Auditoría SMC ${esc(activeTf)} de ${esc(t.symbol)}"><defs><clipPath id="chartPriceClip"><rect x="${pad.l}" y="${pad.t}" width="${plotW}" height="${priceH}"/></clipPath></defs>`;
+            for (let i = 0; i <= 5; i++) {
+              const yy = pad.t + (i * priceH) / 5,
+                val = max - (i * (max - min)) / 5;
+              out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="#18303f" stroke-width="1"/><text x="${W - pad.r + 7}" y="${yy + 4}" fill="#8fa2b3" font-size="11">${priceFmt(val)}</text>`;
+            }
+            if (chartLayerState.premiumdiscount && smc.premium_discount_available) {
+              const eq = Number(smc.equilibrium),
+                rh = Number(smc.range_high),
+                rl = Number(smc.range_low);
+              if ([eq, rh, rl].every(Number.isFinite)) {
+                const top = y(Math.min(rh, max)),
+                  mid = y(eq),
+                  bot = y(Math.max(rl, min));
+                out += `<rect x="${pad.l}" y="${top}" width="${plotW}" height="${Math.max(0, mid - top)}" fill="#ef6a6a" opacity=".035"/><rect x="${pad.l}" y="${mid}" width="${plotW}" height="${Math.max(0, bot - mid)}" fill="#31c48d" opacity=".035"/><line x1="${pad.l}" y1="${mid}" x2="${W - pad.r}" y2="${mid}" stroke="#d6a62d" stroke-width="1" stroke-dasharray="5 5" opacity=".7"/><text x="${W - pad.r - 58}" y="${Math.max(pad.t + 11, top + 12)}" fill="#ef9d9d" font-size="10">PREMIUM</text><text x="${W - pad.r - 62}" y="${Math.min(priceBottom - 4, bot - 5)}" fill="#8dd8bc" font-size="10">DISCOUNT</text><text x="${W - pad.r - 42}" y="${mid - 4}" fill="#d6a62d" font-size="10">EQ 50%</text>`;
+              }
+            }
+            zones
+              .filter((z) => chartLayerState[z.layer])
+              .forEach((z) => {
+                const xx = chartObjectX(allCandles, win, z.time, plotW, pad.l);
+                if (xx == null) return;
+                const lo = Number(z.low),
+                  hi = Number(z.high);
+                if (!Number.isFinite(lo) || !Number.isFinite(hi)) return;
+                const yy1 = y(hi),
+                  yy2 = y(lo),
+                  zoneTop = Math.min(yy1, yy2),
+                  zoneHeight = Math.max(2, Math.abs(yy2 - yy1)),
+                  zoneRight = W - pad.r,
+                  w = zoneRight - xx;
+                if (w <= 0) return;
+                const bullish = z.direction === 'BUY',
+                  col =
+                    z.layer === 'fvg'
+                      ? bullish
+                        ? '#7c6cff'
+                        : '#bb6cff'
+                      : bullish
+                        ? '#31c48d'
+                        : '#ef6a6a',
+                  opacity = z.status === 'INVALIDADA' || z.status === 'RELLENADA' ? '.035' : '.10',
+                  zoneName = z.layer === 'fvg' ? 'FVG' : 'OB';
+                out += `<g clip-path="url(#chartPriceClip)"><rect x="${xx}" y="${zoneTop}" width="${w}" height="${zoneHeight}" fill="${col}" opacity="${opacity}" stroke="${col}" stroke-width=".7" stroke-dasharray="${z.layer === 'fvg' ? '4 3' : '0'}"><title>${esc(z.label)} · ${esc(z.status || '')}</title></rect><text class="zoneChartLabel" x="${xx + 6}" y="${zoneTop + 12}" fill="${col}" font-size="9" font-weight="700">${esc(zoneName)} ${esc(z.status || '')}</text></g>`;
+              });
+            liqLevels
+              .filter(() => chartLayerState.liquidity)
+              .forEach((l) => {
+                const xx = chartObjectX(allCandles, win, l.time, plotW, pad.l),
+                  pv = Number(l.price);
+                if (xx == null || !Number.isFinite(pv)) return;
+                const yy = y(pv),
+                  col = l.type === 'buy_side_liquidity' ? '#f5b942' : '#53a7ff';
+                if (xx >= W - pad.r) return;
+                out += `<g clip-path="url(#chartPriceClip)"><line x1="${xx}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1" stroke-dasharray="2 5" opacity=".65"><title>${esc(l.label)}</title></line><text x="${xx + 5}" y="${yy - 4}" fill="${col}" font-size="9">${l.type === 'buy_side_liquidity' ? 'BSL' : 'SSL'}</text></g>`;
+              });
+            candles.forEach((q, i) => {
+              const xx = x(i),
+                yo = y(q.open),
+                yc = y(q.close),
+                yh = y(q.high),
+                yl = y(q.low),
+                up = Number(q.close) >= Number(q.open),
+                col = up ? '#31c48d' : '#ef6a6a';
+              out += `<line x1="${xx}" y1="${yh}" x2="${xx}" y2="${yl}" stroke="${col}" stroke-width="1.2"/>`;
+              out += `<rect x="${xx - cw / 2}" y="${Math.min(yo, yc)}" width="${cw}" height="${Math.max(1, Math.abs(yc - yo))}" fill="${col}" opacity=".88"/>`;
+            });
+            if (chartLayerState.trade) {
+              const tradeLevels = [
+                ['Entrada', t.entry_price, '#53a7ff'],
+                ['SL', t.stop_loss, '#ef6a6a'],
+                ['TP', t.take_profit, '#31c48d'],
+                ['SL actual / BE', t.current_stop_loss, '#f5b942'],
+                ['Precio', t.current_price, '#d7e5ef'],
+              ];
+              tradeLevels.forEach(([lab, val, col]) => {
+                val = Number(val);
+                if (!Number.isFinite(val)) return;
+                const yy = y(val);
+                out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity=".9"/><text class="priceLabel" x="${pad.l + 5}" y="${yy - 4}" fill="${col}">${esc(lab)} ${priceFmt(val)}</text>`;
+              });
+              const ei = nearestCandleIndex(candles, t.entry_time);
+              if (ei != null) {
+                const ex = x(ei);
+                out += `<line x1="${ex}" y1="${pad.t}" x2="${ex}" y2="${priceBottom}" stroke="#53a7ff" stroke-width="1.5" stroke-dasharray="3 4" opacity=".85"/><text class="entryTag" x="${Math.min(ex + 5, W - pad.r - 170)}" y="${pad.t + 14}" fill="#53a7ff">ENTRADA · ${entryView.score == null ? 'score —' : 'score ' + n(entryView.score, 0)} · ${pct(entryView.confirmation_percentage)}</text>`;
+              }
+            }
+            const timeIndex = new Map(candles.map((q, i) => [String(q.time).slice(0, 16), i]));
+            events
+              .filter((e) => chartLayerState[eventLayer(e)])
+              .forEach((e) => {
+                let i = timeIndex.get(String(e.time).slice(0, 16));
+                if (i == null) return;
+                const xx = x(i),
+                  py = y(
+                    e.price != null
+                      ? e.price
+                      : e.direction === 'BUY'
+                        ? candles[i].low
+                        : candles[i].high,
+                  ),
+                  bull = e.direction === 'BUY';
+                if (e.layer === 'swings') {
+                  const col = bull ? '#80bfff' : '#ffd36b',
+                    dy = bull ? 15 : -7;
+                  out += `<text x="${xx}" y="${py + dy}" text-anchor="middle" fill="${col}" font-size="9" font-weight="800"><title>${esc(e.label)}</title>${esc(e.label)}</text>`;
+                  return;
+                }
+                const col = bull ? '#53a7ff' : '#f5b942',
+                  pts = bull
+                    ? `${xx},${py - 13} ${xx - 6},${py - 3} ${xx + 6},${py - 3}`
+                    : `${xx},${py + 13} ${xx - 6},${py + 3} ${xx + 6},${py + 3}`;
+                out += `<polygon points="${pts}" fill="${col}"><title>${esc(e.label)}</title></polygon>`;
+              });
+            if (chartLayerState.confluence) {
+              const ei = nearestCandleIndex(candles, t.entry_time);
+              if (ei != null) {
+                let ty = pad.t + 31;
+                const con = [];
+                if (entryView.divergence_confirmed) con.push('DIV RSI');
+                if (entryView.h1_doji_confirmed) con.push('DOJI H1');
+                if (entryView.harmonic_confirmed) con.push('ARMÓNICO');
+                if (entryView.chart_pattern_confirmed)
+                  con.push(
+                    'PATRÓN ' +
+                      String(entryView.chart_pattern_name || 'CHARTISTA').replaceAll('_', ' '),
+                  );
+                con.forEach((label) => {
+                  out += `<text x="${Math.min(x(ei) + 5, W - pad.r - 100)}" y="${ty}" fill="#f5b942" font-size="10" font-weight="700">+ ${esc(label)}</text>`;
+                  ty += 13;
+                });
+              }
+              if (entryView.h1_doji_confirmed && entryView.h1_doji_time) {
+                const di = nearestCandleIndex(candles, entryView.h1_doji_time);
+                if (di != null) {
+                  const xx = x(di),
+                    py = y(candles[di].low);
+                  out += `<circle cx="${xx}" cy="${py + 11}" r="5" fill="#f5b942"><title>${esc(entryView.h1_doji_type || 'Doji H1 en extremo')}</title></circle>`;
+                }
+              }
+            }
+            if (chartLayerState.confluence && entryView.chart_pattern_confirmed) {
+              const pe = entryView.chart_pattern_evidence || {},
+                anchors = pe.anchors || [],
+                pts = [];
+              anchors.forEach((a) => {
+                const ai = nearestCandleIndex(candles, a.time),
+                  pv = Number(a.price);
+                if (ai == null || !Number.isFinite(pv)) return;
+                pts.push([x(ai), y(pv)]);
+                out += `<circle cx="${x(ai)}" cy="${y(pv)}" r="5" fill="none" stroke="#f5b942" stroke-width="2"><title>${esc(pe.pattern || entryView.chart_pattern_name || 'Patrón chartista')}</title></circle>`;
+              });
+              if (pts.length > 1)
+                out += `<polyline points="${pts.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#f5b942" stroke-width="1.6" stroke-dasharray="5 4" opacity=".9"/>`;
+              if (pts.length)
+                out += `<text x="${Math.min(pts[pts.length - 1][0] + 7, W - pad.r - 220)}" y="${Math.max(pad.t + 15, pts[pts.length - 1][1] - 8)}" fill="#f5b942" font-size="10" font-weight="800">${esc(String(pe.pattern || entryView.chart_pattern_name || 'PATRÓN').replaceAll('_', ' '))}</text>`;
+            }
+            if (chartLayerState.rsi) {
+              [30, 50, 70].forEach((v) => {
+                const yy = rsiY(v);
+                out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${v === 50 ? '#294052' : '#523d28'}" stroke-width="1" stroke-dasharray="4 4"/><text class="rsiLabel" x="${W - pad.r + 7}" y="${yy + 3}">RSI ${v}</text>`;
+              });
+              let pts = [];
+              candles.forEach((q, i) => {
+                const rv = Number(q.rsi14);
+                if (Number.isFinite(rv)) pts.push(`${x(i)},${rsiY(rv)}`);
+              });
+              if (pts.length > 1)
+                out += `<polyline points="${pts.join(' ')}" fill="none" stroke="#b6c9d7" stroke-width="1.6"/><text x="${pad.l + 4}" y="${rsiTop + 12}" fill="#8fa2b3" font-size="11">RSI 14 · evidencia visual para divergencias</text>`;
+            }
+            const ticks = [0, Math.floor((candles.length - 1) / 2), candles.length - 1];
+            ticks.forEach((i) => {
+              const d = new Date(candles[i].time);
+              out += `<text x="${x(i)}" y="${H - 7}" text-anchor="middle" fill="#8fa2b3" font-size="11">${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</text>`;
+            });
+            out += '</svg>';
+            $('chartWrap').innerHTML = out;
+          }
+          function selectTrade(id) {
+            selectedTradeId = String(id);
+            const t = (latestState?.open_positions || []).find(
+              (x) => String(x.id) === selectedTradeId,
+            );
+            renderPositionChart(t);
+            renderOpenRows(latestState?.open_positions || []);
+          }
+          function renderOpenRows(rows) {
+            $('openBody').innerHTML =
+              (rows || [])
+                .map((t) => {
+                  const rec = t.recommendation || 'SIN DATOS';
+                  const cls =
+                    rec === 'MANTENER'
+                      ? 'good'
+                      : rec === 'VIGILAR'
+                        ? 'warn'
+                        : rec === 'SIN VALIDACIÓN EN VIVO' ||
+                            rec === 'SIN TELEMETRÍA DEL WORKER' ||
+                            rec === 'WORKER SIN ACTIVIDAD'
+                          ? 'neutral'
+                          : 'bad';
+                  const rs = (t.reasons || [])
+                    .slice(0, 5)
+                    .map((x) => `• ${esc(x)}`)
+                    .join('<br>');
+                  const sel = String(t.id) === String(selectedTradeId) ? 'selectedRow' : '';
+                  const persisted =
+                    t.persistence_status === 'PERSISTED'
+                      ? '<span class="statusPill warn">PERSISTIDA · SIN CONEXIÓN</span>'
+                      : '<span class="statusPill good">EN VIVO</span>';
+                  const health = t.health_score == null ? '—' : n(t.health_score, 0) + '/100';
+                  const owner = t.owner_profile || 'NO IDENTIFICADO';
+                  const ownerStatus = t.ownership_status || '—';
+                  const ownerCls = t.managed_by_daemon ? 'good' : 'warn';
+                  const chartAvailable = t.chart && Object.keys(t.chart).length;
+                  return `<tr class="${sel}">
     <td><b>${esc(t.symbol)}</b><br><span class="sub">${esc(t.execution_mode)} · ${esc(t.leg)}</span><br>${persisted}<span class="technical">${esc(t.broker_verification)}</span></td>
-    <td><b class="${ownerCls}">${esc(owner)}</b><br><span class="technical">Magic ${esc(t.owner_magic||'—')} · ${esc(ownerStatus)}</span><br><span class="technical">Worker ${esc(t.worker_status||'—')}${t.worker_pid?' · PID '+esc(t.worker_pid):''}</span></td>
+    <td><b class="${ownerCls}">${esc(owner)}</b><br><span class="technical">Magic ${esc(t.owner_magic || '—')} · ${esc(ownerStatus)}</span><br><span class="technical">Worker ${esc(t.worker_status || '—')}${t.worker_pid ? ' · PID ' + esc(t.worker_pid) : ''}</span></td>
     <td>${esc(t.direction)}</td>
-    <td class="score ${t.health_score==null?'neutral':scoreClass(t.health_score)}">${health}<br><span class="pill">${esc(t.health_grade||'—')}</span></td>
+    <td class="score ${t.health_score == null ? 'neutral' : scoreClass(t.health_score)}">${health}<br><span class="pill">${esc(t.health_grade || '—')}</span></td>
     <td class="${cls}"><b>${esc(rec)}</b></td>
-    <td>${t.current_rr==null?'—':n(t.current_rr,2)+'R'}</td>
-    <td class="${t.break_even_confirmed?'good':'warn'}">${t.break_even_confirmed?'ACTIVO':'Pendiente'}</td>
+    <td>${t.current_rr == null ? '—' : n(t.current_rr, 2) + 'R'}</td>
+    <td class="${t.break_even_confirmed ? 'good' : 'warn'}">${t.break_even_confirmed ? 'ACTIVO' : 'Pendiente'}</td>
     <td>${esc(t.quality_score)}</td>
     <td>${pct(t.confirmation_percentage)}</td>
     <td>${esc(t.current_price)}</td>
-    <td class="sub">${rs||'Sin razones suficientes todavía'}</td>
-    <td><button type="button" class="btn viewBtn" data-trade-id="${esc(t.id)}">${chartAvailable?'Ver gráfico':'Esperando gráfico'}</button></td>
+    <td class="sub">${rs || 'Sin razones suficientes todavía'}</td>
+    <td><button type="button" class="btn viewBtn" data-trade-id="${esc(t.id)}">${chartAvailable ? 'Ver gráfico' : 'Esperando gráfico'}</button></td>
    </tr>`;
- }).join('')||'<tr><td colspan="12" class="empty">No hay operaciones abiertas registradas</td></tr>';
- $('openBody').querySelectorAll('button[data-trade-id]').forEach(b=>b.addEventListener('click',()=>selectTrade(b.dataset.tradeId)));
-}
-function candidateFromWorker(worker){
- if(!worker)return {};
- const details=worker.details||{},result=(details.result&&typeof details.result==='object')?details.result:{};
- return {...result,symbol:worker.current_symbol||result.symbol,_worker_profile:worker.bot_profile,_worker_magic:worker.daemon_magic,_worker_cycle:worker.cycle_number,_worker_time:worker.last_event_time,_worker_action:worker.last_action};
-}
-function renderCandidateTabs(s){
- const workers=s.worker_states||[],profiles=['TODOS',...workers.map(w=>String(w.bot_profile||'').toUpperCase()).filter(Boolean)];
- const unique=[...new Set(profiles)];
- if(!unique.includes(selectedCandidateBot))selectedCandidateBot='TODOS';
- const box=$('candidateBotTabs');if(!box)return;
- box.innerHTML=unique.map(p=>`<button type="button" class="botTab ${p===selectedCandidateBot?'active':''}" data-bot="${esc(p)}">${esc(p)}</button>`).join('');
- box.querySelectorAll('button[data-bot]').forEach(b=>b.addEventListener('click',()=>{selectedCandidateBot=b.dataset.bot;render(latestState)}));
-}
-function selectedCandidate(s){
- const workers=s.worker_states||[];
- if(!workers.length)return {};
- let worker=null;
- if(selectedCandidateBot==='TODOS'){
-   worker=[...workers].sort((a,b)=>new Date(b.last_event_time||0)-new Date(a.last_event_time||0))[0];
- }else{
-   worker=workers.find(w=>String(w.bot_profile||'').toUpperCase()===selectedCandidateBot);
- }
- return candidateFromWorker(worker);
-}
-function renderCandidateContext(last){
- const box=$('candidateContext');if(!box)return;
- if(!last||!last._worker_profile){box.innerHTML='<span class="pill">Sin worker seleccionado</span>';return}
- box.innerHTML=`<span class="pill good">BOT ${esc(last._worker_profile)}</span><span class="pill">Magic ${esc(last._worker_magic||'—')}</span><span class="pill">Ciclo ${esc(last._worker_cycle||0)}</span><span class="pill">${esc(last._worker_action||'En espera')}</span><span class="pill">${last._worker_time?'Actualizado '+new Date(last._worker_time).toLocaleTimeString():'Sin timestamp'}</span>`;
-}
-function renderWorkers(s){
- const rows=(s.worker_states||[]),grid=$('workerGrid');if(!grid)return;
- const order=['BOOM','CRASH','VOLATILITY','STEP','JUMP','FLIP','FOREX','ORB','IDX_OPEN'];
- const workerLabels={'IDX_OPEN':'Apertura Bursátiles'};
- const now=Date.now();
- const sorted=[...rows].sort((a,b)=>{const ai=order.indexOf(String(a.bot_profile||'').toUpperCase()),bi=order.indexOf(String(b.bot_profile||'').toUpperCase());return (ai<0?99:ai)-(bi<0?99:bi)});
- grid.innerHTML=sorted.map(w=>{
-   const total=Number(w.symbols_total||0),done=Number(w.symbols_processed||0),pctv=total?Math.min(100,done/total*100):0;
-   const age=w.last_event_time?Math.max(0,(now-new Date(w.last_event_time).getTime())/1000):999999;
-   const disabled=String(w.status||'').toUpperCase()==='DISABLED';
-   const stale=!disabled&&age>120,status=disabled?'DISABLED':(stale?'SIN ACTIVIDAD':(w.status||'RUNNING'));
-   const cls=status==='RUNNING'?'good':status==='STARTING'?'warn':'bad';
-   const displayName=workerLabels[String(w.bot_profile||'').toUpperCase()]||(w.bot_profile||'WORKER');
-   return `<section class="workerCard ${stale?'workerStale':''}">
+                })
+                .join('') ||
+              '<tr><td colspan="12" class="empty">No hay operaciones abiertas registradas</td></tr>';
+            $('openBody')
+              .querySelectorAll('button[data-trade-id]')
+              .forEach((b) => b.addEventListener('click', () => selectTrade(b.dataset.tradeId)));
+          }
+          function candidateFromWorker(worker) {
+            if (!worker) return {};
+            const details = worker.details || {},
+              result = details.result && typeof details.result === 'object' ? details.result : {};
+            return {
+              ...result,
+              symbol: worker.current_symbol || result.symbol,
+              _worker_profile: worker.bot_profile,
+              _worker_magic: worker.daemon_magic,
+              _worker_cycle: worker.cycle_number,
+              _worker_time: worker.last_event_time,
+              _worker_action: worker.last_action,
+            };
+          }
+          function renderCandidateTabs(s) {
+            const workers = visibleWorkers(s),
+              profiles = [
+                'TODOS',
+                ...workers.map((w) => String(w.bot_profile || '').toUpperCase()).filter(Boolean),
+              ];
+            const unique = [...new Set(profiles)];
+            if (!unique.includes(selectedCandidateBot)) selectedCandidateBot = 'TODOS';
+            const box = $('candidateBotTabs');
+            if (!box) return;
+            box.innerHTML = unique
+              .map(
+                (p) =>
+                  `<button type="button" class="botTab ${p === selectedCandidateBot ? 'active' : ''}" data-bot="${esc(p)}">${esc(p)}</button>`,
+              )
+              .join('');
+            box.querySelectorAll('button[data-bot]').forEach((b) =>
+              b.addEventListener('click', () => {
+                selectedCandidateBot = b.dataset.bot;
+                render(latestState);
+              }),
+            );
+          }
+          function selectedCandidate(s) {
+            const workers = visibleWorkers(s);
+            if (!workers.length) return {};
+            let worker = null;
+            if (selectedCandidateBot === 'TODOS') {
+              worker = [...workers].sort(
+                (a, b) => new Date(b.last_event_time || 0) - new Date(a.last_event_time || 0),
+              )[0];
+            } else {
+              worker = workers.find(
+                (w) => String(w.bot_profile || '').toUpperCase() === selectedCandidateBot,
+              );
+            }
+            return candidateFromWorker(worker);
+          }
+          function renderCandidateContext(last) {
+            const box = $('candidateContext');
+            if (!box) return;
+            if (!last || !last._worker_profile) {
+              box.innerHTML = '<span class="pill">Sin worker seleccionado</span>';
+              return;
+            }
+            box.innerHTML = `<span class="pill good">BOT ${esc(last._worker_profile)}</span><span class="pill">Magic ${esc(last._worker_magic || '—')}</span><span class="pill">Ciclo ${esc(last._worker_cycle || 0)}</span><span class="pill">${esc(last._worker_action || 'En espera')}</span><span class="pill">${last._worker_time ? 'Actualizado ' + new Date(last._worker_time).toLocaleTimeString() : 'Sin timestamp'}</span>`;
+          }
+          function visibleWorkers(s) {
+            return (s.worker_states || []).filter(
+              (w) => !['FLIP', 'IDX_OPEN'].includes(String(w.bot_profile || '').toUpperCase()),
+            );
+          }
+          function renderLearningAudit(s) {
+            const box = $('learningAuditPanel');
+            if (!box) return;
+            box.innerHTML =
+              '<h3>Auditoría MT5 y aprendizaje candidato</h3><p>Captura de entrada, resultado cerrado y validación temporal. No activa modelos ni modifica SL/TP. MT5_OBSERVATION aprende variación de precio desde la primera observación hasta el cierre; no representa el PnL neto ni la señal original.</p>' +
+              ((s.learning_audit || [])
+                .map(
+                  (r) =>
+                    `<details><summary>${esc(r.worker)} · ${esc(r.source || '')} · ${esc(r.updated_at || r.error || '')} · ${r.stale ? 'INFORME ANTIGUO' : 'ACTUALIZADO'} · ${r.schema_current ? 'ESQUEMA VIGENTE' : 'ESQUEMA ANTERIOR'}</summary><p>Historial de la cuenta: ${Number(r.account_trades) || 0} registros · Con captura: ${Number(r.with_entry_snapshot) || 0} · Sin captura: ${Number(r.without_entry_snapshot) || 0} · Con primera observación: ${Number(r.with_observation) || 0}</p>${Object.entries(r.scopes || {}).map(([scope, v]) => `
+                      <p><b>Ámbito ${esc(scope)}</b>: ${Number(v.execution_rows) || 0} ejecuciones ·
+                      ${Number(v.logical_setups) || 0} setups únicos · ${Number(v.closed_setups) || 0} cerrados ·
+                      ${Number(v.entry_captures) || 0} capturas de entrada</p>
+                      <details><summary>Elegibilidad por ejecución</summary>
+                      ${Object.entries(v.eligibility_reasons_by_execution || {}).map(([reason, count]) =>
+                        `<p>${esc(reason)}: ${Number(count)}</p>`).join('')}</details>`).join('')}
+                      <p>Entrenamiento por familia: ${Number(r.training_funnel?.eligible_closed_setups_family) || 0}
+                      setups cerrados elegibles. Promoción automática deshabilitada.
+                      Los esquemas antiguos requieren evidencia original; no se rellenan variables inventadas.</p>${
+                      Object.entries(r.strategies || {})
+                        .map(
+                          ([k, v]) =>
+                            `<p>${esc(k)} · Setups cerrados elegibles de la familia: ${Number(v.eligible_closed_setups) || 0} / mínimo ${Number(v.minimum) || 0} · ${esc(v.reason)} · Candidato entrenado: ${v.trained ? 'sí' : 'no'}<br>Validación: ${esc(v.temporal_validation?.reason || 'pendiente')} · Muestras evaluadas: ${Number(v.temporal_validation?.samples_evaluated) || 0} · Brier: ${esc(v.temporal_validation?.brier_score ?? '—')}</p>`,
+                        )
+                        .join('') || '<p>Sin capturas de entrada disponibles para entrenar.</p>'
+                    }<details><summary>Elegibilidad de la familia (últimas 100 ejecuciones)</summary>${(r.trade_eligibility || []).map((t) => `<p>Trade ${esc(t.trade_id)} · ${esc(t.symbol)} · ${esc(t.evidence_type)} · ${esc(t.reason)}</p>`).join('')}</details><details><summary>Comparación por setup cerrado de la familia</summary><p>${esc(r.closed_comparison?.counterfactual_status || 'Sin comparación')} · ${Number(r.closed_comparison?.pending_setups) || 0} pendientes · ${Number(r.closed_comparison?.missing_variant_capture) || 0} sin captura de variante · ${Number(r.closed_comparison?.target_review_pending) || 0} pendientes de reconciliación SL/TP · ${Number(r.closed_comparison?.manual_exit_setups) || 0} setups con cierre manual (separados de la comparación autónoma)</p><details><summary>Resultados por versión de estrategia</summary>${Object.entries(r.closed_comparison?.by_version || {}).map(([k,v]) => `<p>${esc(k)} · ${Number(v.closed_setups)} setups · R neto total ${Number(v.sum_net_r).toFixed(3)}</p>`).join('')}</details>${Object.entries(
+                      r.closed_comparison?.cohorts || {},
+                    )
+                      .map(
+                        ([k, v]) =>
+                          `<p>${esc(k)} · ${Number(v.closed_setups)} setups · R neto medio ${Number(v.mean_net_r).toFixed(3)} · ${esc(v.note)}</p>`,
+                      )
+                      .join(
+                        '',
+                      )}</details><p>Resultados de cuenta por instrumento (setups cerrados):</p>${Object.entries(
+                      r.instruments || {},
+                    )
+                      .map(
+                        ([k, v]) =>
+                          `<p>${esc(k)} · ${Number(v.closed_setups)} cerrados · ${Number(v.wins)} positivos / ${Number(v.losses)} negativos · PnL neto ${Number(v.net_pnl).toFixed(2)}</p>`,
+                      )
+                      .join('')}</details>`,
+                )
+                .join('') ||
+                '<p>Pendiente de la primera actualización del worker con esta versión.</p>');
+          }
+          function renderPersistenceHealth(s) {
+            const rows = s.forex_spread_audit || [];
+            return rows.filter(x => x.persistence?.status === 'DEGRADED').map(x =>
+              `<p class="bad">Persistencia de spread degradada: ${esc(x.worker)} · ${esc(x.symbol)} ·
+              ${esc(x.persistence.at)} · ${esc(x.persistence.error)}</p>`).join('');
+          }
+          function renderSmcTrial(s) {
+            const box = $('smcTrialPanel');
+            if (!box) return;
+            const report = s.smc_trial || {},
+              workers = report.workers || [];
+            box.innerHTML =
+              workers
+                .map(
+                  (w) =>
+                    `<details><summary>${esc(w.profile)} · ${esc(w.policy)} · ${esc(w.retest)} · ${Number(w.evaluations) || 0} evaluaciones</summary><div class="sub">Desde ${esc(w.since)} · Actualizado ${esc(w.updated_at)} · ${(w.stale_signals || []).length} señales caducadas únicas</div><div><p>Bloques M15 únicos del día: ${Object.keys(w.m15_blocks || {}).length} ·
+                    Señales observadas: ${Object.keys(w.signal_observations || {}).length} ·
+                    Primeras observaciones ya antiguas: ${Object.values(w.signal_observations || {}).filter(x => x.stale_at_first_seen).length}.
+                    Estos conteos no equivalen a operaciones.</p>
+                    <details><summary>Últimos 30 bloques registrados y motivos</summary>
+                    ${Object.entries(w.m15_blocks || {}).slice(-30).map(([id, block]) => `
+                      <p>${esc(block.symbol)} · ${esc(id)} · ${block.state?.accepted ? 'Aceptado como setup' : 'Descartado'}<br>
+                      ${esc((block.state?.reasons || []).join(', ') || 'Sin rechazos M15')} ·
+                      ${Number(block.evaluations) || 0} evaluaciones · ${Number(block.timeline?.length) || 0} cambios conservados</p>`).join('')}
+                    </details>
+                    <details><summary>Última señal observada por instrumento</summary>
+                    ${Object.entries(w.latest || {}).map(([symbol, item]) => `<p>${esc(symbol)} ·
+                    ${esc(item.signal_age?.observation_class || 'Sin señal')} ·
+                    Primera observación: ${esc(item.signal_age?.first_seen || '—')} ·
+                    Retraso desde cierre M5: ${esc(item.signal_age?.first_detection_delay_seconds ?? '—')} s</p>`).join('')}
+                    </details></div><div>${Object.entries(
+                      w.counts || {},
+                    )
+                      .map(([k, v]) => esc(k) + ': ' + Number(v))
+                      .join(' · ')}</div>${Object.values(w.latest || {})
+                      .map(
+                        (r) =>
+                          `<p><b>${esc(r.symbol)}</b> · ${esc(r.action)} · ${esc(r.reason || '')}<br><span class="sub">${esc(r.updated_at)} · Confirmación favorable: ${r.favorable_confirmation?.confirmed ? (r.favorable_confirmation.chart_pattern ? 'patrón chartista' : 'agotamiento confirmado') : 'sin confirmación registrada'} · Obstáculos M15 (informativo): ${esc(
+                            Object.entries(r.target_path_audit || {})
+                              .map(
+                                ([leg, a]) =>
+                                  leg +
+                                  ': ' +
+                                  (a.obstacles || [])
+                                    .map(
+                                      (o) =>
+                                        o.type +
+                                        ' ' +
+                                        Number(o.low).toFixed(3) +
+                                        '–' +
+                                        Number(o.high).toFixed(3) +
+                                        ' / ' +
+                                        Number(o.distance_r).toFixed(2) +
+                                        'R',
+                                    )
+                                    .join(', '),
+                              )
+                              .join(' | ') || 'sin evaluación registrada',
+                          )} · Edad M5: ${esc((r.signal_age || {}).age_candles ?? '—')} velas · Críticas: ${esc((r.critical_confirmation_failures || []).join(', ') || '—')} · Zona H1: ${r.entry_location_comparison?.H1_PRIMARY?.valid === true ? 'apta' : r.entry_location_comparison?.H1_PRIMARY?.valid === false ? 'bloqueada' : 'sin evaluar'} · Zona tres marcos: ${r.entry_location_comparison?.ALL_TIMEFRAMES?.valid === true ? 'apta' : r.entry_location_comparison?.ALL_TIMEFRAMES?.valid === false ? 'bloqueada' : 'sin evaluar'}</span></p>`,
+                      )
+                      .join('')}</details>`,
+                )
+                .join('') || 'Sin registros: reiniciar los workers para cargar la prueba.';
+            const orb = s.orb_audit || {};
+            box.innerHTML += `<details open><summary>ORB · rango y rechazos · ${esc(orb.day || 'sin registros')}</summary><p>Actualizado ${esc(orb.updated_at || '—')} · Comparaciones solo en sombra; no autorizan entradas.</p>${Object.values(
+              orb.latest || {},
+            )
+              .map(
+                (a) =>
+                  `<p><b>${esc(a.symbol)}</b> · ${esc(a.reason)}<br>ORH ${esc(a.orh)} / ORL ${esc(a.orl)} · ${esc(a.range_start)} → ${esc(a.range_end)} · ${esc(a.source)}<br>Cuerpo ${a.momentum?.body_ratio == null ? '—' : (100 * a.momentum.body_ratio).toFixed(1) + '%'} · Extensión ${a.momentum?.extension_atr == null ? '—' : Number(a.momentum.extension_atr).toFixed(2) + ' ATR'} · Volumen ${esc((a.volume_evidence || a.momentum)?.volume_status || 'no evaluado')} · Fuente ${esc((a.volume_evidence || a.momentum)?.volume_source || 'sin datos')} · Ruptura ${esc((a.volume_evidence || a.momentum)?.volume ?? '—')} / Media ${esc((a.volume_evidence || a.momentum)?.average_volume ?? '—')} · Ratio ${esc((a.volume_evidence || a.momentum)?.volume_ratio ?? '—')} / Umbral ${esc((a.volume_evidence || a.momentum)?.volume_threshold ?? '—')}</p><details><summary>Velas que forman el rango</summary>${(a.opening_candles || []).map((c) => `<p>${esc(c.time)} · O ${esc(c.open)} H ${esc(c.high)} L ${esc(c.low)} C ${esc(c.close)}</p>`).join('')}</details>`,
+              )
+              .join(
+                '',
+              )}<details><summary>${Object.keys(orb.candidates || {}).length} rupturas únicas: sensibilidad de momentum</summary>${Object.values(
+              orb.candidates || {},
+            )
+              .map(
+                (a) =>
+                  `<p>${esc(a.symbol)} · ${esc(a.momentum?.confirmation_time)}<br>${Object.entries(
+                    a.momentum?.variants || {},
+                  )
+                    .map(
+                      ([k, v]) =>
+                        esc(k) +
+                        ': ' +
+                        esc(
+                          v.remaining_failures.join(', ') ||
+                            'cumple momentum; faltan otros controles',
+                        ),
+                    )
+                    .join('<br>')}</p>`,
+              )
+              .join('')}</details></details>`;
+            workers.forEach((w) => {
+              const setups = Object.values(w.unique_setups || {});
+              const spreads = (s.forex_spread_audit || []).filter((x) => x.worker === w.profile);
+              if (spreads.length)
+                box.innerHTML += `<details><summary>${esc(w.profile)} · Spread de ejecución MT5</summary>${spreads.map((x) => `<p>${esc(x.symbol)} · ${esc(x.reason)} · ${x.spread_pips == null ? 'desconocido' : Number(x.spread_pips).toFixed(2) + ' pips'} · muestras ${Number(x.samples_count)} · estables ${Number(x.stable_count)}<br>Actualizado ${esc(x.observed_at)}</p>`).join('')}</details>`;
+              const uniqueDiag = w.unique_setup_diagnostics || {};
+              box.innerHTML += `<p>${esc(w.profile)} · Setups con captura incompleta: ${Number(uniqueDiag.capture_failure_setups || 0)}</p>`;
+              box.innerHTML += setups.filter(x => Object.keys(x.variant_capture_failures || {}).length).map(x => `<p>${esc(x.symbol)} · ${Object.entries(x.variant_capture_failures).map(([name, failure]) => esc(name) + ': ' + esc(failure.reason)).join(' · ')}</p>`).join('');
+
+              const replay = w.variant_outcomes || {};
+              box.innerHTML += `<p><b>${esc(w.profile)} · Comparación con resultados cerrados (sombra)</b><br>${esc(replay.updated_at || 'Pendiente de actualización')} · ${esc(replay.limitations || 'Sin planes causales cerrados disponibles')}</p>`;
+              box.innerHTML += Object.entries(replay.variants || {})
+                .map(
+                  ([k, v]) =>
+                    `<p>${esc(k)}: ${Number(v.unique_setups)} setups únicos · ${Number(v.closed_replays)} replays cerrados · TP ${Number(v.tp)} / SL ${Number(v.sl)} · R bruto ${Number(v.gross_r_sum).toFixed(2)} · pendientes/excluidos ${Number(v.excluded_or_pending)}</p>`,
+                )
+                .join('');
+
+              box.innerHTML += `<p><b>${esc(w.profile)} · Fallos pendientes por setup único</b><br>${
+                Object.entries(uniqueDiag.remaining_failure_counts || {})
+                  .map(([k, v]) => esc(k) + ': ' + Number(v))
+                  .join(' · ') || 'Sin comparación disponible'
+              }</p>`;
+              box.innerHTML += `<details><summary>${esc(w.profile)} · ${setups.length} setups únicos observados · variantes solo en sombra</summary>${setups
+                .map(
+                  (x) =>
+                    `<p>${esc(x.symbol)} · ${Number(x.evaluations)} evaluaciones · ${esc(x.action)}<br>Formación ${esc(x.setup_formed_at || '—')} · primera detección ${esc(x.first_seen)} · última ${esc(x.last_seen)} · primera caducidad ${esc(x.first_expired_at || '—')}<br>${Object.entries(
+                      x.comparison?.variants || {},
+                    )
+                      .map(
+                        ([k, v]) =>
+                          esc(k) +
+                          ': resuelve ' +
+                          esc((v.resolved_failures || []).join(', ') || 'ninguno') +
+                          '; persisten ' +
+                          esc(
+                            (v.remaining_critical_failures || []).join(', ') ||
+                              'sin críticos; faltan otros controles',
+                          ),
+                      )
+                      .join('<br>')}</p>`,
+                )
+                .join('')}</details>`;
+              const groups = Object.entries(w.groups || {});
+              if (groups.length)
+                box.innerHTML += `<p><b>${esc(w.profile)} · por mercado</b><br>${groups
+                  .map(
+                    ([g, c]) =>
+                      esc(g) +
+                      ': ' +
+                      Object.entries(c)
+                        .map(([k, v]) => esc(k) + ' ' + Number(v))
+                        .join(' · '),
+                  )
+                  .join('<br>')}</p>`;
+              const candidates = Object.values(w.candidates || {});
+              if (candidates.length)
+                box.innerHTML += `<details><summary>${esc(w.profile)} · ${candidates.length} candidatas únicas (no operaciones)</summary>${candidates.map((c) => `<p>${esc(c.symbol)} · ${c.expired ? 'CADUCADA' : 'ÚLTIMO ESTADO REGISTRADO'} · ${esc(c.action)}<br>Señal ${esc(c.signal_time)} · Primera detección ${esc(c.first_seen)} · Última ${esc(c.last_seen)}<br>${esc(c.reason || '')}</p>`).join('')}</details>`;
+            });
+            box.innerHTML += `<details open><summary>Reglas actualizadas y flexibilidades pendientes</summary><ul><li>Activo al reiniciar: H1 sólo ubicación; dirección confirmada por setup M15 y CHOCH/BOS M5.</li><li>Activo al reiniciar: recuperación del OB al cierre como alternativa al rechazo por mecha; conserva desplazamiento y confirmación favorable.</li><li>Pendiente, NO ACTIVADO: desplazamiento, calibrar umbral relativo a volatilidad por instrumento, sin reducirlo globalmente.</li><li>Pendiente, NO ACTIVADO: secuencia, comprobar vigencia de setups anteriores antes de recuperarlos.</li><li>Forex: ventana diaria NY y cierre preventivo configurados; GOLD: pausa por cotizaciones no disponibles.</li></ul><p>Promover cambios sólo tras replay fuera de muestra con costes, expectativa y drawdown. RR, spread y riesgo siguen vigentes. H1_PRIMARY y ATR_BOUNDED ya son la prueba activa según el worker.</p></details>`;
+            if ((report.errors || []).length)
+              box.innerHTML += '<p>' + esc(report.errors.join(' · ')) + '</p>';
+          }
+          function renderQuarantine(s) {
+            const box = $('quarantinePanel');
+            if (!box) return;
+            const q = s.risk_quarantine || {},
+              items = q.items || [];
+            const num = (v) =>
+              v == null ? '—' : Number(v).toLocaleString('es-CL', { maximumFractionDigits: 4 });
+            if (q.status === 'ERROR') {
+              box.textContent = 'No se pudo leer la cuarentena. ' + (q.error || '');
+              return;
+            }
+            box.innerHTML = items.length
+              ? items
+                  .map(
+                    (x) =>
+                      `<section class="workerCard" style="margin-top:10px"><div class="workerHead"><b>${esc(x.symbol)}</b><span class="statusPill warn">${esc(x.status)}</span></div><p>${esc(x.reason)} · ${esc(x.direction || '')} · ${esc(x.trade_leg || '')}</p><div class="workerMeta"><div><span>Riesgo objetivo</span><b>${num(x.target_risk)}</b></div><div><span>Riesgo ejecutado</span><b>${num(x.actual_risk)}</b></div><div><span>Límite máximo</span><b>${num(x.hard_cap)}</b></div><div><span>Exceso sobre objetivo</span><b>${x.excess_ratio == null ? '—' : num(x.excess_ratio * 100) + '%'}</b></div></div><p class="sub">Desde ${esc(x.since ? new Date(x.since).toLocaleString() : 'sin fecha')} · ${x.expires_at ? 'Reevaluación desde ' + esc(new Date(x.expires_at).toLocaleString()) : 'Requiere revisión manual'}</p><details><summary>Acciones para investigar y prevenir</summary><ul>${(x.actions || []).map((a) => '<li>' + esc(a) + '</li>').join('')}</ul></details></section>`,
+                  )
+                  .join('')
+              : 'Sin instrumentos registrados en cuarentena.';
+          }
+          function renderWorkers(s) {
+            const rows = visibleWorkers(s),
+              grid = $('workerGrid');
+            if (!grid) return;
+            const order = ['BOOM', 'CRASH', 'VOLATILITY', 'STEP', 'JUMP', 'GOLD', 'FOREX', 'ORB'];
+            const workerLabels = { IDX_OPEN: 'Apertura Bursátiles' };
+            const now = Date.now();
+            const sorted = [...rows].sort((a, b) => {
+              const ai = order.indexOf(String(a.bot_profile || '').toUpperCase()),
+                bi = order.indexOf(String(b.bot_profile || '').toUpperCase());
+              return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+            });
+            grid.innerHTML =
+              sorted
+                .map((w) => {
+                  const total = Number(w.symbols_total || 0),
+                    done = Number(w.symbols_processed || 0),
+                    pctv = total ? Math.min(100, (done / total) * 100) : 0;
+                  const age = w.last_event_time
+                    ? Math.max(0, (now - new Date(w.last_event_time).getTime()) / 1000)
+                    : 999999;
+                  const disabled = String(w.status || '').toUpperCase() === 'DISABLED';
+                  const paused = ['OUTSIDE_SESSION', 'SESSION_WARMUP'].includes(
+                    String(w.status || '').toUpperCase(),
+                  );
+                  const stale = !disabled && !paused && age > 120,
+                    status = disabled
+                      ? 'DESACTIVADO MANUALMENTE'
+                      : paused
+                        ? w.status === 'SESSION_WARMUP'
+                          ? 'PREPARANDO SESIÓN'
+                          : 'PAUSADO · SESIÓN / MERCADO'
+                        : stale
+                          ? 'SIN ACTIVIDAD'
+                          : w.status || 'RUNNING';
+                  const cls =
+                    paused || disabled
+                      ? ''
+                      : status === 'RUNNING'
+                        ? 'good'
+                        : status === 'STARTING'
+                          ? 'warn'
+                          : 'bad';
+                  const displayName =
+                    workerLabels[String(w.bot_profile || '').toUpperCase()] ||
+                    w.bot_profile ||
+                    'WORKER';
+                  return `<section class="workerCard ${paused || disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
     <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
     <div class="workerMeta">
-      <div><span>PID</span><b>${esc(w.pid||'—')}</b></div>
-      <div><span>Magic</span><b>${esc(w.daemon_magic||'—')}</b></div>
-      <div><span>Ciclo</span><b>${esc(w.cycle_number||0)}</b></div>
+      <div><span>PID</span><b>${esc(w.pid || '—')}</b></div>
+      <div><span>Magic</span><b>${esc(w.daemon_magic || '—')}</b></div>
+      <div><span>Ciclo</span><b>${esc(w.cycle_number || 0)}</b></div>
       <div><span>Progreso</span><b>${done} / ${total}</b></div>
-      <div><span>Instrumento</span><b>${esc(w.current_symbol||'En espera')}</b></div>
-      <div><span>Última acción</span><b>${esc(w.last_action_es||'—')}</b><span class="technical">${esc(w.last_action||'')}</span></div>
+      <div><span>Instrumento</span><b>${esc(w.current_symbol || 'En espera')}</b></div>
+      <div><span>Última acción</span><b>${esc(w.last_action_es || '—')}</b><span class="technical">${esc(w.last_action || '')}</span></div>
     </div>
     <div class="workerProgress"><div style="width:${pctv}%"></div></div>
-    <div class="workerReason">${esc(w.last_reason_es||'Sin motivo adicional')}<span class="technical">${esc(w.last_reason||'')}${w.last_event_time?' · Actualizado '+new Date(w.last_event_time).toLocaleTimeString():' · Sin timestamp'}</span></div>
-    <button class="btn workerControl ${disabled?'primary':''}" data-worker-profile="${esc(w.bot_profile||'')}" data-worker-enabled="${disabled?'true':'false'}">${disabled?'Reactivar worker':'Desactivar worker'}</button>
-   </section>`}).join('')||'<div class="empty">Aún no hay workers registrados en SQLAlchemy.</div>';
-  grid.querySelectorAll('[data-worker-profile]').forEach(button=>button.addEventListener('click',async()=>{const profile=button.dataset.workerProfile,enabled=button.dataset.workerEnabled==='true';if(!enabled&&!confirm(`¿Desactivar ${profile}? No se puede desactivar si mantiene posiciones abiertas.`))return;button.disabled=true;try{const response=await fetch(`/api/workers/${encodeURIComponent(profile)}/enabled`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||'No se pudo actualizar el worker');await refresh();}catch(error){alert(error.message);button.disabled=false;}}));
-}
-function renderDashboardNews(s){const n=s.financial_news||{},items=n.items||[],calendar=(n.calendar||{}),events=calendar.events||[],agenda=$('economicCalendar'),target=$('dashboardNews');if(agenda){agenda.innerHTML=events.length?events.slice(0,10).map(x=>{const when=x.event_at?new Intl.DateTimeFormat('es-CL',{dateStyle:'short',timeStyle:'short',timeZone:'America/Santiago'}).format(new Date(x.event_at)):'Hora por confirmar';const values=[x.forecast?'Pronóstico: '+x.forecast:'',x.previous?'Anterior: '+x.previous:''].filter(Boolean).join(' · ');return `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <span class="pill">${esc(x.country||'GLOBAL')}</span> <b>${esc(when)} CLT/CLST</b> · ${esc(x.title)}${values?`<div class="sub">${esc(values)}</div>`:''}</div>`}).join(''):`Sin eventos próximos (${esc(calendar.status||n.status||'SIN DATOS')}).`;}if(!target)return;target.innerHTML=items.length?items.slice(0,6).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a></div>`).join(''):`Sin noticias disponibles (${esc(n.status||'SIN DATOS')}).`}
-function render(s){latestState=s;renderDashboardNews(s);renderCatalog(s);renderWorkers(s);renderCandidateTabs(s);const ax=(s.account||{}).snapshot||{};const money=v=>v==null?'—':Number(v).toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});$('accountBalance').textContent=money(ax.balance);$('accountEquity').textContent=money(ax.equity);$('accountProfit').textContent=money(ax.profit);$('accountProfit').className='value '+(Number(ax.profit||0)>0?'good':Number(ax.profit||0)<0?'bad':'');$('accountFreeMargin').textContent=money(ax.free_margin);$('status').textContent=(s.status||'—')+' · '+(s.daemon_version||'version ?')+' · '+(s.connection_mode==='LIVE'?'DATOS EN VIVO':'ÚLTIMO ESTADO CONOCIDO')+' · '+new Date(s.updated_at).toLocaleTimeString();const workers=s.worker_states||[];const activeWorkers=workers.filter(w=>String(w.status||'').toUpperCase()!=='STOPPED');$('cycle').textContent=activeWorkers.length;const total=workers.reduce((a,w)=>a+Number(w.symbols_total||0),0),done=workers.reduce((a,w)=>a+Number(w.symbols_processed||0),0);$('progressText').textContent=done+' / '+total;$('progressBar').style.width=(total?Math.min(100,done/total*100):0)+'%';const latestWorker=[...workers].sort((a,b)=>new Date(b.last_event_time||0)-new Date(a.last_event_time||0))[0];$('current').textContent=latestWorker?((latestWorker.bot_profile||'')+' · '+(latestWorker.current_symbol||'En espera')):'En espera';$('openCount').textContent=(s.open_positions||[]).length;let last=selectedCandidate(s);renderCandidateContext(last);const sc=last.score;$('score').textContent=sc==null?'—':Math.round(sc);$('ring').style.setProperty('--p',Math.max(0,Math.min(100,sc||0)));$('lastSymbol').textContent=last.symbol||'Sin datos';$('lastMeta').innerHTML=`<span class="pill ${scoreClass(sc)}">${esc(last.grade||'SIN SCORE')}</span><span class="pill">Confirmaciones ${pct(last.confirmation_percentage)}</span><span class="pill">${esc(last.direction||'SIN DIRECCIÓN')}</span>`;$('decision').innerHTML=`<b>${esc(last.decision_es||'No confirmada')}</b>${last.reason_es?` · ${esc(last.reason_es)}`:''}${last.reason?`<span class="technical">${esc(last.reason)}</span>`:''}`;$('divergence').textContent=last.divergence_confirmed?(last.divergence_type||'Sí'):'No';$('harmonic').textContent=last.harmonic_confirmed?(last.harmonic_pattern||'Sí'):'No';$('h1doji').textContent=last.h1_doji_confirmed?((last.h1_doji_type||'Sí')+(last.h1_doji_zone?' · '+last.h1_doji_zone:'')):'No';$('structure').textContent=last.structure_break||'—';$('zone').textContent=last.zone||'—';renderList($('passed'),last.passed,'ok');const critical=(last.critical_failures||[]).map(x=>'CRÍTICA: '+x);renderList($('missing'),[...(last.missing||[]),...critical],critical.length?'critical':'miss');
-const hs=s.position_health_summary||{};$('healthSummary').textContent=`Mantener ${hs.mantener||0} · Vigilar ${hs.vigilar||0} · Proteger ${hs.proteger||0} · Salida ${hs.salida||0} · Sin datos ${hs.sin_datos||0} · Visual ${hs.solo_visual||0}`;
-renderOpenRows(s.open_positions||[]);if(selectedTradeId){const selected=(s.open_positions||[]).find(x=>String(x.id)===String(selectedTradeId));if(selected)renderPositionChart(selected);else{selectedTradeId=null;renderPositionChart(null)}}
-$('recentBody').innerHTML=(s.recent||[]).map(r=>{const st=r.operational_state||{};return `<tr><td><span class="pill">${esc(r._bot_profile||'—')}</span></td><td><b>${esc(r.symbol)}</b></td><td><span class="statusPill ${esc(st.severity||'neutral')}">${esc(st.label||'INFORMATIVO')}</span></td><td><b>${esc(r.action_es||r.action||'Sin acción')}</b><span class="technical">${esc(r.action||'')}</span></td><td class="score ${scoreClass(r.score)}">${r.score==null?'—':n(r.score,0)}</td><td>${pct(r.confirmation_percentage)}</td><td>${esc(r.grade)}</td><td>${esc(r.direction)}</td><td>${r.divergence_confirmed?'Sí':'No'}</td><td>${r.harmonic_confirmed?'Sí':'No'}</td><td>${n(r.elapsed_seconds,2)}s</td><td>${esc(r.reason_es||'Sin motivo adicional informado.')} ${r.decision_es?`<span class="technical">Decisión: ${esc(r.decision_es)}</span>`:''}${r.reason?`<span class="technical">Código: ${esc(r.reason)}</span>`:''}</td></tr>`}).join('')||'<tr><td colspan="12" class="empty">Esperando el primer análisis…</td></tr>'}
-async function refresh(){if(document.hidden)return;try{const r=await fetch('/api/state?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json())}catch(e){$('status').textContent='Dashboard sin conexión: '+e.message}}const selectAllBtn=$('selectAll'),clearAllBtn=$('clearAll'),saveSelectionBtn=$('saveSelection');if(selectAllBtn)selectAllBtn.addEventListener('click',()=>{});if(clearAllBtn)clearAllBtn.addEventListener('click',()=>{});if(saveSelectionBtn)saveSelectionBtn.addEventListener('click',saveSelection);document.querySelectorAll('#chartLayers input[data-layer]').forEach(cb=>cb.addEventListener('change',()=>{chartLayerState[cb.dataset.layer]=cb.checked;rerenderSelectedChart()}));document.querySelectorAll('.auditModeBtn[data-audit-mode]').forEach(b=>b.addEventListener('click',()=>setAuditMode(b.dataset.auditMode)));document.querySelectorAll('.tfBtn[data-tf]').forEach(b=>b.addEventListener('click',()=>setChartTimeframe(b.dataset.tf)));const chartFullscreenBtn=$('chartFullscreenBtn'),chartMinimizeBtn=$('chartMinimizeBtn'),chartZoomInBtn=$('chartZoomInBtn'),chartZoomOutBtn=$('chartZoomOutBtn'),chartResetViewBtn=$('chartResetViewBtn');if(chartFullscreenBtn)chartFullscreenBtn.addEventListener('click',toggleChartFullscreen);if(chartMinimizeBtn)chartMinimizeBtn.addEventListener('click',toggleChartMinimized);if(chartZoomInBtn)chartZoomInBtn.addEventListener('click',()=>changePriceZoom(1.25,.5));if(chartZoomOutBtn)chartZoomOutBtn.addEventListener('click',()=>changePriceZoom(1/1.25,.5));if(chartResetViewBtn)chartResetViewBtn.addEventListener('click',resetChartView);document.addEventListener('fullscreenchange',()=>{updateChartViewerButtons();rerenderSelectedChart()});document.addEventListener('webkitfullscreenchange',()=>{updateChartViewerButtons();rerenderSelectedChart()});bindChartManipulation();updateChartViewerButtons();refresh();setInterval(refresh,6000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
-</script></main></div></body></html>'''
+    <div class="workerReason">${esc(w.last_reason_es || 'Sin motivo adicional')}<span class="technical">${esc(w.last_reason || '')}${w.last_event_time ? ' · Actualizado ' + new Date(w.last_event_time).toLocaleTimeString() : ' · Sin timestamp'}</span></div>
+    <button class="btn workerControl ${disabled ? 'primary' : ''}" data-worker-profile="${esc(w.bot_profile || '')}" data-worker-enabled="${disabled ? 'true' : 'false'}">${disabled ? 'Reactivar worker' : paused ? 'Desactivar también la reactivación automática' : 'Desactivar worker'}</button>
+   </section>`;
+                })
+                .join('') ||
+              '<div class="empty">Aún no hay workers registrados en SQLAlchemy.</div>';
+            grid.querySelectorAll('[data-worker-profile]').forEach((button) =>
+              button.addEventListener('click', async () => {
+                const profile = button.dataset.workerProfile,
+                  enabled = button.dataset.workerEnabled === 'true';
+                if (
+                  !enabled &&
+                  !confirm(
+                    `¿Desactivar ${profile}? No se puede desactivar si mantiene posiciones abiertas.`,
+                  )
+                )
+                  return;
+                button.disabled = true;
+                try {
+                  const response = await fetch(
+                    `/api/workers/${encodeURIComponent(profile)}/enabled`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ enabled }),
+                    },
+                  );
+                  const result = await response.json();
+                  if (!response.ok || !result.ok)
+                    throw new Error(result.error || 'No se pudo actualizar el worker');
+                  await refresh();
+                } catch (error) {
+                  alert(error.message);
+                  button.disabled = false;
+                }
+              }),
+            );
+          }
+          function renderDashboardNews(s) {
+            const n = s.financial_news || {},
+              items = n.items || [],
+              calendar = n.calendar || {},
+              events = calendar.events || [],
+              agenda = $('economicCalendar'),
+              target = $('dashboardNews');
+            if (agenda) {
+              agenda.innerHTML = events.length
+                ? events
+                    .slice(0, 10)
+                    .map((x) => {
+                      const when = x.event_at
+                        ? new Intl.DateTimeFormat('es-CL', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                            timeZone: 'America/Santiago',
+                          }).format(new Date(x.event_at))
+                        : 'Hora por confirmar';
+                      const values = [
+                        x.forecast ? 'Pronóstico: ' + x.forecast : '',
+                        x.previous ? 'Anterior: ' + x.previous : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ');
+                      return `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact || 'MEDIO')}</span> <span class="pill">${esc(x.country || 'GLOBAL')}</span> <b>${esc(when)} CLT/CLST</b> · ${esc(x.title)}${values ? `<div class="sub">${esc(values)}</div>` : ''}</div>`;
+                    })
+                    .join('')
+                : `Sin eventos próximos (${esc(calendar.status || n.status || 'SIN DATOS')}).`;
+            }
+            if (!target) return;
+            target.innerHTML = items.length
+              ? items
+                  .slice(0, 6)
+                  .map(
+                    (x) =>
+                      `<div style="padding:6px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact || 'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a></div>`,
+                  )
+                  .join('')
+              : `Sin noticias disponibles (${esc(n.status || 'SIN DATOS')}).`;
+          }
+          function render(s) {
+            latestState = s;
+            renderDashboardNews(s);
+            renderCatalog(s);
+            renderWorkers(s);
+            renderLearningAudit(s);
+            if ($('learningAuditPanel')) $('learningAuditPanel').innerHTML += renderPersistenceHealth(s);
+            renderSmcTrial(s);
+            renderQuarantine(s);
+            renderCandidateTabs(s);
+            const ax = (s.account || {}).snapshot || {};
+            const money = (v) =>
+              v == null
+                ? '—'
+                : Number(v).toLocaleString('es-CL', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  });
+            $('accountBalance').textContent = money(ax.balance);
+            $('accountEquity').textContent = money(ax.equity);
+            $('accountProfit').textContent = money(ax.profit);
+            $('accountProfit').className =
+              'value ' +
+              (Number(ax.profit || 0) > 0 ? 'good' : Number(ax.profit || 0) < 0 ? 'bad' : '');
+            $('accountFreeMargin').textContent = money(ax.free_margin);
+            $('status').textContent =
+              (s.status || '—') +
+              ' · ' +
+              (s.daemon_version || 'version ?') +
+              ' · ' +
+              (s.connection_mode === 'LIVE' ? 'DATOS EN VIVO' : 'ÚLTIMO ESTADO CONOCIDO') +
+              ' · ' +
+              new Date(s.updated_at).toLocaleTimeString();
+            const workers = visibleWorkers(s);
+            const activeWorkers = workers.filter(
+              (w) => String(w.status || '').toUpperCase() !== 'STOPPED',
+            );
+            $('cycle').textContent = activeWorkers.length;
+            const total = workers.reduce((a, w) => a + Number(w.symbols_total || 0), 0),
+              done = workers.reduce((a, w) => a + Number(w.symbols_processed || 0), 0);
+            $('progressText').textContent = done + ' / ' + total;
+            $('progressBar').style.width = (total ? Math.min(100, (done / total) * 100) : 0) + '%';
+            const latestWorker = [...workers].sort(
+              (a, b) => new Date(b.last_event_time || 0) - new Date(a.last_event_time || 0),
+            )[0];
+            $('current').textContent = latestWorker
+              ? (latestWorker.bot_profile || '') +
+                ' · ' +
+                (latestWorker.current_symbol || 'En espera')
+              : 'En espera';
+            $('openCount').textContent = (s.open_positions || []).length;
+            let last = selectedCandidate(s);
+            renderCandidateContext(last);
+            const sc = last.score;
+            $('score').textContent = sc == null ? '—' : Math.round(sc);
+            $('ring').style.setProperty('--p', Math.max(0, Math.min(100, sc || 0)));
+            $('lastSymbol').textContent = last.symbol || 'Sin datos';
+            $('lastMeta').innerHTML =
+              `<span class="pill ${scoreClass(sc)}">${esc(last.grade || 'SIN SCORE')}</span><span class="pill">Confirmaciones ${pct(last.confirmation_percentage)}</span><span class="pill">${esc(last.direction || 'SIN DIRECCIÓN')}</span>`;
+            $('decision').innerHTML =
+              `<b>${esc(last.decision_es || 'No confirmada')}</b>${last.reason_es ? ` · ${esc(last.reason_es)}` : ''}${last.reason ? `<span class="technical">${esc(last.reason)}</span>` : ''}`;
+            $('divergence').textContent = last.divergence_confirmed
+              ? last.divergence_type || 'Sí'
+              : 'No';
+            $('harmonic').textContent = last.harmonic_confirmed
+              ? last.harmonic_pattern || 'Sí'
+              : 'No';
+            $('h1doji').textContent = last.h1_doji_confirmed
+              ? (last.h1_doji_type || 'Sí') + (last.h1_doji_zone ? ' · ' + last.h1_doji_zone : '')
+              : 'No';
+            $('structure').textContent = last.structure_break || '—';
+            $('zone').textContent = last.zone || '—';
+            renderList($('passed'), last.passed, 'ok');
+            const critical = (last.critical_failures || []).map((x) => 'CRÍTICA: ' + x);
+            renderList(
+              $('missing'),
+              [...(last.missing || []), ...critical],
+              critical.length ? 'critical' : 'miss',
+            );
+            const hs = s.position_health_summary || {};
+            $('healthSummary').textContent =
+              `Mantener ${hs.mantener || 0} · Vigilar ${hs.vigilar || 0} · Proteger ${hs.proteger || 0} · Salida ${hs.salida || 0} · Sin datos ${hs.sin_datos || 0} · Visual ${hs.solo_visual || 0}`;
+            renderOpenRows(s.open_positions || []);
+            if (selectedTradeId) {
+              const selected = (s.open_positions || []).find(
+                (x) => String(x.id) === String(selectedTradeId),
+              );
+              if (selected) renderPositionChart(selected);
+              else {
+                selectedTradeId = null;
+                renderPositionChart(null);
+              }
+            }
+            $('recentBody').innerHTML =
+              (s.recent || [])
+                .map((r) => {
+                  const st = r.operational_state || {};
+                  return `<tr><td><span class="pill">${esc(r._bot_profile || '—')}</span></td><td><b>${esc(r.symbol)}</b></td><td><span class="statusPill ${esc(st.severity || 'neutral')}">${esc(st.label || 'INFORMATIVO')}</span></td><td><b>${esc(r.action_es || r.action || 'Sin acción')}</b><span class="technical">${esc(r.action || '')}</span></td><td class="score ${scoreClass(r.score)}">${r.score == null ? '—' : n(r.score, 0)}</td><td>${pct(r.confirmation_percentage)}</td><td>${esc(r.grade)}</td><td>${esc(r.direction)}</td><td>${r.divergence_confirmed ? 'Sí' : 'No'}</td><td>${r.harmonic_confirmed ? 'Sí' : 'No'}</td><td>${n(r.elapsed_seconds, 2)}s</td><td>${esc(r.reason_es || 'Sin motivo adicional informado.')} ${r.decision_es ? `<span class="technical">Decisión: ${esc(r.decision_es)}</span>` : ''}${r.reason ? `<span class="technical">Código: ${esc(r.reason)}</span>` : ''}</td></tr>`;
+                })
+                .join('') ||
+              '<tr><td colspan="12" class="empty">Esperando el primer análisis…</td></tr>';
+          }
+          let refreshBusy = false;
+          async function refresh() {
+            if (document.hidden || refreshBusy) return;
+            refreshBusy = true;
+            const controller = new AbortController(),
+              timeout = setTimeout(() => controller.abort(), 30000);
+            try {
+              const r = await fetch('/api/state?ts=' + Date.now(), {
+                cache: 'no-store',
+                signal: controller.signal,
+              });
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              render(await r.json());
+              pageLoading.done();
+            } catch (e) {
+              $('status').textContent = 'Dashboard sin conexión: ' + e.message;
+              pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
+            } finally {
+              clearTimeout(timeout);
+              refreshBusy = false;
+            }
+          }
+          const selectAllBtn = $('selectAll'),
+            clearAllBtn = $('clearAll'),
+            saveSelectionBtn = $('saveSelection');
+          if (selectAllBtn) selectAllBtn.addEventListener('click', () => {});
+          if (clearAllBtn) clearAllBtn.addEventListener('click', () => {});
+          if (saveSelectionBtn) saveSelectionBtn.addEventListener('click', saveSelection);
+          document.querySelectorAll('#chartLayers input[data-layer]').forEach((cb) =>
+            cb.addEventListener('change', () => {
+              chartLayerState[cb.dataset.layer] = cb.checked;
+              rerenderSelectedChart();
+            }),
+          );
+          document
+            .querySelectorAll('.auditModeBtn[data-audit-mode]')
+            .forEach((b) => b.addEventListener('click', () => setAuditMode(b.dataset.auditMode)));
+          document
+            .querySelectorAll('.tfBtn[data-tf]')
+            .forEach((b) => b.addEventListener('click', () => setChartTimeframe(b.dataset.tf)));
+          const chartFullscreenBtn = $('chartFullscreenBtn'),
+            chartMinimizeBtn = $('chartMinimizeBtn'),
+            chartZoomInBtn = $('chartZoomInBtn'),
+            chartZoomOutBtn = $('chartZoomOutBtn'),
+            chartResetViewBtn = $('chartResetViewBtn');
+          if (chartFullscreenBtn)
+            chartFullscreenBtn.addEventListener('click', toggleChartFullscreen);
+          if (chartMinimizeBtn) chartMinimizeBtn.addEventListener('click', toggleChartMinimized);
+          if (chartZoomInBtn)
+            chartZoomInBtn.addEventListener('click', () => changePriceZoom(1.25, 0.5));
+          if (chartZoomOutBtn)
+            chartZoomOutBtn.addEventListener('click', () => changePriceZoom(1 / 1.25, 0.5));
+          if (chartResetViewBtn) chartResetViewBtn.addEventListener('click', resetChartView);
+          document.addEventListener('fullscreenchange', () => {
+            updateChartViewerButtons();
+            rerenderSelectedChart();
+          });
+          document.addEventListener('webkitfullscreenchange', () => {
+            updateChartViewerButtons();
+            rerenderSelectedChart();
+          });
+          bindChartManipulation();
+          updateChartViewerButtons();
+          refresh();
+          setInterval(refresh, 6000);
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) refresh();
+          });
+        </script>
+      </main>
+    </div>
+  </body>
+</html>
+'''
 
 
-_INSTRUMENTS_HTML = r'''<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DaemonBlackFx · Instrumentos</title>
-<style>
-:root{color-scheme:dark;--bg:#050708;--panel:#0a0e10;--panel2:#10161a;--text:#f5f5f2;--muted:#9fa2a5;--line:#5b4514;--good:#00db79;--accent:#d79b19}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:1220px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}.title{font-size:24px;font-weight:800}.sub{color:var(--muted)}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--text);text-decoration:none;border-radius:9px;padding:9px 12px;cursor:pointer}.btn.primary{background:var(--accent);color:#06111b;border-color:transparent;font-weight:800}.btn:disabled{opacity:.5;cursor:not-allowed}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.metric{background:var(--panel2);border-radius:10px;padding:10px 12px;min-width:150px}.metric b{display:block;font-size:18px}.instrumentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.group{border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--panel2)}.group h3{margin:0 0 8px;font-size:14px}.item{display:flex;gap:8px;align-items:flex-start;padding:6px 2px}.item input{margin-top:3px}.msg{margin-top:12px;color:var(--muted);min-height:22px}.search{width:min(420px,100%);background:#08131c;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;font-size:16px}.note{margin-top:14px;padding:11px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:8px}@media(max-width:950px){.instrumentGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.instrumentGrid{grid-template-columns:1fr}.wrap{padding:10px}.actions{width:100%}.actions .btn{flex:1;text-align:center}}
-.brandStrip{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #5b4514}.brandStrip img{width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #765719}.brandStrip b{font-size:22px}.brandStrip b span{color:#f3c64c}.card{box-shadow:inset 0 1px 0 rgba(255,211,102,.03)}
-</style></head><body><main class="wrap"><div class="brandStrip"><img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX"><div><b>BLACKDAEMON<span>FX</span></b><div class="sub">Gestión modular de instrumentos</div></div></div>
-<div class="top"><div><div class="title">Instrumentos para nuevas entradas</div><div class="sub">Módulo independiente · catálogo dinámico desde MT5/Deriv · orden alfabético por categoría.</div></div><a class="btn" href="/">← Volver al dashboard</a></div>
-<section class="card"><div class="head"><div class="actions" id="profileTabs"><button class="btn profileTab active" data-profile="SYNTHETICS" type="button">SINTÉTICOS</button><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button><button class="btn profileTab" data-profile="IDX_OPEN" type="button">APERTURA ÍNDICES BURSÁTILES</button></div><div class="actions"><button class="btn" id="selectAll" type="button">Seleccionar todos</button><button class="btn" id="clearAll" type="button">Limpiar</button><button class="btn primary" id="save" type="button">Aplicar selección</button></div></div><div style="margin-top:12px"><input id="search" class="search" type="search" placeholder="Buscar instrumento…" aria-label="Buscar instrumento"></div>
-<div class="stats"><div class="metric"><span class="sub">Seleccionados</span><b id="selectedCount">0</b></div><div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div><div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div></div>
-<div id="grid" class="instrumentGrid"><div class="sub">Cargando catálogo…</div></div><div id="msg" class="msg"></div>
-<section class="card" style="margin-top:14px"><div class="head"><div><b>Noticias financieras relevantes</b><div class="sub">Fuente RSS en español · prioridad a impacto alto</div></div><span class="sub" id="newsStatus">Cargando…</span></div><div id="newsList" class="msg">Cargando noticias…</div></section>
-<div class="note" id="profileNote"><b>Persistencia independiente:</b> Sintéticos, Forex, ORB y Apertura de Índices Bursátiles se guardan por separado.</div><div class="note"><b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.</div></section>
-</main><script>
-const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));let state=null,dirty=false,activeProfile='SYNTHETICS';
-function groups(s){return (s.instrument_catalog||[]).filter(g=>String(g.selection_profile||'SYNTHETICS').toUpperCase()===activeProfile)}
-function selected(){return [...document.querySelectorAll('input[data-symbol]:checked')].map(x=>x.dataset.symbol).sort((a,b)=>a.localeCompare(b,'es'))}
-function updateCount(){$('selectedCount').textContent=selected().length}
-function renderNews(s){const n=s.financial_news||{},items=n.items||[];$('newsStatus').textContent=`${n.status||'SIN DATOS'} · ${n.updated_at?new Date(n.updated_at).toLocaleTimeString():'sin actualización'}`;$('newsList').innerHTML=items.length?items.slice(0,8).map(x=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact||'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a><div class="sub">${x.published_at?new Date(x.published_at).toLocaleString('es-ES'):''}</div></div>`).join(''):'No hay noticias disponibles; se conserva el último estado conocido.'}
-function render(s){state=s;renderNews(s);const chosen=new Set((s.selection_profiles||{})[activeProfile]||[]),q=$('search').value.trim().toLocaleLowerCase('es'),gs=groups(s);$('grid').innerHTML=gs.map(g=>{const items=(g.symbols||[]).filter(x=>x.toLocaleLowerCase('es').includes(q));return items.length?`<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map(sym=>`<label class="item"><input type="checkbox" data-symbol="${esc(sym)}" ${chosen.has(sym)?'checked':''}><span>${esc(sym)}</span></label>`).join('')}</section>`:''}).join('')||'<div class="sub">No se encontraron instrumentos para este perfil.</div>';$('totalCount').textContent=gs.reduce((n,g)=>n+(g.symbols||[]).length,0);$('msg').textContent=s.selection_message||'';$('profileNote').innerHTML=`<b>${activeProfile}:</b> selección persistente independiente.`;document.querySelectorAll('.profileTab').forEach(b=>b.classList.toggle('active',b.dataset.profile===activeProfile));document.querySelectorAll('input[data-symbol]').forEach(cb=>cb.addEventListener('change',()=>{dirty=true;updateCount();$('msg').textContent=`Cambios pendientes para ${activeProfile}.`}));updateCount()}
-async function load(){if(document.hidden)return;try{const r=await fetch('/api/instruments?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const s=await r.json();if(!dirty)render(s)}catch(e){$('msg').textContent='Sin conexión con el daemon: '+e.message}}
-async function save(){const values=selected();$('save').disabled=true;try{const r=await fetch('/api/instruments/selection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selection_profile:activeProfile,selected_symbols:values})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'No se pudo guardar');dirty=false;$('msg').textContent=data.message||`${activeProfile} guardado`;await load()}catch(e){$('msg').textContent='Error: '+e.message}finally{$('save').disabled=false}}
-$('search').addEventListener('input',()=>{if(state)render(state)});document.querySelectorAll('.profileTab').forEach(b=>b.addEventListener('click',()=>{if(dirty&&!confirm('Hay cambios sin guardar. ¿Descartarlos?'))return;dirty=false;activeProfile=b.dataset.profile;if(state)render(state)}));$('selectAll').addEventListener('click',()=>{document.querySelectorAll('input[data-symbol]').forEach(x=>x.checked=true);dirty=true;updateCount()});$('clearAll').addEventListener('click',()=>{document.querySelectorAll('input[data-symbol]').forEach(x=>x.checked=false);dirty=true;updateCount()});$('save').addEventListener('click',save);load();setInterval(load,6000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
-</script></body></html>'''
+_INSTRUMENTS_HTML = r'''
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DaemonBlackFx · Instrumentos</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050708;
+        --panel: #0a0e10;
+        --panel2: #10161a;
+        --text: #f5f5f2;
+        --muted: #9fa2a5;
+        --line: #5b4514;
+        --good: #00db79;
+        --accent: #d79b19;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 1220px;
+        margin: auto;
+        padding: 20px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .sub {
+        color: var(--muted);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-block;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--text);
+        text-decoration: none;
+        border-radius: 9px;
+        padding: 9px 12px;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #06111b;
+        border-color: transparent;
+        font-weight: 800;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .stats {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 14px 0;
+      }
+      .metric {
+        background: var(--panel2);
+        border-radius: 10px;
+        padding: 10px 12px;
+        min-width: 150px;
+      }
+      .metric b {
+        display: block;
+        font-size: 18px;
+      }
+      .instrumentGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .group {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 11px;
+        background: var(--panel2);
+      }
+      .group h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+      .item {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 6px 2px;
+      }
+      .item input {
+        margin-top: 3px;
+      }
+      .msg {
+        margin-top: 12px;
+        color: var(--muted);
+        min-height: 22px;
+      }
+      .search {
+        width: min(420px, 100%);
+        background: #08131c;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 9px;
+        padding: 10px 12px;
+        font-size: 16px;
+      }
+      .note {
+        margin-top: 14px;
+        padding: 11px;
+        border-left: 3px solid var(--accent);
+        background: var(--panel2);
+        border-radius: 8px;
+      }
+      @media (max-width: 950px) {
+        .instrumentGrid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 600px) {
+        .instrumentGrid {
+          grid-template-columns: 1fr;
+        }
+        .wrap {
+          padding: 10px;
+        }
+        .actions {
+          width: 100%;
+        }
+        .actions .btn {
+          flex: 1;
+          text-align: center;
+        }
+      }
+      .brandStrip {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #5b4514;
+      }
+      .brandStrip img {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid #765719;
+      }
+      .brandStrip b {
+        font-size: 22px;
+      }
+      .brandStrip b span {
+        color: #f3c64c;
+      }
+      .card {
+        box-shadow: inset 0 1px 0 rgba(255, 211, 102, 0.03);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="brandStrip">
+        <img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <div>
+          <b>BLACKDAEMON<span>FX</span></b>
+          <div class="sub">Gestión modular de instrumentos</div>
+        </div>
+      </div>
+      <div class="top">
+        <div>
+          <div class="title">Instrumentos para nuevas entradas</div>
+          <div class="sub">
+            Módulo independiente · catálogo dinámico desde MT5/Deriv · orden alfabético por
+            categoría.
+          </div>
+        </div>
+        <a class="btn" href="/">← Volver al dashboard</a>
+      </div>
+      <section class="card">
+        <div class="head">
+          <div class="actions" id="profileTabs">
+            <button class="btn profileTab active" data-profile="SYNTHETICS" type="button">
+              SINTÉTICOS</button
+            ><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button
+            ><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button>
+          </div>
+          <div class="actions">
+            <button class="btn" id="selectAll" type="button">Seleccionar todos</button
+            ><button class="btn" id="clearAll" type="button">Limpiar</button
+            ><button class="btn primary" id="save" type="button">Aplicar selección</button>
+          </div>
+        </div>
+        <div style="margin-top: 12px">
+          <input
+            id="search"
+            class="search"
+            type="search"
+            placeholder="Buscar instrumento…"
+            aria-label="Buscar instrumento"
+          />
+        </div>
+        <div class="stats">
+          <div class="metric">
+            <span class="sub">Seleccionados</span><b id="selectedCount">0</b>
+          </div>
+          <div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div>
+          <div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div>
+        </div>
+        <div id="grid" class="instrumentGrid"><div class="sub">Cargando catálogo…</div></div>
+        <div id="msg" class="msg"></div>
+        <section class="card" style="margin-top: 14px">
+          <div class="head">
+            <div>
+              <b>Noticias financieras relevantes</b>
+              <div class="sub">Fuente RSS en español · prioridad a impacto alto</div>
+            </div>
+            <span class="sub" id="newsStatus">Cargando…</span>
+          </div>
+          <div id="newsList" class="msg">Cargando noticias…</div>
+        </section>
+        <div class="note" id="profileNote">
+          <b>Persistencia independiente:</b> Sintéticos, Forex y ORB se guardan por separado.
+        </div>
+        <div class="note">
+          <b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el
+          próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.
+        </div>
+      </section>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id),
+        esc = (v) =>
+          String(v ?? '').replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[c],
+          );
+      let state = null,
+        dirty = false,
+        activeProfile = 'SYNTHETICS';
+      function visibleInstrumentGroups(s) {
+        return (s.instrument_catalog || [])
+          .filter(
+            (g) =>
+              String(g.category || '').toLowerCase() !== 'flip' &&
+              String(g.selection_profile || '').toUpperCase() !== 'IDX_OPEN',
+          )
+          .map((g) => ({
+            ...g,
+            symbols: (g.symbols || []).filter((sym) => !(/boom/i.test(sym) && /crash/i.test(sym))),
+          }))
+          .filter((g) => g.symbols.length);
+      }
+      function groups(s) {
+        return visibleInstrumentGroups(s).filter(
+          (g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === activeProfile,
+        );
+      }
+      function selectionSummary(s) {
+        return (
+          ['SYNTHETICS', 'FOREX', 'ORB']
+            .map((p, i) => {
+              const allowed = new Set(
+                visibleInstrumentGroups(s)
+                  .filter((g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === p)
+                  .flatMap((g) => g.symbols),
+              );
+              return (
+                ['Sintéticos', 'Forex', 'ORB'][i] +
+                ': ' +
+                ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
+              );
+            })
+            .join(' · ') + ' · selecciones independientes'
+        );
+      }
+      function selected() {
+        return [...document.querySelectorAll('input[data-symbol]:checked')]
+          .map((x) => x.dataset.symbol)
+          .sort((a, b) => a.localeCompare(b, 'es'));
+      }
+      function updateCount() {
+        $('selectedCount').textContent = selected().length;
+      }
+      function renderNews(s) {
+        const n = s.financial_news || {},
+          items = n.items || [];
+        $('newsStatus').textContent =
+          `${n.status || 'SIN DATOS'} · ${n.updated_at ? new Date(n.updated_at).toLocaleTimeString() : 'sin actualización'}`;
+        $('newsList').innerHTML = items.length
+          ? items
+              .slice(0, 8)
+              .map(
+                (x) =>
+                  `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact || 'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a><div class="sub">${x.published_at ? new Date(x.published_at).toLocaleString('es-ES') : ''}</div></div>`,
+              )
+              .join('')
+          : 'No hay noticias disponibles; se conserva el último estado conocido.';
+      }
+      function render(s) {
+        state = s;
+        renderNews(s);
+        const chosen = new Set((s.selection_profiles || {})[activeProfile] || []),
+          q = $('search').value.trim().toLocaleLowerCase('es'),
+          gs = groups(s);
+        $('grid').innerHTML =
+          gs
+            .map((g) => {
+              const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
+              return items.length
+                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map((sym) => `<label class="item"><input type="checkbox" data-symbol="${esc(sym)}" ${chosen.has(sym) ? 'checked' : ''}><span>${esc(sym)}</span></label>`).join('')}</section>`
+                : '';
+            })
+            .join('') || '<div class="sub">No se encontraron instrumentos para este perfil.</div>';
+        $('totalCount').textContent = gs.reduce((n, g) => n + (g.symbols || []).length, 0);
+        $('msg').textContent = selectionSummary(s);
+        $('profileNote').innerHTML =
+          `<b>${activeProfile}:</b> selección persistente independiente.`;
+        document
+          .querySelectorAll('.profileTab')
+          .forEach((b) => b.classList.toggle('active', b.dataset.profile === activeProfile));
+        document.querySelectorAll('input[data-symbol]').forEach((cb) =>
+          cb.addEventListener('change', () => {
+            dirty = true;
+            updateCount();
+            $('msg').textContent = `Cambios pendientes para ${activeProfile}.`;
+          }),
+        );
+        updateCount();
+      }
+      let loadBusy = false;
+      async function load() {
+        if (document.hidden || loadBusy) return;
+        loadBusy = true;
+        const controller = new AbortController(),
+          timeout = setTimeout(() => controller.abort(), 30000);
+        try {
+          const r = await fetch('/api/instruments?ts=' + Date.now(), {
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const s = await r.json();
+          if (!dirty) render(s);
+          pageLoading.done();
+        } catch (e) {
+          $('msg').textContent = 'Sin conexión con el daemon: ' + e.message;
+          pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
+        } finally {
+          clearTimeout(timeout);
+          loadBusy = false;
+        }
+      }
+      async function save() {
+        const values = selected();
+        $('save').disabled = true;
+        try {
+          const r = await fetch('/api/instruments/selection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selection_profile: activeProfile, selected_symbols: values }),
+          });
+          const data = await r.json();
+          if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar');
+          dirty = false;
+          $('msg').textContent = data.message || `${activeProfile} guardado`;
+          await load();
+        } catch (e) {
+          $('msg').textContent = 'Error: ' + e.message;
+        } finally {
+          $('save').disabled = false;
+        }
+      }
+      $('search').addEventListener('input', () => {
+        if (state) render(state);
+      });
+      document.querySelectorAll('.profileTab').forEach((b) =>
+        b.addEventListener('click', () => {
+          if (dirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return;
+          dirty = false;
+          activeProfile = b.dataset.profile;
+          if (state) render(state);
+        }),
+      );
+      $('selectAll').addEventListener('click', () => {
+        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = true));
+        dirty = true;
+        updateCount();
+      });
+      $('clearAll').addEventListener('click', () => {
+        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = false));
+        dirty = true;
+        updateCount();
+      });
+      $('save').addEventListener('click', save);
+      load();
+      setInterval(load, 6000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) load();
+      });
+    </script>
+  </body>
+</html>
+'''
+
+_HTML = with_page_loading(_HTML)
+_INSTRUMENTS_HTML = with_page_loading(_INSTRUMENTS_HTML)

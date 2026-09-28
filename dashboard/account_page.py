@@ -14,35 +14,1028 @@ Vinculaciones:
       identificadores del DOM referenciados aqui.
 """
 
-ACCOUNT_HTML = r'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DaemonBlackFx · Cuenta activa</title>
-<style>:root{color-scheme:dark;--bg:#050708;--p:#0a0e10;--p2:#10161a;--t:#f5f5f2;--m:#9fa2a5;--l:#5b4514;--g:#00db79;--r:#ff453a;--y:#f5bd36;--b:#d79b19}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px system-ui}.w{max-width:1380px;margin:auto;padding:18px}.brand{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--l)}.brand img{width:54px;height:54px;object-fit:cover;border-radius:10px;border:1px solid #765719}.brand strong{font-size:20px;letter-spacing:.04em}.brand strong span{color:#f4c84f}.top{display:flex;justify-content:space-between;gap:14px;align-items:start;flex-wrap:wrap}.top h1{margin:0}.muted{color:var(--m)}.nav{display:flex;gap:8px}.btn{color:var(--t);background:var(--p2);border:1px solid var(--l);padding:8px 11px;border-radius:8px;text-decoration:none;font-size:12px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:15px}.c{background:var(--p);border:1px solid var(--l);border-radius:14px;padding:14px;min-width:0;box-shadow:inset 0 1px 0 rgba(255,211,102,.03)}.k{grid-column:span 3}.half{grid-column:span 6}.full{grid-column:1/-1}.lab{color:var(--m);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.val{font-size:25px;font-weight:800;margin-top:5px}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}.s{background:var(--p2);padding:10px;border-radius:9px;min-width:0}.s b{display:block;font-size:19px}.bar{height:14px;background:#192a37;border-radius:99px;overflow:hidden;display:flex;margin:12px 0}.leg{display:flex;gap:12px;flex-wrap:wrap;color:var(--m);font-size:12px}.ranking{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-top:10px}.strategy{padding:11px;background:var(--p2);border:1px solid #263139;border-radius:10px}.strategyHead{display:flex;justify-content:space-between;gap:8px;font-weight:800}.strategyMeta{display:flex;gap:8px;flex-wrap:wrap;color:var(--m);font-size:11px;margin-top:7px}.strategy .profit{font-size:16px}.good{color:var(--g)}.bad{color:var(--r)}.warn{color:var(--y)}.historyHead{display:flex;justify-content:space-between;gap:12px;align-items:end;flex-wrap:wrap}.tbl{overflow-y:auto;overflow-x:hidden;max-height:620px;margin-top:10px;border:1px solid var(--l);border-radius:9px}table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:10px 8px;border-bottom:1px solid #302914;text-align:left;vertical-align:top;font-size:12px;overflow-wrap:anywhere}th{color:var(--m);font-size:10px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--p);z-index:2}th:nth-child(1),td:nth-child(1){width:34px;text-align:center;padding-left:6px;padding-right:6px}th:nth-child(2),td:nth-child(2){width:6%}th:nth-child(3),td:nth-child(3){width:16%}th:nth-child(4),td:nth-child(4){width:12%}th:nth-child(5),td:nth-child(5){width:16%}th:nth-child(6),td:nth-child(6){width:14%}th:nth-child(7),td:nth-child(7){width:12%}th:nth-child(8),td:nth-child(8){width:auto}.tradeMeta{color:var(--m);font-size:11px;margin-top:3px}.auditCard{display:grid;gap:7px;min-width:0;padding:9px;border:1px solid #4a3b18;border-radius:10px;background:linear-gradient(180deg,#111710,#0b0f11);box-shadow:inset 3px 0 0 var(--b)}.auditDecision{color:var(--y);font-weight:850;font-size:11px;line-height:1.3;overflow-wrap:anywhere}.auditMeta{display:flex;gap:5px;flex-wrap:wrap}.auditStat{display:inline-flex;align-items:center;padding:3px 6px;border:1px solid #3d351d;border-radius:6px;background:#151a1c;color:var(--m);font-size:10px}.auditStat b{color:var(--t);margin-left:3px}.auditPattern{font-size:10px;color:var(--m);line-height:1.35}.auditPattern b{color:var(--g)}.auditOpen{display:flex;align-items:center;justify-content:center;margin-top:1px;padding:6px 7px;border-color:#765719;color:#ffd465;font-size:10px;font-weight:750;text-align:center}.pill{display:inline-block;border:1px solid var(--l);border-radius:99px;padding:2px 7px;margin:2px;font-size:10px}.empty{color:var(--m);padding:18px}input.rowSelect,#selectAllRows{width:15px;height:15px;accent-color:var(--b);cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}@media(max-width:900px){.k,.half{grid-column:span 6}.stats{grid-template-columns:repeat(3,1fr)}}@media(max-width:560px){.w{padding:10px}.k,.half{grid-column:1/-1}.stats{grid-template-columns:repeat(2,1fr)}.brand{margin-bottom:10px}}</style></head>
-<body><main class="w"><div class="brand"><img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX"><div><strong>BLACKDAEMON<span>FX</span></strong><div class="muted">ESTRATEGIA · DISCIPLINA · RESULTADOS</div></div></div><div class="top"><div><h1>Cuenta activa</h1><div class="muted">La rentabilidad se calcula por setup completo, no por piernas TP individuales.</div></div><div class="nav"><a class="btn" href="/">Dashboard</a><a class="btn" href="/instruments">Instrumentos</a></div></div><section class="grid">
-<div class="c k"><div class="lab">Balance</div><div class="val" id="balance">—</div></div><div class="c k"><div class="lab">Equity</div><div class="val" id="equity">—</div></div><div class="c k"><div class="lab">Margen libre</div><div class="val" id="free">—</div></div><div class="c k"><div class="lab">Profit flotante</div><div class="val" id="profit">—</div></div>
-<div class="c half"><div class="lab">Actividad</div><div class="stats"><div class="s">Trades<b id="total">0</b></div><div class="s">Abiertos<b id="open">0</b></div><div class="s">Cerrados<b id="closed">0</b></div><div class="s">WR piernas<b id="wr">0%</b></div><div class="s">WR setups<b id="swr">0%</b></div><div class="s">PnL neto<b id="pnl">0</b></div></div><div id="stamp" class="muted" style="margin-top:10px">Sin snapshot.</div><div id="dbsource" class="muted" style="margin-top:5px;font-size:11px">Última actualización: —</div><div id="statswindow" class="muted" style="margin-top:3px;font-size:11px">Ventana estadística: historial completo</div></div>
-<div class="c half"><div class="lab">Cierres</div><div class="bar" id="bar"></div><div class="leg"><span>TP1 <b id="tp1">0</b></span><span>TP2 <b id="tp2">0</b></span><span>TP histórico <b id="tph">0</b></span><span>Stop Loss <b id="sl">0</b></span><span>BE/Otro <b id="be">0</b></span><span>Emergencia <b id="em">0</b></span></div></div>
-<div class="c full"><div class="lab">Ranking de estrategias</div><div class="muted" style="font-size:12px;margin-top:5px">Ordenado por PnL neto de setups cerrados. El factor de beneficio se muestra sólo cuando hay pérdidas registradas.</div><div id="strategyStats" class="ranking"></div></div>
-<div class="c full"><div class="historyHead"><div><div class="lab">Comparativa Pre/Post mejoras (v107)</div><div class="muted" style="font-size:12px;margin-top:4px">Win Rate por señal antes vs. después de las mejoras aplicadas (v106: Break-Even con bloqueo real, filtro de horas de bajo edge en Sintéticos, salida por invalidación estructural M15; v107: retest limpio validado con overshoot real, patrón chartista y FVG obligatorios, sin killzones/filtro horario forzado, niveles de cuarto en Gold/ORB solo XAUUSD).</div></div></div><div class="stats" style="grid-template-columns:repeat(3,1fr)"><div class="s">WR Pre<b id="ppPreWr">—</b><div class="muted" style="font-size:10px;margin-top:2px" id="ppPreN">n=0</div></div><div class="s">WR Post<b id="ppPostWr">—</b><div class="muted" style="font-size:10px;margin-top:2px" id="ppPostN">n=0</div></div><div class="s">Delta<b id="ppDelta">—</b></div></div><div id="ppNotice" class="muted" style="margin-top:10px;font-size:12px"></div><div id="ppByFamily" class="ranking" style="margin-top:10px"></div></div>
-<div class="c full"><div class="historyHead"><div><div class="lab">Meta-etiquetado con IA</div><div class="muted" style="font-size:12px;margin-top:4px">Señales puntuadas por el motor de IA antes de ejecutarse. En modo sombra la IA observa y aprende sin bloquear ninguna entrada.</div></div><div id="aiMode" class="pill">—</div></div><div class="stats" style="grid-template-columns:repeat(5,1fr)"><div class="s">Analizadas por IA<b id="aiTotal">0</b></div><div class="s">En sombra<b id="aiShadow">0</b></div><div class="s">Filtradas (rechazadas)<b id="aiRejected">0</b></div><div class="s">Prob. media<b id="aiProb">—</b></div><div class="s">Expectativa neta<b id="aiExp">—</b></div></div><div id="aiState" class="muted" style="margin-top:10px;font-size:12px"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><div class="lab">Mejoras aplicadas para futuras entradas</div><div id="aiImprovements" class="ranking" style="grid-template-columns:1fr"></div></div><div><div class="lab">Cobertura por worker</div><div id="aiWorkers" class="ranking" style="grid-template-columns:1fr"></div></div></div></div>
-<div class="c full"><div class="historyHead"><div><div class="lab">Historial de operaciones</div><div class="muted" style="font-size:12px;margin-top:4px">Cada auditoría muestra su resumen directamente; abre la vista completa para revisar toda la evidencia técnica.</div></div><div><button id="bulkDownloadBtn" class="btn" disabled onclick="downloadSelectedAudits()">Descargar seleccionados (.xlsx)</button></div></div><div class="tbl"><table><thead><tr><th><input type="checkbox" id="selectAllRows" onchange="toggleAllRows(this)"></th><th>ID</th><th>Estrategia / instrumento</th><th>Operación</th><th>Entrada</th><th>Resultado</th><th>Cierre</th><th>Auditoría</th></tr></thead><tbody id="rows"></tbody></table></div></div></section></main>
-<script>const $=x=>document.getElementById(x),money=v=>v==null?'—':Number(v).toLocaleString('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2}),num=(v,d=2)=>v==null?'—':Number(v).toFixed(d),e=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function auditHtml(q){const passed=q.passed_confirmations||[],missing=q.missing_confirmations||[],critical=q.critical_confirmation_failures||[],total=q.entry_vs_now_snapshot_count||0,id=q.source_trade_id||q.id,score=q.confirmation_score==null?'—':num(q.confirmation_score,0);let pattern=q.chart_pattern_confirmed?'<div class="auditPattern">Patrón confirmado · <b>'+e(String(q.chart_pattern_name||'confirmado').replaceAll('_',' '))+'</b></div>':'';let link=id?'<a class="btn auditOpen" target="_blank" rel="noopener" href="/account/trade/'+e(id)+'/audit">Ver auditoría completa ↗</a>':'';return '<div class="auditCard"><div class="auditDecision">'+e(q.confirmation_decision||'Sin auditoría persistida')+'</div><div class="auditMeta"><span class="auditStat">Score <b>'+score+'</b></span><span class="auditStat">Snapshots <b>'+e(total)+'</b></span><span class="auditStat good">Aprobadas <b>'+e(passed.length)+'</b></span><span class="auditStat warn">Faltantes <b>'+e(missing.length)+'</b></span><span class="auditStat bad">Críticas <b>'+e(critical.length)+'</b></span></div>'+pattern+link+'</div>'}
-function strategyHtml(q,index){const pnl=Number(q.net_pnl||0),pf=q.profit_factor==null?'—':num(q.profit_factor,2),cls=pnl>0?'good':pnl<0?'bad':'';return '<article class="strategy"><div class="strategyHead"><span>#'+(index+1)+' · '+e(q.strategy)+'</span><span class="profit '+cls+'">'+money(pnl)+'</span></div><div class="strategyMeta"><span>'+e(q.setups||0)+' setups</span><span>WR '+num(q.win_rate,1)+'%</span><span>PF '+pf+'</span><span>Prom. '+money(q.average_pnl)+'</span></div></article>'}
-function familyHtml(f){const wr=f.win_rate==null?'—':num(f.win_rate,1)+'%';return '<article class="strategy"><div class="strategyHead"><span>'+e(f.family)+'</span><span>'+wr+'</span></div><div class="strategyMeta"><span>n='+e(f.decisive||0)+'</span></div></article>'}
-function renderPrePost(pp){pp=pp||{};const pre=pp.pre||{},post=pp.post||{};const preWr=pre.win_rate,postWr=post.win_rate;$('ppPreWr').textContent=preWr==null?'—':num(preWr,1)+'%';$('ppPreN').textContent='n='+(pre.decisive||0)+' ('+(pre.signal_count||0)+' señales)';$('ppPostWr').textContent=postWr==null?'—':num(postWr,1)+'%';$('ppPostN').textContent='n='+(post.decisive||0)+' ('+(post.signal_count||0)+' señales)';const delta=pp.delta_win_rate_pp;if(delta==null){$('ppDelta').textContent='—';$('ppDelta').className='val'}else{$('ppDelta').textContent=(delta>=0?'+':'')+num(delta,1)+' pp';$('ppDelta').className='val '+(delta>0?'good':delta<0?'bad':'')}let notice='';if(!post.decisive){notice='Aún no hay operaciones POST-mejoras cerradas; esta comparación se activa apenas se acumulen nuevas señales con la versión v107+.'}else if(pp.post_sample_small){notice='Muestra POST todavía pequeña (n='+post.decisive+'). Con menos de ~20-30 señales decisivas el WR puede variar mucho por azar.'}$('ppNotice').textContent=notice;const families=(post.decisive?post.by_family:pre.by_family)||[];$('ppByFamily').innerHTML=families.map(familyHtml).join('')||''}
-function aiWorkerHtml(w){const rej=Number(w.rejected||0),cls=w.trained?'good':'warn';return '<article class="strategy"><div class="strategyHead"><span>'+e(w.worker)+'</span><span class="'+cls+'" style="font-size:11px">'+(w.trained?'MODELO ENTRENADO':'SIN MODELO')+'</span></div><div class="strategyMeta"><span>'+e(w.analyzed||0)+' analizadas</span><span>Sombra '+e(w.shadow||0)+'</span><span>Permitidas '+e(w.allowed||0)+'</span><span class="'+(rej?'bad':'')+'">Rechazadas '+rej+'</span></div></article>'}
-function aiImprovementHtml(it){return '<article class="strategy"><div class="strategyHead"><span>'+e(it.title)+'</span><span class="'+e(it.cls||'')+'" style="font-size:11px">'+e(it.badge)+'</span></div><div class="strategyMeta" style="display:block;line-height:1.5">'+e(it.detail)+'</div></article>'}
-function aiImprovements(m){const out=[],total=Number(m.analyzed_total||0),trained=Number(m.trained_decisions||0),rejected=Number(m.filter_rejected||0),reasons=m.rejection_reasons||[];
-if(rejected>0){out.push({title:'Entradas evitadas por el filtro',badge:rejected+' bloqueadas',cls:'good',detail:'La IA rechazó '+rejected+' señales que las estrategias habrían ejecutado. Motivo principal: '+e((reasons[0]||{}).reason||'—')+'.'})}
-if(trained>0){out.push({title:'Probabilidad calibrada en uso',badge:'activa',cls:'good',detail:'Cada señal recibe una probabilidad de acierto calibrada y una expectativa neta en R, calculadas con el historial propio del worker.'})}
-(reasons||[]).slice(0,3).forEach(r=>out.push({title:'Patrón de rechazo detectado',badge:r.count+'×',cls:'warn',detail:'La IA descartó señales por "'+e(r.reason)+'". Revisa si la estrategia origen debería filtrar esa condición antes.'}));
-if(!out.length){out.push({title:'Aún no hay mejoras aplicadas',badge:'aprendiendo',cls:'warn',detail:total?'La IA lleva '+total+' señales observadas en modo sombra. Todavía no bloquea ni prioriza entradas: primero necesita historial suficiente para entrenar un modelo fiable por worker.':'La IA aún no ha puntuado señales. El panel se poblará cuando los workers evalúen nuevas entradas.'})}
-return out}
-function renderAI(m){m=m||{};const total=Number(m.analyzed_total||0),trained=Number(m.trained_decisions||0);$('aiTotal').textContent=total;$('aiShadow').textContent=m.shadow_scored||0;$('aiRejected').textContent=m.filter_rejected||0;$('aiProb').textContent=m.average_probability==null?'—':num(m.average_probability*100,1)+'%';$('aiExp').textContent=m.average_net_expectancy_r==null?'—':num(m.average_net_expectancy_r,2)+'R';
-const mode=$('aiMode');if(m.error){mode.textContent='ERROR';mode.className='pill bad'}else if(trained>0){mode.textContent='MODELO ACTIVO';mode.className='pill good'}else if(total>0){mode.textContent='MODO SOMBRA';mode.className='pill warn'}else{mode.textContent='SIN DATOS';mode.className='pill'}
-let state;if(m.error){state='No fue posible leer las decisiones de IA: '+e(m.error)}else if(!total){state='Ningún worker ha puntuado señales todavía. La IA no interfiere con la operativa.'}else if(!trained){state='Las '+total+' señales se puntuaron sin modelo entrenado, por lo que la IA no bloqueó ninguna entrada. Ejecuta el entrenamiento cuando cada worker acumule historial cerrado suficiente.'}else{state=trained+' de '+total+' decisiones usaron un modelo entrenado'+(m.last_trained_at?' · último entrenamiento '+new Date(m.last_trained_at).toLocaleString('es-CL'):'')+'.'}
-$('aiState').textContent=state;$('aiImprovements').innerHTML=aiImprovements(m).map(aiImprovementHtml).join('');$('aiWorkers').innerHTML=(m.by_worker||[]).map(aiWorkerHtml).join('')||'<div class="empty">Sin workers con señales puntuadas.</div>'}
-let selectedTradeIds=new Set();
-function render(a){a=a||{};let x=a.snapshot||{},z=a.stats||{},r=a.recent_trades||[];$('balance').textContent=money(x.balance);$('equity').textContent=money(x.equity);$('free').textContent=money(x.free_margin);$('profit').textContent=money(x.profit);$('profit').className='val '+(Number(x.profit||0)>0?'good':Number(x.profit||0)<0?'bad':'');$('total').textContent=z.total||0;$('open').textContent=z.open||0;$('closed').textContent=z.closed||0;$('wr').textContent=num(z.win_rate,1)+'%';$('swr').textContent=num(z.setup_win_rate,1)+'%';$('pnl').textContent=money(z.net_pnl);$('pnl').className=Number(z.net_pnl||0)>0?'good':Number(z.net_pnl||0)<0?'bad':'';renderAI(a.meta_labeling);renderPrePost(a.winrate_pre_post);$('strategyStats').innerHTML=(z.by_strategy||[]).map(strategyHtml).join('')||'<div class="empty">Aún no hay setups cerrados para comparar.</div>';$('stamp').textContent=x.snapshot_time?'Último snapshot DB: '+new Date(x.snapshot_time).toLocaleString('es-CL')+' · '+e(x.broker||'MT5'):'Todavía no hay snapshot guardado en la base de datos.';$('dbsource').textContent='Última actualización: '+(a.generated_at?new Date(a.generated_at).toLocaleString('es-CL'):'—');$('statswindow').textContent=a.stats_reset&&a.stats_reset.reset_time?'Estadísticas desde: '+new Date(a.stats_reset.reset_time).toLocaleString('es-CL'):'Ventana estadística: historial completo';[['tp1',z.tp1],['tp2',z.tp2],['tph',z.take_profit],['sl',z.stop_loss],['be',z.break_even],['em',z.emergency]].forEach(([id,v])=>$(id).textContent=v||0);let c=[['#31c48d',z.tp1||0],['#53a7ff',z.tp2||0],['#80d8a8',z.take_profit||0],['#ef6a6a',z.stop_loss||0],['#f5b942',z.break_even||0]],t=Math.max(1,c.reduce((n,q)=>n+q[1],0));$('bar').innerHTML=c.map(q=>q[1]?'<i style="display:block;background:'+q[0]+';width:'+(q[1]/t*100)+'%"></i>':'').join('');const liveIds=new Set(r.map(q=>String(q.id)));for(const id of Array.from(selectedTradeIds)){if(!liveIds.has(id))selectedTradeIds.delete(id)}$('rows').innerHTML=r.map(q=>'<tr><td><input type="checkbox" class="rowSelect" value="'+e(q.id)+'"'+(selectedTradeIds.has(String(q.id))?' checked':'')+' onchange="onRowSelectChange()"></td><td>'+e(q.id)+'</td><td><b>'+e(q.strategy)+'</b><div class="tradeMeta">'+e(q.instrument)+'</div></td><td>'+e(q.direction)+'<div class="tradeMeta">'+e(q.status)+' · '+e(q.leg||q.execution_mode)+'</div></td><td>'+e(q.entry_time?new Date(q.entry_time).toLocaleString('es-CL'):'—')+'</td><td><b class="'+(Number(q.net_pnl||0)>0?'good':Number(q.net_pnl||0)<0?'bad':'')+'">'+money(q.net_pnl)+'</b><div class="tradeMeta">RR '+num(q.realized_rr)+' / plan '+num(q.planned_rr)+'</div></td><td>'+e(q.classification)+'</td><td>'+auditHtml(q)+'</td></tr>').join('')||'<tr><td colspan="8" class="empty">No hay trades registrados.</td></tr>';$('selectAllRows').checked=r.length>0&&r.every(q=>selectedTradeIds.has(String(q.id)));onRowSelectChange()}
-function toggleAllRows(cb){document.querySelectorAll('.rowSelect').forEach(el=>{el.checked=cb.checked;if(cb.checked)selectedTradeIds.add(el.value);else selectedTradeIds.delete(el.value)});onRowSelectChange()}
-function onRowSelectChange(){document.querySelectorAll('.rowSelect').forEach(el=>{if(el.checked)selectedTradeIds.add(el.value);else selectedTradeIds.delete(el.value)});const count=selectedTradeIds.size;$('bulkDownloadBtn').disabled=count===0;$('bulkDownloadBtn').textContent='Descargar seleccionados (.xlsx)'+(count?' ('+count+')':'')}
-async function downloadSelectedAudits(){const ids=Array.from(selectedTradeIds).map(Number).filter(n=>!isNaN(n));if(!ids.length)return;const btn=$('bulkDownloadBtn');btn.disabled=true;btn.textContent='Generando...';try{const resp=await fetch('/api/account/trades/audit/excel/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trade_ids:ids})});if(!resp.ok){let msg='HTTP '+resp.status;try{const j=await resp.json();msg=j.error||msg}catch(_){}throw new Error(msg)}const blob=await resp.blob();const disposition=resp.headers.get('Content-Disposition')||'';const match=/filename="?([^"]+)"?/.exec(disposition);const filename=match?match[1]:'DaemonBlackFx_Auditorias_Lote.zip';const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);selectedTradeIds.clear()}catch(err){alert('No fue posible descargar las auditorías: '+err.message)}finally{onRowSelectChange()}}async function go(){try{let r=await fetch('/api/account?x='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status+' '+await r.text());render(await r.json())}catch(err){$('stamp').textContent='Sin conexión: '+err.message}}go();setInterval(go,2500)</script></body></html>'''
+ACCOUNT_HTML = r'''
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DaemonBlackFx · Cuenta activa</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050708;
+        --p: #0a0e10;
+        --p2: #10161a;
+        --t: #f5f5f2;
+        --m: #9fa2a5;
+        --l: #5b4514;
+        --g: #00db79;
+        --r: #ff453a;
+        --y: #f5bd36;
+        --b: #d79b19;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--t);
+        font: 14px system-ui;
+      }
+      .w {
+        max-width: 1380px;
+        margin: auto;
+        padding: 18px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--l);
+      }
+      .brand img {
+        width: 54px;
+        height: 54px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #765719;
+      }
+      .brand strong {
+        font-size: 20px;
+        letter-spacing: 0.04em;
+      }
+      .brand strong span {
+        color: #f4c84f;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: start;
+        flex-wrap: wrap;
+      }
+      .top h1 {
+        margin: 0;
+      }
+      .muted {
+        color: var(--m);
+      }
+      .nav {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        color: var(--t);
+        background: var(--p2);
+        border: 1px solid var(--l);
+        padding: 8px 11px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+        margin-top: 15px;
+      }
+      .c {
+        background: var(--p);
+        border: 1px solid var(--l);
+        border-radius: 14px;
+        padding: 14px;
+        min-width: 0;
+        box-shadow: inset 0 1px 0 rgba(255, 211, 102, 0.03);
+      }
+      .k {
+        grid-column: span 3;
+      }
+      .half {
+        grid-column: span 6;
+      }
+      .full {
+        grid-column: 1/-1;
+      }
+      .lab {
+        color: var(--m);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .val {
+        font-size: 25px;
+        font-weight: 800;
+        margin-top: 5px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .s {
+        background: var(--p2);
+        padding: 10px;
+        border-radius: 9px;
+        min-width: 0;
+      }
+      .s b {
+        display: block;
+        font-size: 19px;
+      }
+      .bar {
+        height: 14px;
+        background: #192a37;
+        border-radius: 99px;
+        overflow: hidden;
+        display: flex;
+        margin: 12px 0;
+      }
+      .leg {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: var(--m);
+        font-size: 12px;
+      }
+      .ranking {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 9px;
+        margin-top: 10px;
+      }
+      .strategy {
+        padding: 11px;
+        background: var(--p2);
+        border: 1px solid #263139;
+        border-radius: 10px;
+      }
+      .strategyHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-weight: 800;
+      }
+      .strategyMeta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: var(--m);
+        font-size: 11px;
+        margin-top: 7px;
+      }
+      .strategy .profit {
+        font-size: 16px;
+      }
+      .good {
+        color: var(--g);
+      }
+      .bad {
+        color: var(--r);
+      }
+      .warn {
+        color: var(--y);
+      }
+      .historyHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+      .tbl {
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: 620px;
+        margin-top: 10px;
+        border: 1px solid var(--l);
+        border-radius: 9px;
+      }
+      table {
+        width: 100%;
+        max-width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #302914;
+        text-align: left;
+        vertical-align: top;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      th {
+        color: var(--m);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        position: sticky;
+        top: 0;
+        background: var(--p);
+        z-index: 2;
+      }
+      th:nth-child(1),
+      td:nth-child(1) {
+        width: 34px;
+        text-align: center;
+        padding-left: 6px;
+        padding-right: 6px;
+      }
+      th:nth-child(2),
+      td:nth-child(2) {
+        width: 6%;
+      }
+      th:nth-child(3),
+      td:nth-child(3) {
+        width: 16%;
+      }
+      th:nth-child(4),
+      td:nth-child(4) {
+        width: 12%;
+      }
+      th:nth-child(5),
+      td:nth-child(5) {
+        width: 16%;
+      }
+      th:nth-child(6),
+      td:nth-child(6) {
+        width: 14%;
+      }
+      th:nth-child(7),
+      td:nth-child(7) {
+        width: 12%;
+      }
+      th:nth-child(8),
+      td:nth-child(8) {
+        width: auto;
+      }
+      .tradeMeta {
+        color: var(--m);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .auditCard {
+        display: grid;
+        gap: 7px;
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid #4a3b18;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #111710, #0b0f11);
+        box-shadow: inset 3px 0 0 var(--b);
+      }
+      .auditDecision {
+        color: var(--y);
+        font-weight: 850;
+        font-size: 11px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+      .auditMeta {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .auditStat {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 6px;
+        border: 1px solid #3d351d;
+        border-radius: 6px;
+        background: #151a1c;
+        color: var(--m);
+        font-size: 10px;
+      }
+      .auditStat b {
+        color: var(--t);
+        margin-left: 3px;
+      }
+      .auditPattern {
+        font-size: 10px;
+        color: var(--m);
+        line-height: 1.35;
+      }
+      .auditPattern b {
+        color: var(--g);
+      }
+      .auditOpen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1px;
+        padding: 6px 7px;
+        border-color: #765719;
+        color: #ffd465;
+        font-size: 10px;
+        font-weight: 750;
+        text-align: center;
+      }
+      .pill {
+        display: inline-block;
+        border: 1px solid var(--l);
+        border-radius: 99px;
+        padding: 2px 7px;
+        margin: 2px;
+        font-size: 10px;
+      }
+      .empty {
+        color: var(--m);
+        padding: 18px;
+      }
+      input.rowSelect,
+      #selectAllRows {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--b);
+        cursor: pointer;
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      @media (max-width: 900px) {
+        .k,
+        .half {
+          grid-column: span 6;
+        }
+        .stats {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 560px) {
+        .w {
+          padding: 10px;
+        }
+        .k,
+        .half {
+          grid-column: 1/-1;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .brand {
+          margin-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="w">
+      <div class="brand">
+        <img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <div>
+          <strong>BLACKDAEMON<span>FX</span></strong>
+          <div class="muted">ESTRATEGIA · DISCIPLINA · RESULTADOS</div>
+        </div>
+      </div>
+      <div class="top">
+        <div>
+          <h1>Cuenta activa</h1>
+          <div class="muted">
+            La rentabilidad se calcula por setup completo, no por piernas TP individuales.
+          </div>
+        </div>
+        <div class="nav">
+          <a class="btn" href="/">Dashboard</a><a class="btn" href="/instruments">Instrumentos</a>
+        </div>
+      </div>
+      <section class="grid">
+        <div class="c k">
+          <div class="lab">Balance</div>
+          <div class="val" id="balance">—</div>
+        </div>
+        <div class="c k">
+          <div class="lab">Equity</div>
+          <div class="val" id="equity">—</div>
+        </div>
+        <div class="c k">
+          <div class="lab">Margen libre</div>
+          <div class="val" id="free">—</div>
+        </div>
+        <div class="c k">
+          <div class="lab">Profit flotante</div>
+          <div class="val" id="profit">—</div>
+        </div>
+        <div class="c half">
+          <div class="lab">Actividad</div>
+          <div class="stats">
+            <div class="s">Trades<b id="total">0</b></div>
+            <div class="s">Abiertos<b id="open">0</b></div>
+            <div class="s">Cerrados<b id="closed">0</b></div>
+            <div class="s">WR piernas<b id="wr">0%</b></div>
+            <div class="s">WR setups<b id="swr">0%</b></div>
+            <div class="s">PnL neto<b id="pnl">0</b></div>
+          </div>
+          <div id="stamp" class="muted" style="margin-top: 10px">Sin snapshot.</div>
+          <div id="dbsource" class="muted" style="margin-top: 5px; font-size: 11px">
+            Última actualización: —
+          </div>
+          <div id="statswindow" class="muted" style="margin-top: 3px; font-size: 11px">
+            Ventana estadística: historial completo
+          </div>
+        </div>
+        <div class="c half">
+          <div class="lab">Cierres</div>
+          <div class="bar" id="bar"></div>
+          <div class="leg">
+            <span>TP1 <b id="tp1">0</b></span
+            ><span>TP2 <b id="tp2">0</b></span
+            ><span>TP histórico <b id="tph">0</b></span
+            ><span>Stop Loss <b id="sl">0</b></span
+            ><span>BE/Otro <b id="be">0</b></span
+            ><span>Emergencia <b id="em">0</b></span>
+          </div>
+        </div>
+        <div class="c full">
+          <div class="lab">Ranking de estrategias</div>
+          <div class="muted" style="font-size: 12px; margin-top: 5px">
+            Ordenado por PnL neto de setups cerrados. El factor de beneficio se muestra sólo cuando
+            hay pérdidas registradas.
+          </div>
+          <div id="strategyStats" class="ranking"></div>
+        </div>
+        <div class="c full">
+          <div class="historyHead">
+            <div>
+              <div class="lab">Comparativa Pre/Post mejoras (v107)</div>
+              <div class="muted" style="font-size: 12px; margin-top: 4px">
+                Win Rate por señal antes vs. después de las mejoras aplicadas (v106: Break-Even con
+                bloqueo real, filtro de horas de bajo edge en Sintéticos, salida por invalidación
+                estructural M15; v107: retest limpio validado con overshoot real, patrón chartista y
+                FVG obligatorios, sin killzones/filtro horario forzado, niveles de cuarto en
+                Gold/ORB solo XAUUSD).
+              </div>
+            </div>
+          </div>
+          <div class="stats" style="grid-template-columns: repeat(3, 1fr)">
+            <div class="s">
+              WR Pre<b id="ppPreWr">—</b>
+              <div class="muted" style="font-size: 10px; margin-top: 2px" id="ppPreN">n=0</div>
+            </div>
+            <div class="s">
+              WR Post<b id="ppPostWr">—</b>
+              <div class="muted" style="font-size: 10px; margin-top: 2px" id="ppPostN">n=0</div>
+            </div>
+            <div class="s">Delta<b id="ppDelta">—</b></div>
+          </div>
+          <div id="ppNotice" class="muted" style="margin-top: 10px; font-size: 12px"></div>
+          <div id="ppByFamily" class="ranking" style="margin-top: 10px"></div>
+        </div>
+        <div class="c full">
+          <div class="historyHead">
+            <div>
+              <div class="lab">Meta-etiquetado con IA</div>
+              <div class="muted" style="font-size: 12px; margin-top: 4px">
+                Señales puntuadas por el motor de IA antes de ejecutarse. En modo sombra la IA
+                observa y aprende sin bloquear ninguna entrada.
+              </div>
+            </div>
+            <div id="aiMode" class="pill">—</div>
+          </div>
+          <div class="stats" style="grid-template-columns: repeat(5, 1fr)">
+            <div class="s">Analizadas por IA<b id="aiTotal">0</b></div>
+            <div class="s">En sombra<b id="aiShadow">0</b></div>
+            <div class="s">Filtradas (rechazadas)<b id="aiRejected">0</b></div>
+            <div class="s">Prob. media<b id="aiProb">—</b></div>
+            <div class="s">Expectativa neta<b id="aiExp">—</b></div>
+          </div>
+          <div id="aiState" class="muted" style="margin-top: 10px; font-size: 12px"></div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px">
+            <div>
+              <div class="lab">Mejoras aplicadas para futuras entradas</div>
+              <div id="aiImprovements" class="ranking" style="grid-template-columns: 1fr"></div>
+            </div>
+            <div>
+              <div class="lab">Cobertura por worker</div>
+              <div id="aiWorkers" class="ranking" style="grid-template-columns: 1fr"></div>
+            </div>
+          </div>
+        </div>
+        <div class="c full">
+          <div class="historyHead">
+            <div>
+              <div class="lab">Historial de operaciones</div>
+              <div class="muted" style="font-size: 12px; margin-top: 4px">
+                Cada auditoría muestra su resumen directamente; abre la vista completa para revisar
+                toda la evidencia técnica.
+              </div>
+            </div>
+            <div>
+              <button id="bulkDownloadBtn" class="btn" disabled onclick="downloadSelectedAudits()">
+                Descargar seleccionados (.xlsx)
+              </button>
+            </div>
+          </div>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input type="checkbox" id="selectAllRows" onchange="toggleAllRows(this)" />
+                  </th>
+                  <th>ID</th>
+                  <th>Estrategia / instrumento</th>
+                  <th>Operación</th>
+                  <th>Entrada</th>
+                  <th>Resultado</th>
+                  <th>Cierre</th>
+                  <th>Auditoría</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const $ = (x) => document.getElementById(x),
+        money = (v) =>
+          v == null
+            ? '—'
+            : Number(v).toLocaleString('es-CL', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
+        num = (v, d = 2) => (v == null ? '—' : Number(v).toFixed(d)),
+        e = (v) =>
+          String(v ?? '—').replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+          );
+      function auditHtml(q) {
+        const passed = q.passed_confirmations || [],
+          missing = q.missing_confirmations || [],
+          critical = q.critical_confirmation_failures || [],
+          total = q.entry_vs_now_snapshot_count || 0,
+          id = q.source_trade_id || q.id,
+          score = q.confirmation_score == null ? '—' : num(q.confirmation_score, 0);
+        let pattern = q.chart_pattern_confirmed
+          ? '<div class="auditPattern">Patrón confirmado · <b>' +
+            e(String(q.chart_pattern_name || 'confirmado').replaceAll('_', ' ')) +
+            '</b></div>'
+          : '';
+        let link = id
+          ? '<a class="btn auditOpen" target="_blank" rel="noopener" href="/account/trade/' +
+            e(id) +
+            '/audit">Ver auditoría completa ↗</a>'
+          : '';
+        return (
+          '<div class="auditCard"><div class="auditDecision">' +
+          e(q.confirmation_decision || 'Sin auditoría persistida') +
+          '</div><div class="auditMeta"><span class="auditStat">Score <b>' +
+          score +
+          '</b></span><span class="auditStat">Snapshots <b>' +
+          e(total) +
+          '</b></span><span class="auditStat good">Aprobadas <b>' +
+          e(passed.length) +
+          '</b></span><span class="auditStat warn">Faltantes <b>' +
+          e(missing.length) +
+          '</b></span><span class="auditStat bad">Críticas <b>' +
+          e(critical.length) +
+          '</b></span></div>' +
+          pattern +
+          link +
+          '</div>'
+        );
+      }
+      function strategyHtml(q, index) {
+        const pnl = Number(q.net_pnl || 0),
+          pf = q.profit_factor == null ? '—' : num(q.profit_factor, 2),
+          cls = pnl > 0 ? 'good' : pnl < 0 ? 'bad' : '';
+        return (
+          '<article class="strategy"><div class="strategyHead"><span>#' +
+          (index + 1) +
+          ' · ' +
+          e(q.strategy) +
+          '</span><span class="profit ' +
+          cls +
+          '">' +
+          money(pnl) +
+          '</span></div><div class="strategyMeta"><span>' +
+          e(q.setups || 0) +
+          ' setups</span><span>WR ' +
+          num(q.win_rate, 1) +
+          '%</span><span>PF ' +
+          pf +
+          '</span><span>Prom. ' +
+          money(q.average_pnl) +
+          '</span></div></article>'
+        );
+      }
+      function familyHtml(f) {
+        const wr = f.win_rate == null ? '—' : num(f.win_rate, 1) + '%';
+        return (
+          '<article class="strategy"><div class="strategyHead"><span>' +
+          e(f.family) +
+          '</span><span>' +
+          wr +
+          '</span></div><div class="strategyMeta"><span>n=' +
+          e(f.decisive || 0) +
+          '</span></div></article>'
+        );
+      }
+      function renderPrePost(pp) {
+        pp = pp || {};
+        const pre = pp.pre || {},
+          post = pp.post || {};
+        const preWr = pre.win_rate,
+          postWr = post.win_rate;
+        $('ppPreWr').textContent = preWr == null ? '—' : num(preWr, 1) + '%';
+        $('ppPreN').textContent =
+          'n=' + (pre.decisive || 0) + ' (' + (pre.signal_count || 0) + ' señales)';
+        $('ppPostWr').textContent = postWr == null ? '—' : num(postWr, 1) + '%';
+        $('ppPostN').textContent =
+          'n=' + (post.decisive || 0) + ' (' + (post.signal_count || 0) + ' señales)';
+        const delta = pp.delta_win_rate_pp;
+        if (delta == null) {
+          $('ppDelta').textContent = '—';
+          $('ppDelta').className = 'val';
+        } else {
+          $('ppDelta').textContent = (delta >= 0 ? '+' : '') + num(delta, 1) + ' pp';
+          $('ppDelta').className = 'val ' + (delta > 0 ? 'good' : delta < 0 ? 'bad' : '');
+        }
+        let notice = '';
+        if (!post.decisive) {
+          notice =
+            'Aún no hay operaciones POST-mejoras cerradas; esta comparación se activa apenas se acumulen nuevas señales con la versión v107+.';
+        } else if (pp.post_sample_small) {
+          notice =
+            'Muestra POST todavía pequeña (n=' +
+            post.decisive +
+            '). Con menos de ~20-30 señales decisivas el WR puede variar mucho por azar.';
+        }
+        $('ppNotice').textContent = notice;
+        const families = (post.decisive ? post.by_family : pre.by_family) || [];
+        $('ppByFamily').innerHTML = families.map(familyHtml).join('') || '';
+      }
+      function aiWorkerHtml(w) {
+        const rej = Number(w.rejected || 0),
+          cls = w.trained ? 'good' : 'warn';
+        return (
+          '<article class="strategy"><div class="strategyHead"><span>' +
+          e(w.worker) +
+          '</span><span class="' +
+          cls +
+          '" style="font-size:11px">' +
+          (w.trained ? 'MODELO USADO EN EVALUACIONES' : 'SIN MODELO EN EVALUACIONES') +
+          '</span></div><div class="strategyMeta"><span>' +
+          e(w.analyzed || 0) +
+          ' evaluaciones de señales</span><span>En sombra ' +
+          e(w.shadow || 0) +
+          '</span><span>Permitidas ' +
+          e(w.allowed || 0) +
+          '</span><span class="' +
+          (rej ? 'bad' : '') +
+          '">Rechazadas ' +
+          rej +
+          '</span></div><div class="strategyMeta">' +
+          (Object.entries(w.learning_strategies || {})
+            .map(
+              ([k, v]) =>
+                e(k) +
+                ': ' +
+                e(v.eligible_closed_setups || 0) +
+                ' setups cerrados elegibles / ' +
+                e(v.minimum || 30) +
+                ' · Candidato ' +
+                (v.trained ? 'entrenado' : 'pendiente'),
+            )
+            .join('<br>') || 'Sin setups con captura válida en el último informe') +
+          '</div><div class="strategyMeta">Actualizado: ' +
+          e(w.learning_audit_updated_at || 'sin informe') +
+          ' · Las evaluaciones en sombra no son trades cerrados.</div></article>'
+        );
+      }
+      function aiImprovementHtml(it) {
+        return (
+          '<article class="strategy"><div class="strategyHead"><span>' +
+          e(it.title) +
+          '</span><span class="' +
+          e(it.cls || '') +
+          '" style="font-size:11px">' +
+          e(it.badge) +
+          '</span></div><div class="strategyMeta" style="display:block;line-height:1.5">' +
+          e(it.detail) +
+          '</div></article>'
+        );
+      }
+      function aiImprovements(m) {
+        const out = [],
+          total = Number(m.analyzed_total || 0),
+          trained = Number(m.trained_decisions || 0),
+          rejected = Number(m.filter_rejected || 0),
+          reasons = m.rejection_reasons || [];
+        if (rejected > 0) {
+          out.push({
+            title: 'Entradas evitadas por el filtro',
+            badge: rejected + ' bloqueadas',
+            cls: 'good',
+            detail:
+              'La IA rechazó ' +
+              rejected +
+              ' señales que las estrategias habrían ejecutado. Motivo principal: ' +
+              e((reasons[0] || {}).reason || '—') +
+              '.',
+          });
+        }
+        if (trained > 0) {
+          out.push({
+            title: 'Probabilidad calibrada en uso',
+            badge: 'activa',
+            cls: 'good',
+            detail:
+              'Cada señal recibe una probabilidad de acierto calibrada y una expectativa neta en R, calculadas con el historial propio del worker.',
+          });
+        }
+        (reasons || []).slice(0, 3).forEach((r) =>
+          out.push({
+            title: 'Patrón de rechazo detectado',
+            badge: r.count + '×',
+            cls: 'warn',
+            detail:
+              'La IA descartó señales por "' +
+              e(r.reason) +
+              '". Revisa si la estrategia origen debería filtrar esa condición antes.',
+          }),
+        );
+        if (!out.length) {
+          out.push({
+            title: 'Aún no hay mejoras aplicadas',
+            badge: 'aprendiendo',
+            cls: 'warn',
+            detail: total
+              ? 'La IA lleva ' +
+                total +
+                ' señales observadas en modo sombra. Todavía no bloquea ni prioriza entradas: primero necesita historial suficiente para entrenar un modelo fiable por worker.'
+              : 'La IA aún no ha puntuado señales. El panel se poblará cuando los workers evalúen nuevas entradas.',
+          });
+        }
+        return out;
+      }
+      function renderAI(m) {
+        m = m || {};
+        const total = Number(m.analyzed_total || 0),
+          trained = Number(m.trained_decisions || 0);
+        $('aiTotal').textContent = total;
+        $('aiShadow').textContent = m.shadow_scored || 0;
+        $('aiRejected').textContent = m.filter_rejected || 0;
+        $('aiProb').textContent =
+          m.average_probability == null ? '—' : num(m.average_probability * 100, 1) + '%';
+        $('aiExp').textContent =
+          m.average_net_expectancy_r == null ? '—' : num(m.average_net_expectancy_r, 2) + 'R';
+        const mode = $('aiMode');
+        if (m.error) {
+          mode.textContent = 'ERROR';
+          mode.className = 'pill bad';
+        } else if (trained > 0) {
+          mode.textContent = 'MODELO ACTIVO';
+          mode.className = 'pill good';
+        } else if (total > 0) {
+          mode.textContent = 'MODO SOMBRA';
+          mode.className = 'pill warn';
+        } else {
+          mode.textContent = 'SIN DATOS';
+          mode.className = 'pill';
+        }
+        let state;
+        if (m.error) {
+          state = 'No fue posible leer las decisiones de IA: ' + e(m.error);
+        } else if (!total) {
+          state =
+            'Ningún worker ha puntuado señales todavía. La IA no interfiere con la operativa.';
+        } else if (!trained) {
+          state =
+            'Las ' +
+            total +
+            ' señales se puntuaron sin modelo entrenado, por lo que la IA no bloqueó ninguna entrada. Ejecuta el entrenamiento cuando cada worker acumule historial cerrado suficiente.';
+        } else {
+          state =
+            trained +
+            ' de ' +
+            total +
+            ' decisiones usaron un modelo entrenado' +
+            (m.last_trained_at
+              ? ' · último entrenamiento ' + new Date(m.last_trained_at).toLocaleString('es-CL')
+              : '') +
+            '.';
+        }
+        $('aiState').textContent = state;
+        $('aiImprovements').innerHTML = aiImprovements(m).map(aiImprovementHtml).join('');
+        $('aiWorkers').innerHTML =
+          (m.by_worker || []).map(aiWorkerHtml).join('') ||
+          '<div class="empty">Sin workers con señales puntuadas.</div>';
+      }
+      let selectedTradeIds = new Set();
+      function render(a) {
+        a = a || {};
+        let x = a.snapshot || {},
+          z = a.stats || {},
+          r = a.recent_trades || [];
+        $('balance').textContent = money(x.balance);
+        $('equity').textContent = money(x.equity);
+        $('free').textContent = money(x.free_margin);
+        $('profit').textContent = money(x.profit);
+        $('profit').className =
+          'val ' + (Number(x.profit || 0) > 0 ? 'good' : Number(x.profit || 0) < 0 ? 'bad' : '');
+        $('total').textContent = z.total || 0;
+        $('open').textContent = z.open || 0;
+        $('closed').textContent = z.closed || 0;
+        $('wr').textContent = num(z.win_rate, 1) + '%';
+        $('swr').textContent = num(z.setup_win_rate, 1) + '%';
+        $('pnl').textContent = money(z.net_pnl);
+        $('pnl').className =
+          Number(z.net_pnl || 0) > 0 ? 'good' : Number(z.net_pnl || 0) < 0 ? 'bad' : '';
+        renderAI(a.meta_labeling);
+        renderPrePost(a.winrate_pre_post);
+        $('strategyStats').innerHTML =
+          (z.by_strategy || []).map(strategyHtml).join('') ||
+          '<div class="empty">Aún no hay setups cerrados para comparar.</div>';
+        $('stamp').textContent = x.snapshot_time
+          ? 'Último snapshot DB: ' +
+            new Date(x.snapshot_time).toLocaleString('es-CL') +
+            ' · ' +
+            e(x.broker || 'MT5')
+          : 'Todavía no hay snapshot guardado en la base de datos.';
+        $('dbsource').textContent =
+          'Última actualización: ' +
+          (a.generated_at ? new Date(a.generated_at).toLocaleString('es-CL') : '—');
+        $('statswindow').textContent =
+          a.stats_reset && a.stats_reset.reset_time
+            ? 'Estadísticas desde: ' + new Date(a.stats_reset.reset_time).toLocaleString('es-CL')
+            : 'Ventana estadística: historial completo';
+        [
+          ['tp1', z.tp1],
+          ['tp2', z.tp2],
+          ['tph', z.take_profit],
+          ['sl', z.stop_loss],
+          ['be', z.break_even],
+          ['em', z.emergency],
+        ].forEach(([id, v]) => ($(id).textContent = v || 0));
+        let c = [
+            ['#31c48d', z.tp1 || 0],
+            ['#53a7ff', z.tp2 || 0],
+            ['#80d8a8', z.take_profit || 0],
+            ['#ef6a6a', z.stop_loss || 0],
+            ['#f5b942', z.break_even || 0],
+          ],
+          t = Math.max(
+            1,
+            c.reduce((n, q) => n + q[1], 0),
+          );
+        $('bar').innerHTML = c
+          .map((q) =>
+            q[1]
+              ? '<i style="display:block;background:' +
+                q[0] +
+                ';width:' +
+                (q[1] / t) * 100 +
+                '%"></i>'
+              : '',
+          )
+          .join('');
+        const liveIds = new Set(r.map((q) => String(q.id)));
+        for (const id of Array.from(selectedTradeIds)) {
+          if (!liveIds.has(id)) selectedTradeIds.delete(id);
+        }
+        $('rows').innerHTML =
+          r
+            .map(
+              (q) =>
+                '<tr><td><input type="checkbox" class="rowSelect" value="' +
+                e(q.id) +
+                '"' +
+                (selectedTradeIds.has(String(q.id)) ? ' checked' : '') +
+                ' onchange="onRowSelectChange()"></td><td>' +
+                e(q.id) +
+                '</td><td><b>' +
+                e(q.strategy) +
+                '</b><div class="tradeMeta">' +
+                e(q.instrument) +
+                '</div></td><td>' +
+                e(q.direction) +
+                '<div class="tradeMeta">' +
+                e(q.status) +
+                ' · ' +
+                e(q.leg || q.execution_mode) +
+                '</div></td><td>' +
+                e(q.entry_time ? new Date(q.entry_time).toLocaleString('es-CL') : '—') +
+                '</td><td><b class="' +
+                (Number(q.net_pnl || 0) > 0 ? 'good' : Number(q.net_pnl || 0) < 0 ? 'bad' : '') +
+                '">' +
+                money(q.net_pnl) +
+                '</b><div class="tradeMeta">RR ' +
+                num(q.realized_rr) +
+                ' / plan ' +
+                num(q.planned_rr) +
+                '</div></td><td>' +
+                e(q.classification) +
+                '</td><td>' +
+                auditHtml(q) +
+                '</td></tr>',
+            )
+            .join('') || '<tr><td colspan="8" class="empty">No hay trades registrados.</td></tr>';
+        $('selectAllRows').checked =
+          r.length > 0 && r.every((q) => selectedTradeIds.has(String(q.id)));
+        onRowSelectChange();
+      }
+      function toggleAllRows(cb) {
+        document.querySelectorAll('.rowSelect').forEach((el) => {
+          el.checked = cb.checked;
+          if (cb.checked) selectedTradeIds.add(el.value);
+          else selectedTradeIds.delete(el.value);
+        });
+        onRowSelectChange();
+      }
+      function onRowSelectChange() {
+        document.querySelectorAll('.rowSelect').forEach((el) => {
+          if (el.checked) selectedTradeIds.add(el.value);
+          else selectedTradeIds.delete(el.value);
+        });
+        const count = selectedTradeIds.size;
+        $('bulkDownloadBtn').disabled = count === 0;
+        $('bulkDownloadBtn').textContent =
+          'Descargar seleccionados (.xlsx)' + (count ? ' (' + count + ')' : '');
+      }
+      async function downloadSelectedAudits() {
+        const ids = Array.from(selectedTradeIds)
+          .map(Number)
+          .filter((n) => !isNaN(n));
+        if (!ids.length) return;
+        const btn = $('bulkDownloadBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generando...';
+        try {
+          const resp = await fetch('/api/account/trades/audit/excel/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trade_ids: ids }),
+          });
+          if (!resp.ok) {
+            let msg = 'HTTP ' + resp.status;
+            try {
+              const j = await resp.json();
+              msg = j.error || msg;
+            } catch (_) {}
+            throw new Error(msg);
+          }
+          const blob = await resp.blob();
+          const disposition = resp.headers.get('Content-Disposition') || '';
+          const match = /filename="?([^"]+)"?/.exec(disposition);
+          const filename = match ? match[1] : 'DaemonBlackFx_Auditorias_Lote.zip';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          selectedTradeIds.clear();
+        } catch (err) {
+          alert('No fue posible descargar las auditorías: ' + err.message);
+        } finally {
+          onRowSelectChange();
+        }
+      }
+      let accountBusy = false;
+      async function go() {
+        if (document.hidden || accountBusy) return;
+        accountBusy = true;
+        const controller = new AbortController(),
+          timeout = setTimeout(() => controller.abort(), 30000);
+        try {
+          let r = await fetch('/api/account?x=' + Date.now(), {
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+          if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()));
+          render(await r.json());
+          pageLoading.done();
+        } catch (err) {
+          $('stamp').textContent = 'Sin conexión: ' + err.message;
+          pageLoading.fail('No se pudieron cargar los datos de cuenta. Intenta nuevamente.');
+        } finally {
+          clearTimeout(timeout);
+          accountBusy = false;
+        }
+      }
+      go();
+      setInterval(go, 6000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) go();
+      });
+    </script>
+  </body>
+</html>
+'''
+
+from dashboard.page_loading import with_page_loading
+
+ACCOUNT_HTML = with_page_loading(ACCOUNT_HTML)

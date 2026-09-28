@@ -1,8 +1,9 @@
-"""Analizador multi-temporal H1 → M15 → M5, el cerebro que decide entradas.
+"""Analizador multi-temporal H4 → H1 → M15 → M5.
 
 Aplica el principio SMC de que cada temporalidad cumple un papel distinto:
 
-- H1 da el CONTEXTO: hacia donde va el mercado.
+- H4 da la TENDENCIA MAYOR.
+- H1 confirma el CONTEXTO y debe converger con H4.
 - M15 da el SETUP: donde esta la zona operable.
 - M5 da la CONFIRMACION: cuando entrar exactamente.
 
@@ -33,7 +34,7 @@ Vinculaciones:
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import threading
 import time
@@ -42,7 +43,11 @@ import pandas as pd
 
 from config.symbol_policy import get_symbol_direction_policy
 from strategy.execution.trade_pipeline import PipelineConfig, run_trade_pipeline
+from strategy.smc.structural_validation import get_h1_structural_range_flexible
+from strategy.smc.m15_setup import build_m15_setups
 from strategy.smc.market_structure import get_current_trend
+from strategy.smc.h1_adaptive_context import evaluate_h1_adaptive_context, h1_ob_location_valid
+from strategy.smc.entry_location import closed_range, evaluate_entry_location
 from strategy.smc.h1_doji_extremes import H1ExtremeDojiConfig, detect_h1_extreme_doji
 
 
@@ -51,7 +56,8 @@ class MultiTimeframeConfig:
     """
     Configuración del flujo:
 
-        H1  -> contexto / tendencia
+        H4  -> tendencia mayor
+        H1  -> contexto / convergencia
         M15 -> setup
         M5  -> confirmación / entrada
 
@@ -67,14 +73,24 @@ class MultiTimeframeConfig:
     abiertas.
     """
 
+    higher_timeframe: str = "H4"
     structure_timeframe: str = "H1"
     confirmation_timeframe: str = "M15"
     entry_timeframe: str = "M5"
 
+    higher_timeframe_candles: int = 500
     structure_candles: int = 500
     confirmation_candles: int = 500
     entry_candles: int = 350
 
+    # El analizador aislado conserva compatibilidad con consumidores que
+    # construyen una secuencia H1/M15/M5. El motor live lo activa de forma
+    # sólo para el perfil ORB; SMC usa H1 como contexto principal.
+    require_h4_h1_convergence: bool = False
+    smc_entry_location_enabled: bool = False
+    h1_location_only: bool = False
+    smc_entry_location_policy: str = "ALL_TIMEFRAMES"
+    volatility_entry_location_enabled: bool = False  # Legacy standalone configuration
     require_h1_trend: bool = True
     require_m15_setup: bool = True
     require_m5_confirmation: bool = True
@@ -155,6 +171,11 @@ class MultiTimeframeAnalyzer:
         # la renueva. El lock protege únicamente el mapa; las lecturas de MT5 y
         # el pipeline siguen fuera de la sección crítica para no frenar señales.
         self._stage_cache_lock = threading.RLock()
+        # Un lock por (símbolo, timeframe) evita el efecto "cache stampede":
+        # si el scanner y el monitor piden la misma etapa justo al cerrar una
+        # vela, sólo uno descarga/procesa y el otro reutiliza ese resultado.
+        # Los símbolos distintos continúan ejecutándose de forma independiente.
+        self._stage_inflight_locks = {}
 
     _TIMEFRAME_SECONDS = {
         "M1": 60,
@@ -273,22 +294,57 @@ class MultiTimeframeAnalyzer:
                 },
             )
 
-        fetch_started = time.monotonic()
-        data = self._get_closed_candles(symbol, timeframe, count)
-        fetch_seconds = time.monotonic() - fetch_started
+        # Crear/obtener el candado bajo el lock del mapa; el trabajo pesado se
+        # serializa únicamente para esta clave, nunca entre símbolos distintos.
+        with self._stage_cache_lock:
+            stage_lock = self._stage_inflight_locks.setdefault(
+                key, threading.Lock()
+            )
 
-        pipeline_started = time.monotonic()
-        result = self._run_pipeline(data, symbol)
-        pipeline_seconds = time.monotonic() - pipeline_started
-
-        refresh_at = self._next_refresh_at(timeframe, now)
-        if bool(self.config.stage_cache_enabled):
+        with stage_lock:
+            # Otra hebra pudo completar esta etapa mientras esperábamos.
+            now = datetime.now(timezone.utc)
             with self._stage_cache_lock:
-                self._stage_cache[key] = {
-                    "data": data,
-                    "result": result,
-                    "refresh_at": refresh_at,
-                }
+                cached = self._stage_cache.get(key)
+            if (
+                bool(self.config.stage_cache_enabled)
+                and cached is not None
+                and now < cached["refresh_at"]
+            ):
+                return (
+                    cached["data"],
+                    cached["result"],
+                    {
+                        "cache_hit": True,
+                        "single_flight_reuse": True,
+                        "data_fetch_seconds": 0.0,
+                        "pipeline_seconds": 0.0,
+                        "refresh_at": cached["refresh_at"].isoformat(),
+                    },
+                )
+
+            fetch_started = time.monotonic()
+            data = self._get_closed_candles(symbol, timeframe, count)
+            fetch_seconds = time.monotonic() - fetch_started
+
+            pipeline_started = time.monotonic()
+            result = self._run_pipeline(data, symbol)
+            if str(timeframe).upper() == 'M15' and self.config.h1_location_only:
+                setups, block_audit = build_m15_setups(result.get('data'), replace(self.pipeline_config, adaptive_smc_score_enabled=True))
+                result = dict(result, setups=setups,
+                              diagnostics={**result.get('diagnostics', {}),
+                                           'm15_block_audit': block_audit,
+                                           'setup_role': 'OB_STRUCTURAL_BREAK'})
+            pipeline_seconds = time.monotonic() - pipeline_started
+
+            refresh_at = self._next_refresh_at(timeframe, now)
+            if bool(self.config.stage_cache_enabled):
+                with self._stage_cache_lock:
+                    self._stage_cache[key] = {
+                        "data": data,
+                        "result": result,
+                        "refresh_at": refresh_at,
+                    }
 
         return (
             data,
@@ -514,8 +570,8 @@ class MultiTimeframeAnalyzer:
     # H1 CONTEXT
     # ============================================================
 
-    def _get_h1_context(self, result):
-        """Obtiene un contexto H1 direccional sin exigir que el proveedor
+    def _get_h1_context(self, result, timeframe="H1"):
+        """Obtiene un contexto HTF direccional sin exigir que el proveedor
         controlado haya pasado previamente por classify_market_structure().
 
         El pipeline real puede traer ``structure`` (HH/HL/LH/LL). Las pruebas
@@ -529,18 +585,22 @@ class MultiTimeframeAnalyzer:
         2. El ultimo evento BOS/CHOCH: gana el mas reciente.
         3. La tendencia que el propio pipeline resumio en `summary`.
 
+        `timeframe` sólo adapta los motivos de auditoría. El valor por defecto
+        conserva el contrato histórico H1 usado por las pruebas y consumidores.
+
         Returns:
             Dict con `trend`, `valid`, `reason` y `context_time`. Sin
             direccion clara, `valid` es `False` con motivo
             `NO_DIRECTIONAL_H1_TREND` y el analisis termina en
             `NO_H1_CONTEXT`.
         """
+        label = str(timeframe or "H1").upper()
         data = result.get("data")
         if data is None or data.empty:
             return {
                 "trend": "UNKNOWN",
                 "valid": False,
-                "reason": "NO_H1_DATA",
+                "reason": f"NO_{label}_DATA",
                 "context_time": None,
             }
 
@@ -554,7 +614,7 @@ class MultiTimeframeAnalyzer:
         trend = get_current_trend(data)
 
         # Fallback: inferir dirección a partir del último evento BOS/CHOCH.
-        if trend not in {"BULLISH", "BEARISH"}:
+        if trend == "UNKNOWN":
             bullish = pd.Series(False, index=data.index)
             bearish = pd.Series(False, index=data.index)
 
@@ -583,7 +643,7 @@ class MultiTimeframeAnalyzer:
 
         # Último fallback: el pipeline puede haber resumido explícitamente la
         # tendencia aunque su DataFrame de diagnóstico no contenga estructura.
-        if trend not in {"BULLISH", "BEARISH"}:
+        if trend == "UNKNOWN":
             summary_trend = (result.get("summary") or {}).get("trend")
             if summary_trend in {"BULLISH", "BEARISH"}:
                 trend = summary_trend
@@ -594,8 +654,13 @@ class MultiTimeframeAnalyzer:
         return {
             "trend": trend,
             "valid": valid,
-            "reason": "VALID_TREND" if valid else "NO_DIRECTIONAL_H1_TREND",
+            "reason": "VALID_TREND" if valid else f"NO_DIRECTIONAL_{label}_TREND",
             "context_time": context_time.isoformat() if context_time is not None else None,
+            "recent_swings": [
+                {"time": str(row.get("time")), "structure": str(row.get("structure"))}
+                for _, row in data[data["structure"].notna()].tail(6).iterrows()
+            ],
+            "fallback_allowed": trend == "UNKNOWN",
         }
 
     def _m15_setups(self, result, expected_direction):
@@ -758,6 +823,10 @@ class MultiTimeframeAnalyzer:
             ),
             "selected_setup_time": None,
             "selected_confirmation_time": None,
+            "latest_available_confirmation_time": (
+                str(m5_confirmations["entry_time"].max())
+                if m5_confirmations is not None and not m5_confirmations.empty else None
+            ),
             "eligible_confirmations": 0,
         }
 
@@ -801,6 +870,13 @@ class MultiTimeframeAnalyzer:
             m5_confirmations.sort_values("entry_time")
             .reset_index(drop=True)
         )
+        sequence_diag["confirmations_before_latest_setup"] = int(
+            (confirmations["entry_time"] < latest_setup_time).sum()
+        )
+        sequence_diag["oldest_setup_time"] = str(ordered_setups.iloc[0]["setup_time"])
+        # Diagnostic only: an earlier timestamp is not proof that an OB is
+        # still valid. Do not reactivate old setups without invalidation checks.
+
 
         if self.config.require_latest_m15_setup:
             candidate_setups = [
@@ -1044,6 +1120,7 @@ class MultiTimeframeAnalyzer:
         reason,
         transitions,
         policy_diag,
+        h4=None,
         h1=None,
         m15=None,
         m5=None,
@@ -1092,6 +1169,7 @@ class MultiTimeframeAnalyzer:
             "transitions": transitions,
             "direction_policy": policy_diag,
 
+            "h4": h4,
             "h1": h1,
             "m15": m15,
             "m5": m5,
@@ -1101,6 +1179,14 @@ class MultiTimeframeAnalyzer:
 
         if extra:
             result.update(extra)
+
+        if self.pipeline_config.telemetry_bot_name:
+            try:
+                from strategy.smc.telemetry_logger import get_telemetry_tracker
+                get_telemetry_tracker(self.pipeline_config.telemetry_bot_name).log_pipeline_result(result)
+            except Exception:
+                import logging
+                logging.getLogger('SMC_Telemetry').exception('SMC funnel recording failed')
 
         return result
 
@@ -1114,14 +1200,15 @@ class MultiTimeframeAnalyzer:
         METODO PRINCIPAL de la clase. Recorre la maquina de estados completa:
 
         1. Politica de direccion del instrumento.
-        2. H1: contexto y tendencia -> `NO_H1_CONTEXT` si no hay direccion.
-        3. Validacion de la direccion contra la politica ->
+        2. H4: tendencia mayor -> `NO_H4_CONTEXT` si no hay direccion.
+        3. H1: contexto y convergencia -> `HTF_TREND_DIVERGENCE` si difiere.
+        4. Validacion de la direccion contra la politica ->
            `DIRECTION_POLICY_BLOCKED`.
-        4. M15: setups alineados -> `NO_M15_SETUP`.
-        5. M5: confirmaciones validas -> `NO_M5_CONFIRMATION`.
-        6. Emparejamiento ordenado -> `WAITING_M5_AFTER_M15`.
-        7. Antiguedad de la senal -> `STALE_M5_SIGNAL`.
-        8. `READY_TO_ENTER` con entrada, stop y objetivo.
+        5. M15: setups alineados -> `NO_M15_SETUP`.
+        6. M5: confirmaciones validas -> `NO_M5_CONFIRMATION`.
+        7. Emparejamiento ordenado -> `WAITING_M5_AFTER_M15`.
+        8. Antiguedad de la senal -> `STALE_M5_SIGNAL`.
+        9. `READY_TO_ENTER` con entrada, stop y objetivo.
 
         SIEMPRE devuelve un dict y no lanza por falta de senal: la ausencia
         de oportunidad es un resultado normal, y su motivo queda registrado.
@@ -1154,6 +1241,73 @@ class MultiTimeframeAnalyzer:
         }
 
         # --------------------------------------------------------
+        # H4 · TENDENCIA MAYOR OBLIGATORIA
+        # --------------------------------------------------------
+
+        h4_diag = {}
+        h4_payload = None
+        h4_trend = "UNKNOWN"
+        h4_direction = None
+
+        if self.config.require_h4_h1_convergence:
+            h4_data, h4_result, h4_timing = self._get_stage_result(
+                symbol,
+                self.config.higher_timeframe,
+                self.config.higher_timeframe_candles,
+            )
+            h4_context = self._get_h1_context(
+                h4_result,
+                timeframe=self.config.higher_timeframe,
+            )
+            h4_diag = self._pipeline_diagnostics(h4_result)
+            h4_payload = {
+                "timeframe": self.config.higher_timeframe,
+                "context": h4_context,
+                "summary": h4_result.get("summary", {}),
+                "timing": h4_timing,
+            }
+            h4_trend = h4_context["trend"]
+            h4_direction = self._trend_direction(h4_trend)
+
+        if self.config.require_h4_h1_convergence and not h4_context["valid"]:
+            self._add_transition(
+                transitions,
+                "NO_H4_CONTEXT",
+                h4_context["reason"],
+            )
+            diagnostics = {
+                "failed_stage": "H4",
+                "h4": h4_diag,
+                "direction_policy": policy_diag,
+                "transitions": transitions,
+            }
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="NO_H4_CONTEXT",
+                state="NO_H4_CONTEXT",
+                direction=None,
+                reason=h4_context["reason"],
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h4=h4_payload,
+                h1=None,
+                m15=None,
+                m5=None,
+                diagnostics=diagnostics,
+            )
+
+        if self.config.require_h4_h1_convergence:
+            self._add_transition(
+                transitions,
+                "H4_CONTEXT_READY",
+                h4_context["reason"],
+                trend=h4_trend,
+                direction=h4_direction,
+                context_time=h4_context.get("context_time"),
+            )
+
+        # --------------------------------------------------------
         # H1
         # --------------------------------------------------------
 
@@ -1167,8 +1321,26 @@ class MultiTimeframeAnalyzer:
             h1_result
         )
 
+        location_direction = None
+        if self.config.h1_location_only:
+            zone_data, _, _ = self._get_stage_result(symbol, self.config.entry_timeframe, self.config.entry_candles)
+            bounds = get_h1_structural_range_flexible(h1_data, self.pipeline_config.h1_fractal_left,
+                    self.pipeline_config.h1_fractal_right, self.pipeline_config.h1_fallback_bars)
+            macro_context = evaluate_h1_adaptive_context(h1_data,
+                float(zone_data.iloc[-1]['close']) if not zone_data.empty else float('nan'), bounds)
+            location_direction = macro_context.get('direction')
+            location_detail = macro_context['reason']
+            if bounds:
+                bounds = dict(bounds, adaptive_context_enabled=True,
+                              active_context_type=macro_context['context_type'],
+                              source=macro_context.get('source'), expansion_retest_tolerance=0.002)
+            h1_context['adaptive_context'] = macro_context
+            h1_context.update(valid=location_direction is not None, location_detail=location_detail,
+                              role="LOCATION_ONLY", location_direction=location_direction, structural_range=bounds,
+                              reason="H1_LOCATION_READY" if location_direction else "H1_LOCATION_UNAVAILABLE_OR_EQUILIBRIUM")
+
         h1_diag = self._pipeline_diagnostics(
-            h1_result
+            h1_result, h1_timing
         )
 
         h1_payload = {
@@ -1189,6 +1361,7 @@ class MultiTimeframeAnalyzer:
 
             diagnostics = {
                 "failed_stage": "H1",
+                "h4": h4_diag,
                 "h1": h1_diag,
                 "direction_policy": policy_diag,
                 "transitions": transitions,
@@ -1203,6 +1376,7 @@ class MultiTimeframeAnalyzer:
                 reason=h1_context["reason"],
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=None,
                 m5=None,
@@ -1211,9 +1385,7 @@ class MultiTimeframeAnalyzer:
 
         h1_trend = h1_context["trend"]
 
-        h1_direction = self._trend_direction(
-            h1_trend
-        )
+        h1_direction = location_direction if self.config.h1_location_only else self._trend_direction(h1_trend)
 
         self._add_transition(
             transitions,
@@ -1225,6 +1397,52 @@ class MultiTimeframeAnalyzer:
                 "context_time"
             ),
         )
+
+        if (
+            self.config.require_h4_h1_convergence
+            and h4_direction != h1_direction
+        ):
+            reason = "H4_H1_TREND_DIVERGENCE"
+            self._add_transition(
+                transitions,
+                "HTF_TREND_DIVERGENCE",
+                reason,
+                h4_trend=h4_trend,
+                h4_direction=h4_direction,
+                h1_trend=h1_trend,
+                h1_direction=h1_direction,
+            )
+            diagnostics = {
+                "failed_stage": "H4_H1_CONVERGENCE",
+                "h4": h4_diag,
+                "h1": h1_diag,
+                "direction_policy": policy_diag,
+                "transitions": transitions,
+            }
+            return self._build_result(
+                symbol=symbol,
+                valid=False,
+                action="HTF_TREND_DIVERGENCE",
+                state="HTF_TREND_DIVERGENCE",
+                direction=None,
+                reason=reason,
+                transitions=transitions,
+                policy_diag=policy_diag,
+                h4=h4_payload,
+                h1=h1_payload,
+                m15=None,
+                m5=None,
+                diagnostics=diagnostics,
+            )
+
+        if self.config.require_h4_h1_convergence:
+            self._add_transition(
+                transitions,
+                "H4_H1_CONVERGENCE_CONFIRMED",
+                "H4_H1_SAME_DIRECTION",
+                h4_direction=h4_direction,
+                h1_direction=h1_direction,
+            )
 
         # --------------------------------------------------------
         # DIRECCIÓN
@@ -1283,6 +1501,7 @@ class MultiTimeframeAnalyzer:
 
             diagnostics = {
                 "failed_stage": "DIRECTION_POLICY",
+                "h4": h4_diag,
                 "h1": h1_diag,
                 "direction_policy": policy_diag,
                 "transitions": transitions,
@@ -1297,6 +1516,7 @@ class MultiTimeframeAnalyzer:
                 reason=reason,
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=None,
                 m5=None,
@@ -1329,10 +1549,33 @@ class MultiTimeframeAnalyzer:
             expected_direction,
         )
 
+        if self.config.h1_location_only:
+            if bounds and not m15_setups.empty:
+                midpoint = (m15_setups.ob_low + m15_setups.ob_high) / 2
+                located = midpoint.map(lambda price: h1_ob_location_valid(price, h1_direction, bounds))
+                m15_setups = m15_setups.loc[located].copy()
+                m15_setups['zone'] = 'discount' if h1_direction == 'BUY' else 'premium'
+                m15_setups['premium_discount_ok'] = True
+                m15_setups['equilibrium'] = bounds['equilibrium']
+            elif not bounds:
+                m15_setups = m15_setups.iloc[:0].copy()
         m15_diag = self._pipeline_diagnostics(
-            m15_result
+            m15_result, m15_timing
         )
 
+        m15_diag['m15_block_audit'] = [
+            {**item, 'accepted': False,
+             'reasons': list(item['reasons']) + ['M15_DIRECTION_DIFFERS_FROM_H1_LOCATION']}
+            if item.get('direction') != expected_direction else dict(item)
+            for item in m15_diag.get('m15_block_audit', [])
+        ]
+        if self.config.h1_location_only:
+            for item in m15_diag.get('m15_block_audit', []):
+                mid = (item['ob_low'] + item['ob_high']) / 2
+                valid_location = bool(bounds and h1_ob_location_valid(mid, item['direction'], bounds))
+                if not valid_location:
+                    item['accepted'] = False
+                    item['reasons'] = list(item['reasons']) + ['M15_OB_H1_LOCATION_MISMATCH']
         m15_payload = {
             "timeframe": (
                 self.config.confirmation_timeframe
@@ -1356,6 +1599,7 @@ class MultiTimeframeAnalyzer:
 
             diagnostics = {
                 "failed_stage": "M15",
+                "h4": h4_diag,
                 "h1": h1_diag,
                 "m15": m15_diag,
                 "direction_policy": policy_diag,
@@ -1371,6 +1615,7 @@ class MultiTimeframeAnalyzer:
                 reason="NO_DIRECTIONAL_M15_SETUP",
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=None,
@@ -1427,13 +1672,34 @@ class MultiTimeframeAnalyzer:
             self.config.entry_candles,
         )
 
+        if self.config.h1_location_only:
+            # Confirm the selected M15 zone, not an unrelated setup rebuilt on M5.
+            selected = m15_setups.tail(1) if self.config.require_latest_m15_setup else m15_setups
+            selected = selected.copy()
+            selected['h1_location_direction'] = h1_direction
+            selected['h1_range_source'] = 'FALLBACK_24H' if bounds.get('fallback_used') else 'PIVOT'
+            selected['h1_adaptive_bounds'] = [dict(bounds) for _ in range(len(selected))]
+            selected['h1_context_type'] = macro_context['context_type']
+            selected['h1_range_low'] = bounds['low']
+            selected['h1_range_high'] = bounds['high']
+            m5_result = run_trade_pipeline(
+                df=m5_data, symbol=symbol, confirmation_setups=selected,
+                config=replace(self.pipeline_config, require_m5_structure_event=True,
+                               require_favorable_confirmation=False, require_choch_fvg=False,
+                               adaptive_smc_score_enabled=True,
+                               m5_evaluation_time=pd.Timestamp.now(tz="UTC").isoformat(),
+                               require_fvg=False, fvg_enabled=True, require_chart_pattern=False,
+                               block_material_chart_pattern_conflict=False,
+                               block_similar_chart_pattern_forces=False),
+            )
+
         m5_confirmations = self._m5_confirmations(
             m5_result,
             expected_direction,
         )
 
         m5_diag = self._pipeline_diagnostics(
-            m5_result
+            m5_result, m5_timing
         )
 
         (
@@ -1476,12 +1742,14 @@ class MultiTimeframeAnalyzer:
         }
 
         common_diagnostics = {
+            "h4": h4_diag,
             "h1": h1_diag,
             "m15": m15_diag,
             "m5": m5_diag,
             "sequence_status": sequence_status,
             "sequence": sequence_diag,
             "signal_age": age_diag,
+            "stage_timing": {"H1": h1_timing, "M15": m15_timing, "M5": m5_timing},
             "direction_policy": policy_diag,
             "h1_extreme_doji": h1_doji,
             "transitions": transitions,
@@ -1522,6 +1790,7 @@ class MultiTimeframeAnalyzer:
                 reason=reason,
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=m5_payload,
@@ -1553,6 +1822,7 @@ class MultiTimeframeAnalyzer:
                 reason="NO_DIRECTIONAL_M5_CONFIRMATION",
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=m5_payload,
@@ -1621,6 +1891,7 @@ class MultiTimeframeAnalyzer:
                 ),
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=m5_payload,
@@ -1671,6 +1942,7 @@ class MultiTimeframeAnalyzer:
                 reason="M5_DIRECTION_NOT_BUY_OR_SELL",
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=m5_payload,
@@ -1704,11 +1976,42 @@ class MultiTimeframeAnalyzer:
                 reason=reason,
                 transitions=transitions,
                 policy_diag=policy_diag,
+                h4=h4_payload,
                 h1=h1_payload,
                 m15=m15_payload,
                 m5=m5_payload,
                 diagnostics=common_diagnostics,
             )
+
+        if self.config.smc_entry_location_enabled or (
+            self.config.volatility_entry_location_enabled and "volatility" in symbol.lower()
+        ):
+            ranges = {
+                "H1": get_h1_structural_range_flexible(h1_data, self.pipeline_config.h1_fractal_left,
+                    self.pipeline_config.h1_fractal_right, self.pipeline_config.h1_fallback_bars),
+                "M15": closed_range(m15_data, self.pipeline_config.premium_discount_lookback),
+                "M5": closed_range(m5_data, self.pipeline_config.premium_discount_lookback),
+            }
+            if self.config.h1_location_only:
+                ranges['H1'] = bounds
+            location = evaluate_entry_location(direction, m5_data.iloc[-1]["close"], ranges, self.config.smc_entry_location_policy)
+            common_diagnostics["entry_location_comparison"] = {
+                policy: evaluate_entry_location(direction, m5_data.iloc[-1]["close"], ranges, policy)
+                for policy in ("ALL_TIMEFRAMES", "H1_PRIMARY")
+            }
+            common_diagnostics["entry_location"] = location
+            m5_signal["entry_location_ranges"] = ranges
+            m5_signal["entry_location"] = location
+            if not location["valid"]:
+                reason = ",".join(location["rejection_reasons"])
+                self._add_transition(transitions, "ENTRY_LOCATION_BLOCKED", reason)
+                return self._build_result(
+                    symbol=symbol, valid=False, action="ENTRY_LOCATION_BLOCKED",
+                    state="ENTRY_LOCATION_BLOCKED", direction=direction, reason=reason,
+                    transitions=transitions, policy_diag=policy_diag, h4=h4_payload,
+                    h1=h1_payload, m15=m15_payload, m5=m5_payload,
+                    diagnostics=common_diagnostics,
+                )
 
         # --------------------------------------------------------
         # READY TO ENTER
@@ -1727,9 +2030,29 @@ class MultiTimeframeAnalyzer:
             ),
         )
 
+        from strategy.smc.target_obstacles import collect_obstacles
+        m5_signal["m15_obstacles"] = collect_obstacles(m15_result.get("data"), direction)
+        # Capture native indicator values at the confirmed candle, not later prices.
+        m5_signal["m15_structure_break_type"] = m15_setup.get("structure_break_type")
+        indicator_data = m5_result.get("data")
+        if indicator_data is not None and not indicator_data.empty:
+            at_signal = indicator_data[pd.to_datetime(indicator_data["time"], utc=True) == pd.to_datetime(m5_signal.get("entry_time"), utc=True)]
+            if not at_signal.empty:
+                for indicator in ("atr", "adx"):
+                    value = self._safe_float(at_signal.iloc[-1].get(indicator))
+                    if value is not None:
+                        m5_signal[indicator] = value
+
+        m5_signal["indicator_provenance"] = {"timeframe": "M5", "period": 14,
+            "method": "WILDER_SMA_SEED", "candle_open": str(m5_signal.get("entry_time")),
+            "closed_candles_only": True}
+
         common_diagnostics["transitions"] = transitions
 
         extra = {
+            "h4_timeframe": self.config.higher_timeframe,
+            "h4_trend": h4_trend,
+            "h4_h1_convergence": (h4_direction == h1_direction) if self.config.require_h4_h1_convergence else None,
             "entry_time": m5_signal["entry_time"],
             "entry_price": float(
                 m5_signal["entry_price"]
@@ -1828,6 +2151,7 @@ class MultiTimeframeAnalyzer:
             transitions=transitions,
             policy_diag=policy_diag,
 
+            h4=h4_payload,
             h1=h1_payload,
             m15=m15_payload,
             m5=m5_payload,

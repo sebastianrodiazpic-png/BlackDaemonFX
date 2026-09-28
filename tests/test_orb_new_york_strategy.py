@@ -114,6 +114,26 @@ def test_orb_buy_requires_m5_breakout_then_retest_and_midpoint_stop():
     assert signal["confirmations"]["stop_at_orb_50_percent"] is True
 
 
+def test_orb_accepts_fresh_retest_two_bars_after_breakout_without_consuming_session():
+    candles = _session_candles("BUY", valid_retest=True)
+    pause = candles.iloc[-1].copy()
+    pause["time"] = pd.Timestamp("2026-08-28 13:50:00+00:00")
+    pause[["open", "close", "high", "low"]] = [106.1, 105.7, 106.3, 105.3]
+    retest = candles.iloc[-1].copy()
+    retest["time"] = pd.Timestamp("2026-08-28 13:55:00+00:00")
+    retest[["open", "close", "high", "low"]] = [105.8, 105.6, 106.0, 104.9]
+    candles = pd.concat([candles.iloc[:4], pd.DataFrame([pause, retest])], ignore_index=True)
+    now = datetime(2026, 8, 28, 14, 1, 0, tzinfo=timezone.utc)
+    strategy = _strategy(candles, now)
+
+    result = strategy.analyze_symbol("XAUUSD", now)
+
+    assert result["valid"] is True
+    assert result["bars_after_breakout"] == 2
+    assert strategy._session_signal_memory == {}
+    assert result["signal"]["orb_session_date"] == "2026-08-28"
+
+
 def test_orb_rejects_breakout_without_retest():
     candles = _session_candles("BUY", valid_retest=False)
     now = datetime(2026, 8, 28, 13, 55, 30, tzinfo=timezone.utc)

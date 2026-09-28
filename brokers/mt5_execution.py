@@ -134,6 +134,32 @@ class MT5ExecutionProvider:
 
         return account
 
+    def get_current_tick(self, symbol: str) -> dict:
+        """Tick ejecutable de MT5 usado sólo para pre-fill y gestión."""
+        self._ensure()
+        self.ensure_symbol(symbol)
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            raise MT5ExecutionError(
+                f"MT5 no devolvió tick ejecutable para '{symbol}': {mt5.last_error()}"
+            )
+        bid = float(getattr(tick, "bid", 0.0) or 0.0)
+        ask = float(getattr(tick, "ask", 0.0) or 0.0)
+        last = float(getattr(tick, "last", 0.0) or ((bid + ask) / 2 if bid and ask else 0.0))
+        if bid <= 0 or ask <= 0:
+            raise MT5ExecutionError(
+                f"Tick MT5 inválido para '{symbol}': bid={bid}, ask={ask}"
+            )
+        epoch = float(getattr(tick, "time_msc", 0.0) or 0.0) / 1000.0
+        if epoch <= 0:
+            epoch = float(getattr(tick, "time", 0.0) or 0.0)
+        return {
+            "symbol": str(symbol), "source": "MT5_EXECUTION",
+            "time": datetime.fromtimestamp(epoch, tz=timezone.utc) if epoch > 0 else None,
+            "bid": bid, "ask": ask, "last": last,
+            "volume": float(getattr(tick, "volume_real", 0.0) or getattr(tick, "volume", 0.0) or 0.0),
+        }
+
     # ==========================================================
     # SÍMBOLO
     # ==========================================================
@@ -1158,6 +1184,81 @@ class MT5ExecutionProvider:
     # EJECUCIÓN REAL
     # ==========================================================
 
+    def risk_buffered_entry_price(self, symbol, direction, entry_price, deviation=20):
+        """Use the same adverse price allowance for sizing and final risk checks."""
+        point = float(self.get_symbol_constraints(symbol)["point"])
+        allowance = max(0, int(deviation)) * point
+        price = float(entry_price) + (allowance if direction == "BUY" else -allowance)
+        if not math.isfinite(price) or price <= 0 or not math.isfinite(point) or point <= 0:
+            raise MT5ExecutionError("INVALID_BUFFERED_SIZING_PRICE")
+        return price
+
+    def _validate_pre_send_risk(self, request, direction, max_risk_amount):
+        """Reject quote drift before sending; include the configured deviation buffer."""
+        if max_risk_amount is None:
+            return
+        cap = float(max_risk_amount)
+        if not math.isfinite(cap) or cap <= 0:
+            raise MT5ExecutionError("PRE_SEND_INVALID_RISK_CAP")
+        price = self.risk_buffered_entry_price(request["symbol"], direction,
+            request["price"], request.get("deviation", 0))
+        risk = float(self.calculate_risk_amount(
+            symbol=request["symbol"], direction=direction, volume=request["volume"],
+            entry_price=price, stop_loss=request["sl"],
+        )["actual_risk_amount"])
+        if not math.isfinite(risk) or risk <= 0 or risk > cap:
+            raise MT5ExecutionError(
+                f"PRE_SEND_RISK_CAP_BREACH: risk={risk}; cap={cap}; "
+                f"quote={request['price']}; buffered_price={price}; volume={request['volume']}"
+            )
+
+    def _resize_pre_send_risk(self, request, direction, max_risk_amount):
+        """Only reduce volume on fresh quote drift; keep both barriers unchanged."""
+        if max_risk_amount is None:
+            return None
+        cap = float(max_risk_amount)
+        if not math.isfinite(cap) or cap <= 0:
+            raise MT5ExecutionError("PRE_SEND_INVALID_RISK_CAP")
+        original = float(request["volume"])
+        price = self.risk_buffered_entry_price(request["symbol"], direction,
+            request["price"], request.get("deviation", 0))
+        risk = float(self.calculate_risk_amount(symbol=request["symbol"], direction=direction,
+            volume=original, entry_price=price, stop_loss=request["sl"])["actual_risk_amount"])
+        if not math.isfinite(risk) or risk <= 0:
+            raise MT5ExecutionError("PRE_SEND_INVALID_ACTUAL_RISK")
+        if risk <= cap:
+            return None
+        sizing = self.calculate_volume(request["symbol"], direction, price, request["sl"], cap)
+        reduced = float(sizing["volume"])
+        if not math.isfinite(reduced) or not 0 < reduced < original:
+            raise MT5ExecutionError("PRE_SEND_RISK_CAP_BREACH: no smaller valid broker volume")
+        request["volume"] = reduced
+        self._validate_pre_send_risk(request, direction, cap)
+        return {"reason": "QUOTE_DRIFT_VOLUME_REDUCED", "original_volume": original,
+                "volume": reduced, "original_risk": risk, "risk_cap": cap,
+                "buffered_price": price, "actual_risk_amount": sizing["actual_risk_amount"]}
+
+    @staticmethod
+    def _validate_executable_rr(request, direction, minimum):
+        """Check the final executable quote without moving the original SL/TP."""
+        if minimum is None:
+            return None
+        import math
+        sign = 1 if str(direction).upper() == "BUY" else -1
+        price, stop, target, minimum = (float(x) for x in
+            (request["price"], request["sl"], request["tp"], minimum))
+        risk, reward = sign * (price - stop), sign * (target - price)
+        rr = reward / risk if risk > 0 else None
+        if (not all(math.isfinite(x) for x in (price, stop, target, minimum))
+                or minimum <= 0 or rr is None or not math.isfinite(rr)
+                or rr + 1e-9 < minimum):
+            raise MT5ExecutionError(
+                f"PRE_SEND_RR_BLOCKED: executable_rr={rr}; minimum={minimum}; "
+                f"price={price}; sl={stop}; tp={target}")
+        return {"price": price, "stop": stop, "target": target,
+                "executable_rr": rr, "minimum": minimum,
+                "checked_at": datetime.now(timezone.utc).isoformat()}
+
     def place_market_order(
         self,
         symbol: str,
@@ -1168,6 +1269,8 @@ class MT5ExecutionProvider:
         magic: int,
         comment: str,
         deviation: int = 20,
+        max_risk_amount: float | None = None,
+        minimum_executable_rr: float | None = None,
     ):
         """Abre una orden de mercado.
 
@@ -1210,6 +1313,8 @@ class MT5ExecutionProvider:
             str(direction).upper(),
         )
 
+        risk_resize = self._resize_pre_send_risk(request, str(direction).upper(), max_risk_amount)
+
         # Segundo check final con el filling ya seleccionado.
         final_check, request, final_check_diagnostic = self._order_check_safe(
             request
@@ -1235,6 +1340,9 @@ class MT5ExecutionProvider:
                 f"filling={self._filling_name(request['type_filling'])}"
             )
 
+        request["price"] = self._current_market_price(symbol, str(direction).upper())
+        self._validate_pre_send_risk(request, str(direction).upper(), max_risk_amount)
+        executable_rr_audit = self._validate_executable_rr(request, direction, minimum_executable_rr)
         result, request, send_diagnostic = self._order_send_safe(request)
 
         if result is None:
@@ -1260,6 +1368,9 @@ class MT5ExecutionProvider:
 
         return {
             "result": result,
+            "risk_resize": risk_resize,
+            "executable_rr_audit": executable_rr_audit,
+            "filled_volume": float(getattr(result, "volume", 0.0) or request["volume"]),
             "request": request,
             "entry_price": float(
                 getattr(result, "price", 0.0)

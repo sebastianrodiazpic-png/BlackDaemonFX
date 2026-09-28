@@ -588,6 +588,10 @@ class TradeLifecycleManager:
             )
             return lifecycle
 
+        lifecycle.metadata["requested_volume"] = float(volume)
+        lifecycle.metadata["volume"] = float(result.volume)
+        if result.metadata.get("risk_resize"):
+            lifecycle.metadata["risk_resize"] = result.metadata["risk_resize"]
         lifecycle.state = STATE_EXECUTION
         lifecycle.entry_price = float(result.filled_price or lifecycle.entry_price)
         lifecycle.stop_loss = float(result.stop_loss or lifecycle.stop_loss)
@@ -600,7 +604,7 @@ class TradeLifecycleManager:
         self._notify_reporting(
             event="EXECUTION_FILLED",
             lifecycle=lifecycle,
-            volume=volume,
+            volume=float(result.volume),
         )
         return lifecycle
 

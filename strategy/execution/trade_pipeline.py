@@ -89,6 +89,7 @@ class PipelineConfig:
     require_momentum: bool = False
     minimum_body_ratio: float = 0.65
     minimum_rejection_wick_ratio: float = 0.30
+    retest_tolerance_mode: str = "STRICT"  # STRICT | ATR_BOUNDED
     displacement_range_multiplier: float = 1.35
     momentum_range_multiplier: float = 1.00
     confirmation_range_lookback: int = 20
@@ -115,11 +116,16 @@ class PipelineConfig:
     chart_patterns_minimum_strength: float = 0.72
     chart_patterns_bonus_points: float = 8.0
     require_chart_pattern: bool = False
+    require_m5_structure_event: bool = False
+    allow_ob_close_recovery: bool = False
+    require_favorable_confirmation: bool = False
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
     # v108: margen mínimo (fracción 0-1) que el patrón alineado debe superar
     # al contrario para no bloquear la entrada por conflicto chartista.
     chart_pattern_conflict_min_margin: float = 0.25
+    chart_pattern_contrary_min_strength: float = 0.80
+    chart_pattern_contrary_min_advantage: float = 0.10
     block_similar_chart_pattern_forces: bool = False
     divergence_enabled: bool = True
     divergence_rsi_period: int = 14
@@ -130,6 +136,20 @@ class PipelineConfig:
     fvg_max_age_candles: int = 10
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
+    h1_fractal_window: int = 5
+    h1_fractal_left: int = 3
+    h1_fractal_right: int = 1
+    h1_fallback_bars: int = 24
+    m15_flexible_structure: bool = True
+    m15_impulse_bars: int = 8
+    m5_choch_fvg_window: int = 3
+    m15_fractal_window: int = 3
+    m5_evaluation_time: str | None = None
+    m5_max_signal_age_minutes: float = 10.0
+    telemetry_bot_name: str | None = None
+    telemetry_symbol: str = "UNKNOWN"
+    adaptive_smc_score_enabled: bool = False
+    require_choch_fvg: bool = False
     require_fvg: bool = False
     synthetics_killzone_enabled: bool = False
     synthetics_favorable_hour_ranges: tuple = ((13, 15), (17, 18), (22, 24))
@@ -442,6 +462,7 @@ def run_trade_pipeline(
     df: pd.DataFrame,
     config: PipelineConfig | None = None,
     symbol: str | None = None,
+    confirmation_setups: pd.DataFrame | None = None,
 ) -> dict:
     """Ejecuta la cadena SMC completa. Si symbol es Boom/Crash, aplica la política de dirección del activo.
 
@@ -486,10 +507,19 @@ def run_trade_pipeline(
     data = detect_order_blocks(data, lookback=config.order_block_lookback)
     data = calculate_premium_discount(data, lookback=config.premium_discount_lookback)
 
-    setups_before_policy = build_setups(data, config)
+    setups_before_policy = (build_setups(data, config) if confirmation_setups is None
+                            else confirmation_setups.copy())
     setups = _filter_by_policy(setups_before_policy, 'setup_type', allowed_direction)
 
     m5_confirmation_config = M5ConfirmationConfig(
+        m5_evaluation_time=config.m5_evaluation_time,
+        m5_max_signal_age_minutes=config.m5_max_signal_age_minutes,
+        telemetry_bot_name=config.telemetry_bot_name,
+        telemetry_symbol=symbol or config.telemetry_symbol,
+        require_favorable_confirmation=config.require_favorable_confirmation,
+        require_m5_structure_event=config.require_m5_structure_event,
+        allow_ob_close_recovery=config.allow_ob_close_recovery,
+        retest_tolerance_mode=config.retest_tolerance_mode,
         minimum_trade_score=config.minimum_trade_score,
         require_rejection=config.require_rejection,
         require_displacement=config.require_displacement,
@@ -524,6 +554,8 @@ def run_trade_pipeline(
         chart_pattern_secondary_conflict_penalty=getattr(config, "chart_pattern_secondary_conflict_penalty", 10.0),
         block_material_chart_pattern_conflict=getattr(config, "block_material_chart_pattern_conflict", True),
         chart_pattern_conflict_min_margin=getattr(config, "chart_pattern_conflict_min_margin", 0.25),
+        chart_pattern_contrary_min_strength=getattr(config, "chart_pattern_contrary_min_strength", 0.80),
+        chart_pattern_contrary_min_advantage=getattr(config, "chart_pattern_contrary_min_advantage", 0.10),
         block_similar_chart_pattern_forces=getattr(config, "block_similar_chart_pattern_forces", False),
         divergence_enabled=getattr(config, "divergence_enabled", True),
         divergence_rsi_period=getattr(config, "divergence_rsi_period", 14),
@@ -534,6 +566,9 @@ def run_trade_pipeline(
         fvg_max_age_candles=getattr(config, "fvg_max_age_candles", 10),
         fvg_require_alignment_with_zone=getattr(config, "fvg_require_alignment_with_zone", False),
         fvg_bonus_points=getattr(config, "fvg_bonus_points", 6.0),
+        require_choch_fvg=config.require_choch_fvg,
+        adaptive_smc_score_enabled=config.adaptive_smc_score_enabled,
+        m5_choch_fvg_window=config.m5_choch_fvg_window,
         require_fvg=getattr(config, "require_fvg", False),
         synthetics_killzone_enabled=getattr(config, "synthetics_killzone_enabled", False),
         synthetics_favorable_hour_ranges=getattr(config, "synthetics_favorable_hour_ranges", ((13, 15), (17, 18), (22, 24))),
@@ -561,6 +596,13 @@ def run_trade_pipeline(
         confirmation_config=m5_confirmation_config,
     )
     rejected_candidates = list(confirmations.attrs.get("rejected_candidates", []))
+    # Conditional plans use only prices available at the rejected confirmation.
+    # They remain audit-only and do not enter the executable confirmations frame.
+    for candidate in rejected_candidates:
+        entry, stop = float(candidate["entry_price"]), float(candidate["stop_loss"])
+        side = 1.0 if candidate["direction"] == "BUY" else -1.0
+        candidate["take_profit"] = entry + side * abs(entry-stop) * config.risk_reward_ratio
+
 
     if not confirmations.empty:
         confirmations = calculate_risk_reward(confirmations, risk_reward_ratio=config.risk_reward_ratio)
@@ -590,6 +632,10 @@ def run_trade_pipeline(
             'setups_after_policy': int(len(setups)),
             'confirmations_after_policy': int(len(confirmations)),
         }
+
+    # Audit-only enrichment after all strategy decisions; no gate consumes it.
+    from strategy.ai.audit_indicators import audit_indicators
+    data = audit_indicators(data)
 
     return {
         'data': data, 'setups': setups, 'confirmations': confirmations,

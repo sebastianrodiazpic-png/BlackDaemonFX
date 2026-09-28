@@ -54,6 +54,7 @@ class Analyzer:
             "valid": True,
             "signal": {
                 "direction": "BUY",
+                "entry_location_ranges": {tf: {"low": 90., "high": 120.} for tf in ("H1", "M15", "M5")},
                 "entry_time": "2026-08-28T12:00:00+00:00",
                 "entry_price": 100.0,
                 "stop_loss": 90.0,
@@ -82,6 +83,8 @@ def test_one_percent_operation_is_split_into_two_half_percent_legs():
         executor=Executor(),
     )
     engine.multi_timeframe = Analyzer()
+    # This unit test isolates allocation; live confirmation guards have separate tests.
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
 
     result = engine.process_symbol("Volatility 90 Index")
 
@@ -120,7 +123,7 @@ def test_daemon_pipeline_uses_harmonic_as_bonus_with_adaptive_75_gate_by_default
     assert engine.pipeline_config.harmonic_minimum_score == 75.0
 
 
-def test_smc_runner_extension_uses_4r_broker_target_without_increasing_risk():
+def test_smc_management_keeps_2r_target_despite_legacy_extension_flag():
     engine = LiveTradingEngine(
         provider=Provider(),
         repository=Repo(),
@@ -135,16 +138,19 @@ def test_smc_runner_extension_uses_4r_broker_target_without_increasing_risk():
             second_target_rr=2.0,
             runner_extension_enabled=True,
             runner_extension_max_target_rr=4.0,
+            smc_runner_max_target_rr=4.0,
         ),
         executor=Executor(),
     )
     engine.multi_timeframe = Analyzer()
+    # This unit test isolates allocation; live confirmation guards have separate tests.
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
 
     result = engine.process_symbol("Volatility 90 Index")
     assert result["action"] == "DRY_RUN_VALIDATED"
     assert result["actual_risk_percent"] == 1.0
     tp1, runner = result["legs"]
     assert tp1["target_rr"] == 1.0
-    assert runner["target_rr"] == 4.0
-    assert runner["take_profit"] == 140.0
+    assert runner["target_rr"] == 2.0
+    assert runner["take_profit"] == 120.0
     assert runner["risk_percent"] == 0.5

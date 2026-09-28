@@ -28,13 +28,13 @@ def test_browser_polling_is_reduced():
     # memoria del coordinador, ver checkpoint de rendimiento).
     assert "setInterval(refresh,6000)" in dash
     assert "setInterval(load,6000)" in dash
-    assert "setInterval(go,2500)" in account
+    assert "setInterval(go,6000)" in account
 
-def test_orb_htf_context_is_preserved_after_rollback():
+def test_orb_native_context_policy_is_explicit():
     root=Path(__file__).resolve().parents[1]
     text=(root/"strategy"/"execution"/"live_trading_engine.py").read_text(encoding="utf-8")
-    assert "ORB_BREAKOUT_CONTRA_TENDENCIA_H1" in text
-    assert "ORB_BREAKOUT_CONTRA_H1_Y_M15" in text
+    assert "ORB_NATIVE_ONLY" in text
+    assert "ORB_HTF_NOT_REQUIRED" in text
     assert "_orb_higher_timeframe_context" in text
 
 def test_startup_warns_about_parallel_daemon_instances():

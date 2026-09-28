@@ -37,10 +37,13 @@ Vinculaciones:
 
 from __future__ import annotations
 
+import math
+from strategy.smc.entry_location import evaluate_entry_location
+
 import sys
 import os
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import time
@@ -65,6 +68,8 @@ from strategy.orb.new_york_orb import (
     classify_orb_market,
     is_orb_eligible_symbol,
     is_orb_gold_symbol,
+    is_orb_silver_symbol,
+    orb_session_asset,
     score_orb_gold_contract_candidate,
 )
 from strategy.indices.ny_index_open import (
@@ -76,7 +81,12 @@ from services.financial_news_service import load_economic_calendar_state
 from strategy.ai import (
     MetaLabelingConfig,
     MetaLabelingEngine,
+    RANKING_MODE,
     rank_signals,
+)
+from strategy.smc.exhaustion_reversal import (
+    ExhaustionReversalConfig,
+    detect_exhaustion_reversal,
 )
 
 
@@ -110,9 +120,16 @@ class LiveTradingConfig:
     """
 
     source: str = "DEMO"
+    higher_timeframe: str = "H4"
     structure_timeframe: str = "H1"
     confirmation_timeframe: str = "M15"
     entry_timeframe: str = "M5"
+    higher_timeframe_candle_count: int = 500
+    require_h4_h1_convergence: bool = False
+    smc_entry_location_enabled: bool = True
+    h1_location_only: bool = True
+    smc_entry_location_policy: str = "H1_PRIMARY"
+    volatility_entry_location_enabled: bool = True  # Legacy compatibility
     structure_candle_count: int = 500
     # Los lookbacks máximos efectivos del pipeline son 100 velas (liquidez,
     # premium/discount) + 50 para retest. 500 M15 y 350 M5 conservan margen de
@@ -147,6 +164,7 @@ class LiveTradingConfig:
     # Si el máximo de lotes del broker impide llegar al umbral, rechazamos la operación
     # en lugar de abrirla con un tamaño arbitrariamente grande o con un riesgo muy distinto.
     min_actual_risk_ratio: float = 0.99
+    allow_reduced_risk: bool = True
     # Límite defensivo de margen requerido sobre la base de riesgo (equity/balance).
     max_margin_fraction: float | None = 0.15
 
@@ -263,7 +281,11 @@ class LiveTradingConfig:
     # v101: meta-etiquetado con IA. Cada worker entrena y puntúa por separado.
     # SHADOW puntúa sin bloquear; FILTER exige probabilidad y expectativa neta.
     meta_labeling_enabled: bool = True
-    meta_labeling_mode: str = "SHADOW"
+    # Se mantiene SHADOW por seguridad. RANKING/FILTER sólo se activan de
+    # forma explícita por entorno, sin editar el código de cada worker.
+    meta_labeling_mode: str = os.getenv(
+        "DAEMONBLACKFX_META_LABELING_MODE", "SHADOW"
+    ).upper()
     meta_labeling_min_probability: float = 0.55
     meta_labeling_min_net_expectancy_r: float = 0.10
     meta_labeling_ranking_enabled: bool = True
@@ -272,18 +294,37 @@ class LiveTradingConfig:
     meta_labeling_min_training_samples: int = 30
 
     # v69: scheduler Forex por nueva vela cerrada M5.
+    session_analysis_pause_enabled: bool = True
+    session_warmup_minutes: float = 3.0
     forex_event_scheduler_enabled: bool = True
+    orb_event_scheduler_enabled: bool = True
     forex_event_timeframe: str = "M5"
     forex_event_poll_seconds: float = 10.0
+    # v110: después de comprobar la vela vigente, no se vuelve a consultar
+    # cada símbolo hasta la próxima frontera M5 (+ gracia de publicación).
+    # El monitor de posiciones conserva intacta su cadencia de 2 segundos.
+    event_scheduler_boundary_guard_enabled: bool = True
+    event_scheduler_boundary_grace_seconds: float = 2.0
     # v93: todos los perfiles SMC analizan una sola vez cada vela M5 cerrada.
     # ORB mantiene su scheduler de sesión independiente.
     smc_event_scheduler_enabled: bool = True
+    # v111: detector adicional de reversión por agotamiento. SHADOW significa
+    # que registra candidatos pero jamás los convierte en órdenes.
+    exhaustion_reversal_enabled: bool = True
+    exhaustion_reversal_mode: str = "SHADOW"
+    exhaustion_dealing_range_lookback: int = 50
+    exhaustion_liquidity_lookback: int = 20
+    exhaustion_premium_threshold: float = 0.75
+    exhaustion_discount_threshold: float = 0.25
+    exhaustion_minimum_wick_ratio: float = 0.45
+    exhaustion_maximum_body_ratio: float = 0.35
+    exhaustion_volume_climax_multiplier: float = 1.20
     # Sin posiciones SQLite del perfil, el monitor evita consultar MT5 cada 2s.
     idle_position_recovery_seconds: float = 30.0
 
     # v87: Oro con estrategia SMC/Forex desde apertura de Asia (Tokio 09:00)
     # hasta apertura cash de Nueva York (09:30), ambas con DST real por zona.
-    gold_smc_session_enabled: bool = True
+    gold_smc_session_enabled: bool = False
     gold_asia_timezone: str = "Asia/Tokyo"
     gold_asia_open_hour: int = 9
     gold_asia_open_minute: int = 0
@@ -362,6 +403,9 @@ class LiveTradingConfig:
     chart_patterns_minimum_strength: float = 0.72
     chart_patterns_bonus_points: float = 8.0
     require_chart_pattern: bool = False
+    require_m5_structure_event: bool = True
+    allow_ob_close_recovery: bool = True
+    require_favorable_confirmation: bool = True
     chart_pattern_secondary_conflict_penalty: float = 10.0
     block_material_chart_pattern_conflict: bool = True
     # v108: margen mínimo (fracción 0-1) que el patrón chartista alineado con
@@ -370,9 +414,12 @@ class LiveTradingConfig:
     # v109 Fase 2: bajado de 0.25 a 0.18 (relajación de gate estructural,
     # ver comentario completo en confirmation_engine.M5ConfirmationConfig).
     chart_pattern_conflict_min_margin: float = 0.18
+    chart_pattern_contrary_min_strength: float = 0.80
+    chart_pattern_contrary_min_advantage: float = 0.10
     # v109 Fase 1: bajado de 0.30 a 0.25. Configurable por perfil de bot;
     # ver comentario completo en confirmation_engine.M5ConfirmationConfig.
     minimum_rejection_wick_ratio: float = 0.25
+    retest_tolerance_mode: str = "ATR_BOUNDED"  # STRICT | ATR_BOUNDED
     # v109 Fase 3: bajado de 1.35 a 1.20. Configurable por perfil de bot;
     # ver comentario completo en confirmation_engine.M5ConfirmationConfig.
     displacement_range_multiplier: float = 1.20
@@ -446,11 +493,11 @@ class LiveTradingConfig:
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
     orb_enabled: bool = True
     orb_timeframe: str = "M5"
-    # v76: contexto superior para evitar ORB contra tendencia mayor.
-    orb_htf_context_enabled: bool = True
-    orb_require_h1_alignment: bool = True
-    orb_use_m15_context: bool = True
-    orb_require_known_htf_context: bool = True
+    # Compatibilidad con configuraciones antiguas: ORB ya no consulta contexto SMC/HTF.
+    orb_htf_context_enabled: bool = False
+    orb_require_h1_alignment: bool = False
+    orb_use_m15_context: bool = False
+    orb_require_known_htf_context: bool = False
     orb_opening_range_minutes: int = 15
     orb_require_vwap_alignment: bool = True
     orb_require_poc_alignment: bool = True
@@ -465,8 +512,11 @@ class LiveTradingConfig:
     orb_risk_percent: float = 1.0
     orb_stop_mode: str = "MIDPOINT"
     orb_stop_buffer_fraction: float = 0.0
-    orb_candle_count: int = 1000
-    orb_strategy_version: str = "orb-ny-v2-m5-breakout-retest-midpoint"
+    orb_candle_count: int = 350
+    orb_breakout_atr_buffer_fraction: float = 0.05
+    orb_retest_max_candles: int = 3
+    orb_momentum_enabled: bool = True
+    orb_strategy_version: str = "orb-ny-v3-retest-momentum"
 
     # Tercera estrategia: Apertura Indices Bursatiles (Wall Street 30, US
     # Tech 100, US SP 500) en la apertura de Nueva York (09:30 NY). Sesgo H1
@@ -483,14 +533,21 @@ class LiveTradingConfig:
     # v43: protección específica para Forex alrededor del rollover diario de NY.
     # Spot FX opera 24/5, pero alrededor de 17:00 New York suele disminuir la
     # liquidez y ampliarse el spread. DaemonBlackFx queda flat antes del rollover.
+    forex_spread_guard_enabled: bool = True
+    forex_spread_baseline_samples: int = 20
+    forex_spread_max_multiple: float = 2.0
+    forex_spread_max_pips: float = 5.0
+    forex_spread_max_risk_ratio: float = 0.10
+    forex_spread_stable_samples: int = 5
     forex_rollover_guard_enabled: bool = True
     forex_rollover_timezone: str = "America/New_York"
-    forex_new_entry_cutoff_hour: int = 16
-    forex_new_entry_cutoff_minute: int = 30
+    forex_new_entry_cutoff_hour: int = 14
+    forex_new_entry_cutoff_minute: int = 0
+    forex_market_reopen_hour: int = 17
+    forex_market_reopen_minute: int = 0
     forex_force_flat_hour: int = 16
     forex_force_flat_minute: int = 45
-    # v89: Forex vuelve a habilitar entradas en la apertura de Tokio, igual que
-    # GOLD. Los campos London se conservan sólo para configuraciones antiguas.
+    # Tokio/Londres se conservan para compatibilidad; la reapertura usa NY.
     forex_tokyo_timezone: str = "Asia/Tokyo"
     forex_tokyo_session_start_hour: int = 9
     forex_tokyo_session_start_minute: int = 0
@@ -501,6 +558,7 @@ class LiveTradingConfig:
     forex_force_flat_friday: bool = True
 
     # GOLD: niveles de cuarto ($25/$50/$75/$100...) como confluencia de precio.
+    gold_quarters_strategy_enabled: bool = True
     gold_quarter_level_increment: float = 25.0
     gold_quarter_level_tolerance_price: float = 2.0
     gold_quarter_level_bonus_points: float = 4.0
@@ -521,6 +579,8 @@ class LiveTradingConfig:
     # Máxima desviación del precio actual respecto a la entrada original, expresada en R.
     # 0.50 = no perseguir una entrada que ya se movió más de medio riesgo estructural.
     max_entry_drift_r: float | None = 0.50
+    smc_obstacle_min_distance_r: float = 1.0
+    smc_execution_max_later_m5_bars: int = 1
     require_latest_m15_setup: bool = True
 
 
@@ -571,6 +631,8 @@ class LiveTradingEngine:
         self.repository = repository
         self.config = config or LiveTradingConfig()
         self.pipeline_config = pipeline_config or PipelineConfig(
+            telemetry_bot_name=str(self.config.bot_profile),
+            retest_tolerance_mode=self.config.retest_tolerance_mode,
             minimum_rejection_wick_ratio=float(
                 getattr(self.config, "minimum_rejection_wick_ratio", 0.25)
             ),
@@ -599,10 +661,19 @@ class LiveTradingEngine:
             chart_patterns_minimum_strength=float(self.config.chart_patterns_minimum_strength),
             chart_patterns_bonus_points=float(self.config.chart_patterns_bonus_points),
             require_chart_pattern=bool(self.config.require_chart_pattern),
+            require_favorable_confirmation=bool(self.config.require_favorable_confirmation),
+            require_m5_structure_event=self.config.require_m5_structure_event,
+            allow_ob_close_recovery=self.config.allow_ob_close_recovery,
             chart_pattern_secondary_conflict_penalty=float(self.config.chart_pattern_secondary_conflict_penalty),
             block_material_chart_pattern_conflict=bool(self.config.block_material_chart_pattern_conflict),
             chart_pattern_conflict_min_margin=float(
                 getattr(self.config, "chart_pattern_conflict_min_margin", 0.25)
+            ),
+            chart_pattern_contrary_min_strength=float(
+                getattr(self.config, "chart_pattern_contrary_min_strength", 0.80)
+            ),
+            chart_pattern_contrary_min_advantage=float(
+                getattr(self.config, "chart_pattern_contrary_min_advantage", 0.10)
             ),
             block_similar_chart_pattern_forces=bool(self.config.block_similar_chart_pattern_forces),
             h1_doji_enabled=bool(self.config.h1_doji_enabled),
@@ -638,6 +709,8 @@ class LiveTradingEngine:
             ),
             asian_range_tolerance_price=float(getattr(self.config, "gold_asian_range_tolerance_price", 2.0)),
         )
+        if not self.pipeline_config.telemetry_bot_name:
+            self.pipeline_config = replace(self.pipeline_config, telemetry_bot_name=str(self.config.bot_profile))
         self.lifecycle_manager = lifecycle_manager
         self.reporting_service = reporting_service
         self.console_reporter = console_reporter
@@ -668,6 +741,9 @@ class LiveTradingEngine:
                 stop_mode=str(self.config.orb_stop_mode),
                 stop_buffer_fraction=float(self.config.orb_stop_buffer_fraction),
                 candle_count=int(self.config.orb_candle_count),
+                breakout_atr_buffer_fraction=float(self.config.orb_breakout_atr_buffer_fraction),
+                retest_max_candles=int(self.config.orb_retest_max_candles),
+                momentum_enabled=bool(self.config.orb_momentum_enabled),
                 gold_quarter_level_enabled=True,
                 gold_quarter_level_increment=float(self.config.gold_quarter_level_increment),
                 gold_quarter_level_tolerance_price=float(self.config.gold_quarter_level_tolerance_price),
@@ -693,9 +769,16 @@ class LiveTradingEngine:
         self.multi_timeframe = MultiTimeframeAnalyzer(
             data_provider=provider,
             config=MultiTimeframeConfig(
+                higher_timeframe=self.config.higher_timeframe,
                 structure_timeframe=self.config.structure_timeframe,
                 confirmation_timeframe=self.config.confirmation_timeframe,
                 entry_timeframe=self.config.entry_timeframe,
+                higher_timeframe_candles=self.config.higher_timeframe_candle_count,
+                require_h4_h1_convergence=(self.config.require_h4_h1_convergence or str(self.config.bot_profile).upper() == "ORB"),
+                smc_entry_location_enabled=self.config.smc_entry_location_enabled,
+                smc_entry_location_policy=self.config.smc_entry_location_policy,
+                h1_location_only=self.config.h1_location_only and str(self.config.bot_profile).upper() != "ORB",
+                volatility_entry_location_enabled=self.config.volatility_entry_location_enabled,
                 structure_candles=self.config.structure_candle_count,
                 confirmation_candles=self.config.confirmation_candle_count,
                 entry_candles=self.config.entry_candle_count,
@@ -864,7 +947,7 @@ class LiveTradingEngine:
         """
         try:
             stamp = pd.to_datetime(value, utc=True, errors="raise")
-            return stamp.to_pydatetime()
+            return None if stamp is None or pd.isna(stamp) else stamp.to_pydatetime()
         except Exception:
             return None
 
@@ -956,6 +1039,20 @@ class LiveTradingEngine:
             record = payload.get(key)
             if not isinstance(record, dict):
                 return record
+
+            if (record.get("release_after_guard") == "PRE_SEND_RISK_CAP_V1"
+                    and callable(getattr(self.executor, "_validate_pre_send_risk", None))):
+                # Preserve the incident and review before removing the active block.
+                archive = self._quarantine_file().with_name("risk_quarantine_releases.jsonl")
+                with archive.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({"symbol": key, "record": record,
+                        "released_at": datetime.now(timezone.utc).isoformat(),
+                        "guard": "PRE_SEND_RISK_CAP_V1"}, ensure_ascii=False) + "\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                payload.pop(key, None)
+                self._save_quarantine_unlocked(payload)
+                return None
 
             # Compatibilidad: v98/v99 no guardaban recoverable/expires_at.
             recovery = self._recoverable_quarantine_details(record)
@@ -1094,6 +1191,7 @@ class LiveTradingEngine:
         )
         audit_payload.setdefault("bot_profile", str(self.config.bot_profile).upper())
         audit_payload.setdefault("daemon_magic", int(self.config.magic))
+        audit_payload.setdefault("quality_release", "2026-09-24.1")
 
         event_name = str(event_type or "").upper()
         runtime_error = None
@@ -1125,6 +1223,15 @@ class LiveTradingEngine:
                     state_kwargs["last_action"] = "EVENT_SCHEDULER_WAIT"
                     state_kwargs["last_reason"] = (
                         f"Instrumentos disponibles; esperando nueva vela {timeframe} cerrada"
+                    )
+                elif runtime_state in {"OUTSIDE_SESSION", "SESSION_WARMUP"}:
+                    session = (audit_payload.get("forex_scheduler") or {}).get("session") or {}
+                    state_kwargs["status"] = runtime_state
+                    state_kwargs["last_action"] = runtime_state
+                    state_kwargs["last_reason"] = (
+                        ("Preparando datos" if runtime_state == "SESSION_WARMUP" else session.get("reason", "Análisis pausado fuera de sesión"))
+                        + f"; próxima comprobación/apertura UTC: {session.get('next_activation')}"
+                        + "; gestión de posiciones activa"
                     )
                 elif runtime_state == "WAITING_FOREX_DATA":
                     state_kwargs["status"] = "WAITING_FOREX_DATA"
@@ -1175,6 +1282,19 @@ class LiveTradingEngine:
 
         # El inicio de símbolo ya queda representado por worker_runtime_states;
         # duplicarlo en una tabla append-only aportaba poco y duplicaba escrituras.
+        if event_name == "DAEMON_CYCLE_START":
+            # Runtime heartbeat above stays fresh; repeated idle polls need no DB event.
+            signature = (audit_payload.get("runtime_state"), audit_payload.get("symbols_count"),
+                         audit_payload.get("selected_symbols_count"))
+            previous = getattr(self, "_idle_cycle_audit", None)
+            now_mono = time.monotonic()
+            if not audit_payload.get("symbols_count"):
+                if previous and previous[0] == signature and now_mono - previous[1] < 60:
+                    return {"runtime_only": True, "sampled_idle_cycle": True, "runtime_error": runtime_error}
+                self._idle_cycle_audit = (signature, now_mono)
+            else:
+                self._idle_cycle_audit = None
+
         if event_name == "SYMBOL_PROCESS_START":
             return {
                 "runtime_only": True,
@@ -1276,6 +1396,22 @@ class LiveTradingEngine:
         if not isinstance(signal, dict):
             signal = {}
         diagnostics = analysis.get("diagnostics") if isinstance(analysis.get("diagnostics"), dict) else {}
+        if not signal:
+            signal = ((analysis.get("m5") or {}).get("signal")
+                      or (diagnostics.get("m5") or {}).get("latest_rejected_candidate") or {})
+        historical_rejection = (diagnostics.get("m5") or {}).get("latest_rejected_candidate")
+        if historical_rejection is signal:
+            signal = {}  # A rejected historical candidate is not the current entry.
+        shadow_signal = signal
+        if not shadow_signal and isinstance(historical_rejection, dict):
+            # Keep rejected evidence separate from the live signal and its score.
+            selected = (diagnostics.get("sequence") or {}).get("selected_setup_time")
+            candidate_time = historical_rejection.get("setup_time")
+            selected_dt = pd.to_datetime(selected, utc=True, errors="coerce")
+            candidate_dt = pd.to_datetime(candidate_time, utc=True, errors="coerce")
+            if (pd.notna(selected_dt) and selected_dt == candidate_dt
+                    and historical_rejection.get("direction") == analysis.get("direction")):
+                shadow_signal = historical_rejection
         strategy_name = str(
             row.get("strategy_name") or signal.get("strategy_name")
             or analysis.get("strategy_name") or "SMC"
@@ -1332,7 +1468,7 @@ class LiveTradingEngine:
             "action": row.get("action") or row.get("state") or analysis.get("action"),
             "reason": row.get("reason") or row.get("error") or analysis.get("reason"),
             "valid": bool(row.get("valid", analysis.get("valid", False))),
-            "direction": row.get("direction") or signal.get("direction") or analysis.get("direction"),
+            "direction": row.get("direction") or analysis.get("direction") or signal.get("direction"),
             "strategy_name": strategy_name,
             "strategy_version": (
                 row.get("strategy_version") or signal.get("strategy_version")
@@ -1349,12 +1485,35 @@ class LiveTradingEngine:
                 for key in (
                     "signal_time", "age_candles", "age_minutes",
                     "max_age_candles", "max_age_minutes", "is_stale",
+                    "latest_closed_candle_time", "signal_found_in_m5",
                 )
                 if signal_age.get(key) is not None
             },
             "risk_metrics": risk_metrics,
+            "target_path_audit": signal.get("target_path_audit", {}),
+            "h1_context": (analysis.get("h1") or {}).get("context", {}),
+            "sequence": diagnostics.get("sequence", {}),
+            "stage_timing": diagnostics.get("stage_timing", {}),
+            "entry_location_comparison": diagnostics.get("entry_location_comparison", {}),
+            "critical_confirmation_failures": signal.get("critical_confirmation_failures", []),
+            "favorable_confirmation": signal.get("favorable_confirmation", {}),
+            "m5_structure_event": signal.get("m5_structure_event"),
+            "ob_close_recovery": signal.get("ob_close_recovery"),
+            "retest_comparison": signal.get("retest_comparison", {}),
+            "setup_sequence_shadow": shadow_signal.get("setup_sequence_shadow", {}),
+            "orb_audit": analysis.get("orb_audit") or signal.get("orb_audit") or {},
+            "shadow_plan": {k: shadow_signal.get(k) for k in ("entry_price", "stop_loss", "take_profit", "direction", "entry_time")},
+            "m15_block_audit": (diagnostics.get("m15") or {}).get("m15_block_audit", []),
+            "historical_m5_rejection": historical_rejection,
+            "stage_data": {
+                stage: {key: (diagnostics.get(stage) or {}).get(key)
+                        for key in ("last_candle_time", "cache", "rejected_m5_candidates")}
+                for stage in ("h1", "m15", "m5")
+            },
         }
 
+        if row.get("silver_contract_selection"):
+            compact["silver_contract_selection"] = row["silver_contract_selection"]
         meta_label = row.get("meta_label")
         if not isinstance(meta_label, dict):
             meta_label = signal.get("meta_label") if isinstance(signal.get("meta_label"), dict) else {}
@@ -1366,6 +1525,19 @@ class LiveTradingEngine:
                     "allowed", "shadow", "reason", "trained",
                 )
                 if meta_label.get(key) is not None
+            }
+        exhaustion = analysis.get("exhaustion_reversal_shadow")
+        if isinstance(exhaustion, dict):
+            compact["exhaustion_reversal_shadow"] = {
+                key: exhaustion.get(key)
+                for key in (
+                    "mode", "valid", "action", "reason", "direction",
+                    "direction_allowed", "exhaustion_time", "confirmation_time",
+                    "entry_price", "stop_loss", "equilibrium_target",
+                    "risk_distance", "volume_applicable", "volume_ratio",
+                    "dealing_range", "checks",
+                )
+                if exhaustion.get(key) is not None
             }
         return {key: value for key, value in compact.items() if value not in (None, {}, [])}
 
@@ -1394,7 +1566,8 @@ class LiveTradingEngine:
                 self.executor,
                 source=self.config.source,
                 magic=int(self.config.magic),
-                include_external=False,
+                include_external=str(self.config.bot_profile).upper() == "BOOM",
+                excluded_external_magics=tuple(range(26082101,26082107))+tuple(range(26082201,26082205))+tuple(range(26082401,26082405))+tuple(range(26082026,26082031)),
                 timeframe=str(self.config.entry_timeframe),
             )
             if (result or {}).get("imported_daemon"):
@@ -1607,6 +1780,8 @@ class LiveTradingEngine:
         forma inequívoca a su propia familia.
         """
         metadata = self._trade_metadata(trade)
+        if metadata.get("managed_by_daemon") is False:
+            return False
         recorded_magic = metadata.get("daemon_magic")
         if recorded_magic in (None, ""):
             recorded_magic = metadata.get("mt5_magic")
@@ -2083,6 +2258,108 @@ class LiveTradingEngine:
         self.repository.update_trade(int(trade["id"]), {"stop_loss": target, "details": details})
         return {"action": "FOREX_NEWS_BREAK_EVEN_CONFIRMED", "break_even_price": target, "spread": spread}
 
+    def _available_market_symbols(self, symbols):
+        """Probe execution quotes, not strategy sessions; do not infer a holiday.
+
+        Missing/stale quotes mean unavailable, not proof of a market closure.
+        Cache probes for one minute while position management remains active.
+        """
+        now = datetime.now(timezone.utc)
+        cached = getattr(self, "_market_availability_cache", None)
+        if cached and cached[0] == tuple(symbols) and (now - cached[1]).total_seconds() < 60:
+            return cached[2], cached[3]
+        available, unavailable = [], {}
+        getter = getattr(getattr(self, "executor", None), "get_current_tick", None)
+        for symbol in symbols:
+            try:
+                if not callable(getter):
+                    raise ValueError("EXECUTION_QUOTE_UNAVAILABLE")
+                tick = getter(symbol)
+                timestamp = pd.Timestamp(tick.get("time"))
+                if pd.isna(timestamp):
+                    raise ValueError("QUOTE_TIME_UNAVAILABLE")
+                timestamp = timestamp.tz_localize("UTC") if timestamp.tzinfo is None else timestamp.tz_convert("UTC")
+                age = (pd.Timestamp(now) - timestamp).total_seconds()
+                if age < -60 or age > 180:
+                    raise ValueError("MARKET_CLOSED_OR_STALE_QUOTE")
+                if float(tick.get("bid") or 0) <= 0 or float(tick.get("ask") or 0) <= 0:
+                    raise ValueError("INVALID_EXECUTION_QUOTE")
+                available.append(symbol)
+            except Exception as exc:
+                unavailable[symbol] = str(exc)
+        self._market_availability_cache = (tuple(symbols), now, available, unavailable)
+        return available, unavailable
+
+    def _analysis_session_status(self, now_utc=None) -> dict:
+        """Calendar-only gate. Never enables a worker or suspends its position monitor."""
+        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        profile = str(self.config.bot_profile or "").upper()
+        enabled = self.config.session_analysis_pause_enabled
+        windows = []
+        if profile == "ORB":
+            cfg = self.orb_strategy.config
+            enabled = enabled and cfg.enabled
+            active = self._orb_session_is_active(now_utc=now.to_pydatetime())
+            windows = [(cfg.timezone_name, cfg.opening_hour, cfg.opening_minute)]
+        elif profile == "GOLD":
+            enabled = enabled and self.config.gold_smc_session_enabled
+            active = self._gold_smc_session_state(now)["active"]
+            windows = [(self.config.gold_asia_timezone, self.config.gold_asia_open_hour,
+                        self.config.gold_asia_open_minute),
+                       (self.config.gold_london_timezone, self.config.gold_london_open_hour, 0)]
+        elif profile.startswith("FOREX"):
+            enabled = enabled and self.config.forex_rollover_guard_enabled
+            active = not self._forex_rollover_status(now.to_pydatetime())["block_new_entries"]
+            windows = [(self.config.forex_rollover_timezone, self.config.forex_market_reopen_hour,
+                        self.config.forex_market_reopen_minute)]
+        else:
+            active = True
+        if not enabled or active:
+            return {"state": "ACTIVE", "active": True, "next_activation": None}
+        openings = []
+        for zone, hour, minute in windows:
+            local = now.tz_convert(zone)
+            for offset in range(9):
+                day = local.date() + timedelta(days=offset)
+                if (day.weekday() in (6, 0, 1, 2, 3) if profile.startswith("FOREX") else day.weekday() < 5):
+                    opening = pd.Timestamp(datetime(day.year, day.month, day.day, hour, minute),
+                                           tz=zone).tz_convert("UTC")
+                    if opening > now:
+                        openings.append(opening)
+        next_open = min(openings) if openings else None
+        warmup = next_open is not None and (next_open - now).total_seconds() <= max(
+            0.0, self.config.session_warmup_minutes * 60)
+        return {"state": "SESSION_WARMUP" if warmup else "OUTSIDE_SESSION",
+                "active": False,
+                "next_activation": next_open.isoformat() if next_open is not None else None}
+
+    def _prepare_session_symbol(self, symbols, session):
+        """Warm one symbol per cycle, once per upcoming session; no signals or orders."""
+        key = session["next_activation"]
+        if getattr(self, "_session_warmup_key", None) != key:
+            self._session_warmup_key, self._session_warmed_symbols = key, set()
+        symbol = next((s for s in symbols if s not in self._session_warmed_symbols), None)
+        if symbol is None:
+            return
+        self._session_warmed_symbols.add(symbol)
+        try:
+            if str(self.config.bot_profile).upper() == "ORB":
+                self.orb_strategy._prepare_candles(symbol, datetime.now(timezone.utc))
+            else:
+                cfg = self.multi_timeframe.config
+                stages = [(cfg.structure_timeframe, cfg.structure_candles),
+                          (cfg.confirmation_timeframe, cfg.confirmation_candles),
+                          (cfg.entry_timeframe, cfg.entry_candles)]
+                if cfg.require_h4_h1_convergence:
+                    stages.insert(0, (cfg.higher_timeframe, cfg.higher_timeframe_candles))
+                for tf, count in stages:
+                    self.multi_timeframe._get_stage_result(symbol, tf, count)
+            session["prepared_symbol"] = symbol
+        except Exception as exc:
+            # Normal opening analysis retries data; preparation never bypasses validation.
+            session["warmup_error"] = str(exc)
+
     def _forex_due_symbols(self, base_symbols):
         """Analiza perfiles SMC una sola vez por cada vela M5 cerrada.
 
@@ -2090,6 +2367,29 @@ class LiveTradingEngine:
         aplica a Forex, GOLD y familias sintéticas; ORB conserva el suyo.
         """
         symbols = list(base_symbols or [])
+        session = self._analysis_session_status()
+        profile = str(self.config.bot_profile or "").upper()
+        if session["active"] and (profile == "GOLD" or profile.startswith("FOREX")):
+            symbols, unavailable = self._available_market_symbols(symbols)
+            session["unavailable_symbols"] = unavailable
+            if unavailable and not symbols:
+                session.update(state="OUTSIDE_SESSION", active=False,
+                    reason="Mercado cerrado o cotizaciones MT5 no disponibles",
+                    next_activation=(datetime.now(timezone.utc) + timedelta(seconds=60)).isoformat())
+        self._analysis_session_diagnostics = session
+        if not session["active"]:
+            if session["state"] == "SESSION_WARMUP":
+                self._prepare_session_symbol(symbols, session)
+            self._forex_pending_closed_bar = {}
+            self._forex_scheduler_diagnostics = {
+                "selected_symbols": len(symbols), "due_symbols": 0,
+                "session": session, "candles_available": 0,
+            }
+            self._session_was_paused = True
+            return []
+        if getattr(self, "_session_was_paused", False):
+            self._event_scheduler_next_poll_at = None
+            self._session_was_paused = False
         profile = str(self.config.bot_profile or "").upper()
         family_profile = self._canonical_bot_profile(profile)
         smc_event_profiles = {
@@ -2097,10 +2397,15 @@ class LiveTradingEngine:
         }
         uses_scheduler = (
             profile == "GOLD"
+            or profile == "ORB"
             or profile.startswith("FOREX")
             or family_profile in smc_event_profiles
         )
         scheduler_enabled = bool(self.config.forex_event_scheduler_enabled)
+        if profile == "ORB":
+            scheduler_enabled = scheduler_enabled and bool(
+                getattr(self.config, "orb_event_scheduler_enabled", True)
+            )
         if family_profile in smc_event_profiles:
             scheduler_enabled = scheduler_enabled and bool(
                 getattr(self.config, "smc_event_scheduler_enabled", True)
@@ -2108,10 +2413,31 @@ class LiveTradingEngine:
         if not uses_scheduler or not scheduler_enabled:
             return symbols
 
+        now_utc = datetime.now(timezone.utc)
+        next_poll_at = getattr(self, "_event_scheduler_next_poll_at", None)
+        if (
+            bool(getattr(self.config, "event_scheduler_boundary_guard_enabled", True))
+            and isinstance(next_poll_at, datetime)
+            and now_utc < next_poll_at
+        ):
+            self._forex_pending_closed_bar = {}
+            self._forex_scheduler_diagnostics = {
+                "selected_symbols": len(symbols),
+                "due_symbols": 0,
+                "candles_available": len(symbols),
+                "unchanged_m5_bars": len(symbols),
+                "unavailable_symbols": 0,
+                "errors": 0,
+                "boundary_poll_skipped": True,
+                "next_poll_at": next_poll_at.isoformat(),
+            }
+            return []
+
         seen = dict(getattr(self, "_forex_last_closed_bar", {}) or {})
         pending = {}
         due = []
         candles_available = unchanged = unavailable = errors = 0
+        observed_closed_times = []
         for symbol in symbols:
             try:
                 frame = self.provider.get_candles(
@@ -2126,6 +2452,12 @@ class LiveTradingEngine:
                 frame = frame.sort_values("time")
                 closed = frame.iloc[-2] if len(frame) > 1 else frame.iloc[-1]
                 ts = str(closed["time"])
+                try:
+                    observed_closed_times.append(
+                        pd.to_datetime(closed["time"], utc=True).to_pydatetime()
+                    )
+                except (TypeError, ValueError):
+                    pass
                 if symbol not in seen or seen.get(symbol) != ts:
                     due.append(symbol)
                     pending[symbol] = ts
@@ -2135,6 +2467,33 @@ class LiveTradingEngine:
                 errors += 1
                 continue
         self._forex_pending_closed_bar = pending
+        next_boundary = None
+        if (
+            bool(getattr(self.config, "event_scheduler_boundary_guard_enabled", True))
+            and symbols
+            and candles_available == len(symbols)
+            and errors == 0
+            and unavailable == 0
+        ):
+            timeframe = str(self.config.forex_event_timeframe or "M5").upper()
+            seconds = int(MultiTimeframeAnalyzer._TIMEFRAME_SECONDS.get(timeframe, 0))
+            freshest_closed = max(observed_closed_times) if observed_closed_times else None
+            # No aplicar el reloj de pared a proveedores históricos/de prueba:
+            # sólo es válido cuando MT5 está entregando la barra vigente.
+            recent_market_clock = (
+                freshest_closed is not None
+                and abs((now_utc - freshest_closed).total_seconds())
+                <= (seconds * 2 + 5)
+            )
+            if seconds > 0 and recent_market_clock:
+                next_epoch = (int(now_utc.timestamp() // seconds) + 1) * seconds
+                next_boundary = datetime.fromtimestamp(next_epoch, tz=timezone.utc) + timedelta(
+                    seconds=max(
+                        0.0,
+                        float(getattr(self.config, "event_scheduler_boundary_grace_seconds", 2.0)),
+                    )
+                )
+        self._event_scheduler_next_poll_at = next_boundary
         self._forex_scheduler_diagnostics = {
             "selected_symbols": len(symbols),
             "due_symbols": len(due),
@@ -2142,6 +2501,8 @@ class LiveTradingEngine:
             "unchanged_m5_bars": unchanged,
             "unavailable_symbols": unavailable,
             "errors": errors,
+            "boundary_poll_skipped": False,
+            "next_poll_at": next_boundary.isoformat() if next_boundary else None,
         }
         return due
 
@@ -2152,6 +2513,7 @@ class LiveTradingEngine:
         if not (
             profile.startswith("FOREX")
             or profile == "GOLD"
+            or profile == "ORB"
             or family_profile in {"SYNTHETICS", "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
         ):
             return
@@ -2167,6 +2529,10 @@ class LiveTradingEngine:
             # Un error técnico conserva la vela pendiente para reintento.
             if symbol in pending and "ERROR" not in action:
                 seen[symbol] = pending[symbol]
+            elif symbol in pending:
+                # Un fallo técnico debe poder reintentarse en el próximo ciclo,
+                # incluso si aún no llega la siguiente frontera M5.
+                self._event_scheduler_next_poll_at = None
         self._forex_last_closed_bar = seen
         self._forex_pending_closed_bar = {}
 
@@ -2410,6 +2776,111 @@ class LiveTradingEngine:
         )
         return metadata, True
 
+    def _smc_entry_preflight(self, symbol, signal, direction, entry, stop, legs):
+        from strategy.smc.entry_preflight import closed_m5, confirmation_guard, obstacle_guard
+        report = {"valid": False, "reason": "SMC_PREFLIGHT_DATA_UNAVAILABLE"}
+        try:
+            if "m15_obstacles" not in signal:
+                raise ValueError("M15_OBSTACLE_CAPTURE_MISSING")
+            minimum = float(self.config.smc_obstacle_min_distance_r)
+            if not math.isfinite(minimum) or minimum <= 0:
+                raise ValueError("INVALID_OBSTACLE_MINIMUM")
+            now = pd.Timestamp.now(tz="UTC")
+            candles = closed_m5(self.provider.get_candles(symbol, "M5", count=350), now)
+            fresh = self.multi_timeframe._run_pipeline(candles, symbol).get("data")
+            tick = self.provider.get_current_tick(symbol)
+            price = float(tick["ask"] if direction == "BUY" else tick["bid"])
+            if not math.isfinite(price) or price <= 0 or (price <= stop if direction == "BUY" else price >= stop):
+                raise ValueError("INVALID_EXECUTABLE_PRICE")
+            if any(price >= leg["take_profit"] if direction == "BUY" else price <= leg["take_profit"] for leg in legs):
+                raise ValueError("SMC_TARGET_ALREADY_REACHED")
+            drift = self._market_signal_diagnostics(symbol, direction, signal, tick, price, stop)
+            if drift.get("market_invalidated_signal") or drift.get("entry_drift_exceeded"):
+                raise ValueError(drift.get("reason") or "SMC_EXECUTION_PRICE_CHANGED")
+            report["m5"] = confirmation_guard(
+                fresh, signal.get("entry_time"), direction, pd.Timestamp.now(tz="UTC"),
+                max_later_bars=self.config.smc_execution_max_later_m5_bars, market_price=price)
+            report["path"] = obstacle_guard(price, stop,
+                {str(leg["name"]): leg["take_profit"] for leg in legs}, direction,
+                signal["m15_obstacles"], minimum)
+            report["market_price"] = price
+            report["valid"] = report["m5"]["valid"] and report["path"]["valid"]
+            report["reason"] = (report["m5"]["reason"] if not report["m5"]["valid"] else
+                                report["path"]["reason"] if not report["path"]["valid"] else "SMC_PREFLIGHT_PASSED")
+        except Exception as exc:
+            report["error"] = str(exc)
+        signal["entry_preflight"] = report
+        self._persist_audit_event("SMC_ENTRY_PREFLIGHT", instrument=symbol,
+            action="SMC_PREFLIGHT_PASSED" if report["valid"] else "SMC_ENTRY_PREFLIGHT_BLOCKED",
+            reason=report["reason"], payload=report)
+        return report
+
+    def _gold_quarters_entry_preflight(self, symbol, signal, direction, stop, legs):
+        """Entry-only guard: fresh M15/M5 obstacles and a closed M5 confirmation."""
+        from strategy.smc.entry_preflight import confirmation_guard, obstacle_guard
+        from strategy.smc.target_obstacles import collect_obstacles
+        report = {"valid": False, "reason": "GOLD_QUARTERS_DATA_UNAVAILABLE",
+                  "path": {"evaluated":False, "clear_path":None}, "timeframes":{}}
+        signal["target_path_audit"] = report["path"]
+        try:
+            now = pd.Timestamp.now(tz="UTC")
+            frames, obstacles = {}, []
+            for timeframe, minutes in (("M15",15),("M5",5)):
+                raw = self.provider.get_candles(symbol, timeframe, count=350).copy()
+                raw["time"] = pd.to_datetime(raw["time"], utc=True, errors="coerce")
+                raw = raw[raw.time + pd.Timedelta(minutes=minutes) <= now].sort_values("time").drop_duplicates("time")
+                if len(raw)<30 or raw.time.iloc[-1] != now.floor(f"{minutes}min")-pd.Timedelta(minutes=minutes):
+                    raise ValueError(timeframe + "_HISTORY_MISSING_OR_STALE")
+                fresh = self.multi_timeframe._run_pipeline(raw, symbol).get("data")
+                required = {"time","high","low","close","ob_type","ob_low","ob_high","ob_break_time"}
+                if fresh is None or fresh.empty or not required.issubset(fresh.columns):
+                    raise ValueError(timeframe + "_OB_EVALUATION_MISSING")
+                if not all(pd.to_numeric(fresh[k], errors="coerce").map(math.isfinite).all() for k in ("high","low","close")):
+                    raise ValueError(timeframe + "_INVALID_PRICES")
+                frames[timeframe] = fresh
+                zones = collect_obstacles(fresh, direction)
+                for zone in zones:
+                    zone["timeframe"] = timeframe
+                    if zone["type"] == "M15_RANGE_EXTREME":
+                        zone["type"] = timeframe + "_RANGE_EXTREME"
+                obstacles.extend(zones)
+                report["timeframes"][timeframe] = {"evaluated":True, "last_closed_open":raw.time.iloc[-1].isoformat(), "obstacles":zones}
+            quote = self._meta_execution_spread(symbol)
+            report["execution_quote"] = quote
+            if quote.get("spread_status") != "AVAILABLE":
+                raise ValueError("MT5_EXECUTION_QUOTE_UNAVAILABLE")
+            price = float(quote["execution_ask"] if direction == "BUY" else quote["execution_bid"])
+            if (price<=stop if direction=="BUY" else price>=stop):
+                raise ValueError("CONFIRMATION_ALREADY_BEYOND_STOP")
+            targets = {str(leg["name"]):float(leg["take_profit"]) for leg in legs}
+            if any(price>=target if direction=="BUY" else price<=target for target in targets.values()):
+                raise ValueError("TARGET_ALREADY_REACHED")
+            report["m5"] = confirmation_guard(frames["M5"],signal.get("entry_time"),direction,
+                pd.Timestamp.now(tz="UTC"), max_later_bars=self.config.smc_execution_max_later_m5_bars, market_price=price)
+            report["path"] = obstacle_guard(price,stop,targets,direction,obstacles,
+                minimum_r=float(self.config.smc_obstacle_min_distance_r))
+            report["path"]["evaluated"] = True
+            for path in report["path"]["paths"].values():
+                path["mode"] = "ENTRY_GUARD"
+            report["market_price"] = price
+            report["valid"] = report["m5"]["valid"] and report["path"]["valid"]
+            report["reason"] = (report["m5"]["reason"] if not report["m5"]["valid"] else
+                report["path"]["reason"] if not report["path"]["valid"] else "GOLD_QUARTERS_PREFLIGHT_PASSED")
+        except Exception as exc:
+            report["error"] = str(exc)
+        signal["entry_preflight"] = report
+        signal["target_path_audit"] = report["path"]
+        self._persist_audit_event("GOLD_QUARTERS_ENTRY_PREFLIGHT", instrument=symbol,
+            action="ALLOWED" if report["valid"] else "BLOCKED", reason=report["reason"], payload=report)
+        return report
+
+    def _orb_fixed_exit_policy(self, metadata: dict) -> bool:
+        """ORB keeps broker SL/TP; also recognizes recovered legacy ORB trades."""
+        return (
+            str(metadata.get("strategy_name") or "").upper() == "ORB_NEW_YORK"
+            or str(metadata.get("bot_profile") or self.config.bot_profile or "").upper() == "ORB"
+        )
+
     def _analysis_invalidation_exit(
         self,
         *,
@@ -2428,6 +2899,9 @@ class LiveTradingEngine:
         pero no invalida una posición abierta.
         """
         result = {"managed": False, "closed": False, "reason": None}
+        if self._orb_fixed_exit_policy(metadata):
+            result["reason"] = "ORB_FIXED_SL_TP"
+            return result
         if not bool(getattr(self.config, "analysis_invalidation_exit_enabled", True)):
             return result
         if current_rr is None or not callable(close_position):
@@ -2651,7 +3125,7 @@ class LiveTradingEngine:
         """Gestiona extensión dinámica del RUNNER con profit-lock estructural.
 
         SMC: 2R -> evaluar -> 3R -> evaluar -> 4R máximo.
-        ORB: conserva 2R -> 3R -> 4R.
+        ORB queda excluido: conserva su SL y TP en el broker.
 
         Regla defensiva: al alcanzar un trigger primero se asegura el profit lock
         en MT5. Sólo después se evalúa si vale la pena continuar. Así, un error
@@ -2664,6 +3138,9 @@ class LiveTradingEngine:
             "stage": None,
             "error": None,
         }
+        if self._orb_fixed_exit_policy(metadata):
+            result["reason"] = "ORB_FIXED_SL_TP"
+            return result
         synthetic_profile = str(
             metadata.get("bot_profile") or self.config.bot_profile or ""
         ).upper()
@@ -3175,6 +3652,10 @@ class LiveTradingEngine:
         signal = signal if isinstance(signal, dict) else {}
         analysis = analysis if isinstance(analysis, dict) else {}
         htf = signal.get("higher_timeframe_context") or analysis.get("higher_timeframe_context") or {}
+        entry_chart = self._entry_chart_snapshot_from_cache(
+            str(trade.get("instrument") or ""),
+            analysis=analysis,
+        )
         entry = {
             "bot_profile": str(self.config.bot_profile).upper(),
             "daemon_magic": int(self.config.magic),
@@ -3215,6 +3696,10 @@ class LiveTradingEngine:
             "chart_pattern_conflict_level": signal.get("chart_pattern_conflict_level"),
             "chart_pattern_conflict_reason": signal.get("chart_pattern_conflict_reason"),
             "h1_trend": analysis.get("h1_trend") or htf.get("h1_trend"),
+            "entry_location": signal.get("entry_location_execution") or signal.get("entry_location"),
+            "h4_trend": analysis.get("h4_trend"),
+            "h4_h1_convergence": analysis.get("h4_h1_convergence"),
+            "h4_timeframe": analysis.get("h4_timeframe") or "H4",
             "structure_break": analysis.get("m15_structure_break_type") or htf.get("m15_structure"),
             "zone": analysis.get("m15_zone"),
             "higher_timeframe_context": htf,
@@ -3222,11 +3707,14 @@ class LiveTradingEngine:
             "htf_blocked": bool(htf.get("blocked")) if htf else None,
             "htf_reason": htf.get("reason") if htf else None,
             "captured_immediately_after_fill": True,
+            "market_data_source": "DERIV_CHARTS",
+            "evidence_mode": "ENTRY_DECISION_CACHE",
         }
         writer(
             int(trade["id"]), instrument=str(trade.get("instrument") or ""),
             bot_profile=str(self.config.bot_profile).upper(), daemon_magic=int(self.config.magic),
             broker_position_ticket=ticket or trade.get("broker_position_ticket"),
+            entry_chart=entry_chart or None,
             entry_context=entry, source=self.config.source,
         )
 
@@ -3280,6 +3768,102 @@ class LiveTradingEngine:
                 )
         return True
 
+    def _entry_chart_snapshot_from_cache(
+        self, symbol: str, candle_count: int = 120, analysis: dict | None = None
+    ) -> dict:
+        """Congela las velas exactas ya usadas por el pipeline al decidir.
+
+        No consulta nuevamente al proveedor. Así la evidencia de entrada no
+        puede incorporar una vela cerrada después del fill. Si una ruta no usa
+        la caché SMC, la auditoría declara el gráfico de entrada como ausente.
+        """
+        if not symbol:
+            return {}
+        cache_reader = getattr(getattr(self, "multi_timeframe", None), "cached_stage", None)
+        if not callable(cache_reader):
+            cache_reader = lambda *args, **kwargs: {}
+
+        tf_snapshots = {}
+        counts = {"H4": 120, "H1": 120, "M15": 120, "M5": 140}
+        for label in ("H4", "H1", "M15", "M5"):
+            cached = cache_reader(symbol, label) or {}
+            cached_result = cached.get("result") if isinstance(cached, dict) else None
+            raw = cached_result.get("data") if isinstance(cached_result, dict) else None
+            if raw is None and isinstance(cached, dict):
+                raw = cached.get("data")
+            if raw is None or not hasattr(raw, "empty") or raw.empty:
+                continue
+            try:
+                data = raw.copy()
+                data["time"] = pd.to_datetime(data["time"], utc=True)
+                data = (
+                    data.sort_values("time")
+                    .drop_duplicates("time")
+                    .tail(max(counts[label], int(candle_count)))
+                    .reset_index(drop=True)
+                )
+                close = data["close"].astype(float)
+                delta = close.diff()
+                gain = delta.clip(lower=0.0)
+                loss = -delta.clip(upper=0.0)
+                avg_gain = gain.ewm(alpha=1.0 / 14.0, adjust=False, min_periods=14).mean()
+                avg_loss = loss.ewm(alpha=1.0 / 14.0, adjust=False, min_periods=14).mean()
+                rs = avg_gain / avg_loss.replace(0.0, float("nan"))
+                rsi = (100.0 - (100.0 / (1.0 + rs))).clip(0.0, 100.0)
+                candles = []
+                for idx, row in data.iterrows():
+                    rv = rsi.iloc[idx] if idx < len(rsi) else None
+                    rv = float(rv) if pd.notna(rv) else None
+                    raw_volume = row.get("tick_volume")
+                    volume = float(raw_volume) if pd.notna(raw_volume) else None
+                    candles.append({
+                        "time": row["time"].isoformat(),
+                        "open": float(row["open"]),
+                        "high": float(row["high"]),
+                        "low": float(row["low"]),
+                        "close": float(row["close"]),
+                        "volume": volume,
+                        "rsi14": rv,
+                    })
+                visual = build_smc_visual_context(data, candle_count=len(data))
+                tf_snapshots[label] = {
+                    "symbol": symbol,
+                    "timeframe": label,
+                    "broker_timeframe": label,
+                    "candles": candles,
+                    "events": visual.get("events", []),
+                    "zones": visual.get("zones", []),
+                    "levels": visual.get("levels", []),
+                    "smc_context": visual.get("context", {}),
+                    "smc_legend": visual.get("legend", {}),
+                    "context_mode": "ESTRATEGIA",
+                    "evidence_mode": "ENTRY_DECISION_CACHE",
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            except Exception:
+                continue
+
+        seed = (analysis or {}).get("audit_chart_seed") if isinstance(analysis, dict) else None
+        if isinstance(seed, dict):
+            for label, payload in (seed.get("timeframes") or {}).items():
+                if label not in tf_snapshots and isinstance(payload, dict):
+                    tf_snapshots[str(label).upper()] = dict(payload)
+
+        if not tf_snapshots:
+            return {}
+        default = tf_snapshots.get("M5") or next(iter(tf_snapshots.values()))
+        return {
+            **default,
+            "symbol": symbol,
+            "data_source": "DERIV_CHARTS",
+            "evidence_mode": "ENTRY_DECISION_CACHE",
+            "timeframes": tf_snapshots,
+            "available_timeframes": [
+                tf for tf in ("H4", "H1", "M15", "M5") if tf in tf_snapshots
+            ],
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     def _monitor_break_even_positions(self) -> dict:
         """
         Monitorea posiciones OPEN del daemon y mueve el SL real en MT5 a Break Even
@@ -3321,6 +3905,8 @@ class LiveTradingEngine:
         duplicate_position_rows = []
 
         for trade in self.repository.open_trades(source=self.config.source):
+            if self._trade_metadata(trade).get("strategy_name") == "GOLD_QUARTERS":
+                continue
             if not self._trade_owned_by_current_bot(trade):
                 continue
             ticket = trade.get("broker_position_ticket")
@@ -3414,6 +4000,10 @@ class LiveTradingEngine:
                     "runner_extension_stage": metadata.get("runner_extension_stage"),
                     "runner_profit_lock_rr": metadata.get("runner_profit_lock_rr"),
                 })
+
+                # Keep excursion/health auditing, but never alter ORB broker exits.
+                if self._orb_fixed_exit_policy(metadata):
+                    continue
 
                 forex_news_protection = self._protect_forex_position_for_high_impact_news(
                     trade=trade,
@@ -3893,7 +4483,10 @@ class LiveTradingEngine:
                     "target_leg_risk": target_leg_risk,
                 })
                 return result
-            if "raw_volume" in sizing and actual_leg_risk + 1e-9 < min_required:
+            if not math.isfinite(actual_leg_risk) or actual_leg_risk <= 0:
+                result.update(reason="INVALID_ACTUAL_RISK")
+                return result
+            if not self.config.allow_reduced_risk and "raw_volume" in sizing and actual_leg_risk + 1e-9 < min_required:
                 result.update({
                     "reason": "RISK_TARGET_UNREACHABLE",
                     "actual_leg_risk": actual_leg_risk,
@@ -4043,6 +4636,108 @@ class LiveTradingEngine:
         }
         return self._orb_gold_cycle_diagnostics
 
+    def _evaluate_orb_silver_contract(self, symbol, account):
+        """Compare executable silver sizing, with a 1% ceiling for the whole thesis."""
+        result = {"symbol": str(symbol), "viable": False}
+        try:
+            analysis = self.orb_strategy.analyze_symbol(symbol)
+            if not analysis.get("valid"):
+                return {**result, "reason": analysis.get("reason") or "NO_ORB_SIGNAL"}
+            signal = analysis.get("signal") or analysis.get("entry") or {}
+            direction = str(signal.get("direction", "")).upper()
+            if direction not in {"BUY", "SELL"}:
+                return {**result, "reason": "INVALID_DIRECTION"}
+            quote = self._meta_execution_spread(symbol)
+            if quote.get("spread_status") != "AVAILABLE" or quote.get("spread_source") != "MT5_EXECUTION":
+                return {**result, "reason": "MT5_QUOTE_UNAVAILABLE"}
+            quote_time = pd.to_datetime(quote.get("spread_quote_time"), utc=True, errors="coerce")
+            age = (pd.Timestamp.now(tz="UTC") - quote_time).total_seconds()
+            if pd.isna(quote_time) or not -60 <= age <= 180:
+                return {**result, "reason": "MT5_QUOTE_STALE"}
+            bid, ask = float(quote["execution_bid"]), float(quote["execution_ask"])
+            if not all(math.isfinite(x) and x > 0 for x in (bid, ask)) or ask < bid:
+                return {**result, "reason": "INVALID_QUOTE"}
+            entry = ask if direction == "BUY" else bid
+            rr = float(signal.get("risk_reward_ratio") or self.config.orb_target_rr)
+            stops = self.executor.normalize_market_stops(symbol, direction, entry,
+                float(signal["stop_loss"]), rr, safety_points=self.config.stop_safety_points)
+            if not stops.get("valid"):
+                return {**result, "reason": "INVALID_STOPS"}
+            entry, stop = float(stops["entry_price"]), float(stops["stop_loss"])
+            capital = float(account["equity"] if str(self.config.risk_base).upper() == "EQUITY" else account["balance"])
+            risk_percent = float(self.config.orb_risk_percent)
+            if not math.isfinite(capital) or capital <= 0 or not math.isfinite(risk_percent) or risk_percent <= 0:
+                return {**result, "reason": "INVALID_RISK_CONFIGURATION"}
+            budget = capital * min(1.0, risk_percent) / 100.0
+            buffered = self.executor.risk_buffered_entry_price(symbol, direction, entry, self.config.deviation)
+            reserve = min(.25, max(0., float(self.config.pre_fill_risk_buffer)))
+            split = bool(self.config.split_entries_enabled)
+            fraction = float(self.config.split_entry_risk_fraction)
+            if split and abs(2 * fraction - 1) > 1e-9:
+                return {**result, "reason": "INVALID_SPLIT_RISK_CONFIGURATION"}
+            modes = [(2, fraction)] if split else [(1, 1.)]
+            if split and self.config.single_entry_fallback_enabled:
+                modes.append((1, 1.))
+            failures = []
+            for count, fraction in modes:
+                try:
+                    sizing = self.executor.calculate_volume(symbol, direction, buffered, stop, budget*fraction*(1-reserve))
+                    volume = float(sizing["volume"])
+                    actual = float(sizing["actual_risk_amount"])*count
+                    if not math.isfinite(actual) or not 0 < actual <= budget or not math.isfinite(volume) or volume <= 0:
+                        raise ValueError("RISK_ABOVE_CAP_OR_INVALID")
+                    spread = float(self.executor.calculate_risk_amount(symbol=symbol, direction=direction,
+                        volume=volume, entry_price=ask if direction=="BUY" else bid,
+                        stop_loss=bid if direction=="BUY" else ask)["actual_risk_amount"])*count
+                    margin = float(self.executor.calculate_margin_amount(symbol=symbol, direction=direction,
+                        volume=volume, entry_price=entry)["margin_required"])*count
+                    free_margin = float(account.get("free_margin", 0))
+                    if not all(math.isfinite(x) and x >= 0 for x in (spread, margin, free_margin)):
+                        raise ValueError("INVALID_COST_OR_MARGIN")
+                    margin_cap = min(free_margin, capital*float(self.config.max_margin_fraction)) if self.config.max_margin_fraction is not None else free_margin
+                    if margin > margin_cap:
+                        raise ValueError("INSUFFICIENT_MARGIN")
+                    # Check each existing target; the selector never moves SL/TP to fit a lot.
+                    targets = [float(self.config.first_target_rr), float(self.config.second_target_rr)] if count==2 else [float(self.config.single_entry_target_rr) if split else rr]
+                    for target_rr in targets:
+                        target = entry + (1 if direction=="BUY" else -1)*abs(entry-stop)*target_rr
+                        check = self.executor.check_market_order(symbol,direction,volume,stop,target,
+                            self.config.magic,"ORB-SILVER-CHECK",self.config.deviation)
+                        if not check.get("valid"):
+                            raise ValueError("MT5_ORDER_CHECK_REJECTED")
+                    return {**result,"viable":True,"reason":"VIABLE", "direction":direction,
+                        "capital_base":capital,"risk_base":self.config.risk_base,"risk_budget":budget,
+                        "actual_total_risk":actual,"actual_risk_percent":actual/capital*100,
+                        "volume_per_leg":volume,"legs":count,"spread_cost":spread,"margin_required":margin,
+                        "quote_time":str(quote_time),"failures":failures}
+                except Exception as exc:
+                    failures.append({"legs":count,"reason":str(exc)})
+            return {**result,"reason":"NO_VIABLE_SIZING","failures":failures}
+        except Exception as exc:
+            return {**result,"reason":"SILVER_CONTRACT_EVALUATION_ERROR","error":str(exc)}
+
+    def _prepare_orb_silver_selection(self, symbols):
+        candidates = list(dict.fromkeys(str(s) for s in symbols if is_orb_silver_symbol(s)))
+        report = {"candidate_symbols":candidates,"selected_symbol":None,"evaluations":[],
+                  "reason":"NO_SILVER_CANDIDATES","maximum_total_risk_percent":1.0}
+        self._orb_silver_cycle_diagnostics = report
+        if not candidates:
+            return report
+        if not self._orb_session_is_active(candidates[0]):
+            report["reason"] = "OUTSIDE_ORB_NEW_YORK_SESSION"
+            return report
+        try:
+            account = self._account_and_guard()
+            evaluations = [self._evaluate_orb_silver_contract(symbol, account) for symbol in candidates]
+            viable = [r for r in evaluations if r.get("viable")]
+            viable.sort(key=lambda r:(-r["actual_total_risk"],r["spread_cost"],r["margin_required"],r["symbol"]))
+            report.update(evaluations=evaluations, selected_symbol=viable[0]["symbol"] if viable else None,
+                          reason="BEST_FIT_UNDER_ONE_PERCENT" if viable else "NO_VIABLE_SILVER_CONTRACT")
+        except Exception as exc:
+            report.update(reason="SILVER_SELECTION_UNAVAILABLE",error=str(exc))
+        self._persist_audit_event("ORB_SILVER_CONTRACT_SELECTION",reason=report["reason"],payload=report)
+        return report
+
     @staticmethod
     def _is_forex_symbol(symbol: str) -> bool:
         """Reconoce pares FX estándar aun cuando el broker agregue un sufijo."""
@@ -4058,85 +4753,86 @@ class LiveTradingEngine:
         return base in currencies and quote in currencies and base != quote
 
     def _forex_rollover_status(self, now_utc=None) -> dict:
-        """Ventana Forex: Tokio 09:00 hasta cutoff NY 16:30, DST-safe."""
-        ny_tz = ZoneInfo(str(self.config.forex_rollover_timezone))
-        tokyo_tz = ZoneInfo(str(self.config.forex_tokyo_timezone))
+        """Daily NY rollover policy, with Sunday reopen and DST-safe clock."""
         current = now_utc or datetime.now(timezone.utc)
         if current.tzinfo is None:
             current = current.replace(tzinfo=timezone.utc)
-
-        now_ny = current.astimezone(ny_tz)
-        now_tokyo = current.astimezone(tokyo_tz)
-        ny_minute = now_ny.hour * 60 + now_ny.minute
-
-        cutoff = int(self.config.forex_new_entry_cutoff_hour) * 60 + int(self.config.forex_new_entry_cutoff_minute)
-        force_flat = int(self.config.forex_force_flat_hour) * 60 + int(self.config.forex_force_flat_minute)
-
-        latest_tokyo_open = None
-        for days_back in range(0, 8):
-            day = (now_tokyo - timedelta(days=days_back)).date()
-            if day.weekday() >= 5:
-                continue
-            candidate = datetime(
-                day.year, day.month, day.day,
-                int(self.config.forex_tokyo_session_start_hour),
-                int(self.config.forex_tokyo_session_start_minute),
-                tzinfo=tokyo_tz,
-            )
-            if candidate <= now_tokyo:
-                latest_tokyo_open = candidate
-                break
-
-        session_cutoff_ny = None
-        if latest_tokyo_open is not None:
-            start_ny_date = latest_tokyo_open.astimezone(ny_tz).date()
-            for days_forward in range(0, 8):
-                day = start_ny_date + timedelta(days=days_forward)
-                if day.weekday() >= 5:
-                    continue
-                candidate = datetime(
-                    day.year, day.month, day.day,
-                    int(self.config.forex_new_entry_cutoff_hour),
-                    int(self.config.forex_new_entry_cutoff_minute),
-                    tzinfo=ny_tz,
-                )
-                if candidate > latest_tokyo_open:
-                    session_cutoff_ny = candidate
-                    break
-
-        session_active = bool(
-            latest_tokyo_open is not None
-            and session_cutoff_ny is not None
-            and latest_tokyo_open.astimezone(timezone.utc)
-            <= current.astimezone(timezone.utc)
-            < session_cutoff_ny.astimezone(timezone.utc)
-        )
-        block_new_entries = not session_active
-        # Nunca aplicar force-flat a posiciones recién abiertas en Tokio aunque
-        # Nueva York todavía marque la tarde del día calendario anterior.
-        force_flat_now = bool(
-            not session_active
-            and now_ny.weekday() < 5
-            and ny_minute >= force_flat
-        )
-        weekend = bool(now_tokyo.weekday() >= 5 and now_ny.weekday() >= 5)
-
+        local = current.astimezone(ZoneInfo(self.config.forex_rollover_timezone))
+        minute = local.hour * 60 + local.minute
+        cutoff = self.config.forex_new_entry_cutoff_hour * 60 + self.config.forex_new_entry_cutoff_minute
+        flat = self.config.forex_force_flat_hour * 60 + self.config.forex_force_flat_minute
+        reopen = self.config.forex_market_reopen_hour * 60 + self.config.forex_market_reopen_minute
+        if not 0 <= cutoff < flat < reopen < 1440:
+            raise ValueError("INVALID_FOREX_SESSION_TIMES")
+        weekday = local.weekday()
+        weekend = weekday == 5 or (weekday == 4 and minute >= reopen) or (weekday == 6 and minute < reopen)
+        blocked = weekend or cutoff <= minute < reopen
+        force_flat = weekday < 5 and flat <= minute < reopen and (
+            self.config.forex_force_flat_daily or (weekday == 4 and self.config.forex_force_flat_friday))
         return {
-            "now_ny": now_ny.isoformat(),
-            "now_tokyo": now_tokyo.isoformat(),
-            "weekday_ny": now_ny.strftime("%A"),
-            "weekday_tokyo": now_tokyo.strftime("%A"),
-            "block_new_entries": bool(block_new_entries),
-            "force_flat_now": bool(force_flat_now and self.config.forex_force_flat_daily),
-            "weekend": bool(weekend),
-            "new_entry_cutoff": f"{int(self.config.forex_new_entry_cutoff_hour):02d}:{int(self.config.forex_new_entry_cutoff_minute):02d}",
-            "force_flat_time": f"{int(self.config.forex_force_flat_hour):02d}:{int(self.config.forex_force_flat_minute):02d}",
-            "tokyo_session_start": f"{int(self.config.forex_tokyo_session_start_hour):02d}:{int(self.config.forex_tokyo_session_start_minute):02d}",
-            "tokyo_session_open": latest_tokyo_open.isoformat() if latest_tokyo_open else None,
-            "session_cutoff_ny": session_cutoff_ny.isoformat() if session_cutoff_ny else None,
-            "new_york_timezone": str(self.config.forex_rollover_timezone),
-            "tokyo_timezone": str(self.config.forex_tokyo_timezone),
+            "now_ny": local.isoformat(),
+            "now_tokyo": current.astimezone(ZoneInfo(self.config.forex_tokyo_timezone)).isoformat(),
+            "block_new_entries": blocked, "force_flat_now": bool(force_flat), "weekend": weekend,
+            "new_entry_cutoff": f"{cutoff//60:02d}:{cutoff%60:02d}",
+            "force_flat_time": f"{flat//60:02d}:{flat%60:02d}",
+            "market_reopen": f"{reopen//60:02d}:{reopen%60:02d}",
+            "new_york_timezone": self.config.forex_rollover_timezone,
         }
+
+    def _forex_spread_guard(self):
+        from strategy.execution.forex_spread_guard import ForexSpreadGuard
+        if not hasattr(self, "_forex_spread_tracker"):
+            self._forex_spread_tracker = ForexSpreadGuard(self.config.bot_profile,
+                minimum_samples=self.config.forex_spread_baseline_samples,
+                multiplier=self.config.forex_spread_max_multiple, max_pips=self.config.forex_spread_max_pips,
+                stable_samples=self.config.forex_spread_stable_samples)
+        return self._forex_spread_tracker
+
+    def _forex_execution_gate(self, symbol, direction, stop):
+        blocked = self._forex_rollover_entry_gate(symbol)
+        if blocked is not None:
+            return blocked
+        if not str(self.config.bot_profile).upper().startswith("FOREX") or not self._is_forex_symbol(symbol) or not self.config.forex_spread_guard_enabled:
+            return None
+        quote = self._meta_execution_spread(symbol)
+        report = self._forex_spread_guard().check(symbol, quote, direction, stop,
+            max_risk_ratio=self.config.forex_spread_max_risk_ratio)
+        self._persist_audit_event("FOREX_EXECUTION_SPREAD", instrument=symbol,
+            action="ALLOWED" if report["allowed"] else "BLOCKED", reason=report["reason"], payload=report)
+        return None if report["allowed"] else {"symbol":symbol,"action":"FOREX_SPREAD_ENTRY_BLOCKED", "reason":report["reason"], "spread_audit":report}
+
+    def _sample_forex_execution_quotes(self, symbols):
+        """Sample broker quotes independently of signal scans, including rollover."""
+        if not str(self.config.bot_profile).upper().startswith("FOREX"):
+            return
+        now = time.monotonic()
+        if now < getattr(self, "_forex_quote_next", 0):
+            return
+        self._forex_quote_next = now + 15
+        trades = [t for t in (self.repository.open_trades(source=self.config.source) or [])
+                  if self._trade_owned_by_current_bot(t) and self._is_forex_symbol(str(t.get("instrument") or ""))]
+        selected = {str(x) for x in symbols if self._is_forex_symbol(str(x))}
+        selected.update(t["instrument"] for t in trades)
+        for symbol in sorted(selected):
+            quote = self._meta_execution_spread(symbol)
+            self._forex_spread_guard().observe(symbol, quote)
+            related = [t for t in trades if t["instrument"] == symbol]
+            for trade in related:
+                # Same persistence lock as entry/monitor updates; preserve other evidence.
+                with self._execution_persistence_lock:
+                    row = self.repository.get_trade(int(trade["id"]))
+                    if not row:
+                        continue
+                    details = dict(row.get("details") or {})
+                    metadata = dict(details.get("metadata") or {})
+                    observations = list(metadata.get("forex_execution_quotes") or [])
+                    observations.append(quote)
+                    metadata["forex_execution_quotes"] = observations[-80:]
+                    details["metadata"] = metadata
+                    self.repository.update_trade(int(row["id"]), {"details":details})
+            if related:
+                self._persist_audit_event("FOREX_POSITION_QUOTE", instrument=symbol,
+                    payload={"quote":quote,"trade_ids":[t["id"] for t in related]})
 
     def _forex_rollover_entry_gate(self, symbol: str) -> dict | None:
         """PUERTA DE ENTRADA: impide abrir Forex en la ventana del rollover diario.
@@ -4145,10 +4841,8 @@ class LiveTradingEngine:
         ensancha y se aplican los intereses de financiacion. Abrir ahi supone
         pagar un coste evitable con una ejecucion de mala calidad.
 
-        IMPORTANTE: solo bloquea ENTRADAS NUEVAS. Las posiciones ya abiertas no
-        se cierran por rollover, coherentemente con la regla de que los cierres
-        deben responder a invalidacion estructural. Ver
-        `_close_forex_positions_for_rollover`, que lo deja explicito.
+        Bloquea nuevas entradas tres horas antes del rollover configurado.
+        El monitor cierra posiciones Forex propias desde la hora force-flat.
 
         Args:
             symbol: instrumento evaluado.
@@ -4179,7 +4873,8 @@ class LiveTradingEngine:
         if not status.get("force_flat_now"):
             return result
 
-        close_position = getattr(self.executor, "close_position", None)
+        trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
+        close_position = getattr(trade_executor, "close_position", None)
         if not callable(close_position):
             result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
             return result
@@ -4195,10 +4890,15 @@ class LiveTradingEngine:
                 continue
             seen_tickets.add(ticket)
             result["checked"] += 1
-            close_result = close_position(
-                position_ticket=ticket,
-                reason="forex_pre_new_york_close",
-            )
+            close_quote = self._meta_execution_spread(str(trade.get("instrument")))
+            try:
+                close_result = close_position(
+                    position_ticket=ticket, reason="forex_pre_new_york_close")
+            except Exception as exc:
+                close_result = {"closed": False, "error": str(exc)}
+            self._persist_audit_event("FOREX_SCHEDULED_CLOSE", instrument=trade.get("instrument"),
+                broker_position_ticket=ticket, reason="forex_pre_new_york_close",
+                payload={"schedule": status, "result": close_result, "pre_close_quote":close_quote})
             closed = bool(
                 (close_result or {}).get("closed", False)
                 or str((close_result or {}).get("status") or "").upper() == "CLOSED"
@@ -4212,6 +4912,8 @@ class LiveTradingEngine:
             })
             if closed:
                 result["closed"] += 1
+            else:
+                result["errors"].append({"ticket": ticket, "error": close_result})
         return result
 
     @staticmethod
@@ -4222,6 +4924,72 @@ class LiveTradingEngine:
         propio en varias decisiones de gestion.
         """
         return "jump" in str(symbol or "").lower()
+
+    def _persist_post_fill_audit(self, execution_key, lifecycle):
+        """Merge late fill evidence without overwriting position-monitor metadata."""
+        row = self.repository.get_trade_by_execution_key(execution_key)
+        if row is None:
+            return None
+        details = dict(row.get("details") or {})
+        metadata = dict(details.get("metadata") or {})
+        for key in ("execution_rr_audit", "post_fill_risk", "execution_timing", "executable_rr_audit"):
+            if key in lifecycle.metadata:
+                metadata[key] = lifecycle.metadata[key]
+        details["metadata"] = metadata
+        self.repository.update_trade(int(row["id"]), {"details": details})
+        return self.repository.get_trade(int(row["id"]))
+
+    def _enrich_learning_indicators(self, symbol, signal):
+        """Complete audit features at the confirmation candle, without changing gates."""
+        import math
+        if all(isinstance(signal.get(k), (int, float)) and math.isfinite(signal[k]) for k in ("atr", "adx")):
+            return
+        try:
+            from strategy.ai.audit_indicators import audit_indicators
+            stamp = pd.to_datetime(signal.get("entry_time"), utc=True)
+            if pd.isna(stamp):
+                raise ValueError("CONFIRMATION_TIME_UNAVAILABLE")
+            data = self.provider.get_candles(symbol, "M5", count=100).copy()
+            data["time"] = pd.to_datetime(data["time"], utc=True)
+            data = data[(data.time <= stamp) & (data.time + pd.Timedelta(minutes=5) <= pd.Timestamp.now(tz="UTC"))].sort_values("time")
+            if data.empty or data.time.iloc[-1] != stamp:
+                raise ValueError("CONFIRMATION_CANDLE_UNAVAILABLE")
+            row = audit_indicators(data).iloc[-1]
+            for key in ("atr", "adx"):
+                if pd.notna(row[key]):
+                    signal[key] = float(row[key])
+            signal["indicator_provenance"] = {"timeframe":"M5", "period":14,
+                "method":"WILDER_SMA_SEED", "candle_open":stamp.isoformat(), "closed_candles_only":True}
+        except Exception as exc:
+            signal["indicator_audit_error"] = str(exc)
+
+    def _meta_execution_spread(self, symbol: str) -> dict:
+        """Capture broker spread for learning; never substitute an indicative price."""
+        import math
+        market = {"spread": None, "spread_source": "MT5_EXECUTION",
+                  "spread_status": "UNAVAILABLE", "spread_quote_time": None,
+                  "spread_captured_at": datetime.now(timezone.utc).isoformat()}
+        try:
+            getter = getattr(getattr(self, "executor", None), "get_current_tick", None)
+            if not callable(getter):
+                raise ValueError("EXECUTION_QUOTE_UNAVAILABLE")
+            quote = getter(symbol)
+            bid, ask = float(quote["bid"]), float(quote["ask"])
+            if not all(math.isfinite(v) and v > 0 for v in (bid, ask)) or ask < bid:
+                raise ValueError("INVALID_EXECUTION_QUOTE")
+            timestamp = pd.Timestamp(quote.get("time"))
+            if pd.isna(timestamp):
+                raise ValueError("QUOTE_TIME_UNAVAILABLE")
+            timestamp = timestamp.tz_localize("UTC") if timestamp.tzinfo is None else timestamp.tz_convert("UTC")
+            market["spread_quote_time"] = timestamp.isoformat()
+            age = (pd.Timestamp(market["spread_captured_at"]) - timestamp).total_seconds()
+            if age < -60 or age > 180:
+                raise ValueError("STALE_EXECUTION_QUOTE")
+            market.update(spread=ask - bid, spread_status="AVAILABLE",
+                          execution_bid=bid, execution_ask=ask)
+        except Exception as exc:
+            market["spread_reason"] = type(exc).__name__ + ": " + str(exc)
+        return market
 
     def _meta_label_gate(
         self,
@@ -4241,17 +5009,18 @@ class LiveTradingEngine:
             return {"allowed": True, "reason": "META_LABELING_NOT_AVAILABLE"}
 
         try:
+            market = {"planned_rr": signal.get("risk_reward_ratio"),
+                      "risk_percent": float(self.config.risk_percent),
+                      "entry_price": signal.get("entry_price")}
+            market.update(self._meta_execution_spread(symbol))
             decision = engine.score_signal(
                 symbol=str(symbol),
                 signal=signal,
                 analysis=analysis,
-                market={
-                    "planned_rr": signal.get("risk_reward_ratio"),
-                    "risk_percent": float(self.config.risk_percent),
-                    "entry_price": signal.get("entry_price"),
-                },
+                market=market,
                 strategy_name=strategy_name,
             ).to_dict()
+            decision["market_snapshot"] = dict(market)
         except Exception as exc:
             # Un fallo del modelo nunca debe impedir operar una señal válida.
             return {"allowed": True, "reason": f"META_LABEL_ERROR:{exc}"}
@@ -4286,6 +5055,35 @@ class LiveTradingEngine:
             payload={"ranking": ranked},
         )
         return ranked
+
+    def _refresh_learning_audit(self):
+        """Refresh a candidate model and audit at most once per hour, never deploy it."""
+        now = time.monotonic()
+        if now < getattr(self, "_learning_audit_next", 0):
+            return
+        self._learning_audit_next = now + 3600
+        reader = getattr(self.repository, "trade_history_dataframe", None)
+        if not callable(reader):
+            return
+        if getattr(self, "_learning_audit_thread", None) is not None and self._learning_audit_thread.is_alive():
+            return
+        def run():
+            try:
+                from strategy.ai.continuous_audit import refresh
+                refresh(reader(source=self.config.source), self.config.bot_profile,
+                        self.config.source, self.config.meta_labeling_min_training_samples)
+                from strategy.smc.variant_outcomes import refresh as refresh_variants
+                reference = getattr(self.provider, "reference", None)
+                if reference is None:
+                    reference = getattr(self.provider, "metadata_provider", None)
+                refresh_variants(self.config.bot_profile, reference)
+                if str(self.config.bot_profile).upper() == "BOOM":
+                    refresh(reader(source="MT5_EXTERNAL"), "EXTERNAL",
+                            "MT5_EXTERNAL", self.config.meta_labeling_min_training_samples)
+            except Exception as exc:
+                self._persist_audit_event("LEARNING_AUDIT_ERROR", action="ERROR", reason=str(exc))
+        self._learning_audit_thread = threading.Thread(target=run, name="learning-audit", daemon=True)
+        self._learning_audit_thread.start()
 
     def train_meta_labeling(self, *, strategy_name: str = "ALL") -> dict:
         """Entrena el modelo del worker con su historial persistido."""
@@ -4364,70 +5162,20 @@ class LiveTradingEngine:
             "minimum_trade_score": float(self.config.jump_min_trade_score),
         }
 
-    def _orb_higher_timeframe_context(self, symbol: str, direction: str) -> dict:
-        """Obtiene contexto H1/M15 sin convertir ORB en una estrategia SMC."""
-        result = {
-            "enabled": bool(getattr(self.config, "orb_htf_context_enabled", True)),
+    def _orb_higher_timeframe_context(self, symbol: str, direction: str, *, momentum: bool = False) -> dict:
+        """Estado explícito de independencia ORB; nunca consulta el pipeline SMC.
+
+        Se mantiene la firma para auditorías y configuraciones históricas.
+        Aplica a retesteo y momentum, incluso con antiguos flags HTF activos.
+        """
+        return {
+            "enabled": False, "policy": "ORB_NATIVE_ONLY",
             "direction": str(direction or "").upper(),
-            "h1_trend": None,
-            "h1_alignment": None,
-            "m15_structure": None,
-            "m15_alignment": None,
-            "blocked": False,
-            "reason": None,
+            "h1_trend": None, "h1_alignment": None,
+            "m15_structure": None, "m15_alignment": None,
+            "blocked": False, "reason": "ORB_HTF_NOT_REQUIRED",
             "raw_action": None,
         }
-        if not result["enabled"] or result["direction"] not in {"BUY", "SELL"}:
-            return result
-        try:
-            mtf = self.multi_timeframe.analyze_symbol(symbol)
-        except Exception as exc:
-            result["reason"] = f"ORB_HTF_CONTEXT_ERROR:{exc}"
-            return result
-
-        result["raw_action"] = mtf.get("action")
-        h1 = mtf.get("h1") if isinstance(mtf.get("h1"), dict) else {}
-        h1_ctx = h1.get("context") if isinstance(h1.get("context"), dict) else {}
-        h1_trend = mtf.get("h1_trend") or h1_ctx.get("trend")
-        result["h1_trend"] = h1_trend
-
-        trend = str(h1_trend or "").upper()
-        if trend in {"BULLISH", "ALCISTA", "UP", "UPTREND"}:
-            h1_dir = "BUY"
-        elif trend in {"BEARISH", "BAJISTA", "DOWN", "DOWNTREND"}:
-            h1_dir = "SELL"
-        else:
-            h1_dir = None
-        result["h1_alignment"] = None if h1_dir is None else (h1_dir == result["direction"])
-
-        m15 = mtf.get("m15") if isinstance(mtf.get("m15"), dict) else {}
-        setup = m15.get("setup") if isinstance(m15.get("setup"), dict) else {}
-        structure = mtf.get("m15_structure_break_type") or setup.get("structure_break_type")
-        result["m15_structure"] = structure
-        s = str(structure or "").upper()
-        if "BULL" in s or "ALCIST" in s:
-            m15_dir = "BUY"
-        elif "BEAR" in s or "BAJIST" in s:
-            m15_dir = "SELL"
-        else:
-            m15_dir = None
-        result["m15_alignment"] = None if m15_dir is None else (m15_dir == result["direction"])
-
-        if bool(getattr(self.config, "orb_require_known_htf_context", True)):
-            if result["h1_alignment"] is None or (
-                bool(getattr(self.config, "orb_use_m15_context", True))
-                and result["m15_alignment"] is None
-            ):
-                result["blocked"] = True
-                result["reason"] = "ORB_HTF_CONTEXT_UNAVAILABLE"
-                return result
-
-        if bool(getattr(self.config, "orb_require_h1_alignment", True)) and result["h1_alignment"] is False:
-            result["blocked"] = True
-            result["reason"] = "ORB_BREAKOUT_CONTRA_TENDENCIA_H1"
-            if bool(getattr(self.config, "orb_use_m15_context", True)) and result["m15_alignment"] is False:
-                result["reason"] = "ORB_BREAKOUT_CONTRA_H1_Y_M15"
-        return result
 
     @staticmethod
     def _trade_has_confirmed_break_even(
@@ -4522,6 +5270,202 @@ class LiveTradingEngine:
             },
         }
 
+    def _exhaustion_reversal_shadow(self, symbol: str) -> dict | None:
+        """Busca una reversión adicional sin alterar la decisión principal.
+
+        Reutiliza H1/M5 de la caché cuando el flujo normal ya los calculó. Si
+        M5 no fue necesario para la señal de continuación, descarga sólo las
+        velas cerradas requeridas por este detector y evita ejecutar todo el
+        pipeline SMC una segunda vez.
+        """
+        if not bool(getattr(self.config, "exhaustion_reversal_enabled", True)):
+            return None
+        if str(getattr(self.config, "exhaustion_reversal_mode", "SHADOW")).upper() != "SHADOW":
+            return None
+
+        profile = str(self.config.bot_profile or "").upper()
+        family = self._canonical_bot_profile(profile)
+        supported = (
+            profile == "GOLD"
+            or profile.startswith("FOREX")
+            or family in {"SYNTHETICS", "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"}
+        )
+        if not supported:
+            return None
+
+        h1_cached = self.multi_timeframe.cached_stage(
+            symbol, self.config.structure_timeframe
+        )
+        m5_cached = self.multi_timeframe.cached_stage(
+            symbol, self.config.entry_timeframe
+        )
+        h1_data = h1_cached.get("data")
+        m5_data = m5_cached.get("data")
+        if h1_data is None or getattr(h1_data, "empty", True):
+            h1_data = self.multi_timeframe._get_closed_candles(
+                symbol,
+                self.config.structure_timeframe,
+                max(60, int(self.config.exhaustion_dealing_range_lookback) + 1),
+            )
+        if m5_data is None or getattr(m5_data, "empty", True):
+            m5_data = self.multi_timeframe._get_closed_candles(
+                symbol,
+                self.config.entry_timeframe,
+                max(40, int(self.config.exhaustion_liquidity_lookback) + 3),
+            )
+
+        policy = get_symbol_direction_policy(symbol)
+        result = detect_exhaustion_reversal(
+            h1_data,
+            m5_data,
+            symbol=symbol,
+            allowed_direction=policy.allowed_direction,
+            config=ExhaustionReversalConfig(
+                dealing_range_lookback=int(self.config.exhaustion_dealing_range_lookback),
+                liquidity_lookback=int(self.config.exhaustion_liquidity_lookback),
+                premium_threshold=float(self.config.exhaustion_premium_threshold),
+                discount_threshold=float(self.config.exhaustion_discount_threshold),
+                minimum_rejection_wick_ratio=float(self.config.exhaustion_minimum_wick_ratio),
+                maximum_exhaustion_body_ratio=float(self.config.exhaustion_maximum_body_ratio),
+                displacement_range_multiplier=float(self.config.displacement_range_multiplier),
+                volume_climax_multiplier=float(self.config.exhaustion_volume_climax_multiplier),
+            ),
+        )
+        result["bot_profile"] = profile
+        result["direction_policy"] = direction_policy_diagnostics(
+            symbol, result.get("direction")
+        )
+        return result
+
+    def _orb_session_trade_exists(self, symbol: str, session_date: str) -> dict | None:
+        """Busca en el historial una ejecución ORB de la misma sesión NY.
+
+        Es la defensa persistente de `one_signal_per_session`: sobrevive a
+        reinicios y sólo considera operaciones realmente guardadas, nunca una
+        candidata que fue rechazada antes del fill.
+        """
+        reader = getattr(self.repository, "trade_history_dataframe", None)
+        if not callable(reader) or not session_date:
+            if is_orb_silver_symbol(symbol):
+                return {"guard_error": "ORB_SILVER_HISTORY_UNAVAILABLE"}
+            return None
+        try:
+            history = reader(source=self.config.source)
+        except Exception as exc:
+            if is_orb_silver_symbol(symbol):
+                return {"guard_error": "ORB_SILVER_HISTORY_UNAVAILABLE", "error": str(exc)}
+            return None
+        if history is None and is_orb_silver_symbol(symbol):
+            return {"guard_error": "ORB_SILVER_HISTORY_UNAVAILABLE"}
+        if history is None or getattr(history, "empty", True):
+            return None
+        for row in reversed(history.to_dict("records")):
+            if orb_session_asset(str(row.get("instrument") or "")) != orb_session_asset(symbol):
+                continue
+            details = row.get("details")
+            if isinstance(details, str):
+                try:
+                    details = json.loads(details)
+                except Exception:
+                    details = {}
+            details = details if isinstance(details, dict) else {}
+            metadata = details.get("metadata") if isinstance(details.get("metadata"), dict) else {}
+            strategy = str(
+                metadata.get("strategy_name")
+                or row.get("strategy_name")
+                or ""
+            ).upper()
+            if strategy != "ORB_NEW_YORK":
+                continue
+            recorded_session = str(metadata.get("orb_session_date") or "")
+            if not recorded_session:
+                try:
+                    recorded_session = str(
+                        pd.to_datetime(row.get("entry_time"), utc=True)
+                        .tz_convert("America/New_York")
+                        .date()
+                    )
+                except Exception:
+                    continue
+            if recorded_session == str(session_date):
+                return {
+                    "trade_id": row.get("id"),
+                    "entry_time": row.get("entry_time"),
+                    "breakout_candle_time": metadata.get("breakout_candle_time"),
+                    "instrument": row.get("instrument"),
+                    "underlying_asset": orb_session_asset(symbol),
+                }
+        return None
+
+    def _orb_silver_open_guard(self, symbol):
+        """Do not duplicate open ORB silver exposure, including older sessions."""
+        try:
+            for trade in self.repository.open_trades(source=self.config.source):
+                if not is_orb_silver_symbol(str(trade.get("instrument") or "")):
+                    continue
+                if isinstance(trade.get("details"), str):
+                    trade = {**trade, "details": json.loads(trade["details"])}
+                metadata = self._trade_metadata(trade)
+                strategy = str(metadata.get("strategy_name") or trade.get("strategy_name") or "").upper()
+                if strategy == "ORB_NEW_YORK":
+                    return {"reason": "ORB_SILVER_EXPOSURE_ALREADY_OPEN",
+                            "trade_id": trade.get("id"), "instrument": trade.get("instrument")}
+        except Exception as exc:
+            return {"reason": "ORB_SILVER_EXPOSURE_UNAVAILABLE", "error": str(exc)}
+        return None
+
+    def _mark_orb_session_after_fill(self, symbol: str, signal: dict) -> None:
+        if str(signal.get("strategy_name") or "").upper() != "ORB_NEW_YORK":
+            return
+        self.orb_strategy.mark_signal_used(
+            symbol,
+            str(signal.get("orb_session_date") or ""),
+            str(signal.get("breakout_candle_time") or ""),
+        )
+
+    def _attach_exhaustion_reversal_shadow(self, symbol: str, analysis: dict) -> dict:
+        """Adjunta y audita el candidato SHADOW; nunca cambia `valid`/`signal`."""
+        try:
+            shadow = self._exhaustion_reversal_shadow(symbol)
+        except Exception as exc:
+            shadow = {
+                "strategy_name": "SMC_EXHAUSTION_REVERSAL",
+                "mode": "SHADOW",
+                "valid": False,
+                "action": "EXHAUSTION_REVERSAL_DATA_ERROR",
+                "reason": str(exc),
+            }
+        if not isinstance(shadow, dict):
+            return analysis
+
+        analysis = dict(analysis or {})
+        analysis["exhaustion_reversal_shadow"] = shadow
+        if shadow.get("valid"):
+            self._persist_audit_event(
+                "EXHAUSTION_REVERSAL_SHADOW",
+                instrument=symbol,
+                action=shadow.get("action"),
+                reason=shadow.get("reason"),
+                payload={"exhaustion_reversal": shadow},
+            )
+        return analysis
+
+    def _risk_percent_for_strategy(self, strategy_name: str) -> float:
+        """Devuelve el riesgo lógico sin mezclar contratos de estrategia.
+
+        ORB conserva siempre su campo dedicado. El resto de estrategias usa
+        el riesgo general del worker. Centralizar esta selección permite una
+        prueba de comportamiento y evita depender sólo de inspección textual.
+        """
+        if str(strategy_name or "").upper() == "ORB_NEW_YORK":
+            return float(self.config.orb_risk_percent)
+        return float(self.config.risk_percent)
+
+    def _gold_quarters_analysis(self, symbol):
+        from strategy.gold_quarters import GoldQuarterStrategy
+        return GoldQuarterStrategy(self.provider, self.config.gold_quarter_level_increment,
+            self.config.gold_quarter_level_tolerance_price, self.config.min_rr).analyze_symbol(symbol)
+
     def process_symbol(self, symbol: str, sync_before_execution: bool = True):
         """Procesa un símbolo de extremo a extremo: análisis, filtros y ejecución.
 
@@ -4592,6 +5536,14 @@ class LiveTradingEngine:
             if sync_before_execution else {"synced": 0, "skipped": True, "reason": "CYCLE_SYNC"}
         )
 
+        if self.config.orb_enabled and is_orb_silver_symbol(exact_symbol):
+            selection = getattr(self, "_orb_silver_cycle_diagnostics", None)
+            if selection and exact_symbol in selection.get("candidate_symbols", []):
+                if selection.get("selected_symbol") != exact_symbol:
+                    return {"symbol":exact_symbol,"strategy_name":"ORB_NEW_YORK",
+                            "action":"ORB_SILVER_CONTRACT_NOT_SELECTED","reason":selection["reason"],
+                            "silver_contract_selection":selection}
+
         # Router de estrategias. ORB New York tiene prioridad EXCLUSIVAMENTE en
         # XAUUSD / microXAUUSD / Wall Street 30 / US Tech 100 / US500. Para cualquier otro
         # instrumento se conserva intacto el pipeline SMC H1 -> M15 -> M5.
@@ -4617,37 +5569,28 @@ class LiveTradingEngine:
             analysis = self.ny_index_open_strategy.analyze_symbol(exact_symbol)
         elif bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
             analysis = self.orb_strategy.analyze_symbol(exact_symbol)
-            orb_signal = analysis.get("signal") or analysis.get("entry") or {}
-            orb_direction = str(orb_signal.get("direction") or analysis.get("direction") or "").upper()
-            if analysis.get("valid") and orb_direction in {"BUY", "SELL"}:
-                htf_context = self._orb_higher_timeframe_context(exact_symbol, orb_direction)
-                analysis["higher_timeframe_context"] = htf_context
-                analysis["h1_trend"] = htf_context.get("h1_trend")
-                analysis["m15_structure_break_type"] = htf_context.get("m15_structure")
-                if isinstance(orb_signal, dict):
-                    confirmations = dict(orb_signal.get("confirmations") or {})
-                    h1_align = htf_context.get("h1_alignment")
-                    m15_align = htf_context.get("m15_alignment")
-                    confirmations["h1_context_alignment"] = True if h1_align is None else bool(h1_align)
-                    if bool(getattr(self.config, "orb_use_m15_context", True)):
-                        confirmations["m15_context_alignment"] = True if m15_align is None else bool(m15_align)
-                    orb_signal["confirmations"] = confirmations
-                    passed = [k for k, v in confirmations.items() if bool(v)]
-                    missing = [k for k, v in confirmations.items() if not bool(v)]
-                    orb_signal["passed_confirmations"] = passed
-                    orb_signal["missing_confirmations"] = missing
-                    orb_signal["confirmation_percentage"] = round(len(passed) / max(1, len(confirmations)) * 100.0, 2)
-                    orb_signal["trade_score"] = orb_signal["confirmation_percentage"]
-                    orb_signal["higher_timeframe_context"] = htf_context
-                    analysis["signal"] = orb_signal
-                    analysis["entry"] = orb_signal
-                if htf_context.get("blocked"):
-                    analysis["valid"] = False
-                    analysis["action"] = "ORB_HTF_CONTEXT_BLOCKED"
-                    analysis["reason"] = htf_context.get("reason")
-                    analysis["rejection_reasons"] = [htf_context.get("reason")]
+            # ORB se valida exclusivamente con su rango y confirmaciones M5.
+            # No añade confirmaciones H1/M15 ficticias ni depende del setup SMC.
+            analysis["context_policy"] = "ORB_NATIVE_ONLY"
+
         else:
             analysis = self.multi_timeframe.analyze_symbol(exact_symbol)
+            analysis = self._attach_exhaustion_reversal_shadow(
+                exact_symbol, analysis
+            )
+            if (str(self.config.bot_profile).upper() == "GOLD"
+                    and self.config.gold_quarters_strategy_enabled and is_orb_gold_symbol(exact_symbol)
+                    and not analysis.get("valid")):
+                smc_reason = analysis.get("reason")
+                quarters = self._gold_quarters_analysis(exact_symbol)
+                self._persist_audit_event("GOLD_QUARTERS_EVALUATED", instrument=exact_symbol,
+                    action=quarters.get("action"), reason=quarters.get("reason"),
+                    payload={"smc_reason":smc_reason, "quarters":quarters})
+                if quarters.get("valid"):
+                    analysis = quarters
+                else:
+                    analysis["gold_quarters"] = quarters
+
         if not analysis.get("valid"):
             result = {
                 "symbol": exact_symbol,
@@ -4664,6 +5607,7 @@ class LiveTradingEngine:
         if not signal:
             return {"symbol": exact_symbol, "action": "NO_SIGNAL", "analysis": analysis}
 
+        signal.setdefault("detected_at", datetime.now(timezone.utc).isoformat())
         if is_orb_gold_symbol(exact_symbol):
             candidate_strategy_name = str(
                 signal.get("strategy_name") or analysis.get("strategy_name") or "SMC"
@@ -4723,11 +5667,20 @@ class LiveTradingEngine:
                 "analysis": analysis,
             }
 
+        signal.setdefault("detected_at", datetime.now(timezone.utc).isoformat())
+        try:
+            confirmation_open = pd.to_datetime(signal.get("entry_time"), utc=True)
+            if not pd.isna(confirmation_open):
+                signal["confirmation_open_at"] = confirmation_open.isoformat()
+                signal["confirmation_closed_at"] = (confirmation_open + pd.Timedelta(minutes=5)).isoformat()
+        except (ValueError, TypeError):
+            pass
         signal_id, _ = self._save_signal(exact_symbol, signal)
         strategy_name = str(signal.get("strategy_name") or analysis.get("strategy_name") or "SMC").upper()
         strategy_version = str(signal.get("strategy_version") or analysis.get("strategy_version") or self.config.strategy_version)
         key = self._execution_key(exact_symbol, signal["entry_time"], direction, strategy_name=strategy_name)
 
+        self._enrich_learning_indicators(exact_symbol, signal)
         meta_label = self._meta_label_gate(
             symbol=exact_symbol,
             signal=signal,
@@ -4735,6 +5688,19 @@ class LiveTradingEngine:
             strategy_name=strategy_name,
         )
         signal["meta_label"] = meta_label
+        from strategy.ai.feature_extraction import FEATURE_NAMES, FEATURE_SCHEMA
+        signal["entry_learning_snapshot"] = {
+            "schema": "entry-learning-v4", "feature_schema": FEATURE_SCHEMA, "evidence_type": "ENTRY_CAPTURE", "feature_names": list(FEATURE_NAMES),
+            "features": dict(meta_label.get("features") or {}),
+            "captured_at": meta_label.get("evaluated_at"),
+            "market_snapshot": dict(meta_label.get("market_snapshot") or {}),
+            "indicator_provenance": signal.get("indicator_provenance"),
+            "indicator_audit_error": signal.get("indicator_audit_error"),
+            "timing": {k: signal.get(k) for k in ("confirmation_open_at", "confirmation_closed_at", "detected_at")},
+            "setup_sequence_shadow": signal.get("setup_sequence_shadow", {}),
+            "worker": self.config.bot_profile, "strategy": strategy_name,
+            "setup_key": key, "strategy_version": strategy_version,
+        }
         if not meta_label.get("allowed", True):
             return {
                 "symbol": exact_symbol,
@@ -4745,6 +5711,30 @@ class LiveTradingEngine:
                 "meta_label": meta_label,
                 "analysis": analysis if self.config.diagnostic_mode else None,
             }
+
+        if strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol):
+            silver_guard = self._orb_silver_open_guard(exact_symbol)
+            if silver_guard is not None:
+                return {"symbol": exact_symbol, "strategy_name": strategy_name,
+                        "action": "ORB_SILVER_EXPOSURE_BLOCKED", "reason": silver_guard["reason"],
+                        "orb_silver_guard": silver_guard, "execution_key": key}
+
+        if strategy_name == "ORB_NEW_YORK" and (is_orb_silver_symbol(exact_symbol) or bool(
+            getattr(self.orb_strategy.config, "one_signal_per_session", True)
+        )):
+            prior_orb_trade = self._orb_session_trade_exists(
+                exact_symbol, str(signal.get("orb_session_date") or "")
+            )
+            if prior_orb_trade is not None:
+                return {
+                    "symbol": exact_symbol,
+                    "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
+                    "reason": prior_orb_trade.get("guard_error") or ("ORB_SILVER_SESSION_ALREADY_USED" if is_orb_silver_symbol(exact_symbol) else "YA_EXISTE_TRADE_ORB_PERSISTIDO_ESTA_SESION"),
+                    "strategy_name": strategy_name,
+                    "execution_key": key,
+                    "orb_session_trade": prior_orb_trade,
+                    "analysis": analysis if self.config.diagnostic_mode else None,
+                }
 
         # v109: la señal de NY_INDEX_OPEN se marca "usada para esta sesión"
         # recién aquí, tras superar dirección, jump gate, R:R y meta-label.
@@ -4785,6 +5775,25 @@ class LiveTradingEngine:
         account = self._account_and_guard()
         tick = self.provider.get_current_tick(exact_symbol)
         entry = float(tick["ask"] if direction == "BUY" else tick["bid"])
+        if signal.get("orb_entry_mode") == "ORB_BREAKOUT_MOMENTUM":
+            edge = float(signal["opening_range_high"] if direction == "BUY" else signal["opening_range_low"])
+            atr = float(signal.get("orb_signal_atr") or 0)
+            extension = (entry - edge) if direction == "BUY" else (edge - entry)
+            if not math.isfinite(extension) or atr <= 0 or not 0 < extension <= atr * float(signal["orb_momentum_max_extension_atr"]):
+                return {"symbol": exact_symbol, "action": "ORB_MOMENTUM_PRICE_BLOCKED",
+                        "reason": "PRECIO_EJECUTABLE_FUERA_DE_LIMITE_MOMENTUM",
+                        "market_entry_price": entry}
+        if strategy_name in {"SMC", "GOLD_QUARTERS"} and (
+            self.config.smc_entry_location_enabled or (
+                self.config.volatility_entry_location_enabled and "volatility" in exact_symbol.lower()
+            )
+        ):
+            location = evaluate_entry_location(direction, entry, signal.get("entry_location_ranges") or {}, self.config.smc_entry_location_policy)
+            signal["entry_location_execution"] = location
+            if not location["valid"]:
+                return {"symbol": exact_symbol, "action": "ENTRY_LOCATION_BLOCKED",
+                        "reason": ",".join(location["rejection_reasons"]),
+                        "entry_location": location, "market_entry_price": entry}
         original_sl = float(signal["stop_loss"])
 
         # 1) Antes de normalizar stops, comprobar si el mercado ya invalidó
@@ -4851,6 +5860,16 @@ class LiveTradingEngine:
         entry = float(stop_validation["entry_price"])
         sl = float(stop_validation["stop_loss"])
         tp = float(stop_validation["take_profit"])
+        if strategy_name == "GOLD_QUARTERS":
+            tp = float(signal["quarter_target"])
+            reward = tp-entry if direction == "BUY" else entry-tp
+            rr = reward / abs(entry-sl) if entry != sl else 0
+            if rr < self.config.min_rr:
+                return {"symbol":exact_symbol,"action":"QUARTER_EXECUTABLE_RR_BLOCKED",
+                        "strategy_name":"GOLD_QUARTERS",
+                        "reason":"NEXT_QUARTER_NO_LONGER_MEETS_MIN_RR",
+                        "executable_rr":rr, "quarter_target":tp}
+
 
         # 3) Riesgo explícito y auditable. Primero intentamos dividir el riesgo
         # total en TP1 + RUNNER. Si las restricciones del broker impiden hacerlo
@@ -4859,11 +5878,14 @@ class LiveTradingEngine:
         if risk_base_name not in {"EQUITY", "BALANCE"}:
             return {"symbol": exact_symbol, "action": "INVALID_RISK_BASE", "reason": risk_base_name}
         risk_base_value = float(account["equity"] if risk_base_name == "EQUITY" else account["balance"])
-        total_risk_percent = (
-            float(self.config.orb_risk_percent)
-            if strategy_name == "ORB_NEW_YORK"
-            else float(self.config.risk_percent)
-        )
+        total_risk_percent = self._risk_percent_for_strategy(strategy_name)
+        # Contrato operativo v61: esta comprobación explícita evita que una
+        # refactorización vuelva a heredar silenciosamente el riesgo SMC.
+        if strategy_name == "ORB_NEW_YORK":
+            total_risk_percent = float(self.config.orb_risk_percent)
+            if is_orb_silver_symbol(exact_symbol):
+                total_risk_percent = min(total_risk_percent, 1.0)
+        silver_risk_cap = strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol)
         if risk_base_value <= 0 or not (0 < total_risk_percent <= 100):
             return {"symbol": exact_symbol, "action": "INVALID_RISK_CONFIGURATION", "risk_base": risk_base_value, "risk_percent": total_risk_percent}
 
@@ -4936,13 +5958,17 @@ class LiveTradingEngine:
                     leg_tp = round(float(leg_tp), max(0, int(digits)))
 
                 try:
+                    buffered_price = getattr(self.executor, "risk_buffered_entry_price", None)
+                    sizing_entry = (buffered_price(exact_symbol, direction, entry, self.config.deviation) if silver_risk_cap else buffered_price(exact_symbol, direction, entry)) if callable(buffered_price) else entry
                     sizing = self.executor.calculate_volume(
                         exact_symbol,
                         direction,
-                        entry,
+                        sizing_entry,
                         sl,
                         sizing_risk_amount,
                     )
+                    sizing["risk_sizing_entry"] = sizing_entry
+                    sizing["market_entry"] = entry
                 except Exception as exc:
                     message = str(exc)
                     normalized = message.casefold()
@@ -4968,9 +5994,11 @@ class LiveTradingEngine:
                 actual_risk_amount = float(sizing["actual_risk_amount"])
                 actual_risk_ratio = actual_risk_amount / leg_risk_amount if leg_risk_amount > 0 else 0.0
                 actual_risk_percent = actual_risk_amount / risk_base_value * 100.0 if risk_base_value > 0 else 0.0
-                max_allowed_risk = leg_risk_amount * (1.0 + max(0.0, float(self.config.max_actual_risk_tolerance)))
+                max_allowed_risk = leg_risk_amount * (1.0 if silver_risk_cap else (1.0 + max(0.0, float(self.config.max_actual_risk_tolerance))))
                 min_required_risk = leg_risk_amount * min_ratio
 
+                if not math.isfinite(actual_risk_amount) or actual_risk_amount <= 0:
+                    return None, {"code": "INVALID_ACTUAL_RISK", "leg": leg_name, "sizing": sizing}
                 if actual_risk_amount > max_allowed_risk + 1e-9:
                     return None, {
                         "code": "RIESGO_REAL_SUPERA_LIMITE_DE_LA_ENTRADA",
@@ -4982,7 +6010,23 @@ class LiveTradingEngine:
                     }
 
                 sizing_is_broker_aware = "raw_volume" in sizing and "volume_max" in sizing
-                if sizing_is_broker_aware and actual_risk_amount + 1e-9 < min_required_risk:
+                if sizing_is_broker_aware and actual_risk_amount + 1e-9 < min_required_risk and self.config.allow_reduced_risk:
+                    self._persist_audit_event("REDUCED_RISK_SIZING", instrument=exact_symbol,
+                        reason="BROKER_VOLUME_BELOW_TARGET_RISK", payload={
+                            "strategy_name": strategy_name, "leg": leg_name,
+                            "risk_amount": leg_risk_amount, "actual_risk_amount": actual_risk_amount,
+                            "risk_fraction_used": actual_risk_ratio, "volume": sizing.get("volume"),
+                            "entry_authorized": False, "remaining_checks": ["ORDER_CHECK", "TOTAL_RISK", "MARGIN", "FRESH_PRICE"]})
+                if sizing_is_broker_aware and actual_risk_amount + 1e-9 < min_required_risk and not self.config.allow_reduced_risk:
+                    if strategy_name == "ORB_NEW_YORK":
+                        self._persist_audit_event("ORB_REDUCED_RISK_SHADOW", instrument=exact_symbol,
+                            reason="BROKER_VOLUME_BELOW_TARGET_RISK", payload={
+                                "mode": "SHADOW_ONLY", "execution_key": key, "leg": leg_name,
+                                "risk_amount": leg_risk_amount, "actual_risk_amount": actual_risk_amount,
+                                "risk_fraction_used": actual_risk_ratio, "volume": sizing.get("volume"),
+                                "risk_cap_respected": 0 < actual_risk_amount <= max_allowed_risk,
+                                "remaining_checks": ["ORDER_CHECK", "TOTAL_RISK", "MARGIN", "FRESH_PRICE"],
+                                "entry_authorized": False})
                     return None, {
                         "code": "LOTE_DEL_BROKER_NO_PERMITE_ALCANZAR_RIESGO_OBJETIVO",
                         "leg": leg_name, "risk_amount": leg_risk_amount,
@@ -4993,7 +6037,7 @@ class LiveTradingEngine:
                     }
 
                 leg_key = f"{key}:{leg_name}" if execution_mode == "SPLIT" else f"{key}:SINGLE"
-                comment_prefix = "ORB" if strategy_name == "ORB_NEW_YORK" else "SMC"
+                comment_prefix = "QTR" if strategy_name == "GOLD_QUARTERS" else "ORB" if strategy_name == "ORB_NEW_YORK" else "SMC"
                 comment = f"{comment_prefix}-{signal_id}-{leg_name}"[:31]
                 order_check = None
                 if self.config.execution_enabled or self.config.validate_order_in_dry_run:
@@ -5041,7 +6085,7 @@ class LiveTradingEngine:
 
         split_failure = None
         execution_mode = "SINGLE"
-        if bool(self.config.split_entries_enabled):
+        if bool(self.config.split_entries_enabled) and strategy_name != "GOLD_QUARTERS":
             is_forex_profile = self._uses_forex_style_smc_management(self.config.bot_profile)
             if is_forex_profile:
                 # Forex toma siempre ganancias con el runner en TP2.
@@ -5055,7 +6099,7 @@ class LiveTradingEngine:
                     ),
                 ]
             else:
-                if bool(self.config.runner_extension_enabled):
+                if bool(self.config.runner_extension_enabled) and strategy_name != "ORB_NEW_YORK":
                     strategy_runner_max_rr = (
                         float(self.config.runner_extension_max_target_rr)
                         if strategy_name == "ORB_NEW_YORK"
@@ -5083,6 +6127,7 @@ class LiveTradingEngine:
         if (
             legs is None
             and bool(self.config.split_entries_enabled)
+            and strategy_name != "GOLD_QUARTERS"
             and bool(self.config.single_entry_fallback_enabled)
             and not jump_single_fallback_blocked
         ):
@@ -5139,6 +6184,12 @@ class LiveTradingEngine:
                 "execution_key": key,
             }
 
+        from strategy.smc.target_obstacles import target_path
+        signal["target_path_audit"] = {
+            str(leg["name"]): target_path(entry, sl, leg["take_profit"], direction,
+                                        signal.get("m15_obstacles") or [])
+            for leg in legs
+        }
         total_actual_risk_amount = sum(float(leg["actual_risk_amount"]) for leg in legs)
         total_actual_risk_percent = total_actual_risk_amount / risk_base_value * 100.0 if risk_base_value > 0 else 0.0
 
@@ -5195,6 +6246,7 @@ class LiveTradingEngine:
             "market_signal_diagnostics": market_signal_diagnostics,
             "analysis": analysis,
             "direction_policy": policy,
+            "silver_contract_selection": getattr(self, "_orb_silver_cycle_diagnostics", None) if silver_risk_cap else None,
             "gold_contract_selection": (
                 self._orb_gold_cycle_diagnostics
                 if strategy_name == "ORB_NEW_YORK" and is_orb_gold_symbol(exact_symbol)
@@ -5206,6 +6258,23 @@ class LiveTradingEngine:
             base["position_diagnostics"] = self._open_trade_diagnostics(exact_symbol)
             base["sync"] = sync_info
 
+        if strategy_name == "GOLD_QUARTERS":
+            signal["target_path_audit"] = {"evaluated":False, "clear_path":None, "reason":"PENDING_QUARTERS_PREFLIGHT"}
+        if strategy_name == "SMC":
+            preflight = self._smc_entry_preflight(exact_symbol, signal, direction, entry, sl, legs)
+            base["entry_preflight"] = preflight
+            if not preflight["valid"]:
+                return {"action": "SMC_ENTRY_PREFLIGHT_BLOCKED", "reason": preflight["reason"], **base}
+
+        if strategy_name == "GOLD_QUARTERS":
+            preflight = self._gold_quarters_entry_preflight(exact_symbol, signal, direction, sl, legs)
+            base["entry_preflight"] = preflight
+            if not preflight["valid"]:
+                return {"action":"GOLD_QUARTERS_ENTRY_BLOCKED", "reason":preflight["reason"], **base}
+
+        forex_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+        if forex_gate is not None:
+            return forex_gate
         if not self.config.execution_enabled:
             return {"action": "DRY_RUN_VALIDATED", **base}
 
@@ -5223,9 +6292,15 @@ class LiveTradingEngine:
                     "stop_loss": sl,
                     "take_profit": leg["take_profit"],
                     "risk_reward_ratio": leg["target_rr"],
-                    "action": "ORB_NY_CONFIRMED" if strategy_name == "ORB_NEW_YORK" else "SMC_HARMONIC_CONFIRMED",
+                    "action": "GOLD_QUARTER_CONFIRMED" if strategy_name == "GOLD_QUARTERS" else "ORB_NY_CONFIRMED" if strategy_name == "ORB_NEW_YORK" else "SMC_HARMONIC_CONFIRMED",
                 }
                 lifecycle = self.lifecycle_manager.create_from_signal(execution_signal)
+                lifecycle.metadata.update({k: v for k, v in signal.items() if k.startswith("chart_pattern_")})
+                lifecycle.metadata["target_path_audit"] = signal.get("target_path_audit", {})
+                lifecycle.metadata["entry_preflight"] = signal.get("entry_preflight", {})
+                lifecycle.metadata["entry_learning_snapshot"] = signal.get("entry_learning_snapshot")
+                lifecycle.metadata["quarter_level"] = signal.get("quarter_level")
+                lifecycle.metadata["quarter_target"] = signal.get("quarter_target")
                 lifecycle.metadata.update({
                     "execution_key": leg["execution_key"],
                     "parent_execution_key": key,
@@ -5237,9 +6312,12 @@ class LiveTradingEngine:
                     "operation_risk_percent": total_risk_percent,
                     "risk_percent": leg["risk_percent"],
                     "risk_amount": leg["risk_amount"],
+                    "pre_send_risk_cap": leg["risk_amount"] * (1.0 if silver_risk_cap else (1.0 + self.config.hard_risk_tolerance)),
+                    "minimum_executable_rr": float(leg["target_rr"]) if strategy_name == "ORB_NEW_YORK" else None,
                     "actual_risk_amount": leg["actual_risk_amount"],
                     "initial_stop_loss": sl,
-                    "break_even_enabled": bool(self.config.break_even_enabled),
+                    "exit_policy": "ORB_FIXED_SL_TP" if strategy_name == "ORB_NEW_YORK" else "STRATEGY_MANAGED",
+                    "break_even_enabled": bool(self.config.break_even_enabled) and strategy_name != "ORB_NEW_YORK",
                     "break_even_trigger_rr": float(self.config.break_even_trigger_rr),
                     "break_even_offset_points": int(self.config.break_even_offset_points),
                     "strategy_version": strategy_version,
@@ -5283,10 +6361,12 @@ class LiveTradingEngine:
                     "bot_profile": str(self.config.bot_profile).upper(),
                     "daemon_magic": int(self.config.magic),
                     "orb_market": signal.get("orb_market"),
+                    "orb_session_date": signal.get("orb_session_date"),
                     "opening_range_high": signal.get("opening_range_high"),
                     "opening_range_low": signal.get("opening_range_low"),
                     "opening_range_midpoint": signal.get("opening_range_midpoint"),
                     "breakout_candle_time_ny": signal.get("breakout_candle_time_ny"),
+                    "breakout_candle_time": signal.get("breakout_candle_time"),
                     "retest_candle_time_ny": signal.get("retest_candle_time_ny"),
                     "orb_risk_model": signal.get("orb_risk_model"),
                     "orb_runner_plan": signal.get("orb_runner_plan"),
@@ -5327,8 +6407,14 @@ class LiveTradingEngine:
                     "missing_confirmations": signal.get("missing_confirmations", []),
                     "critical_confirmations_ok": signal.get("critical_confirmations_ok"),
                     "critical_confirmation_failures": signal.get("critical_confirmation_failures", []),
+            "favorable_confirmation": signal.get("favorable_confirmation", {}),
+            "m5_structure_event": signal.get("m5_structure_event"),
+            "ob_close_recovery": signal.get("ob_close_recovery"),
+                    "retest_comparison": signal.get("retest_comparison", {}),
+                    "stage_data": self._compact_symbol_result({"analysis": analysis}).get("stage_data", {}),
                     "rejection_reasons": signal.get("rejection_reasons", []),
                     "confirmation_details": signal.get("confirmations", {}),
+                    "entry_location": signal.get("entry_location_execution"),
                     "h1_trend": analysis.get("h1_trend"),
                     "m15_setup_type": analysis.get("m15_setup_type"),
                     "m15_structure_break_type": analysis.get("m15_structure_break_type"),
@@ -5339,15 +6425,37 @@ class LiveTradingEngine:
                 # La notificación EXECUTION_FILLED persiste el trade dentro de
                 # execute_with_executor. El lock impide que el monitor importe
                 # el ticket MT5 durante la pequeña ventana entre fill y commit.
+                final_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+                if final_gate is not None:
+                    final_gate["opened_legs"] = [{"leg":x["leg"],"position_ticket":x["position_ticket"]} for x in opened]
+                    final_gate["partial_execution"] = bool(opened)
+                    return final_gate
                 with self._execution_persistence_lock:
-                    lifecycle = self.lifecycle_manager.execute_with_executor(
-                        lifecycle=lifecycle,
-                        volume=float(leg["sizing"]["volume"]),
-                    )
+                    order_sent_at = datetime.now(timezone.utc).isoformat()
+                    order_clock = time.monotonic()
+                    try:
+                        lifecycle = self.lifecycle_manager.execute_with_executor(
+                            lifecycle=lifecycle,
+                            volume=float(leg["sizing"]["volume"]),
+                        )
+                    except Exception as exc:
+                        if not str(exc).startswith("PRE_SEND_RR_BLOCKED"):
+                            raise
+                        return {**base, "action": "EXECUTABLE_RR_BLOCKED",
+                                "reason": str(exc), "failed_leg": leg["name"],
+                                "partial_execution": bool(opened),
+                                "opened_legs": [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened]}
+                    if lifecycle.execution_status == "FILLED":
+                        self._mark_orb_session_after_fill(exact_symbol, signal)
+
+                fill_received_at = datetime.now(timezone.utc).isoformat()
+                order_round_trip_seconds = time.monotonic() - order_clock
+                inter_leg_seconds = max(0.0, order_clock - previous_fill_clock) if "previous_fill_clock" in locals() else None
+                previous_fill_clock = time.monotonic()
 
                 if lifecycle.execution_status != "FILLED":
                     rollback = []
-                    for previous in opened:
+                    for previous in (opened if strategy_name != "ORB_NEW_YORK" else []):
                         try:
                             rollback.append(self.lifecycle_manager.close_execution(
                                 previous["lifecycle"], reason="split_entry_rollback"
@@ -5361,6 +6469,8 @@ class LiveTradingEngine:
                         "failed_leg": leg["name"],
                         "reason": lifecycle.metadata.get("execution_reason"),
                         "rollback": rollback,
+                        "partial_execution": bool(opened),
+                        "opened_legs": [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened],
                         "lifecycle": lifecycle.to_dict(),
                         **base,
                     }
@@ -5373,6 +6483,27 @@ class LiveTradingEngine:
                     risk_base_value=risk_base_value,
                 )
                 lifecycle.metadata["post_fill_risk"] = post_fill_risk
+                fill_risk_distance = abs(float(lifecycle.entry_price) - float(sl))
+                lifecycle.metadata["execution_rr_audit"] = {
+                    "planned_entry": entry, "filled_entry": float(lifecycle.entry_price),
+                    "initial_stop": sl, "target": leg["take_profit"],
+                    "planned_target_rr": leg["target_rr"],
+                    "filled_target_rr": ((float(leg["take_profit"]) - float(lifecycle.entry_price)) * (1 if direction == "BUY" else -1) / fill_risk_distance) if fill_risk_distance else None,
+                    "targets_modified": False,
+                }
+                lifecycle.metadata["execution_timing"] = {
+                    "order_sent_at": order_sent_at,
+                    "broker_fill_at": str(lifecycle.execution_time) if lifecycle.execution_time else None,
+                    "fill_received_at": fill_received_at,
+                    "round_trip_seconds": order_round_trip_seconds,
+                    "inter_leg_processing_seconds": inter_leg_seconds,
+                }
+                with self._execution_persistence_lock:
+                    try:
+                        self._persist_post_fill_audit(leg["execution_key"], lifecycle)
+                    except Exception as exc:
+                        self._persist_audit_event("POST_FILL_AUDIT_ERROR", instrument=exact_symbol,
+                            action="AUDIT_PERSIST_FAILED", reason=str(exc), execution_key=leg["execution_key"])
                 if not post_fill_risk.get("valid", False):
                     incident = {
                         "reason": post_fill_risk.get("reason"),
@@ -5474,6 +6605,8 @@ class LiveTradingEngine:
 
                 if row is not None:
                     try:
+                        with self._execution_persistence_lock:
+                            row = self._persist_post_fill_audit(leg["execution_key"], lifecycle) or row
                         self._persist_entry_audit_immediately(
                             row, signal, analysis, ticket=lifecycle.position_ticket
                         )
@@ -5496,6 +6629,7 @@ class LiveTradingEngine:
                     "lifecycle": lifecycle,
                 })
 
+            self._mark_orb_session_after_fill(exact_symbol, signal)
             return {
                 "action": "SPLIT_ORDER_OPENED" if execution_mode == "SPLIT" else "ORDER_OPENED",
                 "opened_legs": [
@@ -5507,10 +6641,35 @@ class LiveTradingEngine:
         # Compatibilidad sin lifecycle_manager. También respeta las dos piernas.
         opened = []
         for leg in legs:
-            placed = self.executor.place_market_order(
-                exact_symbol, direction, leg["sizing"]["volume"], sl, leg["take_profit"],
-                self.config.magic, leg["comment"], self.config.deviation,
-            )
+            final_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+            if final_gate is not None:
+                final_gate["partial_execution"] = bool(opened)
+                return final_gate
+            order_sent_at = datetime.now(timezone.utc).isoformat()
+            order_clock = time.monotonic()
+            try:
+                placed = self.executor.place_market_order(
+                    exact_symbol, direction, leg["sizing"]["volume"], sl, leg["take_profit"],
+                    self.config.magic, leg["comment"], self.config.deviation,
+                    max_risk_amount=leg["risk_amount"] * (1.0 if silver_risk_cap else (1.0 + self.config.hard_risk_tolerance)),
+                    **({"minimum_executable_rr": float(leg["target_rr"])} if strategy_name == "ORB_NEW_YORK" else {}),
+                )
+            except Exception as exc:
+                if not str(exc).startswith("PRE_SEND_RR_BLOCKED"):
+                    raise
+                return {**base, "action": "EXECUTABLE_RR_BLOCKED", "reason": str(exc),
+                        "failed_leg": leg["name"], "partial_execution": bool(opened), "opened_legs": opened}
+            self._mark_orb_session_after_fill(exact_symbol, signal)
+            filled_volume = float(placed.get("filled_volume") or (placed.get("request") or {}).get("volume") or leg["sizing"]["volume"])
+            fill_received_at = datetime.now(timezone.utc).isoformat()
+            order_round_trip_seconds = time.monotonic() - order_clock
+            fill_risk_distance = abs(float(placed["entry_price"]) - float(sl))
+            execution_rr_audit = {
+                "planned_entry": entry, "filled_entry": float(placed["entry_price"]),
+                "initial_stop": sl, "target": leg["take_profit"], "planned_target_rr": leg["target_rr"],
+                "filled_target_rr": ((float(leg["take_profit"]) - float(placed["entry_price"])) * (1 if direction == "BUY" else -1) / fill_risk_distance) if fill_risk_distance else None,
+                "targets_modified": False,
+            }
             position_ticket = (
                 self.executor.find_position_ticket(exact_symbol, self.config.magic, leg["comment"])
                 or self.executor.position_ticket_from_deal(placed.get("deal_ticket"))
@@ -5532,7 +6691,7 @@ class LiveTradingEngine:
                 "entry_price": float(placed["entry_price"]),
                 "stop_loss": sl,
                 "take_profit": leg["take_profit"],
-                "volume": leg["sizing"]["volume"],
+                "volume": filled_volume,
                 "planned_rr": leg["target_rr"],
                 "balance_before": account["balance"],
                 "equity": account["equity"],
@@ -5541,7 +6700,9 @@ class LiveTradingEngine:
                 "setup_reason": (
                     "ORB NY M5 breakout + retest ORB + VWAP + POC + SL 50% ORB"
                     if strategy_name == "ORB_NEW_YORK"
-                    else "H1 trend,M15 SMC setup,M5 OB retest + harmonic confluence"
+                    else "GOLD quarters: level rejection + closed M5 confirmation + H1 location"
+                    if strategy_name == "GOLD_QUARTERS"
+                    else "H1 location,M15 SMC setup,M5 OB retest + harmonic confluence"
                 ),
                 "details": {
                     "signal": signal,
@@ -5549,6 +6710,13 @@ class LiveTradingEngine:
                     "sizing": leg["sizing"],
                     "metadata": {
                         "parent_execution_key": key,
+                        "execution_rr_audit": execution_rr_audit,
+                        "risk_resize": placed.get("risk_resize"),
+                        "execution_timing": {"order_sent_at":order_sent_at,
+                            "fill_received_at":fill_received_at, "round_trip_seconds":order_round_trip_seconds,
+                            "broker_fill_at":None},
+                        "entry_learning_snapshot": signal.get("entry_learning_snapshot"),
+                        "entry_preflight": signal.get("entry_preflight", {}),
                         "trade_leg": leg["name"],
                         "execution_mode": execution_mode,
                         "bot_profile": str(self.config.bot_profile).upper(),
@@ -5589,8 +6757,12 @@ class LiveTradingEngine:
                         ),
                         "break_even_offset_points": int(self.config.break_even_offset_points),
                         "break_even_trigger_rr": float(self.config.break_even_trigger_rr),
+                        "exit_policy": "ORB_FIXED_SL_TP" if strategy_name == "ORB_NEW_YORK" else "STRATEGY_MANAGED",
+                        "break_even_enabled": bool(self.config.break_even_enabled) and strategy_name != "ORB_NEW_YORK",
                         "strategy_name": strategy_name,
                         "strategy_version": strategy_version,
+                        "orb_session_date": signal.get("orb_session_date"),
+                        "breakout_candle_time": signal.get("breakout_candle_time"),
                         "confirmation_decision": signal.get("confirmation_decision"),
                         "confirmation_percentage": signal.get("confirmation_percentage"),
                         "trade_score": signal.get("trade_score"),
@@ -5624,11 +6796,125 @@ class LiveTradingEngine:
                 "leg": leg["name"], "trade_id": trade_id, "created": created,
                 "position_ticket": position_ticket, "execution_key": leg["execution_key"],
             })
+        self._mark_orb_session_after_fill(exact_symbol, signal)
         return {
             "action": "SPLIT_ORDER_OPENED" if execution_mode == "SPLIT" else "ORDER_OPENED",
             "opened_legs": opened,
             **base,
         }
+
+    def _pre_execution_ranking_enabled(self) -> bool:
+        """Activa selección real sólo en modo RANKING explícito."""
+        return bool(
+            self.config.execution_enabled
+            and self.config.meta_labeling_enabled
+            and self.config.meta_labeling_ranking_enabled
+            and str(self.config.meta_labeling_mode or "").upper() == RANKING_MODE
+        )
+
+    @staticmethod
+    def _meta_label_from_result(result: dict) -> dict:
+        analysis = result.get("analysis") if isinstance(result, dict) else {}
+        analysis = analysis if isinstance(analysis, dict) else {}
+        signal = analysis.get("signal") or analysis.get("entry") or {}
+        return signal.get("meta_label") if isinstance(signal, dict) and isinstance(signal.get("meta_label"), dict) else {}
+
+    def _process_symbols_with_pre_execution_ranking(
+        self,
+        symbols,
+        *,
+        sync_before_execution,
+        progress_callback,
+        before_symbol,
+        after_symbol,
+        batch_size,
+        batch_delay_seconds,
+    ):
+        """Valida el ciclo sin fills, rankea y recién entonces ejecuta.
+
+        Si algún modelo aún no está entrenado, no descarta ninguna candidata:
+        conserva el contrato seguro de no bloquear por falta de historial.
+        """
+        symbols = list(symbols)
+        if sync_before_execution:
+            self._sync_open_trades_before_execution()
+
+        execution_enabled = bool(self.config.execution_enabled)
+        try:
+            self.config.execution_enabled = False
+            preliminary = self.process_symbols(
+                symbols,
+                sync_before_execution=False,
+                progress_callback=None,
+                before_symbol=before_symbol,
+                after_symbol=after_symbol,
+                batch_size=batch_size,
+                batch_delay_seconds=batch_delay_seconds,
+                _ranking_preflight=True,
+            )
+        finally:
+            self.config.execution_enabled = execution_enabled
+
+        candidates = []
+        for index, result in enumerate(preliminary):
+            if not isinstance(result, dict) or result.get("action") != "DRY_RUN_VALIDATED":
+                continue
+            decision = self._meta_label_from_result(result)
+            candidates.append({"index": index, "symbol": symbols[index], "decision": decision})
+
+        trained_cycle = bool(candidates) and all(
+            bool(item["decision"].get("trained")) for item in candidates
+        )
+        selected_indexes = {item["index"] for item in candidates}
+        ranking = []
+        if trained_cycle:
+            decisions = []
+            for item in candidates:
+                payload = dict(item["decision"])
+                payload["candidate_index"] = item["index"]
+                decisions.append(payload)
+            ranking = rank_signals(
+                decisions,
+                max_signals=int(self.config.meta_labeling_max_signals_per_cycle),
+            )
+            selected_indexes = {
+                int(row["candidate_index"])
+                for row in ranking
+                if row.get("selected") and row.get("candidate_index") is not None
+            }
+            self._persist_audit_event(
+                "META_LABEL_PRE_EXECUTION_RANKING",
+                action="TRAINED_SIGNALS_SELECTED_BEFORE_FILL",
+                reason="RANKED_BY_NET_EXPECTANCY_AND_PROBABILITY",
+                payload={"ranking": ranking},
+            )
+
+        self._meta_label_cycle_decisions = []
+        results = list(preliminary)
+        for item in candidates:
+            index = item["index"]
+            if index in selected_indexes:
+                results[index] = self.process_symbol(item["symbol"], sync_before_execution=False)
+            else:
+                results[index] = {
+                    "symbol": item["symbol"],
+                    "action": "META_LABEL_RANKING_NOT_SELECTED",
+                    "reason": "LOWER_EXPECTANCY_THAN_SELECTED_SIGNAL",
+                    "meta_label": item["decision"],
+                    "ranking": ranking,
+                }
+
+        self.meta_label_cycle_ranking()
+        if progress_callback is not None:
+            total = len(results)
+            for index, result in enumerate(results, start=1):
+                progress_callback(
+                    result=result,
+                    index=index,
+                    total=total,
+                    elapsed_seconds=0.0,
+                )
+        return results
 
     def process_symbols(
         self,
@@ -5639,6 +6925,7 @@ class LiveTradingEngine:
         after_symbol=None,
         batch_size=None,
         batch_delay_seconds: float = 0.0,
+        _ranking_preflight: bool = False,
     ):
         """Procesa símbolos uno a uno con puntos de control cooperativos.
 
@@ -5655,11 +6942,22 @@ class LiveTradingEngine:
         cambia el comportamiento.
         """
         symbols = list(symbols)
+        if self._pre_execution_ranking_enabled() and not _ranking_preflight:
+            return self._process_symbols_with_pre_execution_ranking(
+                symbols,
+                sync_before_execution=sync_before_execution,
+                progress_callback=progress_callback,
+                before_symbol=before_symbol,
+                after_symbol=after_symbol,
+                batch_size=batch_size,
+                batch_delay_seconds=batch_delay_seconds,
+            )
 
         # Para Oro ORB, XAUUSD y XAUUSDmicro son alternativas de ejecución de la
         # misma tesis. Elegimos una sola antes de procesar el ciclo.
         if bool(self.config.orb_enabled):
             self._prepare_orb_gold_selection(symbols)
+            self._prepare_orb_silver_selection(symbols)
 
         # Sincronizar una sola vez por ciclo evita consultar MT5 hasta N veces para N símbolos.
         if sync_before_execution:
@@ -5674,9 +6972,44 @@ class LiveTradingEngine:
                 before_symbol(index=index, total=total, symbol=symbol)
 
             try:
-                result = self.process_symbol(symbol, sync_before_execution=False)
+                cooldown = getattr(self, "_pre_send_risk_cooldowns", {}).get(symbol, 0)
+                if time.monotonic() < cooldown:
+                    result = {"symbol":symbol,"action":"RISK_RETRY_COOLDOWN",
+                              "reason":"PRE_SEND_RISK_WAIT_NEXT_M5", "retry_after_seconds":round(cooldown-time.monotonic(),1)}
+                else:
+                    result = self.process_symbol(symbol, sync_before_execution=False)
             except Exception as exc:
-                result = {"symbol": symbol, "action": "ERROR", "error": str(exc)}
+                if str(exc).startswith("PRE_SEND_RISK_CAP_BREACH"):
+                    if not hasattr(self, "_pre_send_risk_cooldowns"):
+                        self._pre_send_risk_cooldowns = {}
+                    self._pre_send_risk_cooldowns[symbol] = time.monotonic() + 300
+                import traceback
+                result = {
+                    "symbol": symbol, "action": "EXECUTABLE_RR_BLOCKED" if str(exc).startswith("PRE_SEND_RR_BLOCKED") else "ERROR", "error": str(exc),
+                    "strategy_name": "ORB_NEW_YORK" if str(self.config.bot_profile).upper() == "ORB" else "UNKNOWN",
+                    "exception_details": {
+                        "type": type(exc).__name__,
+                        "errno": getattr(exc, "errno", None),
+                        "filename": str(getattr(exc, "filename", None) or ""),
+                        "traceback": traceback.format_exc(),
+                    },
+                }
+
+            compact_result = self._compact_symbol_result(result)
+            try:
+                from dashboard.orb_audit import record as record_orb
+                record_orb(compact_result)
+                from dashboard.smc_trial import record
+                compact_result = record(self.config.bot_profile, compact_result,
+                       self.config.smc_entry_location_policy, self.config.retest_tolerance_mode,
+                       quote_reader=self._meta_execution_spread)
+            except Exception as audit_error:
+                # Monitoring failure must never retry or interrupt an order.
+                result["trial_audit_error"] = str(audit_error)
+                compact_result['trial_audit_error'] = str(audit_error)
+                self._persist_audit_event('TRIAL_AUDIT_ERROR', instrument=str(symbol),
+                    action='AUDIT_DEGRADED', reason=str(audit_error),
+                    payload={'error_type':type(audit_error).__name__})
 
             elapsed_seconds = time.monotonic() - symbol_started
             results.append(result)
@@ -5695,7 +7028,8 @@ class LiveTradingEngine:
                 ),
                 payload={
                     "schema_version": "strategy-evaluation-v1",
-                    "result": self._compact_symbol_result(result),
+                    "result": compact_result,
+                    "exception_details": result.get("exception_details"),
                     "elapsed_seconds": elapsed_seconds,
                     "index": index,
                     "total": total,
@@ -5727,6 +7061,8 @@ class LiveTradingEngine:
                 and batch_delay_seconds > 0
             ):
                 time.sleep(float(batch_delay_seconds))
+
+        self._refresh_learning_audit()
 
         # El ranking se publica al cerrar el ciclo, cuando ya se conocen todas
         # las señales simultáneas y sus probabilidades.
@@ -5775,7 +7111,7 @@ class LiveTradingEngine:
     def _dashboard_chart_snapshots(self, candle_count=120):
         """Construye snapshots multi-timeframe para auditar posiciones abiertas.
 
-        El visor puede navegar M1/M5/M15/H1 sin que el navegador consulte MT5.
+        El visor puede navegar M1/M5/M15/H1/H4 sin que el navegador consulte MT5.
         Las lecturas al broker ocurren en el hilo desacoplado del monitor.
         M5/M15/H1 reutilizan el DataFrame SMC cacheado cuando existe; M1 se
         publica como contexto visual adicional y no altera la estrategia.
@@ -5800,8 +7136,8 @@ class LiveTradingEngine:
         # v109: mínimos reducidos (180/140/120/120 -> 120/100/90/90) como parte
         # de la optimización de memoria del coordinador: menos velas por
         # símbolo/timeframe implica JSON más chico persistido y servido.
-        tf_map = {"M1": "M1", "M5": "M5", "M15": "M15", "H1": "H1"}
-        counts = {"M1": max(120, int(candle_count)), "M5": max(100, int(candle_count)), "M15": max(90, int(candle_count)), "H1": max(90, int(candle_count))}
+        tf_map = {"M1": "M1", "M5": "M5", "M15": "M15", "H1": "H1", "H4": "H4"}
+        counts = {"M1": max(120, int(candle_count)), "M5": max(100, int(candle_count)), "M15": max(90, int(candle_count)), "H1": max(90, int(candle_count)), "H4": max(90, int(candle_count))}
 
         def _serialize_frame(raw):
             """Convierte un DataFrame de velas a listas JSON con RSI(14) incluido.
@@ -5840,6 +7176,11 @@ class LiveTradingEngine:
                     "time": row["time"].isoformat(),
                     "open": float(row["open"]), "high": float(row["high"]),
                     "low": float(row["low"]), "close": float(row["close"]),
+                    "volume": (
+                        float(row.get("tick_volume"))
+                        if pd.notna(row.get("tick_volume"))
+                        else None
+                    ),
                     "rsi14": rv,
                 })
             return candles, df
@@ -5850,7 +7191,25 @@ class LiveTradingEngine:
             for label, timeframe in tf_map.items():
                 try:
                     count = counts[label]
-                    raw = self.provider.get_candles(symbol=symbol, timeframe=timeframe, count=count)
+                    cache_reader = getattr(
+                        getattr(self, "multi_timeframe", None), "cached_stage", None
+                    )
+                    cached = (
+                        cache_reader(symbol, timeframe)
+                        if callable(cache_reader) and label != "M1"
+                        else {}
+                    )
+                    cached_result = cached.get("result") if isinstance(cached, dict) else None
+                    analyzed = cached_result.get("data") if isinstance(cached_result, dict) else None
+                    raw = analyzed
+                    if raw is None and isinstance(cached, dict):
+                        raw = cached.get("data")
+                    # M1 es auxiliar; las temporalidades SMC sólo consultan al
+                    # proveedor cuando todavía no existe una etapa cacheada.
+                    if raw is None or not hasattr(raw, "empty") or raw.empty:
+                        raw = self.provider.get_candles(
+                            symbol=symbol, timeframe=timeframe, count=count
+                        )
                     candles, raw_df = _serialize_frame(raw)
                     if not candles:
                         tf_snapshots[label] = {
@@ -5861,14 +7220,6 @@ class LiveTradingEngine:
                         }
                         continue
 
-                    cache_reader = getattr(self.multi_timeframe, "cached_stage", None)
-                    cached = (
-                        cache_reader(symbol, timeframe)
-                        if callable(cache_reader)
-                        else {}
-                    )
-                    cached_result = cached.get("result") if isinstance(cached, dict) else None
-                    analyzed = cached_result.get("data") if isinstance(cached_result, dict) else None
                     if analyzed is None:
                         candidate = cached.get("data") if isinstance(cached, dict) else None
                         if candidate is not None and hasattr(candidate, "columns") and any(
@@ -5904,7 +7255,7 @@ class LiveTradingEngine:
             # Conserva el contrato previo usando M5 como vista por defecto.
             default = tf_snapshots.get("M5") or next(iter(tf_snapshots.values()), {})
             mtf_context = {}
-            for label in ("H1", "M15", "M5", "M1"):
+            for label in ("H4", "H1", "M15", "M5", "M1"):
                 q = tf_snapshots.get(label, {})
                 mtf_context[label] = {
                     "timeframe": label,
@@ -5918,8 +7269,10 @@ class LiveTradingEngine:
                 "symbol": symbol,
                 "timeframe": "M5",
                 "timeframes": tf_snapshots,
-                "available_timeframes": [tf for tf in ("M1", "M5", "M15", "H1") if tf in tf_snapshots],
+                "available_timeframes": [tf for tf in ("M1", "M5", "M15", "H1", "H4") if tf in tf_snapshots],
                 "multi_timeframe": mtf_context,
+                "data_source": "DERIV_CHARTS",
+                "evidence_mode": "CURRENT_MARKET_REFRESH",
                 "error": " | ".join(errors) if errors else None,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -6104,6 +7457,14 @@ class LiveTradingEngine:
             "evaluated_at": datetime.now(timezone.utc).isoformat(),
         }
 
+    def _trade_auditable_by_current_bot(self, trade):
+        # One always-on worker observes external positions, without owning them.
+        meta = self._trade_metadata(trade)
+        external = meta.get("managed_by_daemon") is False
+        if external:
+            return str(self.config.bot_profile).upper() == "BOOM"
+        return self._trade_owned_by_current_bot(trade)
+
     def _refresh_current_strategy_views(self):
         """Reanaliza posiciones abiertas y persiste el bloque 'ahora'.
 
@@ -6117,9 +7478,15 @@ class LiveTradingEngine:
             return {"updated": 0, "skipped": True}
 
         try:
+            sources = [self.config.source]
+            if str(self.config.bot_profile).upper() == "BOOM":
+                sources.append("MT5_EXTERNAL")
+                self._recover_unpersisted_open_positions()
+                if self.repository.sync_closed_mt5_trades(self.executor, source="MT5_EXTERNAL"):
+                    self._learning_audit_next = 0
             trades = [
-                t for t in (self.repository.open_trades(source=self.config.source) or [])
-                if isinstance(t, dict) and self._trade_owned_by_current_bot(t)
+                t for source in sources for t in (self.repository.open_trades(source=source) or [])
+                if isinstance(t, dict) and self._trade_auditable_by_current_bot(t)
             ]
         except Exception as exc:
             return {"updated": 0, "error": str(exc)}
@@ -6128,7 +7495,7 @@ class LiveTradingEngine:
         for trade in trades:
             details = trade.get("details") if isinstance(trade.get("details"), dict) else {}
             metadata = details.get("metadata") if isinstance(details.get("metadata"), dict) else {}
-            strategy_name = str(metadata.get("strategy_name") or "SMC").upper()
+            strategy_name = "MT5_OBSERVATION" if metadata.get("managed_by_daemon") is False else str(metadata.get("strategy_name") or "SMC").upper()
             trade["_audit_strategy_name"] = strategy_name
             auditable_trades.append(trade)
 
@@ -6150,6 +7517,18 @@ class LiveTradingEngine:
         for symbol in sorted(strategy_by_symbol):
             try:
                 strategy_name = strategy_by_symbol.get(symbol, "SMC")
+                if strategy_name == "GOLD_QUARTERS":
+                    analysis = self._gold_quarters_analysis(symbol)
+                    view = self._current_strategy_view_from_analysis(analysis)
+                    view["strategy_name"] = strategy_name
+                    by_symbol[symbol] = view
+                    continue
+                if strategy_name == "MT5_OBSERVATION":
+                    from strategy.ai.trade_observation import observe, capture_observation
+                    observed_trade = next(t for t in auditable_trades if t.get("instrument") == symbol)
+                    view = observe(self.provider, observed_trade)
+                    by_symbol[symbol] = view
+                    continue
                 if strategy_name == "ORB_NEW_YORK":
                     analysis = self.orb_strategy.analyze_symbol(symbol)
                 else:
@@ -6188,6 +7567,9 @@ class LiveTradingEngine:
                 )
             except Exception as exc:
                 errors.append({"symbol": symbol, "error": str(exc)})
+                if strategy_name == "MT5_OBSERVATION":
+                    self._persist_audit_event("MT5_OBSERVATION_ERROR", instrument=symbol,
+                        action="AUDIT_ERROR", reason=str(exc))
 
         self._current_strategy_view_cache = cache
         writer = getattr(self.repository, "upsert_trade_visual_audit", None)
@@ -6197,7 +7579,7 @@ class LiveTradingEngine:
             try:
                 existing = {
                     str(r.get("trade_id")): r
-                    for r in (self.repository.trade_visual_audits(source=self.config.source) or [])
+                    for source in sources for r in (self.repository.trade_visual_audits(source=source) or [])
                     if isinstance(r, dict)
                 }
             except Exception:
@@ -6212,9 +7594,32 @@ class LiveTradingEngine:
                 if not view or not trade_id:
                     continue
                 previous = existing.get(str(trade_id), {})
+                try:
+                    if trade.get("_audit_strategy_name") == "MT5_OBSERVATION":
+                        from strategy.ai.trade_observation import observe, capture_observation
+                        view = observe(self.provider, trade)
+                        details = dict(trade.get("details") or {})
+                        meta = dict(details.get("metadata") or {})
+                        if capture_observation(meta, view):
+                            meta["observation_worker"] = str(self.config.bot_profile).upper()
+                            details["metadata"] = meta
+                            self.repository.update_trade(int(trade_id), {"details":details})
+                        first = meta["mt5_observation"]
+                        previous = dict(previous)
+                        previous["entry_context"] = first
+                        self._persist_audit_event("MT5_OBSERVATION_UPDATED", instrument=symbol,
+                            action="AUDIT_ONLY", payload={"trade_id":trade_id, "evidence_type":"FIRST_OBSERVATION"})
+                except Exception as exc:
+                    errors.append({"trade_id":trade_id,"error":str(exc)})
+                    self._persist_audit_event("MT5_OBSERVATION_ERROR", instrument=symbol,
+                        action="AUDIT_ERROR", reason=str(exc), payload={"trade_id":trade_id})
+                    continue
                 latest_market = dict(previous.get("latest_market") or {})
                 latest_market["current_strategy_view"] = view
                 latest_market["strategy_evaluated_at"] = view.get("evaluated_at")
+                if view.get("strategy_name") == "MT5_OBSERVATION":
+                    latest_market.update(current_price=view.get("observed_price"),
+                        current_stop_loss=trade.get("stop_loss"),take_profit=trade.get("take_profit"))
                 try:
                     writer(
                         int(trade_id),
@@ -6223,7 +7628,11 @@ class LiveTradingEngine:
                         daemon_magic=int(self.config.magic),
                         broker_position_ticket=trade.get("broker_position_ticket"),
                         latest_market=latest_market,
-                        source=self.config.source,
+                        **({"entry_context":previous.get("entry_context"),
+                            "latest_chart":{"instrument":symbol,"captured_at":view.get("evaluated_at"),
+                                "evidence_type":"FIRST_OBSERVATION", "timeframes":{"M5":{"candles":view.get("candles",[])}}}}
+                            if view.get("strategy_name") == "MT5_OBSERVATION" else {}),
+                        source=trade.get("source") or self.config.source,
                     )
                     # v68: además del estado latest, guardar una serie histórica
                     # append-only para investigación Entrada vs. Ahora.
@@ -6246,7 +7655,7 @@ class LiveTradingEngine:
                             bot_profile=str(self.config.bot_profile).upper(),
                             daemon_magic=int(self.config.magic),
                             broker_position_ticket=trade.get("broker_position_ticket"),
-                            source=self.config.source,
+                            source=trade.get("source") or self.config.source,
                             snapshot_at=view.get("evaluated_at"),
                         )
                     updated += 1
@@ -6271,6 +7680,14 @@ class LiveTradingEngine:
         velas. ``max_cycles`` conserva modo cooperativo determinista para pruebas.
         """
         symbols = list(symbols)
+        if str(self.config.bot_profile).upper().startswith("FOREX"):
+            self._persist_audit_event("FOREX_EXECUTION_POLICY_ACTIVE", action="POLICY_LOADED",
+                payload={"schedule":self._forex_rollover_status(),
+                    "spread_guard":self.config.forex_spread_guard_enabled,
+                    "max_pips":self.config.forex_spread_max_pips,
+                    "max_multiple":self.config.forex_spread_max_multiple,
+                    "max_risk_ratio":self.config.forex_spread_max_risk_ratio})
+
         signal_interval = max(1, int(interval_seconds))
         monitor_interval = max(1, int(position_monitor_interval))
         reporter = console_reporter or self.console_reporter
@@ -6344,6 +7761,11 @@ class LiveTradingEngine:
                 return None
             monitor_started = time.monotonic()
             try:
+                self._refresh_learning_audit()
+                try:
+                    self._sample_forex_execution_quotes(symbols)
+                except Exception as exc:
+                    self._persist_audit_event("FOREX_QUOTE_AUDIT_ERROR", action="ERROR", reason=str(exc))
                 open_owned = load_owned_open_trades()
                 idle_recovery_interval = max(
                     float(monitor_interval),
@@ -6366,6 +7788,10 @@ class LiveTradingEngine:
                     last_idle_recovery_at = now
                     persistence_recovery = self._recover_unpersisted_open_positions()
                     if not int((persistence_recovery or {}).get("imported_daemon") or 0):
+                        if str(self.config.bot_profile).upper() == "BOOM":
+                            self.sync_closed_trades()
+                            self._refresh_current_strategy_views()
+                            self._refresh_learning_audit()
                         return {
                             "break_even": {
                                 "checked": 0, "activated": 0, "errors": [],
@@ -6687,6 +8113,9 @@ class LiveTradingEngine:
                         )
                     elif not selected_symbols:
                         runtime_state = "DEGRADED_NO_SYMBOLS"
+                    session = scheduler.get("session") or {}
+                    if not session.get("active", True):
+                        runtime_state = session["state"]
                     self._persist_audit_event(
                         "DAEMON_CYCLE_START",
                         action="CYCLE_START",
@@ -6773,7 +8202,7 @@ class LiveTradingEngine:
                         before_symbol=before_symbol,
                         after_symbol=after_symbol,
                         **process_kwargs,
-                    )
+                    ) if cycle_symbols else []
                     self._commit_forex_processed_symbols(results)
 
                     cycle_elapsed = time.monotonic() - started_monotonic
@@ -6880,6 +8309,8 @@ class LiveTradingEngine:
             self.executor,
             source=self.config.source,
         )
+        if updated:
+            self._learning_audit_next = 0
         # v93: workers coordinados tienen auto_export=False; el coordinador es
         # el único escritor XLSX. Respetar la bandera evita colisión openpyxl.
         reporting_config = getattr(self.reporting_service, "config", None)

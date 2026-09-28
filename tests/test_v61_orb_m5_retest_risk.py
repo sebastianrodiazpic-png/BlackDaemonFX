@@ -9,6 +9,9 @@ def test_orb_v61_defaults_are_m5_midpoint_and_2r():
     assert cfg.stop_mode == "MIDPOINT"
     assert cfg.stop_buffer_fraction == 0.0
     assert cfg.target_rr == 2.0
+    assert cfg.candle_count == 350
+    assert cfg.retest_max_candles == 3
+    assert cfg.breakout_atr_buffer_fraction == 0.05
 
 
 def test_live_orb_risk_is_fixed_to_one_percent_total():
@@ -18,6 +21,8 @@ def test_live_orb_risk_is_fixed_to_one_percent_total():
     assert cfg.split_entry_risk_fraction == 0.50
     assert cfg.first_target_rr == 1.0
     assert cfg.second_target_rr == 2.0
+    assert cfg.orb_event_scheduler_enabled is True
+    assert cfg.orb_candle_count == 350
 
 
 def test_runner_can_extend_2r_to_3r_and_4r_with_profit_locks():

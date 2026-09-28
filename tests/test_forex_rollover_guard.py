@@ -55,10 +55,10 @@ def test_dst_new_york_force_flat_still_works_in_winter():
     assert s["force_flat_now"] is True
     assert s["block_new_entries"] is True
 
-def test_monday_before_tokyo_is_blocked():
+def test_sunday_after_market_reopen_is_allowed():
     # Domingo 23:59 UTC = lunes 08:59 Tokio.
     s=_engine()._forex_rollover_status(datetime(2026,8,30,23,59,tzinfo=timezone.utc))
-    assert s["block_new_entries"] is True
+    assert s["block_new_entries"] is False
 
 def test_friday_cutoff_stays_blocked_until_monday_tokyo():
     s=_engine()._forex_rollover_status(datetime(2026,9,5,12,0,tzinfo=timezone.utc))
