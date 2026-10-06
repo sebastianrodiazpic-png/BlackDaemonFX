@@ -41,7 +41,8 @@ def test_requested_asset_profiles():
     from strategy.orb.asset_rules import default_asset_profiles
     p = default_asset_profiles()
     assert p['XAUUSD']['allowed_modes'] == ['MOMENTUM','RETEST']
-    assert p['XAGUSD']['allowed_modes'] == ['RETEST']
+    assert p['XAGUSD']['pruned'] is True
+    assert p['EURUSD']['allowed_modes'] == ['MOMENTUM', 'RETEST']
     assert p['US500']['allowed_modes'] == ['MOMENTUM', 'RETEST']
     assert p['USOIL']['max_range_atr_ratio'] == 2
 

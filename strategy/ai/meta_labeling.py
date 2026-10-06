@@ -34,6 +34,7 @@ class MetaLabelingConfig:
     min_probability_forex: float = 0.60
     min_probability_gold: float = 0.60
     min_probability_volatility: float = 0.52
+    min_probability_orb: float = 0.52
     min_net_expectancy_r: float = 0.10
     ranking_enabled: bool = True
     max_signals_per_cycle: int = 1
@@ -332,6 +333,9 @@ class MetaLabelingEngine:
         """
         sym = str(symbol or "").upper().strip()
         wk = str(self.worker or "").upper().strip()
+
+        if wk == "ORB":
+            return float(getattr(self.config, "min_probability_orb", 0.52))
 
         if "XAU" in sym or "GOLD" in sym or wk == "GOLD":
             return float(getattr(self.config, "min_probability_gold", 0.60))

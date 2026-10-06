@@ -15,12 +15,13 @@ def default_asset_profiles():
 
 ASSET_CONFIG = {
     "XAUUSD": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
-    "XAGUSD": dict(allowed_modes=["RETEST"], atr_buffer=0.10, max_range_atr_ratio=1.8, require_volume=True),
-    "USOIL": dict(allowed_modes=[], atr_buffer=0.07, max_range_atr_ratio=2.0, require_volume=True, pruned=True),
+    "XAGUSD": dict(allowed_modes=["RETEST"], atr_buffer=0.10, max_range_atr_ratio=1.8, require_volume=True, pruned=True, reason="PRUNED_JONATHAN_NUNEZ"),
+    "USOIL": dict(allowed_modes=[], atr_buffer=0.07, max_range_atr_ratio=2.0, require_volume=True, pruned=True, reason="PRUNED_JONATHAN_NUNEZ"),
     "US500": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
     "US30": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
     "NAS100": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
     "BTCUSD": dict(allowed_modes=["MOMENTUM"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "EURUSD": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=False),
 }
 
 

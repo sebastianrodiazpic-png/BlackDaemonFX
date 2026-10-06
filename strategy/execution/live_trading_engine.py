@@ -217,9 +217,9 @@ class LiveTradingConfig:
 
     # Límites de riesgo para ejecución real/demo.
     # Se mantiene max_open_positions por compatibilidad con configuraciones anteriores.
-    # Cada setup se ejecuta en dos piernas (TP1 + RUNNER). Por eso 6 posiciones
-    # equivalen a un máximo de 3 operaciones lógicas simultáneas.
-    max_open_positions: int = 6
+    # Cada setup se ejecuta en dos piernas (TP1 + RUNNER). Por eso 10 posiciones
+    # equivalen a un máximo de 5 operaciones lógicas simultáneas (5 instrumentos).
+    max_open_positions: int = 10
     max_total_open_positions: int | None = None
     max_open_positions_per_symbol: int = 2
 
@@ -427,7 +427,7 @@ class LiveTradingConfig:
     # Las dos piernas de una operación (0.50% + 0.50%) se cuentan como una
     # sola operación lógica para no penalizar la división TP1 + Runner.
     forex_max_currency_exposure_percent: float = 1.0
-    forex_max_total_risk_percent: float = 4.0
+    forex_max_total_risk_percent: float = 5.0
     forex_high_impact_news_guard_enabled: bool = True
     forex_high_impact_news_before_minutes: int = 15
     forex_high_impact_news_after_minutes: int = 15
@@ -641,6 +641,19 @@ class LiveTradingConfig:
     forex_london_session_start_minute: int = 0
     forex_force_flat_daily: bool = True
     forex_force_flat_friday: bool = True
+
+    # Crypto y cierre de mercado para evitar costes excesivos de spread y SWAP (15 min antes)
+    crypto_rollover_guard_enabled: bool = False
+    crypto_rollover_timezone: str = "America/New_York"
+    crypto_new_entry_cutoff_hour: int = 14
+    crypto_new_entry_cutoff_minute: int = 0
+    crypto_market_reopen_hour: int = 17
+    crypto_market_reopen_minute: int = 0
+    crypto_force_flat_hour: int = 16
+    crypto_force_flat_minute: int = 45
+    crypto_force_flat_daily: bool = True
+    crypto_force_flat_friday: bool = True
+    market_close_force_flat_minutes_before: int = 15
 
     # GOLD: niveles de cuarto ($25/$50/$75/$100...) como confluencia de precio.
     gold_quarters_strategy_enabled: bool = True
@@ -2023,6 +2036,10 @@ class LiveTradingEngine:
                 trade.get("instrument"),
                 family_profile,
             )
+        if family_profile == "FOREX" and profile in {"FOREX", "FOREX_1"}:
+            return self._is_forex_symbol(trade.get("instrument"))
+        if family_profile == "MALAYSIAN_SNR" or profile == "MALAYSIAN_SNR":
+            return self._is_crypto_symbol(trade.get("instrument")) or self._is_forex_symbol(trade.get("instrument"))
         return False
 
     def _account_and_guard(self):
@@ -5395,6 +5412,90 @@ class LiveTradingEngine:
         base, quote = letters[:3], letters[3:6]
         return base in currencies and quote in currencies and base != quote
 
+    @staticmethod
+    def _is_crypto_symbol(symbol: str) -> bool:
+        """Reconoce criptomonedas (BTCUSD, ETHUSD, LTCUSD, SOLUSD, etc.) aun con sufijos."""
+        s = str(symbol or "").strip()
+        if not s:
+            return False
+        raw = "".join(ch for ch in s.upper() if ch.isalnum())
+        if any(synth in raw.lower() for synth in ("volatility", "boom", "crash", "step", "jump", "flip", "vix")):
+            return False
+        if any(metal in raw for metal in ("XAU", "XAG")):
+            return False
+        crypto_bases = {
+            "BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOG", "DOT", "BNB", "LTC",
+            "BCH", "LINK", "LNK", "AVAX", "AVA", "UNI", "TRX", "XMR", "XLM", "ATOM",
+            "NEAR", "NER", "SHIB", "SHB", "APT", "APE", "FIL", "ETC", "AAVE", "AAV",
+            "XTZ", "EOS", "ALGO", "ALG", "BAT", "DSH", "ZEC", "IOT", "NEO", "SAND",
+            "SAN", "MANA", "MATIC", "CRV", "DYDX", "FTM", "GALA", "GRT", "LRC", "MKR",
+            "SNX", "THETA", "VET", "COM", "IMX", "TRU", "MLN", "PEPE",
+        }
+        crypto_quotes = {"USD", "USDT", "USDC", "EUR", "GBP", "JPY", "BTC", "ETH", "LTC"}
+        for base in crypto_bases:
+            if raw.startswith(base):
+                rem = raw[len(base):]
+                for quote in crypto_quotes:
+                    if rem.startswith(quote):
+                        return True
+        return False
+
+    @classmethod
+    def _is_forex_or_crypto_symbol(cls, symbol: str) -> bool:
+        return cls._is_forex_symbol(symbol) or cls._is_crypto_symbol(symbol)
+
+    def _crypto_rollover_status(self, now_utc=None) -> dict:
+        """Política de cierre y rollover para Crypto (15 minutos antes del cierre/rollover diario)."""
+        current = now_utc or datetime.now(timezone.utc)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+        tz_name = getattr(self.config, "crypto_rollover_timezone", self.config.forex_rollover_timezone)
+        local = current.astimezone(ZoneInfo(tz_name))
+        minute = local.hour * 60 + local.minute
+
+        cutoff_h = getattr(self.config, "crypto_new_entry_cutoff_hour", self.config.forex_new_entry_cutoff_hour)
+        cutoff_m = getattr(self.config, "crypto_new_entry_cutoff_minute", self.config.forex_new_entry_cutoff_minute)
+        reopen_h = getattr(self.config, "crypto_market_reopen_hour", self.config.forex_market_reopen_hour)
+        reopen_m = getattr(self.config, "crypto_market_reopen_minute", self.config.forex_market_reopen_minute)
+
+        minutes_before = getattr(self.config, "market_close_force_flat_minutes_before", 15)
+        reopen_total = reopen_h * 60 + reopen_m
+        flat_total = getattr(self.config, "crypto_force_flat_hour", 16) * 60 + getattr(self.config, "crypto_force_flat_minute", 45)
+        if minutes_before > 0 and reopen_total >= minutes_before:
+            expected_flat = reopen_total - minutes_before
+            if expected_flat != flat_total and getattr(self.config, "crypto_force_flat_hour", None) is None:
+                flat_total = expected_flat
+
+        cutoff = cutoff_h * 60 + cutoff_m
+        flat = flat_total
+        reopen = reopen_total
+
+        if not 0 <= cutoff < flat < reopen < 1440:
+            raise ValueError("INVALID_CRYPTO_SESSION_TIMES")
+
+        weekday = local.weekday()
+        weekend = weekday == 5 or (weekday == 4 and minute >= reopen) or (weekday == 6 and minute < reopen)
+        blocked = weekend or cutoff <= minute < reopen
+
+        force_flat_daily = getattr(self.config, "crypto_force_flat_daily", True)
+        force_flat_friday = getattr(self.config, "crypto_force_flat_friday", True)
+        force_flat = weekday < 5 and flat <= minute < reopen and (
+            force_flat_daily or (weekday == 4 and force_flat_friday)
+        )
+
+        return {
+            "now_local": local.isoformat(),
+            "weekday_local": local.strftime("%A"),
+            "block_new_entries": blocked,
+            "force_flat_now": bool(force_flat),
+            "weekend": weekend,
+            "new_entry_cutoff": f"{cutoff//60:02d}:{cutoff%60:02d}",
+            "force_flat_time": f"{flat//60:02d}:{flat%60:02d}",
+            "market_reopen": f"{reopen//60:02d}:{reopen%60:02d}",
+            "minutes_before_close": reopen - flat,
+            "timezone": tz_name,
+        }
+
     def _forex_rollover_status(self, now_utc=None) -> dict:
         """Daily NY rollover policy, with Sunday reopen and DST-safe clock."""
         current = now_utc or datetime.now(timezone.utc)
@@ -5440,7 +5541,10 @@ class LiveTradingEngine:
         blocked = self._forex_rollover_entry_gate(symbol)
         if blocked is not None:
             return blocked
-        if not str(self.config.bot_profile).upper().startswith("FOREX") or not self._is_forex_symbol(symbol):
+        blocked_crypto = self._crypto_rollover_entry_gate(symbol)
+        if blocked_crypto is not None:
+            return blocked_crypto
+        if not (str(self.config.bot_profile).upper().startswith("FOREX") or str(self.config.bot_profile).upper() == "MALAYSIAN_SNR") or not self._is_forex_symbol(symbol):
             return None
         if bool(getattr(self.config, "forex_prune_toxic_assets", False)):
             allowed = tuple(getattr(self.config, "forex_allowed_symbols", (
@@ -5468,15 +5572,15 @@ class LiveTradingEngine:
 
     def _sample_forex_execution_quotes(self, symbols):
         """Sample broker quotes independently of signal scans, including rollover."""
-        if not str(self.config.bot_profile).upper().startswith("FOREX"):
+        if not (str(self.config.bot_profile).upper().startswith("FOREX") or str(self.config.bot_profile).upper() == "MALAYSIAN_SNR"):
             return
         now = time.monotonic()
         if now < getattr(self, "_forex_quote_next", 0):
             return
         self._forex_quote_next = now + 15
         trades = [t for t in (self.repository.open_trades(source=self.config.source) or [])
-                  if self._trade_owned_by_current_bot(t) and self._is_forex_symbol(str(t.get("instrument") or ""))]
-        selected = {str(x) for x in symbols if self._is_forex_symbol(str(x))}
+                  if self._trade_owned_by_current_bot(t) and self._is_forex_or_crypto_symbol(str(t.get("instrument") or ""))]
+        selected = {str(x) for x in symbols if self._is_forex_or_crypto_symbol(str(x))}
         selected.update(t["instrument"] for t in trades)
         for symbol in sorted(selected):
             quote = self._meta_execution_spread(symbol)
@@ -5528,14 +5632,37 @@ class LiveTradingEngine:
             "rollover": status,
         }
 
+    def _crypto_rollover_entry_gate(self, symbol: str) -> dict | None:
+        """PUERTA DE ENTRADA: impide abrir Crypto en la ventana previa al cierre/rollover."""
+        enabled = bool(getattr(self.config, "crypto_rollover_guard_enabled", False)) or bool(getattr(self.config, "forex_rollover_guard_enabled", False))
+        if not enabled or not self._is_crypto_symbol(symbol):
+            return None
+        status = self._crypto_rollover_status()
+        if not status["block_new_entries"]:
+            return None
+        return {
+            "symbol": str(symbol),
+            "action": "CRYPTO_ROLLOVER_ENTRY_BLOCKED",
+            "reason": "CRYPTO_NO_NUEVAS_ENTRADAS_CERCA_DEL_CIERRE",
+            "rollover": status,
+        }
+
     def _close_forex_positions_for_rollover(self) -> dict:
-        """Cierra posiciones Forex administradas por el daemon antes del rollover."""
+        """Cierra posiciones Forex y Crypto administradas por el daemon 15 min antes del cierre de mercado.
+
+        Evita costes excesivos de spread y cargos de SWAP nocturno y de fin de semana.
+        """
         result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
         if not bool(self.config.execution_enabled):
             return result
 
-        status = self._forex_rollover_status()
-        if not status.get("force_flat_now"):
+        forex_status = self._forex_rollover_status()
+        crypto_status = self._crypto_rollover_status()
+
+        forex_flat_now = bool(forex_status.get("force_flat_now"))
+        crypto_flat_now = bool(crypto_status.get("force_flat_now"))
+
+        if not forex_flat_now and not crypto_flat_now:
             return result
 
         trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
@@ -5548,22 +5675,45 @@ class LiveTradingEngine:
         for trade in self.repository.open_trades(source=self.config.source) or []:
             if not self._trade_owned_by_current_bot(trade):
                 continue
-            if not self._is_forex_symbol(str(trade.get("instrument") or "")):
+            symbol = str(trade.get("instrument") or "")
+            is_fx = self._is_forex_symbol(symbol)
+            is_crypto = self._is_crypto_symbol(symbol)
+            if not is_fx and not is_crypto:
                 continue
+
+            should_close = False
+            schedule_status = None
+            close_reason = None
+            audit_event = None
+
+            if is_fx and forex_flat_now:
+                should_close = True
+                schedule_status = forex_status
+                close_reason = "forex_pre_new_york_close"
+                audit_event = "FOREX_SCHEDULED_CLOSE"
+            elif is_crypto and crypto_flat_now:
+                should_close = True
+                schedule_status = crypto_status
+                close_reason = "crypto_pre_market_close"
+                audit_event = "CRYPTO_SCHEDULED_CLOSE"
+
+            if not should_close:
+                continue
+
             ticket = str(trade.get("broker_position_ticket") or "")
             if not ticket or ticket in seen_tickets:
                 continue
             seen_tickets.add(ticket)
             result["checked"] += 1
-            close_quote = self._meta_execution_spread(str(trade.get("instrument")))
+            close_quote = self._meta_execution_spread(symbol)
             try:
                 close_result = close_position(
-                    position_ticket=ticket, reason="forex_pre_new_york_close")
+                    position_ticket=ticket, reason=close_reason)
             except Exception as exc:
                 close_result = {"closed": False, "error": str(exc)}
-            self._persist_audit_event("FOREX_SCHEDULED_CLOSE", instrument=trade.get("instrument"),
-                broker_position_ticket=ticket, reason="forex_pre_new_york_close",
-                payload={"schedule": status, "result": close_result, "pre_close_quote":close_quote})
+            self._persist_audit_event(audit_event, instrument=symbol,
+                broker_position_ticket=ticket, reason=close_reason,
+                payload={"schedule": schedule_status, "result": close_result, "pre_close_quote": close_quote})
             closed = bool(
                 (close_result or {}).get("closed", False)
                 or str((close_result or {}).get("status") or "").upper() == "CLOSED"
@@ -5571,7 +5721,8 @@ class LiveTradingEngine:
             result["positions"].append({
                 "trade_id": trade.get("id"),
                 "ticket": ticket,
-                "symbol": trade.get("instrument"),
+                "symbol": symbol,
+                "asset_class": "FOREX" if is_fx else "CRYPTO",
                 "closed": closed,
                 "close_result": close_result,
             })
@@ -5580,6 +5731,8 @@ class LiveTradingEngine:
             else:
                 result["errors"].append({"ticket": ticket, "error": close_result})
         return result
+
+    _close_market_close_positions = _close_forex_positions_for_rollover
 
     @staticmethod
     def _is_jump_symbol(symbol: str) -> bool:
@@ -6625,6 +6778,9 @@ class LiveTradingEngine:
         forex_rollover_gate = self._forex_rollover_entry_gate(exact_symbol)
         if forex_rollover_gate is not None:
             return forex_rollover_gate
+        crypto_rollover_gate = self._crypto_rollover_entry_gate(exact_symbol)
+        if crypto_rollover_gate is not None:
+            return crypto_rollover_gate
         forex_news_gate = self._forex_high_impact_news_entry_gate(exact_symbol)
         if forex_news_gate is not None:
             return forex_news_gate

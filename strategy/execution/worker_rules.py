@@ -26,6 +26,10 @@ def configure_worker_rules(config):
             runner_extension_second_lock_rr=2.0,
             runner_extension_max_target_rr=4.0,
             min_rr=1.0,
+            forex_rollover_guard_enabled=True,
+            forex_force_flat_friday=True,
+            crypto_rollover_guard_enabled=True,
+            crypto_force_flat_friday=True,
         )
     smc = profile not in {'ORB', 'IDX_OPEN'}
     if not smc:
@@ -74,6 +78,8 @@ def configure_worker_rules(config):
             strategy_version=RULESET,
             forex_rollover_guard_enabled=True,
             forex_force_flat_friday=True,
+            crypto_rollover_guard_enabled=True,
+            crypto_force_flat_friday=True,
             forex_killzone_only_enabled=True,
             forex_runner_initial_target_rr=2.0,
             forex_runner_max_target_rr=3.0,

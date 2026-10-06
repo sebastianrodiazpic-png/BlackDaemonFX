@@ -94,6 +94,9 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "btcusd":
         return "BTCUSD"
 
+    if name in {"eurusd", "eur/usd", "eeurusd"} or (name.startswith("eur") and "usd" in name):
+        return "EURUSD"
+
     if name == "cl":
         return "US_OIL"
 
@@ -208,16 +211,11 @@ def discover_orb_symbols(data_provider) -> list[str]:
     """
     terms = (
         "XAUUSD",
+        "EURUSD",
+        "EUR/USD",
         "BTCUSD",
         "US30",
         "NAS100",
-        "XAGUSD",
-        "Silver",
-        "US Oil",
-        "USOIL",
-        "WTI",
-        "Crude Oil",
-        "Brent",
         "Wall Street",
         "US Tech",
         "USTEC",

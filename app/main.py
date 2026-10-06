@@ -396,6 +396,7 @@ def run_demo_bot(
     hard_risk_tolerance: float = 0.035,
     recoverable_quarantine_extra_tolerance: float = 0.025,
     market_data_mode: str | None = None,
+    max_open_positions: int = 10,
 ):
     """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
 
@@ -494,6 +495,7 @@ def run_demo_bot(
         source="DEMO",
         entry_timeframe=timeframe,
         risk_percent=risk_percent,
+        max_open_positions=int(max_open_positions),
         bot_profile=str(bot_profile).upper(),
         magic=int(magic),
         min_rr=min_rr,
@@ -1800,6 +1802,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 source="DEMO",
                 entry_timeframe=args.timeframe,
                 risk_percent=args.risk_percent,
+                max_open_positions=int(getattr(args, "max_open_positions", 10)),
                 bot_profile=profile,
                 magic=int(spec["magic"]),
                 min_rr=args.min_rr,
@@ -3496,6 +3499,16 @@ def main():
     )
 
     parser.add_argument(
+        "--max-open-positions",
+        type=int,
+        default=10,
+        help=(
+            "Límite máximo de posiciones físicas abiertas simultáneas "
+            "(por defecto: 10, correspondiente a 5 instrumentos x 2 piernas)."
+        ),
+    )
+
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Muestra rechazos y detalles adicionales de cada símbolo.",
@@ -3762,6 +3775,7 @@ def main():
             hard_risk_tolerance=args.hard_risk_tolerance,
             recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             market_data_mode=args.market_data_mode,
+            max_open_positions=getattr(args, "max_open_positions", 10),
         )
         return
 
@@ -3844,6 +3858,7 @@ def main():
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
                 market_data_mode=args.market_data_mode,
+                max_open_positions=getattr(args, "max_open_positions", 10),
             )
 
         else:
@@ -3880,6 +3895,7 @@ def main():
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
                 market_data_mode=args.market_data_mode,
+                max_open_positions=getattr(args, "max_open_positions", 10),
             )
 
         return

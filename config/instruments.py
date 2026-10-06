@@ -22,6 +22,7 @@ DEFAULT_CATEGORIES = [
     "jump",
     "flip",
     "forex",
+    "crypto",
 ]
 
 
@@ -41,11 +42,12 @@ class InstrumentManager:
     def get_all_instruments(self):
         """
         Devuelve el universo tradeable soportado por DaemonBlackFx:
-        sintéticos + Forex. ORB se incorpora aparte en app/main.py.
+        sintéticos + Forex + Crypto. ORB se incorpora aparte en app/main.py.
         """
         synthetics = self.discovery.get_tradeable_synthetics()
         forex = self.discovery.get_tradeable_forex()
-        return sorted(set(synthetics).union(forex))
+        crypto = self.discovery.get_tradeable_crypto() if hasattr(self.discovery, "get_tradeable_crypto") else []
+        return sorted(set(synthetics).union(forex).union(crypto))
 
     def get_instruments_by_category(
         self,
@@ -95,6 +97,7 @@ class InstrumentManager:
 
         synthetic_symbols = self.discovery.get_tradeable_synthetics()
         forex_symbols = self.discovery.get_tradeable_forex()
+        crypto_symbols = self.discovery.get_tradeable_crypto() if hasattr(self.discovery, "get_tradeable_crypto") else []
 
         active_symbols = []
 
@@ -105,6 +108,9 @@ class InstrumentManager:
 
         if "forex" in categories:
             active_symbols.extend(forex_symbols)
+
+        if "crypto" in categories:
+            active_symbols.extend(crypto_symbols)
 
         return sorted(
             list(set(active_symbols))

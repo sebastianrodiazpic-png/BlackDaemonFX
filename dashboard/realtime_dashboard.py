@@ -296,6 +296,7 @@ _CATEGORY_LABELS = {
     "jump": "Jump",
     "flip": "Boom / Crash combinados",
     "forex": "Forex",
+    "crypto": "Crypto",
     "other": "Otros",
     "orb_ny_wall_street_30": "Wall Street 30",
     "orb_ny_us_tech_100": "US Tech 100",
@@ -816,6 +817,10 @@ PRUNED_INSTRUMENTS_INFO = {
     "WTI": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
     "Brent": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
     "UK Brent Oil": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
+    # PLATA / SILVER (Poda confirmada según estrategia Jonathan Núñez)
+    "XAGUSD": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD. Se prioriza Oro y Euro.",
+    "XAGUSDmicro": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
+    "Silver": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
 }
 
 MALAYSIAN_SNR_PRUNED_INFO = {

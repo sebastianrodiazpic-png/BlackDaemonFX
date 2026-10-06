@@ -47,6 +47,17 @@ FOREX_CURRENCIES = {
 }
 
 
+CRYPTO_BASES = {
+    "BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOG", "DOT", "BNB", "LTC",
+    "BCH", "LINK", "LNK", "AVAX", "AVA", "UNI", "TRX", "XMR", "XLM", "ATOM",
+    "NEAR", "NER", "SHIB", "SHB", "APT", "APE", "FIL", "ETC", "AAVE", "AAV",
+    "XTZ", "EOS", "ALGO", "ALG", "BAT", "DSH", "ZEC", "IOT", "NEO", "SAND",
+    "SAN", "MANA", "MATIC", "CRV", "DYDX", "FTM", "GALA", "GRT", "LRC", "MKR",
+    "SNX", "THETA", "VET", "COM", "IMX", "TRU", "MLN", "PEPE",
+}
+CRYPTO_QUOTES = {"USD", "USDT", "USDC", "EUR", "GBP", "JPY", "BTC", "ETH", "LTC"}
+
+
 def _looks_like_forex_name(symbol):
     """Fallback para brokers con sufijos: EURUSDm, GBPUSD.a, USDJPYm, etc."""
     raw = str(symbol or "").upper()
@@ -55,6 +66,25 @@ def _looks_like_forex_name(symbol):
         return False
     base, quote = letters[:3], letters[3:6]
     return base in FOREX_CURRENCIES and quote in FOREX_CURRENCIES and base != quote
+
+
+def _looks_like_crypto_name(symbol):
+    """Identifica criptomonedas por nombre aún con sufijos (.conv, micro, etc.)."""
+    s = str(symbol or "").strip()
+    if not s:
+        return False
+    raw = "".join(ch for ch in s.upper() if ch.isalnum())
+    if any(synth in raw.lower() for synth in ("volatility", "boom", "crash", "step", "jump", "flip", "vix")):
+        return False
+    if any(metal in raw for metal in ("XAU", "XAG")):
+        return False
+    for base in CRYPTO_BASES:
+        if raw.startswith(base):
+            rem = raw[len(base):]
+            for quote in CRYPTO_QUOTES:
+                if rem.startswith(quote):
+                    return True
+    return False
 
 
 class DerivSymbolDiscovery:
@@ -128,6 +158,9 @@ class DerivSymbolDiscovery:
                 if keyword in symbol_lower:
 
                     return category
+
+        if self.is_crypto_symbol(symbol):
+            return "crypto"
 
         return "other"
 
@@ -289,6 +322,50 @@ class DerivSymbolDiscovery:
         self._ensure_connection()
         tradeable = []
         for symbol in self.get_all_forex_symbols():
+            info = mt5.symbol_info(symbol)
+            if info is None:
+                continue
+            if not bool(getattr(info, "visible", False)):
+                if not mt5.symbol_select(symbol, True):
+                    continue
+                info = mt5.symbol_info(symbol)
+                if info is None:
+                    continue
+            if int(getattr(info, "trade_mode", mt5.SYMBOL_TRADE_MODE_DISABLED)) == mt5.SYMBOL_TRADE_MODE_DISABLED:
+                continue
+            tradeable.append(symbol)
+        return sorted(set(tradeable))
+
+    def is_crypto_symbol(self, symbol):
+        """Identifica si el instrumento es una criptomoneda usando metadatos MT5 o nombre."""
+        try:
+            self._ensure_connection()
+            info = mt5.symbol_info(symbol)
+            if info is not None:
+                path = str(getattr(info, "path", "") or "").lower()
+                if "crypto" in path:
+                    return True
+        except Exception:
+            pass
+        return _looks_like_crypto_name(symbol)
+
+    def get_all_crypto_symbols(self):
+        """Todos los pares Crypto del catalogo, deduplicados y ordenados."""
+        self._ensure_connection()
+        crypto = []
+        for symbol in self.get_all_symbols():
+            try:
+                if self.is_crypto_symbol(symbol):
+                    crypto.append(symbol)
+            except Exception:
+                continue
+        return sorted(set(crypto))
+
+    def get_tradeable_crypto(self):
+        """Devuelve unicamente pares Crypto habilitados/seleccionables en el MT5 actual."""
+        self._ensure_connection()
+        tradeable = []
+        for symbol in self.get_all_crypto_symbols():
             info = mt5.symbol_info(symbol)
             if info is None:
                 continue

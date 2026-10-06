@@ -80,7 +80,7 @@ RISK_CONFIG = {
 
     "default_rr": 2.0,
 
-    "max_open_positions": 3
+    "max_open_positions": 5  # 5 operaciones lógicas (hasta 10 posiciones físicas con split)
 }
 
 # ========================================================

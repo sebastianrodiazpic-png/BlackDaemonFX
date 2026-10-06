@@ -31,7 +31,7 @@ class PortfolioLimits:
     max_total_drawdown_percent: float = 6.0       # Límite global de drawdown de la cuenta
     max_total_concurrent_risk_percent: float = 5.0 # Riesgo acumulado máximo entre todas las órdenes abiertas
     max_currency_risk_percent: float = 2.5        # Riesgo máximo acumulado expuesto a una sola divisa (ej. USD)
-    max_open_positions: int = 5                   # Límite máximo de posiciones simultáneas
+    max_open_positions: int = 10                  # Límite máximo de posiciones simultáneas (5 instrumentos x 2 piernas)
     daily_reset_hour_utc: int = 0                 # Hora UTC de reinicio de la métrica diaria (rollover)
 
 
