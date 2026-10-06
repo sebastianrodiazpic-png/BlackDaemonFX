@@ -81,8 +81,25 @@ def get_h1_structural_range_flexible(data, left=3, right=1, fallback_bars=24):
         hi, lo = float(high.iloc[-fallback_bars:].max()), float(low.iloc[-fallback_bars:].min())
         if hi <= lo:
             return None
+    temporal = {}
+    if "time" in data:
+        as_of = pd.to_datetime(data.time.iloc[-1], utc=True) + pd.Timedelta(hours=1)
+        temporal['observed_at'] = as_of.isoformat()
+        for label, positions in (("high", hp), ("low", lp)):
+            if not fallback and len(positions):
+                origin = pd.to_datetime(data.time.iloc[int(positions[-1])], utc=True)
+                confirmed = pd.to_datetime(data.time.iloc[int(positions[-1])+right], utc=True) + pd.Timedelta(hours=1)
+                temporal[label+'_pivot_time'] = origin.isoformat()
+                temporal[label+'_confirmed_at'] = confirmed.isoformat()
+                temporal[label+'_age_hours'] = (as_of-confirmed).total_seconds()/3600
+        if 'close' in data:
+            close = pd.to_numeric(data.close, errors='coerce')
+            tr = pd.concat([high-low, (high-close.shift()).abs(), (low-close.shift()).abs()], axis=1).max(axis=1)
+            atr = float(tr.tail(14).mean()) if len(tr) >= 14 else None
+            temporal['atr_h1'] = atr if atr and np.isfinite(atr) and atr > 0 else None
+            temporal['last_closed_price'] = float(close.iloc[-1])
     eq = (hi+lo)/2
-    return dict(high=hi, low=lo, swing_high=hi, swing_low=lo, equilibrium=eq,
+    return dict(temporal_audit=temporal, high=hi, low=lo, swing_high=hi, swing_low=lo, equilibrium=eq,
                 discount_max=eq, premium_min=eq, left=left, right=right,
                 method="CLOSED_ROLLING_FALLBACK" if fallback else "CONFIRMED_ASYMMETRIC_FRACTALS",
                 fallback_used=fallback, fallback_bars=fallback_bars,

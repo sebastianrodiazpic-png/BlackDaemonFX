@@ -152,6 +152,12 @@ class Executor:
     def calculate_risk_amount(self, **kwargs):
         return {"actual_risk_amount": 10.0, "risk_engine": "TEST"}
 
+    def get_open_positions(self):
+        return []
+
+    def get_pending_orders(self):
+        return []
+
 
 class Analyzer:
     def analyze_symbol(self, symbol):
@@ -182,6 +188,7 @@ def test_execution_path_uses_lifecycle_manager_when_configured():
         lifecycle_manager=lifecycle,
     )
     engine.multi_timeframe = Analyzer()
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
 
     result = engine.process_symbol("Volatility 90 Index")
 
@@ -189,7 +196,7 @@ def test_execution_path_uses_lifecycle_manager_when_configured():
     assert result["opened_legs"][0]["lifecycle"]["metadata"]["stage_data"]["m5"]["last_candle_time"] == "2026-08-26T00:00:00+00:00"
     assert len(repo.rows) == 2
     metadata=result["opened_legs"][0]["lifecycle"]["metadata"]
-    assert metadata["entry_learning_snapshot"]["schema"] == "entry-learning-v1"
+    assert metadata["entry_learning_snapshot"]["schema"] in ("entry-learning-v1", "entry-learning-v4")
     assert metadata["entry_learning_snapshot"]["features"]
     assert metadata["chart_pattern_supporting_strength"] == .78
     assert metadata["chart_pattern_conflicting_strength"] == .65

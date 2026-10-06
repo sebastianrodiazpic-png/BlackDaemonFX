@@ -138,6 +138,7 @@ def test_live_engine_reaches_full_dry_run_validated_path_without_sending_order()
         executor=executor,
     )
     engine.multi_timeframe = FakeAnalyzer()
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
 
     result = engine.process_symbol("Volatility 90 Index")
 

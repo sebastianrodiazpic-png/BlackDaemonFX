@@ -98,7 +98,7 @@ class ForexSpreadGuard:
 
         return dict(item)
 
-    def check(self, symbol, quote, direction, stop, max_risk_ratio=.10, now=None):
+    def check(self, symbol, quote, direction, stop, max_risk_ratio=.15, now=None):
         item=self.observe(symbol,quote,now)
         entry=quote.get('execution_ask' if direction=='BUY' else 'execution_bid')
         distance=(entry-stop if direction=='BUY' else stop-entry) if isinstance(entry,(float,int)) else 0

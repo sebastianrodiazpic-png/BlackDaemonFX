@@ -59,3 +59,34 @@ def test_reviewed_release_requires_updated_provider_and_keeps_audit(tmp_path, up
     assert "OTHER" in e._load_quarantine()
     if updated:
         assert "XAGUSDmicro" in (tmp_path/"risk_quarantine_releases.jsonl").read_text()
+
+
+def test_adaptive_buffer_for_synthetic_index():
+    cls = next(c for c in vars(module).values() if isinstance(c, type) and "risk_buffered_entry_price" in c.__dict__)
+    p = object.__new__(cls)
+    # Synthetic index constraints: point=0.01, spread=70.05
+    p.get_symbol_constraints = lambda s: {"point": 0.01, "spread_points": 7005, "spread": 70.05}
+    # Price = 850,000. 0.015% of 850,000 = 127.5.
+    # Deviation 20 * 0.01 = 0.20.
+    # Adaptive buffer must be max(0.20, 70.05, 127.5) = 127.5!
+    buffered_sell = p.risk_buffered_entry_price("Volatility 25 (1s) Index", "SELL", 850000.0, deviation=20)
+    assert round(buffered_sell, 2) == 849872.5
+    buffered_buy = p.risk_buffered_entry_price("Volatility 25 (1s) Index", "BUY", 850000.0, deviation=20)
+    assert round(buffered_buy, 2) == 850127.5
+
+
+def test_quarantine_auto_recovers_5_point_39_percent_excess():
+    from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradingConfig
+    e = object.__new__(LiveTradingEngine)
+    e.config = LiveTradingConfig()
+    # Breach with 5.39% excess (like today's Volatility 25 incident)
+    details = {
+        "reason": "POST_FILL_RISK_HARD_CAP_BREACH",
+        "target_risk_amount": 40.71,
+        "actual_risk_amount": 42.90,  # +5.38%
+    }
+    recovery = e._recoverable_quarantine_details(details)
+    # With 3.5% + 2.5% = 6.0% limit, this is now AUTO-RECOVERABLE!
+    assert recovery["recoverable"] is True
+    assert recovery["recoverable_risk_limit_ratio"] == pytest.approx(0.06)
+

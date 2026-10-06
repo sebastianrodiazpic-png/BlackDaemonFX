@@ -1,37 +1,62 @@
-"""Shared initial-data and navigation feedback for the dashboard pages."""
+"""Shared non-blocking initial-data and navigation feedback for the dashboard pages."""
 
 LOADING_UI = r'''
 <style>
+  #pageLoadingBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, #53a7ff, #f5bd36);
+    z-index: 10001;
+    transition: width 0.25s ease-out, opacity 0.3s ease;
+    box-shadow: 0 0 10px rgba(83, 167, 255, 0.7);
+    pointer-events: none;
+  }
+  #pageLoadingBar.active {
+    width: 75%;
+    animation: barPulse 1.2s ease-in-out infinite alternate;
+  }
+  #pageLoadingBar.finished {
+    width: 100%;
+    opacity: 0;
+  }
+  @keyframes barPulse {
+    0% { width: 50%; opacity: 0.9; }
+    100% { width: 85%; opacity: 1; }
+  }
   #pageLoading {
     position: fixed;
-    inset: 0;
+    bottom: 24px;
+    right: 24px;
     z-index: 10000;
-    display: grid;
-    place-items: center;
-    background: rgba(7, 16, 24, 0.88);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(13, 24, 34, 0.95);
+    border: 1px solid #233647;
+    border-radius: 12px;
+    padding: 10px 16px;
     color: #e9f1f7;
-    font: 15px system-ui;
+    font: 13px system-ui;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: auto;
   }
   #pageLoading[hidden] {
     display: none;
   }
-  #pageLoading .loadingCard {
-    text-align: center;
-    padding: 28px;
-    border: 1px solid #233647;
-    border-radius: 16px;
-    background: #0d1822;
-    max-width: 90vw;
-  }
   .pageSpinner {
-    display: block;
-    width: 36px;
-    height: 36px;
-    margin: 0 auto 16px;
-    border: 3px solid #233647;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #233647;
     border-top-color: #53a7ff;
     border-radius: 50%;
     animation: pageSpin 0.8s linear infinite;
+    flex-shrink: 0;
   }
   .pageSpinner[hidden] {
     display: none;
@@ -42,60 +67,91 @@ LOADING_UI = r'''
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pageSpinner {
+    .pageSpinner, #pageLoadingBar.active {
       animation: none;
     }
   }
   #pageLoading button {
-    margin: 14px 5px 0;
-    padding: 8px 14px;
+    margin-left: 6px;
+    padding: 4px 10px;
     background: #122231;
     color: #e9f1f7;
     border: 1px solid #536879;
-    border-radius: 8px;
+    border-radius: 6px;
+    font-size: 12px;
     cursor: pointer;
   }
+  #pageLoading button:hover {
+    background: #1d354d;
+  }
 </style>
-<div id="pageLoading" role="status" aria-live="polite">
-  <div class="loadingCard">
-    <span class="pageSpinner" aria-hidden="true"></span
-    ><span id="pageLoadingText">Cargando datos…</span>
-    <div id="pageLoadingActions" hidden>
-      <button type="button" onclick="location.reload()">Reintentar</button
-      ><button type="button" onclick="pageLoading.dismiss()">Cerrar</button>
-    </div>
+<div id="pageLoadingBar"></div>
+<div id="pageLoading" role="status" aria-live="polite" hidden>
+  <span class="pageSpinner" aria-hidden="true"></span>
+  <span id="pageLoadingText">Cargando datos…</span>
+  <div id="pageLoadingActions" hidden>
+    <button type="button" onclick="location.reload()">Reintentar</button>
+    <button type="button" onclick="pageLoading.dismiss()">Cerrar</button>
   </div>
 </div>
 <script>
   const pageLoading = (() => {
     const box = document.getElementById('pageLoading'),
+      bar = document.getElementById('pageLoadingBar'),
       label = document.getElementById('pageLoadingText'),
-      actions = document.getElementById('pageLoadingActions');
+      actions = document.getElementById('pageLoadingActions'),
+      spinner = box ? box.querySelector('.pageSpinner') : null;
     let initial = true,
-      timer;
+      timer,
+      toastTimer;
+
     function dismiss() {
-      box.hidden = true;
+      if (box) box.hidden = true;
       clearTimeout(timer);
+      clearTimeout(toastTimer);
     }
+
     function fail(message) {
       if (!initial) return;
       clearTimeout(timer);
-      box.hidden = false;
-      label.textContent = message;
-      actions.hidden = false;
-      box.querySelector('.pageSpinner').hidden = true;
+      clearTimeout(toastTimer);
+      if (bar) {
+        bar.classList.remove('active');
+        bar.classList.remove('finished');
+      }
+      if (box) {
+        box.hidden = false;
+        label.textContent = message;
+        if (actions) actions.hidden = false;
+        if (spinner) spinner.hidden = true;
+      }
     }
+
     function show(message) {
-      box.hidden = false;
-      label.textContent = message;
-      actions.hidden = true;
-      box.querySelector('.pageSpinner').hidden = false;
       clearTimeout(timer);
+      clearTimeout(toastTimer);
+      if (bar) {
+        bar.classList.remove('finished');
+        bar.classList.add('active');
+      }
+      // Mostrar toast discreto solo si la carga toma mas de 400ms para evitar parpadeos
+      toastTimer = setTimeout(() => {
+        if (box) {
+          box.hidden = false;
+          label.textContent = message;
+          if (actions) actions.hidden = true;
+          if (spinner) spinner.hidden = false;
+        }
+      }, 400);
+
       timer = setTimeout(() => {
-        label.textContent = 'La carga está tardando más de lo habitual…';
-        actions.hidden = false;
+        if (box) {
+          label.textContent = 'La carga está tardando más de lo habitual…';
+          if (actions) actions.hidden = false;
+        }
       }, 15000);
     }
+
     show(
       'Cargando ' +
         ({
@@ -106,6 +162,7 @@ LOADING_UI = r'''
         }[location.pathname.replace(/\/$/, '') || '/'] || 'página') +
         '…',
     );
+
     document.addEventListener('click', (event) => {
       const a = event.target.closest('a[href]');
       if (
@@ -131,14 +188,20 @@ LOADING_UI = r'''
         return;
       show('Cargando página…');
     });
+
     window.addEventListener('pageshow', (event) => {
       if (event.persisted) dismiss();
     });
+
     return {
       dismiss,
       fail,
       done() {
         initial = false;
+        if (bar) {
+          bar.classList.remove('active');
+          bar.classList.add('finished');
+        }
         dismiss();
       },
     };

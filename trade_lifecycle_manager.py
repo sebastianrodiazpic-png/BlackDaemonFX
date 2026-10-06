@@ -88,6 +88,10 @@ SIMULATION_LOSS = "loss"
 SIMULATION_AMBIGUOUS = "ambiguous"
 SIMULATION_EXPIRED = "expired"
 
+EVENT_POSITION_CLOSED = "POSITION_CLOSED"
+
+
+
 
 # ============================================================
 # TRADE LIFECYCLE
@@ -232,6 +236,8 @@ class TradeLifecycleManager:
         trade_simulator: Optional[Callable[..., dict[str, Any]]] = None,
         trade_executor: Optional[TradeExecutor] = None,
         reporting_service: Optional[Any] = None,
+        on_position_closed: Optional[Callable[[TradeLifecycle], None]] = None,
+        meta_labeling_engine: Optional[Any] = None,
     ):
         """Inyecta los colaboradores y valida sus contratos por adelantado.
 
@@ -271,6 +277,8 @@ class TradeLifecycleManager:
         self.trade_simulator = trade_simulator
         self.trade_executor = trade_executor
         self.reporting_service = reporting_service
+        self.on_position_closed = on_position_closed
+        self.meta_labeling_engine = meta_labeling_engine
 
         self.lifecycle_history: list[TradeLifecycle] = []
         self._active_lifecycles: dict[str, TradeLifecycle] = {}
@@ -333,6 +341,23 @@ class TradeLifecycleManager:
 
             metadata={
                 **orb_execution_metadata(signal),
+                **{
+                    key: signal[key]
+                    for key in (
+                        "tp_levels",
+                        "symbol_info",
+                        "entry_learning_snapshot",
+                        "meta_label",
+                        "bot_profile",
+                        "worker",
+                        "strategy_name",
+                        "risk_percent",
+                        "risk_amount",
+                        "planned_rr",
+                        "model_directory",
+                    )
+                    if key in signal
+                },
                 "source_action": signal.get(
                     "action"
                 ),
@@ -465,6 +490,7 @@ class TradeLifecycleManager:
         # ----------------------------------------------------
 
         self._record_final_lifecycle(lifecycle)
+        self.on_lifecycle_event(EVENT_POSITION_CLOSED, lifecycle)
         self._notify_reporting(
             event="LIFECYCLE_FINALIZED",
             lifecycle=lifecycle,
@@ -552,6 +578,7 @@ class TradeLifecycleManager:
 
         if lifecycle.state == STATE_EXECUTION and lifecycle.position_ticket:
             raise RuntimeError("El lifecycle ya tiene una operación activa")
+
 
         request = TradeExecutionRequest(
             symbol=lifecycle.symbol,
@@ -688,6 +715,7 @@ class TradeLifecycleManager:
         lifecycle.execution_status = "CLOSED"
         self._active_lifecycles.pop(str(lifecycle.position_ticket), None)
         self._record_final_lifecycle(lifecycle)
+        self.on_lifecycle_event(EVENT_POSITION_CLOSED, lifecycle)
         self._notify_reporting(
             event="LIFECYCLE_FINALIZED",
             lifecycle=lifecycle,
@@ -751,6 +779,7 @@ class TradeLifecycleManager:
             raise TypeError("monitor_position debe devolver un dict")
 
         position = monitor_result.get("position") or executor.get_position(str(lifecycle.position_ticket))
+
         if position:
             lifecycle.stop_loss = float(position.get("stop_loss", lifecycle.stop_loss))
             lifecycle.take_profit = float(position.get("take_profit", lifecycle.take_profit))
@@ -778,6 +807,7 @@ class TradeLifecycleManager:
         lifecycle.state = self._state_from_exit_reason(lifecycle.exit_reason)
         self._active_lifecycles.pop(str(lifecycle.position_ticket), None)
         self._record_final_lifecycle(lifecycle)
+        self.on_lifecycle_event(EVENT_POSITION_CLOSED, lifecycle)
         self._notify_reporting(
             event="LIFECYCLE_FINALIZED",
             lifecycle=lifecycle,
@@ -863,6 +893,92 @@ class TradeLifecycleManager:
         """
         if lifecycle.is_final() and not any(item is lifecycle for item in self.lifecycle_history):
             self.lifecycle_history.append(lifecycle)
+
+    def on_lifecycle_event(self, event: str, lifecycle: TradeLifecycle) -> None:
+        """Punto de notificación de eventos del ciclo de vida."""
+        if event == EVENT_POSITION_CLOSED:
+            self._handle_position_closed(lifecycle)
+
+    def _handle_position_closed(self, lifecycle: TradeLifecycle) -> None:
+        """Maneja el evento POSITION_CLOSED: callback registrado + aprendizaje SGD en caliente."""
+        if callable(getattr(self, "on_position_closed", None)):
+            try:
+                self.on_position_closed(lifecycle)
+            except Exception as exc:
+                log_event(f"Error en callback on_position_closed: {exc}")
+
+        try:
+            self._feed_ai_online_learning(lifecycle)
+        except Exception as exc:
+            log_event(f"Error en auto-aprendizaje continuo IA: {exc}")
+
+    def _feed_ai_online_learning(self, lifecycle: TradeLifecycle) -> bool:
+        """Alimenta el clasificador en caliente tras el cierre de una posición."""
+        metadata = dict(lifecycle.metadata or {})
+        snapshot = metadata.get("entry_learning_snapshot")
+        if not isinstance(snapshot, dict):
+            return False
+        raw_features = snapshot.get("features")
+        if not isinstance(raw_features, dict) or not raw_features:
+            return False
+
+        # Calcular realized_rr
+        realized_rr = None
+        entry_price = float(lifecycle.entry_price or 0.0)
+        exit_price = float(lifecycle.exit_price or 0.0)
+        stop_loss = float(lifecycle.stop_loss or 0.0)
+        direction = str(lifecycle.direction or "").upper()
+        risk_dist = abs(entry_price - stop_loss)
+
+        if risk_dist > 1e-9 and exit_price > 0:
+            if direction in ("BUY", "0"):
+                realized_rr = (exit_price - entry_price) / risk_dist
+            elif direction in ("SELL", "1"):
+                realized_rr = (entry_price - exit_price) / risk_dist
+
+        if realized_rr is None and "realized_rr" in metadata:
+            try:
+                realized_rr = float(metadata["realized_rr"])
+            except (TypeError, ValueError):
+                pass
+
+        # Etiqueta: 1 si win / realized_rr > 0, 0 si loss / realized_rr <= 0
+        if realized_rr is not None and abs(realized_rr) > 1e-9:
+            label = 1 if realized_rr > 0 else 0
+        elif str(lifecycle.result or "").lower() in ("win", "take_profit") or float(lifecycle.pnl_price or 0.0) > 0:
+            label = 1
+        elif str(lifecycle.result or "").lower() in ("loss", "stop_loss") or float(lifecycle.pnl_price or 0.0) < 0:
+            label = 0
+        else:
+            return False
+
+        from strategy.ai.feature_extraction import upgrade_v4_features_to_v5
+        features_v5 = upgrade_v4_features_to_v5(
+            raw_features,
+            row_meta={
+                **metadata,
+                "instrument": lifecycle.symbol,
+                "bot_profile": metadata.get("bot_profile") or metadata.get("worker"),
+            },
+            entry_time=lifecycle.entry_time,
+        )
+
+        worker = str(metadata.get("bot_profile") or metadata.get("worker") or "").upper()
+        strategy_name = str(metadata.get("strategy_name") or snapshot.get("strategy") or "ALL").upper()
+
+        if self.meta_labeling_engine is not None:
+            engine = self.meta_labeling_engine
+        else:
+            from strategy.ai.meta_labeling import MetaLabelingConfig, MetaLabelingEngine
+            model_dir = metadata.get("model_directory") or "storage/ai_models"
+            engine = MetaLabelingEngine(MetaLabelingConfig(model_directory=model_dir), worker=worker or "GLOBAL")
+
+        return engine.update_online_trade(
+            features=features_v5,
+            label=label,
+            realized_rr=realized_rr,
+            strategy_name=strategy_name,
+        )
 
     @staticmethod
     def _result_from_exit_reason(exit_reason: str) -> str:

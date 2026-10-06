@@ -91,6 +91,7 @@ class LogisticRegressionModel:
             self.trained = False
             return self
 
+        matrix = np.nan_to_num(matrix, nan=0.0, posinf=0.0, neginf=0.0)
         mean = matrix.mean(axis=0)
         scale = matrix.std(axis=0)
         scale[scale < 1e-9] = 1.0
@@ -100,16 +101,28 @@ class LogisticRegressionModel:
         weights = np.zeros(columns, dtype=float)
         bias = 0.0
         # Arranque informado: el sesgo parte del log-odds de la muestra.
-        positive_rate = float(np.clip(target.mean(), 1e-6, 1 - 1e-6))
+        positive_rate = float(np.clip(target.mean(), 1e-4, 1.0 - 1e-4))
         bias = float(np.log(positive_rate / (1.0 - positive_rate)))
 
-        for _ in range(max(1, int(epochs))):
+        for epoch in range(max(1, int(epochs))):
             predictions = self._sigmoid(standard @ weights + bias)
             error = predictions - target
             gradient_w = (standard.T @ error) / rows + l2 * weights
             gradient_b = float(error.mean())
-            weights -= learning_rate * gradient_w
-            bias -= learning_rate * gradient_b
+
+            # Gradient clipping para prevenir overflow y divergencia a NaN
+            gradient_norm = float(np.linalg.norm(gradient_w))
+            if gradient_norm > 5.0:
+                gradient_w = (gradient_w / gradient_norm) * 5.0
+
+            # Decaimiento adaptativo de la tasa de aprendizaje
+            current_lr = learning_rate / (1.0 + 0.001 * epoch)
+            weights -= current_lr * gradient_w
+            bias -= current_lr * gradient_b
+
+        # Limpieza de salvaguarda ante cualquier NaN o inf
+        weights = np.nan_to_num(weights, nan=0.0, posinf=0.0, neginf=0.0)
+        bias = 0.0 if not np.isfinite(bias) else float(bias)
 
         self.weights = [float(value) for value in weights]
         self.bias = float(bias)
@@ -119,6 +132,48 @@ class LogisticRegressionModel:
         self.positive_rate = float(target.mean())
         self.trained = True
         return self
+
+    def update_one(
+        self,
+        vector: list[float],
+        label: int,
+        *,
+        learning_rate: float = 0.05,
+        l2: float = 1e-3,
+    ) -> bool:
+        """Paso de descenso de gradiente estocástico en línea (Online SGD).
+
+        Permite que el modelo aprenda inmediatamente de cada operación cerrada
+        sin requerir reentrenamiento completo con todo el historial.
+        """
+        if not self.trained or not self.weights or not self.scale:
+            return False
+        vec = np.asarray(vector, dtype=float).ravel()
+        if vec.shape[0] != len(self.weights):
+            return False
+        vec = np.nan_to_num(vec, nan=0.0, posinf=0.0, neginf=0.0)
+        mean = np.asarray(self.mean, dtype=float)
+        scale = np.asarray(self.scale, dtype=float)
+        weights = np.asarray(self.weights, dtype=float)
+        standard = (vec - mean) / scale
+
+        prediction = float(self._sigmoid(np.array([float(standard @ weights + self.bias)]))[0])
+        error = prediction - float(label)
+
+        gradient_w = standard * error + l2 * weights
+        gradient_norm = float(np.linalg.norm(gradient_w))
+        if gradient_norm > 5.0:
+            gradient_w = (gradient_w / gradient_norm) * 5.0
+
+        weights -= learning_rate * gradient_w
+        bias = self.bias - learning_rate * error
+
+        weights = np.nan_to_num(weights, nan=0.0, posinf=0.0, neginf=0.0)
+        self.weights = [float(v) for v in weights]
+        self.bias = 0.0 if not np.isfinite(bias) else float(bias)
+        self.samples += 1
+        self.positive_rate = float(0.95 * self.positive_rate + 0.05 * float(label))
+        return True
 
     def predict_proba(self, features: np.ndarray | list[list[float]]) -> np.ndarray:
         """Devuelve la probabilidad de exito de cada muestra.
@@ -272,6 +327,24 @@ class ProbabilityCalibrator:
         self.trained = True
         return self
 
+    def update_one(self, probability: float, label: int, *, weight: float = 0.05) -> bool:
+        """Actualiza suavemente la curva de calibración isotónica con una nueva muestra."""
+        if not self.trained or not self.bin_values or not self.bin_edges:
+            return False
+        prob = float(np.clip(probability, 0.0, 1.0))
+        edges = self.bin_edges
+        for index in range(len(self.bin_values)):
+            high = edges[index + 1]
+            if prob < high or index == len(self.bin_values) - 1:
+                current_val = self.bin_values[index]
+                self.bin_values[index] = float(
+                    np.clip((1.0 - weight) * current_val + weight * float(label), 0.0, 1.0)
+                )
+                break
+        for index in range(1, len(self.bin_values)):
+            self.bin_values[index] = max(self.bin_values[index], self.bin_values[index - 1])
+        return True
+
     def calibrate(self, probability: float) -> float:
         """Corrige una probabilidad cruda usando la curva aprendida.
 
@@ -283,6 +356,9 @@ class ProbabilityCalibrator:
         """
         value = float(np.clip(probability, 0.0, 1.0))
         if not self.trained or not self.bin_values:
+            return value
+        if max(self.bin_values) - min(self.bin_values) < 0.05:
+            # Calibrador plano/degenerado: no discrimina, degrada a la probabilidad cruda
             return value
         edges = self.bin_edges
         for index in range(len(self.bin_values)):
@@ -345,6 +421,11 @@ class CalibratedLogisticModel:
         """Indica si el modelo base esta entrenado. La calibracion es opcional."""
         return bool(self.model.trained)
 
+    @property
+    def samples(self) -> int:
+        """Número de muestras de entrenamiento del modelo."""
+        return int(self.model.samples)
+
     def probability(self, vector: list[float]) -> float:
         """Predice y calibra en un paso: probabilidad final de que la senal gane.
 
@@ -381,6 +462,27 @@ class CalibratedLogisticModel:
         win = abs(float(self.average_win_rr or 0.0))
         loss = abs(float(self.average_loss_rr or 0.0))
         return probability * win - (1.0 - probability) * loss
+
+    def update_one(
+        self,
+        vector: list[float],
+        label: int,
+        realized_rr: float | None = None,
+        *,
+        learning_rate: float = 0.05,
+    ) -> bool:
+        """Actualiza el modelo en caliente tras cerrarse una operación (Online SGD) y recalibra."""
+        success = self.model.update_one(vector, label, learning_rate=learning_rate)
+        if success:
+            pred = self.model.predict_one(vector)
+            if self.calibrator.trained:
+                self.calibrator.update_one(pred, label)
+            if realized_rr is not None and abs(realized_rr) > 1e-9:
+                if label == 1:
+                    self.average_win_rr = float(0.90 * self.average_win_rr + 0.10 * abs(realized_rr))
+                else:
+                    self.average_loss_rr = float(0.90 * self.average_loss_rr + 0.10 * abs(realized_rr))
+        return success
 
     def to_dict(self) -> dict:
         """Serializa modelo, calibrador y estadisticas de R a un dict JSON."""

@@ -56,11 +56,23 @@ class MT5TradeExecutor(TradeExecutor):
         self.magic = int(magic)
         self.deviation = int(deviation)
 
-    def get_open_positions(self):
-        return self.execution_provider.get_open_positions()
+    def get_open_positions(self, force_refresh: bool = False):
+        getter = getattr(self.execution_provider, "get_open_positions", None)
+        if callable(getter):
+            try:
+                return getter(force_refresh=force_refresh)
+            except TypeError:
+                return getter()
+        return []
 
-    def get_pending_orders(self):
-        return self.execution_provider.get_pending_orders()
+    def get_pending_orders(self, force_refresh: bool = False):
+        getter = getattr(self.execution_provider, "get_pending_orders", None)
+        if callable(getter):
+            try:
+                return getter(force_refresh=force_refresh)
+            except TypeError:
+                return getter()
+        return []
 
     def execute_trade(self, request: TradeExecutionRequest) -> TradeExecutionResult:
         """Envia una orden a mercado y devuelve el resultado normalizado.
@@ -277,6 +289,7 @@ class MT5TradeExecutor(TradeExecutor):
                 "comment": None if result is None else str(getattr(result, "comment", "")),
             })
             if self.execution_provider._is_order_send_success(result):
+                getattr(self.execution_provider, "invalidate_broker_cache", lambda: None)()
                 return {
                     "closed": True,
                     "position_ticket": str(position_ticket),

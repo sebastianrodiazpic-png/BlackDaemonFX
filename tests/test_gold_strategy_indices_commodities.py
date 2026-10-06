@@ -117,7 +117,7 @@ def test_orb_worker_resolves_all_indices_and_commodities(monkeypatch):
     assert resolved == sorted(set(fake_symbols))
 
     gold_resolved = _resolve_live_symbols_for_profile(args, "GOLD")
-    assert gold_resolved == sorted(set(fake_symbols))
+    assert gold_resolved == sorted({s for s in fake_symbols if not ("xag" in s.lower() or "silver" in s.lower())})
 
 
 def test_high_impact_usd_news_guard_covers_indices_and_commodities_in_gold_and_orb():

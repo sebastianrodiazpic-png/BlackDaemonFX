@@ -42,7 +42,7 @@ def test_requested_asset_profiles():
     p = default_asset_profiles()
     assert p['XAUUSD']['allowed_modes'] == ['MOMENTUM','RETEST']
     assert p['XAGUSD']['allowed_modes'] == ['RETEST']
-    assert p['US500']['allowed_modes'] == ['MOMENTUM']
+    assert p['US500']['allowed_modes'] == ['MOMENTUM', 'RETEST']
     assert p['USOIL']['max_range_atr_ratio'] == 2
 
 

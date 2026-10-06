@@ -93,7 +93,7 @@ class Analyzer:
         }
 
 
-def test_open_smc_position_is_reanalyzed_and_persisted_without_touching_entry():
+def test_open_smc_position_observation_is_persisted_without_touching_entry():
     engine=object.__new__(LiveTradingEngine)
     engine.config=LiveTradingConfig(
         source="DEMO",
@@ -104,6 +104,7 @@ def test_open_smc_position_is_reanalyzed_and_persisted_without_touching_entry():
     repo=Repo()
     engine.repository=repo
     engine.multi_timeframe=Analyzer()
+    engine._observe_active_strategy=lambda *args: {"decision":"OBSERVACION_ACTUAL", "audit_only":True}
     engine._last_current_strategy_refresh_monotonic=0.0
     engine._trade_owned_by_current_bot=lambda trade: True
     engine._persist_audit_event=lambda *a,**k: None
@@ -114,7 +115,7 @@ def test_open_smc_position_is_reanalyzed_and_persisted_without_touching_entry():
     latest=kwargs["latest_market"]
     assert latest["current_price"]==105.0
     assert latest["current_rr"]==1.2
-    assert latest["current_strategy_view"]["decision"]=="WAITING_M5_CONFIRMATION"
+    assert latest["current_strategy_view"]["decision"]=="OBSERVACION_ACTUAL"
     assert "entry_context" not in kwargs
 
 

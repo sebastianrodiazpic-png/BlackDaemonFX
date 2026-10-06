@@ -94,12 +94,12 @@ class M5ConfirmationConfig:
     - Los campos `chart_patterns_*` se reenvian a
       `strategy.smc.chart_patterns.ChartPatternConfig`.
     """
-    minimum_trade_score: float = 85.0
+    minimum_trade_score: float = 70.0
     require_rejection: bool = True
     require_displacement: bool = True
     require_micro_confirmation: bool = True
     require_momentum: bool = False
-    minimum_body_ratio: float = 0.65
+    minimum_body_ratio: float = 0.50
     minimum_rejection_wick_ratio: float = 0.30
     retest_tolerance_mode: str = "STRICT"  # STRICT | ATR_BOUNDED
     # v107: el retest debe ser "limpio", no solo rechazado. Un retest que
@@ -110,9 +110,9 @@ class M5ConfirmationConfig:
     displacement_range_multiplier: float = 1.35
     momentum_range_multiplier: float = 1.00
     range_lookback: int = 20
-    max_ob_touches: int = 1
+    max_ob_touches: int = 2
     confirmation_mode: str = "midpoint"  # inside | midpoint | break_ob
-    max_confirmation_age_candles: int = 2
+    max_confirmation_age_candles: int = 4
     require_strong_close: bool = True
     strong_close_fraction: float = 0.30
     harmonic_enabled: bool = True
@@ -120,12 +120,12 @@ class M5ConfirmationConfig:
     harmonic_minimum_score: float = 75.0
     harmonic_bonus_points: float = 10.0
     require_harmonic: bool = False
-    # Modo adaptativo: una señal puede considerarse viable con al menos 80% de
+    # Modo adaptativo: una señal puede considerarse viable con al menos 70% de
     # las confirmaciones evaluadas, siempre que todas las confirmaciones críticas
     # de estructura/contexto estén presentes.
     adaptive_confirmation_enabled: bool = True
-    minimum_confirmation_ratio: float = 0.80
-    minimum_viable_trade_score: float = 75.0
+    minimum_confirmation_ratio: float = 0.70
+    minimum_viable_trade_score: float = 65.0
     # Divergencia RSI como confluencia opcional de posible ruptura/cambio de estructura.
     divergence_enabled: bool = True
     divergence_rsi_period: int = 14
@@ -174,6 +174,7 @@ class M5ConfirmationConfig:
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
     require_fvg: bool = False
+    fvg_min_displacement_atr_multiplier: float = 1.5
     dual_trigger_enabled: bool = False
     confirmation_timeframe_minutes: int = 5
     m5_evaluation_time: str | None = None
@@ -692,6 +693,7 @@ def evaluate_m5_confirmation(
                                                       confirmation_index, config.m5_choch_fvg_window)
         fvg_structure_indices = [i for i in (reclassification.get('bos_index'),
                                              reclassification.get('wick_index')) if i is not None]
+    is_crash = "crash" in str(getattr(config, "telemetry_symbol", "") or "").lower()
     fvg = detect_fvg_confirmation(
         data,
         direction,
@@ -703,6 +705,8 @@ def evaluate_m5_confirmation(
             require_alignment_with_zone=config.fvg_require_alignment_with_zone,
             bonus_points=config.fvg_bonus_points,
             require_pattern=config.require_fvg,
+            is_crash=is_crash,
+            min_displacement_atr_multiplier=float(getattr(config, "fvg_min_displacement_atr_multiplier", 1.5)),
         ),
         zone_low=ob_low,
         zone_high=ob_high,

@@ -3,6 +3,11 @@ from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
 import os
+from strategy.execution.symbol_counterpart import (
+    canonical_symbol_root,
+    is_counterpart_pair,
+    is_same_or_counterpart_symbol,
+)
 
 
 def _field(record, name):
@@ -24,9 +29,27 @@ def check_active_position_guard(symbol, mt5_positions, mt5_orders):
     for rows, status, tag, message in (
         (positions, 'BLOCKED_ACTIVE_TRADE', 'WAITING_TRADE_RESOLUTION', 'Posicion activa: esperando cierre TP/SL/BE'),
         (orders, 'BLOCKED_PENDING_ORDER', 'WAITING_PENDING_ORDER', 'Orden pendiente: esperando ejecucion o cancelacion')):
-        matching = [row for row in rows if _field(row, 'symbol') == symbol]
+        matching = [row for row in rows if is_same_or_counterpart_symbol(symbol, _field(row, 'symbol'))]
         if matching:
             tickets = [_field(row, 'ticket') for row in matching]
+            matched_sym = _field(matching[0], 'symbol')
+            if matched_sym != symbol and is_counterpart_pair(symbol, matched_sym):
+                reason_str = (
+                    f'Posicion activa en contraparte ({matched_sym}): esperando cierre TP/SL/BE. '
+                    f'Simbolo candidato {symbol}; tickets {tickets}'
+                    if status == 'BLOCKED_ACTIVE_TRADE'
+                    else f'Orden pendiente en contraparte ({matched_sym}): esperando ejecucion o cancelacion. '
+                    f'Simbolo candidato {symbol}; tickets {tickets}'
+                )
+                return dict(
+                    can_analyze=False,
+                    status=status,
+                    diagnostic_tag=tag,
+                    reason=reason_str,
+                    ticket=tickets[0],
+                    tickets=tickets,
+                    counterpart_symbol=matched_sym,
+                )
             return dict(can_analyze=False, status=status, diagnostic_tag=tag,
                 reason=f'{message}. Simbolo {symbol}; tickets {tickets}', ticket=tickets[0], tickets=tickets)
     return dict(can_analyze=True, status='CLEAR_TO_ANALYZE', reason=None,
@@ -46,7 +69,8 @@ def symbol_cycle_lock(symbol, directory=None):
     """Serialize same-symbol entry cycles across local workers; never lock management."""
     root = Path(directory) if directory else Path(__file__).resolve().parents[2]/'storage/runtime/position_guard'
     root.mkdir(parents=True, exist_ok=True)
-    target = root/(sha256(symbol.encode('utf-8')).hexdigest()+'.lock')
+    canonical = canonical_symbol_root(symbol) or str(symbol or "")
+    target = root/(sha256(canonical.encode('utf-8')).hexdigest()+'.lock')
     with target.open('a+b') as handle:
         handle.seek(0, os.SEEK_END)
         if handle.tell() == 0:

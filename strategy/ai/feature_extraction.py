@@ -13,9 +13,9 @@ import pandas as pd
 import math
 
 
-FEATURE_SCHEMA = "meta-features-v4"
+FEATURE_SCHEMA = "meta-features-v5"
 
-FEATURE_NAMES: tuple[str, ...] = (
+FEATURE_NAMES_V4: tuple[str, ...] = (
     "trade_score",
     "confirmation_percentage",
     "confirmations_ratio",
@@ -44,6 +44,22 @@ FEATURE_NAMES: tuple[str, ...] = (
     "critical_failures",
     "adx_available", "atr_available", "spread_available", "structure_available",
 )
+
+NEW_PREDICTIVE_FEATURES: tuple[str, ...] = (
+    "adx_regime",
+    "signal_age_penalty",
+    "spread_to_sl_ratio",
+    "session_killzone_active",
+    "is_boom",
+    "is_crash",
+    "is_volatility",
+    "is_forex",
+    "is_gold",
+    "is_step",
+    "is_jump",
+)
+
+FEATURE_NAMES: tuple[str, ...] = FEATURE_NAMES_V4 + NEW_PREDICTIVE_FEATURES
 
 
 def _to_float(value: Any, default: float = 0.0) -> float:
@@ -188,8 +204,29 @@ def extract_meta_features(
 
     diagnostics = analysis.get("diagnostics")
     diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
-    signal_age = diagnostics.get("signal_age")
+    signal_age = _first(
+        signal.get("signal_age"),
+        analysis.get("signal_age"),
+        diagnostics.get("signal_age"),
+        default={},
+    )
     signal_age = signal_age if isinstance(signal_age, dict) else {}
+    age_min = _to_float(
+        _first(
+            signal_age.get("age_minutes"),
+            signal.get("signal_age_minutes"),
+            analysis.get("signal_age_minutes"),
+            default=0.0,
+        )
+    )
+    age_candles = _to_float(
+        _first(
+            signal_age.get("age_candles"),
+            signal.get("signal_age_candles"),
+            analysis.get("signal_age_candles"),
+            default=0.0,
+        )
+    )
 
     confirmations = signal.get("confirmations")
     confirmations = confirmations if isinstance(confirmations, dict) else {}
@@ -277,8 +314,8 @@ def extract_meta_features(
             _first(signal.get("chart_pattern_conflict"), analysis.get("chart_pattern_conflict"))
         ),
         "chart_pattern_strength_delta": strength_delta,
-        "signal_age_candles": _to_float(signal_age.get("age_candles")),
-        "signal_age_minutes": _to_float(signal_age.get("age_minutes")),
+        "signal_age_candles": age_candles,
+        "signal_age_minutes": age_min,
         "spread_ratio": spread_ratio,
         "signal_open_age_seconds": _signal_latency_seconds(signal, evaluated_at),
         "decision_delay_seconds": _elapsed(signal.get("confirmation_closed_at"), evaluated_at)[0],
@@ -316,8 +353,62 @@ def extract_meta_features(
         "breakout_volume_available": float(math.isfinite(_to_float(_first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio")), float("nan")))),
         "direction_buy": 1.0 if str(_first(signal.get("direction"), analysis.get("direction"), default="")).upper() == "BUY" else 0.0,
         "critical_failures": critical_count,
+        # Nuevas variables predictivas clave
+        "adx_regime": 1.0 if adx >= 20.0 else 0.0,
+        "signal_age_penalty": float(math.exp(-0.2 * max(0.0, age_min))),
+        "spread_to_sl_ratio": min(spread / (abs(entry_price - _to_float(_first(signal.get("stop_loss"), market.get("stop_loss"))))), 2.0) if entry_price > 0 and _to_float(_first(signal.get("stop_loss"), market.get("stop_loss"))) > 0 and abs(entry_price - _to_float(_first(signal.get("stop_loss"), market.get("stop_loss")))) > 1e-9 else 0.0,
+        "session_killzone_active": 1.0 if (pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True).hour in (7, 8, 9, 12, 13, 14, 15) if not pd.isna(pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True)) else False) else 0.0,
+        "is_boom": 1.0 if "BOOM" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
+        "is_crash": 1.0 if "CRASH" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
+        "is_volatility": 1.0 if ("VOLATILITY" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "1HZ" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V10" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V25" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V50" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V75" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V100" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}") else 0.0,
+        "is_forex": 1.0 if ("FOREX" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or (any(c in str(_first(signal.get('symbol'), market.get('symbol'), '')).upper() for c in ("EUR", "USD", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD")) and "XAU" not in str(_first(signal.get('symbol'), market.get('symbol'), '')).upper() and "XAG" not in str(_first(signal.get('symbol'), market.get('symbol'), '')).upper())) else 0.0,
+        "is_gold": 1.0 if ("GOLD" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "XAU" in str(_first(signal.get('symbol'), market.get('symbol'), '')).upper() or "XAG" in str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()) else 0.0,
+        "is_step": 1.0 if "STEP" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
+        "is_jump": 1.0 if "JUMP" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
     }
     return {name: float(features.get(name, 0.0)) for name in FEATURE_NAMES}
+
+
+def upgrade_v4_features_to_v5(
+    features: dict[str, Any],
+    *,
+    row_meta: dict | None = None,
+    entry_time: Any = None,
+) -> dict[str, float]:
+    """Completa las características de un snapshot v4 para que sea válido en v5.
+
+    Garantiza que todas las muestras históricas capturadas con el esquema v4 sigan
+    siendo utilizables sin perder evidencia causal.
+    """
+    res = dict(features)
+    row_meta = row_meta or {}
+
+    adx_val = _to_float(res.get("adx"))
+    res.setdefault("adx_regime", 1.0 if adx_val >= 20.0 else 0.0)
+
+    age_min = _to_float(res.get("signal_age_minutes"))
+    res.setdefault("signal_age_penalty", float(math.exp(-0.2 * max(0.0, age_min))))
+
+    spread_ratio = _to_float(res.get("spread_ratio"))
+    res.setdefault("spread_to_sl_ratio", spread_ratio if spread_ratio > 0 else 0.0)
+
+    try:
+        dt = pd.to_datetime(entry_time if entry_time is not None else datetime.now(timezone.utc), utc=True)
+        h = dt.hour if not pd.isna(dt) else 12
+    except Exception:
+        h = 12
+    res.setdefault("session_killzone_active", 1.0 if h in (7, 8, 9, 12, 13, 14, 15) else 0.0)
+
+    comb = str(row_meta.get("bot_profile") or row_meta.get("instrument") or "").upper()
+    res.setdefault("is_boom", 1.0 if "BOOM" in comb else 0.0)
+    res.setdefault("is_crash", 1.0 if "CRASH" in comb else 0.0)
+    res.setdefault("is_volatility", 1.0 if "VOLATILITY" in comb or "1HZ" in comb or "V10" in comb or "V25" in comb or "V50" in comb or "V75" in comb or "V100" in comb else 0.0)
+    res.setdefault("is_forex", 1.0 if "FOREX" in comb or (any(c in comb for c in ("EUR", "USD", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD")) and "XAU" not in comb and "XAG" not in comb) else 0.0)
+    res.setdefault("is_gold", 1.0 if "GOLD" in comb or "XAU" in comb or "XAG" in comb else 0.0)
+    res.setdefault("is_step", 1.0 if "STEP" in comb else 0.0)
+    res.setdefault("is_jump", 1.0 if "JUMP" in comb else 0.0)
+
+    return {name: float(res.get(name, 0.0)) for name in FEATURE_NAMES}
 
 
 def feature_vector(features: dict[str, float]) -> list[float]:

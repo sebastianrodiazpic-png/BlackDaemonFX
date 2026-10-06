@@ -7,6 +7,7 @@ devuelve probabilidad calibrada, expectativa neta y una decisión auditable.
 from __future__ import annotations
 
 import json
+import os
 import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -27,14 +28,17 @@ class MetaLabelingConfig:
     """Configuración por worker del meta-etiquetado."""
 
     enabled: bool = True
-    # SHADOW puntúa y registra sin bloquear ninguna entrada.
-    mode: str = SHADOW_MODE
+    # SHADOW puntúa y registra sin bloquear; FILTER bloquea órdenes de baja probabilidad o expectativa.
+    mode: str = os.getenv("DAEMONBLACKFX_META_LABELING_MODE", FILTER_MODE)
     min_probability: float = 0.55
+    min_probability_forex: float = 0.60
+    min_probability_gold: float = 0.60
+    min_probability_volatility: float = 0.52
     min_net_expectancy_r: float = 0.10
     ranking_enabled: bool = True
     max_signals_per_cycle: int = 1
     model_directory: str = "storage/ai_models"
-    min_training_samples: int = 30
+    min_training_samples: int = 15
     # Sin modelo entrenado el filtro no debe bloquear operativa real.
     block_when_untrained: bool = False
 
@@ -107,6 +111,7 @@ class MetaLabelingEngine:
         self.config = config or MetaLabelingConfig()
         self.worker = str(worker or "DEFAULT").upper()
         self._models: dict[str, CalibratedLogisticModel] = {}
+        self._model_mtimes: dict[str, tuple[float, float]] = {}
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------
@@ -128,8 +133,8 @@ class MetaLabelingEngine:
         """Clave de cache en memoria, con formato `WORKER:ESTRATEGIA`."""
         return f"{self.worker}:{str(strategy_name or 'ALL').upper()}"
 
-    def load_model(self, strategy_name: str = "ALL") -> CalibratedLogisticModel:
-        """Carga el modelo del worker desde cache o disco.
+    def load_model(self, strategy_name: str = "ALL", reload: bool = False) -> CalibratedLogisticModel:
+        """Carga el modelo del worker desde cache o disco con verificación de frescura.
 
         Si el fichero no existe o esta corrupto devuelve un modelo VACIO sin
         entrenar en lugar de propagar la excepcion: un modelo danado degrada
@@ -140,7 +145,13 @@ class MetaLabelingEngine:
         """
         key = self._model_key(strategy_name)
         with self._lock:
-            if key in self._models:
+            path = self._model_path(strategy_name)
+            current_mtime = path.stat().st_mtime if path.exists() else 0.0
+            global_path = Path(self.config.model_directory) / f"metalabel_GLOBAL_{str(strategy_name or 'ALL').upper()}.json"
+            global_mtime = global_path.stat().st_mtime if global_path.exists() else 0.0
+            mtimes = (current_mtime, global_mtime)
+
+            if not reload and key in self._models and self._model_mtimes.get(key) == mtimes:
                 return self._models[key]
             path = self._model_path(strategy_name)
             model = CalibratedLogisticModel(worker=self.worker, strategy_name=str(strategy_name or "ALL"))
@@ -165,7 +176,48 @@ class MetaLabelingEngine:
                     model = CalibratedLogisticModel(
                         worker=self.worker, strategy_name=str(strategy_name or "ALL")
                     )
+
+            # Fallback al modelo ALL del worker si la estrategia específica no tiene modelo propio
+            if not model.trained and str(strategy_name or "ALL").upper() != "ALL":
+                all_path = self._model_path("ALL")
+                if all_path.exists():
+                    try:
+                        all_model = CalibratedLogisticModel.from_dict(
+                            json.loads(all_path.read_text(encoding="utf-8"))
+                        )
+                        if all_model.trained and tuple(all_model.model.feature_names) == tuple(FEATURE_NAMES):
+                            model.model = all_model.model
+                            model.calibrator = all_model.calibrator
+                            model.average_win_rr = all_model.average_win_rr
+                            model.average_loss_rr = all_model.average_loss_rr
+                            model.trained_at = all_model.trained_at
+                    except Exception:
+                        pass
+
+            # Fallback jerárquico al modelo global si el worker no está entrenado individualmente
+            if not model.trained and self.worker not in ("GLOBAL", "ALL"):
+                candidates = [
+                    Path(self.config.model_directory) / f"metalabel_GLOBAL_{str(strategy_name or 'ALL').upper()}.json",
+                    Path(self.config.model_directory) / "metalabel_GLOBAL_ALL.json",
+                ]
+                for global_path in candidates:
+                    if global_path.exists():
+                        try:
+                            g_model = CalibratedLogisticModel.from_dict(
+                                json.loads(global_path.read_text(encoding="utf-8"))
+                            )
+                            if g_model.trained and tuple(g_model.model.feature_names) == tuple(FEATURE_NAMES):
+                                model.model = g_model.model
+                                model.calibrator = g_model.calibrator
+                                model.average_win_rr = g_model.average_win_rr
+                                model.average_loss_rr = g_model.average_loss_rr
+                                model.trained_at = g_model.trained_at
+                                break
+                        except Exception:
+                            pass
+
             self._models[key] = model
+            self._model_mtimes[key] = mtimes
             return model
 
     def save_model(self, model: CalibratedLogisticModel) -> str:
@@ -184,7 +236,12 @@ class MetaLabelingEngine:
             encoding="utf-8",
         )
         with self._lock:
-            self._models[self._model_key(model.strategy_name)] = model
+            key = self._model_key(model.strategy_name)
+            self._models[key] = model
+            current_mtime = path.stat().st_mtime if path.exists() else 0.0
+            global_path = Path(self.config.model_directory) / f"metalabel_GLOBAL_{str(model.strategy_name or 'ALL').upper()}.json"
+            global_mtime = global_path.stat().st_mtime if global_path.exists() else 0.0
+            self._model_mtimes[key] = (current_mtime, global_mtime)
         return str(path)
 
     def train(self, trades, *, strategy_name: str = "ALL") -> dict:
@@ -200,6 +257,7 @@ class MetaLabelingEngine:
             worker=self.worker,
             strategy_name=None if str(strategy_name).upper() == "ALL" else strategy_name,
             min_samples=int(self.config.min_training_samples),
+            allow_global_pooling=True,
         )
         model.worker = self.worker
         model.strategy_name = str(strategy_name or "ALL")
@@ -227,9 +285,66 @@ class MetaLabelingEngine:
             "temporal_validation": validation.to_dict(),
         }
 
+    def update_online_trade(
+        self,
+        features: dict[str, float] | list[float],
+        label: int,
+        realized_rr: float | None = None,
+        *,
+        strategy_name: str = "ALL",
+        learning_rate: float = 0.05,
+    ) -> bool:
+        """Bucle de aprendizaje continuo en tiempo real (Online SGD Feedback Loop)."""
+        vector = features if isinstance(features, list) else feature_vector(features)
+        model = self.load_model(strategy_name)
+        if not model.trained:
+            return False
+        with self._lock:
+            updated = model.update_one(vector, label, realized_rr=realized_rr, learning_rate=learning_rate)
+            if updated:
+                self.save_model(model)
+                global_path = Path(self.config.model_directory) / f"metalabel_GLOBAL_{str(strategy_name or 'ALL').upper()}.json"
+                if global_path.exists() and self.worker not in ("GLOBAL", "ALL"):
+                    try:
+                        g_model = CalibratedLogisticModel.from_dict(
+                            json.loads(global_path.read_text(encoding="utf-8"))
+                        )
+                        if g_model.trained:
+                            g_model.update_one(vector, label, realized_rr=realized_rr, learning_rate=learning_rate)
+                            global_path.write_text(
+                                json.dumps({**g_model.to_dict(), "feature_schema": FEATURE_SCHEMA}, ensure_ascii=False, indent=2),
+                                encoding="utf-8",
+                            )
+                    except Exception:
+                        pass
+        return updated
+
     # ------------------------------------------------------------------
     # PUNTUACIÓN
     # ------------------------------------------------------------------
+
+    def resolve_min_probability(self, symbol: str) -> float:
+        """Determina el umbral de probabilidad adaptativo según la familia del activo.
+
+        - FOREX y GOLD: umbral estricto >= 0.60 para filtrar falsos rompimientos y spread.
+        - VOLATILITY: umbral >= 0.52 para aprovechar mayor ratio de recorrido.
+        - OTRAS FAMILIAS (BOOM, CRASH, STEP, JUMP): umbral base >= 0.55.
+        """
+        sym = str(symbol or "").upper().strip()
+        wk = str(self.worker or "").upper().strip()
+
+        if "XAU" in sym or "GOLD" in sym or wk == "GOLD":
+            return float(getattr(self.config, "min_probability_gold", 0.60))
+
+        forex_currencies = ("EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD")
+        is_forex = any(c in sym for c in forex_currencies) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP"))
+        if is_forex or wk.startswith("FOREX"):
+            return float(getattr(self.config, "min_probability_forex", 0.60))
+
+        if "VOLATILITY" in sym or "1S" in sym or wk.startswith("VOLATILITY"):
+            return float(getattr(self.config, "min_probability_volatility", 0.52))
+
+        return float(self.config.min_probability)
 
     def score_signal(
         self,
@@ -249,8 +364,9 @@ class MetaLabelingEngine:
             market=market,
             evaluated_at=evaluated_at,
         )
+        effective_min_prob = self.resolve_min_probability(symbol)
         thresholds = {
-            "min_probability": float(self.config.min_probability),
+            "min_probability": effective_min_prob,
             "min_net_expectancy_r": float(self.config.min_net_expectancy_r),
         }
 

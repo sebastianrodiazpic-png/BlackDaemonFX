@@ -149,7 +149,7 @@ class TradeReportingService:
                 "trade_id": trade_id,
             }
 
-        if event == "LIFECYCLE_FINALIZED":
+        if event in ("LIFECYCLE_FINALIZED", "POSITION_CLOSED"):
             trade_id = self._close_trade(
                 lifecycle=lifecycle,
                 volume=volume,

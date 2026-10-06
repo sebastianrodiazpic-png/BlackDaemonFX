@@ -57,7 +57,7 @@ def _engine():
         forex_runner_tp3_lock_rr=1.0,
         forex_runner_tp4_pre_eval_lock_rr=2.0,
         forex_runner_tp4_lock_rr=2.5,
-        forex_runner_max_target_rr=4.0,
+        forex_runner_max_target_rr=2.0,
         forex_runner_broker_safety_target_rr=4.0,
     )
     engine.provider=Provider()
@@ -110,6 +110,29 @@ def test_forex_runner_never_extends_past_tp2_even_if_extension_is_enabled(monkey
     assert result["reason"] == "FOREX_FIXED_TP2_TARGET"
     assert tx.moves == []
     assert tx.closes == []
+
+
+def test_forex_runner_extends_to_3r_under_2y_analysis(monkeypatch):
+    engine,pos,tx=_engine()
+    engine.config.forex_runner_max_target_rr = 3.0
+    engine.config.forex_runner_broker_safety_target_rr = 3.0
+    trade=_trade()
+    metadata=dict(trade["details"]["metadata"])
+    monkeypatch.setattr(
+        live_mod,"evaluate_runner_continuation",
+        lambda *a,**k: RunnerExtensionDecision(True,"CONTINUACION_TP3",{})
+    )
+    result=engine._manage_runner_extension(
+        trade=trade,position=pos,metadata=metadata,
+        initial_stop_loss=1.09000,current_rr=2.05,
+        move_stop=tx.move_stop_loss,
+    )
+    assert result["managed"] is True
+    assert result["extended"] is True
+    assert result["stage"] == "2R_TO_3R"
+    assert result["target_rr"] == 3.0
+    assert result["profit_lock_rr"] == 1.0
+    assert len(tx.moves) == 1
 
 
 def test_source_builds_forex_runner_with_fixed_tp2():

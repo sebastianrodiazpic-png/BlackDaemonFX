@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import math
+import time
 
 import MetaTrader5 as mt5
 
@@ -62,6 +63,11 @@ class MT5ExecutionProvider:
     def __init__(self, connector):
         """Guarda el conector; la conexion se asegura en cada operacion."""
         self.connector = connector
+        self._positions_cache = None
+        self._positions_cache_time = 0.0
+        self._orders_cache = None
+        self._orders_cache_time = 0.0
+        self._cache_ttl_seconds = 2.0
 
     # ==========================================================
     # CONEXIÓN Y CUENTA
@@ -213,6 +219,7 @@ class MT5ExecutionProvider:
         digits = int(getattr(info, "digits", 0) or 0)
         stops_level = int(getattr(info, "trade_stops_level", 0) or 0)
         freeze_level = int(getattr(info, "trade_freeze_level", 0) or 0)
+        spread_points = int(getattr(info, "spread", 0) or 0)
 
         return {
             "symbol": symbol,
@@ -220,6 +227,8 @@ class MT5ExecutionProvider:
             "point": point,
             "stops_level_points": stops_level,
             "freeze_level_points": freeze_level,
+            "spread_points": spread_points,
+            "spread": spread_points * point,
             "min_stop_distance": stops_level * point,
             "volume_min": float(getattr(info, "volume_min", 0.0) or 0.0),
             "volume_max": float(getattr(info, "volume_max", 0.0) or 0.0),
@@ -1185,9 +1194,23 @@ class MT5ExecutionProvider:
     # ==========================================================
 
     def risk_buffered_entry_price(self, symbol, direction, entry_price, deviation=20):
-        """Use the same adverse price allowance for sizing and final risk checks."""
-        point = float(self.get_symbol_constraints(symbol)["point"])
-        allowance = max(0, int(deviation)) * point
+        """Use an adaptive adverse price allowance for sizing and final risk checks.
+
+        For Forex, `deviation * point` provides ~2 pips of buffer.
+        For high-priced synthetic indices (e.g. Volatility 25/75/100, Boom, Crash),
+        point is small (0.01 or 0.0001) while spread and normal price swings are
+        tens or hundreds of points. We take the maximum of:
+        1. Fixed deviation points (`deviation * point`).
+        2. Current broker spread (`spread` or `spread_points * point`).
+        3. A relative price fraction (0.015% = 0.00015 of entry_price).
+        This guarantees synthetic and high-volatility assets have a realistic pre-send buffer.
+        """
+        constraints = self.get_symbol_constraints(symbol)
+        point = float(constraints.get("point", 0.0) or 0.0)
+        spread = float(constraints.get("spread", 0.0) or (constraints.get("spread_points", 0) * point))
+        base_allowance = max(0, int(deviation)) * point
+        relative_allowance = float(entry_price) * 0.00015 if float(entry_price) > 0 else 0.0
+        allowance = max(base_allowance, spread, relative_allowance)
         price = float(entry_price) + (allowance if direction == "BUY" else -allowance)
         if not math.isfinite(price) or price <= 0 or not math.isfinite(point) or point <= 0:
             raise MT5ExecutionError("INVALID_BUFFERED_SIZING_PRICE")
@@ -1213,7 +1236,11 @@ class MT5ExecutionProvider:
             )
 
     def _resize_pre_send_risk(self, request, direction, max_risk_amount):
-        """Only reduce volume on fresh quote drift; keep both barriers unchanged."""
+        """Only reduce volume on fresh quote drift; keep both barriers unchanged.
+
+        Sizes down to target risk budget if possible (or falls back to max_risk_amount)
+        so that the hard risk cap margin remains intact for post-fill broker slippage.
+        """
         if max_risk_amount is None:
             return None
         cap = float(max_risk_amount)
@@ -1228,7 +1255,11 @@ class MT5ExecutionProvider:
             raise MT5ExecutionError("PRE_SEND_INVALID_ACTUAL_RISK")
         if risk <= cap:
             return None
-        sizing = self.calculate_volume(request["symbol"], direction, price, request["sl"], cap)
+        target_budget = cap / 1.035
+        try:
+            sizing = self.calculate_volume(request["symbol"], direction, price, request["sl"], target_budget)
+        except MT5ExecutionError:
+            sizing = self.calculate_volume(request["symbol"], direction, price, request["sl"], cap)
         reduced = float(sizing["volume"])
         if not math.isfinite(reduced) or not 0 < reduced < original:
             raise MT5ExecutionError("PRE_SEND_RISK_CAP_BREACH: no smaller valid broker volume")
@@ -1366,7 +1397,7 @@ class MT5ExecutionProvider:
                 f"last_error={mt5.last_error()}"
             )
 
-        return {
+        response = {
             "result": result,
             "risk_resize": risk_resize,
             "executable_rr_audit": executable_rr_audit,
@@ -1397,6 +1428,8 @@ class MT5ExecutionProvider:
             "final_check_diagnostic": final_check_diagnostic,
             "order_send_diagnostic": send_diagnostic,
         }
+        self.invalidate_broker_cache()
+        return response
 
     # ==========================================================
     # POSICIONES E HISTORIAL
@@ -1457,6 +1490,7 @@ class MT5ExecutionProvider:
             int(getattr(mt5, "TRADE_RETCODE_NO_CHANGES", 10025)),
         }
         modified = retcode in success_codes
+        self.invalidate_broker_cache()
 
         return {
             "modified": bool(modified),
@@ -1470,7 +1504,14 @@ class MT5ExecutionProvider:
             "request": request,
         }
 
-    def get_open_positions(self):
+    def invalidate_broker_cache(self):
+        """Invalida la caché de posiciones y órdenes para forzar una lectura fresca."""
+        self._positions_cache = None
+        self._positions_cache_time = 0.0
+        self._orders_cache = None
+        self._orders_cache_time = 0.0
+
+    def get_open_positions(self, force_refresh: bool = False):
         """Unfiltered broker state for the entry guard; None is an error, not empty."""
         self._ensure()
         rows = mt5.positions_get()
@@ -1478,7 +1519,7 @@ class MT5ExecutionProvider:
             raise MT5ExecutionError(f"positions_get failed: {mt5.last_error()}")
         return list(rows)
 
-    def get_pending_orders(self):
+    def get_pending_orders(self, force_refresh: bool = False):
         """Include manual orders and orders belonging to every worker/magic."""
         self._ensure()
         rows = mt5.orders_get()

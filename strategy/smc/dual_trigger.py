@@ -47,7 +47,10 @@ def evaluate_dual_m5_m1_trigger(m5_data, m1_data=None, max_age_minutes=10, curre
     fvg = bool(m5_data.get('has_fvg') or (frame == 'M1' and m1.get('has_fvg')))
     clean = bool(m5_data.get('clean_retest') or (frame == 'M1' and m1.get('clean_retest')))
     score = 0 if reasons else base + 10 * fvg + 5 * clean
-    return dict(approved=not reasons, score=score, m5_score=score, vetos=reasons,
+    sweep_at = pd.to_datetime(m5_data.get('sweep_timestamp'), utc=True, errors='coerce')
+    confirm_at = pd.to_datetime(stamp, utc=True, errors='coerce')
+    gap = None if pd.isna(sweep_at) or pd.isna(confirm_at) else (confirm_at-sweep_at).total_seconds()/60
+    return dict(sweep_to_choch_minutes=gap, temporal_audit_only=True, approved=not reasons, score=score, m5_score=score, vetos=reasons,
                 veto_reasons=reasons, veto_codes=codes, diagnostic_tag=tag, tag=tag,
                 confirmation_timeframe=frame, confirmation_timestamp=stamp,
                 sweep_timestamp=m5_data.get('sweep_timestamp'), has_fvg=fvg,

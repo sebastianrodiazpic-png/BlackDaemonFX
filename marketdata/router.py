@@ -144,3 +144,40 @@ class DerivOnlyMarketDataRouter:
 
     def active_symbols(self):
         return self.deriv_provider.active_symbols()
+
+
+class ExternalMarketDataRouter(DerivOnlyMarketDataRouter):
+    """Router compatible con múltiples proveedores externos (Deriv para sintéticos, Oanda para Forex)."""
+
+    def __init__(
+        self,
+        *,
+        deriv_provider,
+        oanda_provider=None,
+        metadata_provider=None,
+        cache=None,
+        candle_cache_ttl_seconds=2.0,
+        tick_cache_ttl_seconds=0.5,
+    ):
+        super().__init__(
+            deriv_provider=deriv_provider,
+            metadata_provider=metadata_provider,
+            cache=cache,
+            candle_cache_ttl_seconds=candle_cache_ttl_seconds,
+            tick_cache_ttl_seconds=tick_cache_ttl_seconds,
+        )
+        self.oanda_provider = oanda_provider
+
+    def connect(self):
+        if self.metadata_provider is not None:
+            self.metadata_provider.connect()
+        return True
+
+    def get_candles(self, symbol, timeframe="M5", count=1000):
+        sym_str = str(symbol).upper()
+        if not sym_str.startswith(("VOLATILITY", "STEP", "JUMP", "BOOM", "CRASH")):
+            if self.oanda_provider is None:
+                raise MarketDataConfigurationError("OANDA no configurado")
+            return self.oanda_provider.get_candles(symbol, timeframe=timeframe, count=count)
+        return super().get_candles(symbol, timeframe=timeframe, count=count)
+

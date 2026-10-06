@@ -307,7 +307,7 @@ TRADE_AUDIT_HTML = r'''
   <body>
     <main class="w">
       <div class="brand">
-        <img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo" />
+        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo" />
         <div>
           <b>BLACKDAEMON<span>FX</span></b>
           <div class="muted">AUDITORÍA DERIV · DECISIÓN Y EVOLUCIÓN</div>
@@ -826,7 +826,7 @@ TRADE_AUDIT_HTML = r'''
           s = a.snapshots || [],
           e = a.entry_view || {},
           rrs = s.map((x) => Number((x.market || {}).current_rr)).filter(Number.isFinite);
-        $('excelBtn').href = '/api' + location.pathname + '/excel';
+        $('excelBtn').href = '/api'+location.pathname+'/excel';
         $('title').textContent =
           (t.instrument || 'Trade') + ' · Trade #' + (t.id ?? t.source_trade_id ?? '—');
         $('subtitle').textContent =

@@ -5,16 +5,87 @@ RULESET = 'smc-h1-adaptive-dual-m5-m1-position-guard-v4'
 
 
 def configure_worker_rules(config):
-    smc = str(config.bot_profile).upper() not in {'ORB', 'IDX_OPEN'}
+    profile = str(config.bot_profile).upper()
+    if profile == "MALAYSIAN_SNR":
+        return replace(
+            config,
+            malaysian_snr_enabled=True,
+            dual_m5_m1_trigger_enabled=False,
+            h1_location_only=False,
+            entry_timeframe='M15',
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            malaysian_snr_tp1_rr=1.0,
+            malaysian_snr_runner_rr=2.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            min_rr=1.0,
+        )
+    smc = profile not in {'ORB', 'IDX_OPEN'}
     if not smc:
         return replace(config, dual_m5_m1_trigger_enabled=False, h1_location_only=False)
+    if profile.startswith("VOLATILITY"):
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            first_target_rr=2.0,
+            second_target_rr=3.0,
+            volatility_first_target_rr=2.0,
+            volatility_second_target_rr=3.0,
+            smc_runner_max_target_rr=3.0,
+            runner_extension_enabled=True,
+        )
+    if profile in {"STEP", "JUMP"}:
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            first_target_rr=2.0,
+            second_target_rr=3.0,
+            smc_runner_max_target_rr=3.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=2.5,
+            runner_extension_second_lock_rr=2.0,
+            smc_runner_tp3_guard_trigger_rr=2.5,
+            smc_runner_tp3_guard_lock_rr=2.0,
+        )
+    if profile.startswith("FOREX"):
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            forex_rollover_guard_enabled=True,
+            forex_force_flat_friday=True,
+            forex_killzone_only_enabled=True,
+            forex_runner_initial_target_rr=2.0,
+            forex_runner_max_target_rr=3.0,
+            forex_runner_broker_safety_target_rr=3.0,
+        )
     return replace(config, h1_location_only=True, smc_entry_location_policy='H1_PRIMARY',
         dual_m5_m1_trigger_enabled=True, entry_timeframe='M5', strategy_version=RULESET)
 
 
 def worker_poll_interval(profile, interval):
     # The M1 scheduler must get a chance to observe each minute's closed candle.
-    return max(1, min(int(interval), 10)) if str(profile).upper() not in {'ORB','IDX_OPEN'} else max(1, int(interval))
+    return max(1, min(int(interval), 10)) if str(profile).upper() not in {'ORB','IDX_OPEN','MALAYSIAN_SNR'} else max(1, int(interval))
 
 
 def worker_rules_manifest(engine):

@@ -23,9 +23,32 @@ Vinculaciones:
 
 from copy import deepcopy
 
-
 POSITION_OPEN = "OPEN"
 POSITION_CLOSED = "CLOSED"
+
+def calculate_be_price_with_spread(position_type: int, entry_price: float, spread_points: float, point_size: float, multiplier: float = 1.5) -> float:
+    """Calcula el precio de Break Even exacto sumando el spread buffer para garantizar riesgo cero real."""
+    buffer = spread_points * point_size * multiplier
+    if position_type == 0:  # BUY
+        return entry_price + buffer
+    else:                   # SELL
+        return entry_price - buffer
+
+def partial_close_ticket(ticket: int, volume_to_close: float, *, executor=None) -> bool:
+    """Ejecuta una orden de cierre parcial sobre la posición activa en MetaTrader 5."""
+    method = getattr(executor, "partial_close_ticket", None)
+    return callable(method) and method(ticket, volume_to_close) is True
+
+def modify_position_sl(ticket: int, new_sl: float, *, executor=None) -> bool:
+    """Modifica el Stop Loss de una posición activa en MetaTrader 5 / Broker."""
+    method = getattr(executor, "modify_position_sl", None)
+    if callable(method):
+        return method(ticket, new_sl=new_sl) is True
+    method = getattr(executor, "modify_position_stops", None)
+    if callable(method):
+        result = method(position_ticket=ticket, stop_loss=new_sl)
+        return isinstance(result, dict) and result.get("modified") is True
+    return False
 
 
 class PositionManager:

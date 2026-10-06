@@ -6,6 +6,7 @@ y estima la probabilidad de acierto junto con la expectativa neta en R.
 
 from strategy.ai.feature_extraction import (
     FEATURE_NAMES,
+    FEATURE_SCHEMA,
     extract_meta_features,
     feature_vector,
 )
@@ -32,6 +33,7 @@ from strategy.ai.training import (
 
 __all__ = [
     "FEATURE_NAMES",
+    "FEATURE_SCHEMA",
     "FILTER_MODE",
     "RANKING_MODE",
     "SHADOW_MODE",

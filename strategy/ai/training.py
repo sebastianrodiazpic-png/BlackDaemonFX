@@ -15,13 +15,15 @@ import pandas as pd
 
 from strategy.ai.feature_extraction import (
     FEATURE_NAMES,
+    FEATURE_NAMES_V4,
     extract_meta_features,
     feature_vector,
+    upgrade_v4_features_to_v5,
 )
 from strategy.ai.model import CalibratedLogisticModel, LogisticRegressionModel, ProbabilityCalibrator
 
 
-MIN_TRAINING_SAMPLES = 30
+MIN_TRAINING_SAMPLES = 15
 
 
 def _parse_details(raw) -> dict:
@@ -133,7 +135,7 @@ def _canonical_profile(value) -> str:
         return ""
     if text.startswith("SCALP_"):
         text = text[len("SCALP_"):]
-    for family in ("VOLATILITY", "FOREX", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "GOLD", "SYNTHETICS"):
+    for family in ("VOLATILITY", "FOREX", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "GOLD", "SYNTHETICS", "MALAYSIAN_SNR", "MALAYSIAN"):
         if text.startswith(family):
             return family
     return text
@@ -152,7 +154,7 @@ def _profiles_match(worker, metadata_profile) -> bool:
     """
     wanted = str(worker or "").upper().strip()
     actual = str(metadata_profile or "").upper().strip()
-    if not wanted:
+    if not wanted or wanted in ("GLOBAL", "ALL"):
         return True
     if wanted == actual:
         return True
@@ -284,13 +286,17 @@ def build_training_dataset(
         )
         snapshot = metadata.get("entry_learning_snapshot")
         if snapshot is not None:
-            if isinstance(snapshot, dict) and snapshot.get("schema") == "entry-learning-v4":
-                captured_at = pd.to_datetime(snapshot.get("captured_at"), utc=True, errors="coerce")
-                if pd.isna(captured_at) or captured_at > stamp:
-                    continue
+            if isinstance(snapshot, dict) and snapshot.get("schema") in ("entry-learning-v4", "entry-learning-v5"):
+                raw_cap = snapshot.get("captured_at")
+                if raw_cap is not None:
+                    captured_at = pd.to_datetime(raw_cap, utc=True, errors="coerce")
+                    if not pd.isna(captured_at) and captured_at > stamp:
+                        continue
             try:
                 captured = snapshot.get("features") or {}
-                valid = snapshot.get("feature_names") == list(FEATURE_NAMES) and all(
+                if snapshot.get("feature_names") == list(FEATURE_NAMES_V4):
+                    captured = upgrade_v4_features_to_v5(captured, row_meta=metadata, entry_time=stamp)
+                valid = all(
                     name in captured and np.isfinite(float(captured[name])) for name in FEATURE_NAMES
                 )
             except (AttributeError, TypeError, ValueError, OverflowError):
@@ -352,8 +358,9 @@ def train_worker_model(
     strategy_name: str | None = None,
     calibrate: bool = True,
     min_samples: int = MIN_TRAINING_SAMPLES,
+    allow_global_pooling: bool = True,
 ) -> CalibratedLogisticModel:
-    """Entrena el modelo de un worker con su propio historial."""
+    """Entrena el modelo de un worker con su propio historial o mediante pooling jerárquico."""
     dataset = build_training_dataset(trades, worker=worker, strategy_name=strategy_name)
     model = CalibratedLogisticModel(
         worker=str(worker or "DEFAULT"),
@@ -361,7 +368,15 @@ def train_worker_model(
     )
     labels = dataset["labels"]
     if dataset["rows"] < max(2, int(min_samples)) or len(set(labels)) < 2:
-        return model
+        if allow_global_pooling and str(worker or "").upper() not in ("GLOBAL", "ALL"):
+            global_dataset = build_training_dataset(trades, worker="GLOBAL", strategy_name=strategy_name)
+            if global_dataset["rows"] >= max(2, int(min_samples)) and len(set(global_dataset["labels"])) >= 2:
+                dataset = global_dataset
+                labels = dataset["labels"]
+            else:
+                return model
+        else:
+            return model
 
     features = np.asarray(dataset["features"], dtype=float)
     target = np.asarray(labels, dtype=int)

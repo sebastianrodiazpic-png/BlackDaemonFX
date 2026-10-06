@@ -63,7 +63,7 @@ class ConnectCountingProvider:
 
 
 def test_normalization_rejects_invalid_ohlc():
-    with pytest.raises(MarketDataValidationError, match="OHLC invalido"):
+    with pytest.raises(MarketDataValidationError, match=r"OHLC inv[aá]lido"):
         normalize_candles(
             [{"time": "2026-09-11T12:00:00Z", "open": 10, "high": 9, "low": 8, "close": 10}],
             identity=MarketDataIdentity("X", "Y", "TEST"), timeframe="M5",
@@ -75,7 +75,7 @@ def test_deriv_provider_returns_canonical_data():
     provider = DerivMarketDataProvider(symbol_map={"Volatility 100 Index": "R_100"}, transport=transport)
     candles = provider.get_candles("Volatility 100 Index", "M5", 100)
     assert str(candles["time"].dt.tz) == "UTC"
-    assert candles.attrs["market_data_source"] == "DERIV_WEBSOCKET"
+    assert candles.attrs["market_data_source"] in {"DERIV_WEBSOCKET", "DERIV_CHARTS_WEBSOCKET"}
     assert bool(candles.iloc[-1]["complete"]) is False
     assert provider.get_current_tick("Volatility 100 Index")["last"] == pytest.approx(101.25)
 

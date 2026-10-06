@@ -82,3 +82,34 @@ RISK_CONFIG = {
 
     "max_open_positions": 3
 }
+
+# ========================================================
+# UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
+# ========================================================
+PRUNED_ASSET_UNIVERSE = {
+    "STEP": ("Step Index", "Step Index 500", "Step Index 400"),
+    "JUMP": ("Jump 75 Index", "Jump 50 Index", "Jump 10 Index"),
+    "VOLATILITY": (
+        "Volatility 50 (1s) Index",
+        "Volatility 75 Index",
+        "Volatility 75 (1s) Index",
+        "VolSwitch High Vol Index",
+        "High Frequency Vol 50 Index",
+        "Vol over Crash 550",
+        "Volatility 15 Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 250 (1s) Index",
+        "Volatility 90 Index",
+        "Volatility 5 Index",
+        "High Frequency Vol 100 Index",
+        "Vol over Boom 550",
+        "Volatility 90 (1s) Index",
+        "Volatility 25 Index",
+    ),
+    "BOOM": ("Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"),
+    "CRASH": ("Crash 500 Index", "Crash 900 Index"),
+    "FOREX": (
+        "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
+        "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
+    ),
+}

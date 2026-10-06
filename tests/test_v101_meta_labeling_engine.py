@@ -165,9 +165,9 @@ class TestTraining:
 
 
 class TestPreExecutionRankingMode:
-    def test_ranking_mode_is_not_shadow_and_never_blocks_when_untrained(self):
+    def test_ranking_mode_is_not_shadow_and_never_blocks_when_untrained(self, tmp_path):
         engine = MetaLabelingEngine(
-            MetaLabelingConfig(mode="RANKING"), worker="FOREX_1"
+            MetaLabelingConfig(mode="RANKING", model_directory=str(tmp_path)), worker="FOREX_1"
         )
         decision = engine.score_signal(
             symbol="EURUSD", signal=_signal(), analysis={}, strategy_name="SMC"

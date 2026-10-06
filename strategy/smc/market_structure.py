@@ -137,6 +137,10 @@ def get_current_trend(df):
     highs = structures[structures.isin(["HH", "LH"])]
     lows = structures[structures.isin(["HL", "LL"])]
     if highs.empty or lows.empty:
+        if (structures == "BULLISH").any() and not (structures == "BEARISH").any():
+            return "BULLISH"
+        if (structures == "BEARISH").any() and not (structures == "BULLISH").any():
+            return "BEARISH"
         return "NEUTRAL"
     latest_pair = (highs.iloc[-1], lows.iloc[-1])
     if latest_pair == ("HH", "HL"):

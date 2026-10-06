@@ -10,6 +10,31 @@ def result(status='STRICT_APPROVED', score=90):
     return dict(status=status, final_score=score, approved=status.endswith('APPROVED'), reasons=[])
 
 
+def test_forex_dashboard_serializes_nested_timestamps(tmp_path, caplog):
+    from datetime import datetime, timezone
+    import pandas as pd
+
+    tracker = SMCTelemetryTracker('FOREX_4', output_dir=tmp_path, report_every=1)
+    stamp = pd.Timestamp('2026-09-28T23:19:00Z')
+    sweep = datetime(2026, 9, 28, 23, 15, tzinfo=timezone.utc)
+    evaluation = result('REJECTED_LOW_SCORE', 60)
+    evaluation.update(m5_detail={'confirmation_timestamp': stamp, 'sweep_timestamp': sweep},
+                      h1_context={'temporal_audit': {'observed_at': stamp}})
+    with caplog.at_level('INFO', logger='SMC_Telemetry'):
+        assert tracker.log_evaluation(evaluation, 'GBPUSD', 'timestamp-regression')
+    message = next(r.getMessage() for r in caplog.records
+                   if r.getMessage().startswith('SMC TELEMETRY | '))
+    dashboard = json.loads(message.split(' | ', 1)[1])
+    snapshot = json.loads(next(tmp_path.glob('*.json')).read_text())
+    event = json.loads(next(tmp_path.glob('*.jsonl')).read_text().splitlines()[0])
+    for record in (dashboard['last_evaluation'], snapshot['last_evaluation'], event):
+        assert record['symbol'] == 'GBPUSD'
+        assert record['m5_detail']['confirmation_timestamp'] == stamp.isoformat()
+        assert record['m5_detail']['sweep_timestamp'] == sweep.isoformat()
+        assert record['h1_context']['temporal_audit']['observed_at'] == stamp.isoformat()
+    assert tracker.total_evaluations == 1
+
+
 def test_states_stage_dedup_and_scores(tmp_path):
     t=SMCTelemetryTracker('TEST',output_dir=tmp_path,history_capacity=2)
     t.log_evaluation(result(), 'A','1')

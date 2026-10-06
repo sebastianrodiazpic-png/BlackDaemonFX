@@ -358,6 +358,14 @@ def _ensure_performance_indexes(engine):
         "ON daemon_audit_events (event_type, event_time)",
         "CREATE INDEX IF NOT EXISTS ix_audit_source_time "
         "ON daemon_audit_events (source, event_time)",
+        "CREATE INDEX IF NOT EXISTS ix_daemon_audit_events_recent "
+        "ON daemon_audit_events (source, event_type, event_time DESC, id DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_trade_audit_snapshots_lookup "
+        "ON trade_audit_snapshots (source, trade_id, snapshot_at DESC, id DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_trade_visual_audits_lookup "
+        "ON trade_visual_audits (source, trade_id)",
+        "CREATE INDEX IF NOT EXISTS ix_trade_journal_source_trade "
+        "ON trade_journal (source, source_trade_id)",
         "CREATE INDEX IF NOT EXISTS ix_trades_source_status "
         "ON trades (source, status)",
         "CREATE INDEX IF NOT EXISTS ix_runtime_source_profile "

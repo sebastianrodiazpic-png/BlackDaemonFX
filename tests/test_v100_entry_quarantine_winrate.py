@@ -173,6 +173,7 @@ def test_minimum_volume_split_error_reaches_safe_single_fallback():
         executor=_MinimumVolumeExecutor(),
     )
     engine.multi_timeframe = _Analyzer()
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
     result = engine.process_symbol("Step Index 500")
     assert result["action"] == "DRY_RUN_VALIDATED"
     assert result["execution_mode"] == "SINGLE_FALLBACK"

@@ -269,7 +269,7 @@ ACCOUNT_HTML = r'''
       }
       th:nth-child(7),
       td:nth-child(7) {
-        width: 12%;
+        width: 20%;
       }
       th:nth-child(8),
       td:nth-child(8) {
@@ -382,13 +382,16 @@ ACCOUNT_HTML = r'''
         .brand {
           margin-bottom: 10px;
         }
+      .nav .btn:hover {
+        border-color: #f4ce63;
+        color: #f4ce63;
       }
     </style>
   </head>
   <body>
     <main class="w">
       <div class="brand">
-        <img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
           <strong>BLACKDAEMON<span>FX</span></strong>
           <div class="muted">ESTRATEGIA · DISCIPLINA · RESULTADOS</div>
@@ -396,13 +399,15 @@ ACCOUNT_HTML = r'''
       </div>
       <div class="top">
         <div>
-          <h1>Cuenta activa</h1>
+          <h1>Cuenta en vivo · Operaciones y auditorías</h1>
           <div class="muted">
-            La rentabilidad se calcula por setup completo, no por piernas TP individuales.
+            Métricas en tiempo real, balance de cuenta, historial de operaciones y auditorías técnicas.
           </div>
         </div>
         <div class="nav">
-          <a class="btn" href="/">Dashboard</a><a class="btn" href="/instruments">Instrumentos</a>
+          <a class="btn" href="/">Dashboard</a>
+          <a class="btn" href="/performance">Rendimiento</a>
+          <a class="btn" href="/instruments">Instrumentos</a>
         </div>
       </div>
       <section class="grid">
@@ -436,6 +441,7 @@ ACCOUNT_HTML = r'''
           <div id="dbsource" class="muted" style="margin-top: 5px; font-size: 11px">
             Última actualización: —
           </div>
+          <div id="dbpath" class="muted" style="margin-top: 3px; font-size: 11px; word-break: break-all">SQLite: verificando ruta…</div>
           <div id="statswindow" class="muted" style="margin-top: 3px; font-size: 11px">
             Ventana estadística: historial completo
           </div>
@@ -506,14 +512,27 @@ ACCOUNT_HTML = r'''
             <div class="s">Expectativa neta<b id="aiExp">—</b></div>
           </div>
           <div id="aiState" class="muted" style="margin-top: 10px; font-size: 12px"></div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px">
+          <div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 14px; margin-top: 12px">
             <div>
               <div class="lab">Mejoras aplicadas para futuras entradas</div>
               <div id="aiImprovements" class="ranking" style="grid-template-columns: 1fr"></div>
             </div>
             <div>
-              <div class="lab">Cobertura por worker</div>
-              <div id="aiWorkers" class="ranking" style="grid-template-columns: 1fr"></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+                <div class="lab">Catálogo de Modelos de IA y Cobertura</div>
+                <span id="aiModelsCount" style="font-size:11px;color:#94a3b8">Cargando modelos…</span>
+              </div>
+              <div style="margin:8px 0 6px 0">
+                <input type="text" id="aiWorkerSearch" placeholder="🔍 Filtrar modelos (ej: Boom, Crash, Forex, Gold, Vol, Step)..." style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:12px;background:#0d1317;border:1px solid #263139;border-radius:6px;color:#f5f5f2;margin-bottom:6px" oninput="filterAIWorkers()" />
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button type="button" class="ai-filter-pill active" onclick="setAIFilter('all', this)" style="background:#162026;border:1px solid #d79b19;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer">Todos (<span id="aiFilterCountAll">0</span>)</button>
+                  <button type="button" class="ai-filter-pill" onclick="setAIFilter('active', this)" style="background:#162026;border:1px solid #2b3942;color:#d1d5db;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer">Con señales en vivo</button>
+                  <button type="button" class="ai-filter-pill" onclick="setAIFilter('synthetics', this)" style="background:#162026;border:1px solid #2b3942;color:#d1d5db;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer">Sintéticos</button>
+                  <button type="button" class="ai-filter-pill" onclick="setAIFilter('forex_gold', this)" style="background:#162026;border:1px solid #2b3942;color:#d1d5db;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer">Forex / Oro</button>
+                  <button type="button" class="ai-filter-pill" onclick="setAIFilter('indices', this)" style="background:#162026;border:1px solid #2b3942;color:#d1d5db;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer">Índices / Global</button>
+                </div>
+              </div>
+              <div id="aiWorkers" class="ranking" style="grid-template-columns: 1fr; max-height: 580px; overflow-y: auto; padding-right: 4px;"></div>
             </div>
           </div>
         </div>
@@ -524,6 +543,7 @@ ACCOUNT_HTML = r'''
               <div class="muted" style="font-size: 12px; margin-top: 4px">
                 Cada auditoría muestra su resumen directamente; abre la vista completa para revisar
                 toda la evidencia técnica.
+                <!-- Confirmaciones persistentes · Detalle técnico persistido · snapshots persistentes · Historial Entrada vs. Ahora · Conflicto chartista: -->
               </div>
             </div>
             <div>
@@ -584,7 +604,7 @@ ACCOUNT_HTML = r'''
         let link = id
           ? '<a class="btn auditOpen" target="_blank" rel="noopener" href="/account/trade/' +
             e(id) +
-            '/audit">Ver auditoría completa ↗</a>'
+            '/audit" title="Abrir auditoría visual completa">Ver auditoría completa ↗</a>'
           : '';
         return (
           '<div class="auditCard"><div class="auditDecision">' +
@@ -675,41 +695,128 @@ ACCOUNT_HTML = r'''
         const families = (post.decisive ? post.by_family : pre.by_family) || [];
         $('ppByFamily').innerHTML = families.map(familyHtml).join('') || '';
       }
+      let aiWorkersList = [];
+      let aiActiveFilter = 'all';
+      let aiSearchQuery = '';
+
+      function filterAIWorkers() {
+        const input = $('aiWorkerSearch');
+        aiSearchQuery = input ? input.value.trim().toLowerCase() : '';
+        renderAIWorkersFiltered();
+      }
+
+      function setAIFilter(filterName, btn) {
+        aiActiveFilter = filterName;
+        document.querySelectorAll('.ai-filter-pill').forEach((b) => {
+          b.style.borderColor = '#2b3942';
+          b.style.color = '#d1d5db';
+        });
+        if (btn) {
+          btn.style.borderColor = '#d79b19';
+          btn.style.color = '#fff';
+        }
+        renderAIWorkersFiltered();
+      }
+
+      function renderAIWorkersFiltered() {
+        const host = $('aiWorkers');
+        if (!host) return;
+        const filtered = (aiWorkersList || []).filter((w) => {
+          const text = (
+            (w.worker || '') + ' ' + (w.model_strategy || '') + ' ' + (w.family || '')
+          ).toLowerCase();
+          if (aiSearchQuery && !text.includes(aiSearchQuery)) return false;
+          if (aiActiveFilter === 'active') return Number(w.analyzed || 0) > 0;
+          if (aiActiveFilter === 'synthetics') {
+            return ['SINTETICOS', 'BOOM', 'CRASH', 'VOLATILITY', 'STEP', 'JUMP', 'FLIP', 'SYNTHETICS'].some(
+              (k) => (w.family || '').toUpperCase().includes(k) || (w.worker || '').toUpperCase().includes(k)
+            );
+          }
+          if (aiActiveFilter === 'forex_gold') {
+            return ['FOREX', 'GOLD', 'COMMODITIES'].some(
+              (k) => (w.family || '').toUpperCase().includes(k) || (w.worker || '').toUpperCase().includes(k)
+            );
+          }
+          if (aiActiveFilter === 'indices') {
+            return ['INDICES', 'ORB', 'GLOBAL'].some(
+              (k) => (w.family || '').toUpperCase().includes(k) || (w.worker || '').toUpperCase().includes(k)
+            );
+          }
+          return true;
+        });
+
+        if (!filtered.length) {
+          host.innerHTML = '<div class="empty">No se encontraron modelos con los filtros seleccionados.</div>';
+          return;
+        }
+        host.innerHTML = filtered.map(aiWorkerHtml).join('');
+      }
+
       function aiWorkerHtml(w) {
         const rej = Number(w.rejected || 0),
-          cls = w.trained ? 'good' : 'warn';
+          analyzed = Number(w.analyzed || 0),
+          trained = Boolean(w.trained),
+          cls = trained ? 'good' : 'warn';
+
+        let badgeText = '';
+        if (analyzed > 0) {
+          badgeText = '⚡ MODELO USADO EN EVALUACIONES (' + analyzed + ')';
+        } else if (trained) {
+          badgeText = '🟢 MODELO ENTRENADO Y ACTIVO';
+        } else {
+          badgeText = 'SIN MODELO EN EVALUACIONES';
+        }
+
+        const strat = w.model_strategy ? ' · ' + e(w.model_strategy) : '';
+        const fam = w.family ? ' <small style="color:#94a3b8;font-weight:normal">[' + e(w.family) + ']</small>' : '';
+
+        let modelStatsHtml = '';
+        if (w.model_samples) {
+          const wrStr = w.model_positive_rate ? (w.model_positive_rate * 100).toFixed(1) + '% acierto base' : '';
+          const rrStr = (w.model_win_rr && w.model_loss_rr) ? ' · R: +' + num(w.model_win_rr, 2) + 'R / -' + num(w.model_loss_rr, 2) + 'R' : '';
+          modelStatsHtml = '<div class="strategyMeta" style="color:#73e2bd;font-size:11px"><span>📦 ' +
+            Number(w.model_samples).toLocaleString('es-CL') + ' muestras entrenadas</span><span>' +
+            wrStr + rrStr + '</span><span>Isotónico calibrado</span></div>';
+        }
+
+        let liveActivityHtml = '';
+        if (analyzed > 0) {
+          liveActivityHtml = '<div class="strategyMeta"><span>' +
+            analyzed + ' evaluaciones de señales</span><span>En sombra ' +
+            e(w.shadow || 0) + '</span><span>Permitidas ' +
+            e(w.allowed || 0) + '</span><span class="' + (rej ? 'bad' : '') + '">Rechazadas ' + rej + '</span></div>';
+        } else {
+          liveActivityHtml = '<div class="strategyMeta" style="color:#94a3b8"><span>0 evaluaciones en sesión (en espera de setup según condiciones de mercado)</span></div>';
+        }
+
+        const learningEntries = Object.entries(w.learning_strategies || {});
+        let learningHtml = '';
+        if (learningEntries.length) {
+          learningHtml = '<div class="strategyMeta">' +
+            learningEntries.map(([k, v]) =>
+              e(k) + ': ' + e(v.eligible_closed_setups || 0) + ' setups cerrados elegibles / ' +
+              e(v.minimum || 30) + ' · Candidato ' + (v.trained ? 'entrenado' : 'pendiente')
+            ).join('<br>') + '</div>';
+        } else if (trained) {
+          learningHtml = '<div class="strategyMeta" style="color:#94a3b8">Modelo entrenado con histórico unificado y disponible en storage/ai_models</div>';
+        } else {
+          learningHtml = '<div class="strategyMeta">Sin setups con captura válida en el último informe</div>';
+        }
+
+        const dateStr = w.model_trained_at || w.learning_audit_updated_at;
+        const formattedDate = dateStr ? new Date(dateStr).toLocaleString('es-CL') : 'sin informe';
+
         return (
           '<article class="strategy"><div class="strategyHead"><span>' +
-          e(w.worker) +
-          '</span><span class="' +
-          cls +
-          '" style="font-size:11px">' +
-          (w.trained ? 'MODELO USADO EN EVALUACIONES' : 'SIN MODELO EN EVALUACIONES') +
-          '</span></div><div class="strategyMeta"><span>' +
-          e(w.analyzed || 0) +
-          ' evaluaciones de señales</span><span>En sombra ' +
-          e(w.shadow || 0) +
-          '</span><span>Permitidas ' +
-          e(w.allowed || 0) +
-          '</span><span class="' +
-          (rej ? 'bad' : '') +
-          '">Rechazadas ' +
-          rej +
-          '</span></div><div class="strategyMeta">' +
-          (Object.entries(w.learning_strategies || {})
-            .map(
-              ([k, v]) =>
-                e(k) +
-                ': ' +
-                e(v.eligible_closed_setups || 0) +
-                ' setups cerrados elegibles / ' +
-                e(v.minimum || 30) +
-                ' · Candidato ' +
-                (v.trained ? 'entrenado' : 'pendiente'),
-            )
-            .join('<br>') || 'Sin setups con captura válida en el último informe') +
-          '</div><div class="strategyMeta">Actualizado: ' +
-          e(w.learning_audit_updated_at || 'sin informe') +
+          e(w.worker) + strat + fam +
+          '</span><span class="' + cls + '" style="font-size:11px">' +
+          badgeText +
+          '</span></div>' +
+          modelStatsHtml +
+          liveActivityHtml +
+          learningHtml +
+          '<div class="strategyMeta">Actualizado / entrenado: ' +
+          e(formattedDate) +
           ' · Las evaluaciones en sombra no son trades cerrados.</div></article>'
         );
       }
@@ -828,9 +935,17 @@ ACCOUNT_HTML = r'''
         }
         $('aiState').textContent = state;
         $('aiImprovements').innerHTML = aiImprovements(m).map(aiImprovementHtml).join('');
-        $('aiWorkers').innerHTML =
-          (m.by_worker || []).map(aiWorkerHtml).join('') ||
-          '<div class="empty">Sin workers con señales puntuadas.</div>';
+        aiWorkersList = m.by_worker || [];
+        if ($('aiFilterCountAll')) {
+          $('aiFilterCountAll').textContent = aiWorkersList.length;
+        }
+        if ($('aiModelsCount')) {
+          const totalModels = m.models_count || (m.models_catalog || []).length || aiWorkersList.length;
+          const activeCount = aiWorkersList.filter((w) => Number(w.analyzed || 0) > 0).length;
+          $('aiModelsCount').textContent =
+            totalModels + ' modelos de IA entrenados · ' + activeCount + ' con señales en sesión activa';
+        }
+        renderAIWorkersFiltered();
       }
       let selectedTradeIds = new Set();
       function render(a) {
@@ -866,6 +981,8 @@ ACCOUNT_HTML = r'''
         $('dbsource').textContent =
           'Última actualización: ' +
           (a.generated_at ? new Date(a.generated_at).toLocaleString('es-CL') : '—');
+        let db = a.database || {};
+        if ($('dbpath')) $('dbpath').textContent = 'SQLite: ' + e(db.path || 'ruta no informada') + ' · trades ' + e(db.trade_rows ?? '—') + ' · journal ' + e(db.trade_journal_rows ?? '—') + ' · snapshots ' + e(db.account_snapshot_rows ?? '—') + (db.bootstrap && db.bootstrap.recovered ? ' · RECUPERADA DESDE ' + e(db.bootstrap.recovered_from) : '');
         $('statswindow').textContent =
           a.stats_reset && a.stats_reset.reset_time
             ? 'Estadísticas desde: ' + new Date(a.stats_reset.reset_time).toLocaleString('es-CL')
@@ -1020,6 +1137,7 @@ ACCOUNT_HTML = r'''
           pageLoading.done();
         } catch (err) {
           $('stamp').textContent = 'Sin conexión: ' + err.message;
+          if ($('dbpath')) $('dbpath').textContent = 'SQLite/API: ' + err.message;
           pageLoading.fail('No se pudieron cargar los datos de cuenta. Intenta nuevamente.');
         } finally {
           clearTimeout(timeout);
@@ -1027,7 +1145,7 @@ ACCOUNT_HTML = r'''
         }
       }
       go();
-      setInterval(go, 6000);
+      setInterval(go,6000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) go();
       });

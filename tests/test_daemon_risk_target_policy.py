@@ -50,6 +50,12 @@ class Executor:
             "actual_risk_amount": 40.0,
         }
 
+    def get_open_positions(self):
+        return []
+
+    def get_pending_orders(self):
+        return []
+
 
 class Analyzer:
     def analyze_symbol(self, symbol):

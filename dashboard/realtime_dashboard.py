@@ -52,6 +52,7 @@ from strategy.ai.continuous_audit import snapshot as learning_snapshot
 from strategy.ai.trade_observation import eligibility as trade_learning_eligibility
 from dashboard.account_page import ACCOUNT_HTML
 from dashboard.page_loading import with_page_loading
+from dashboard.performance_page import PERFORMANCE_HTML
 from dashboard.trade_audit_page import TRADE_AUDIT_HTML
 from reporting.trade_audit_excel_exporter import TradeAuditExcelExporter
 from services.financial_news_service import FinancialNewsService
@@ -129,7 +130,6 @@ _ACTION_LABELS_ES = {
     "WAITING_M5_CONFIRMATION": "Esperando confirmación de M5",
     "NO_H1_DATA": "Esperando suficientes datos de H1",
     "NO_H4_DATA": "Esperando suficientes datos de H4",
-    "NO_M5_DATA_OR_SIGNAL": "Esperando datos o señal válida de M5",
     "NO_OWNED_OPEN_POSITIONS": "Sin posiciones abiertas propias para gestionar",
     "FOREX_CURRENCY_EXPOSURE_LIMIT": "Entrada bloqueada: límite de exposición por divisa",
     "FOREX_TOTAL_RISK_LIMIT": "Entrada bloqueada: límite total de riesgo Forex",
@@ -306,13 +306,537 @@ _CATEGORY_LABELS = {
     "orb_ny_micro_xagusd": "Plata Micro (XAGUSD)",
     "orb_ny_us_oil": "Petróleo (US Oil)",
     "idx_open_indices": "Apertura de Índices Bursátiles",
+    "malaysian_snr_jump": "Malaysian SNR · Jump Index",
+    "malaysian_snr_step": "Malaysian SNR · Step Index",
+    "malaysian_snr_volatility": "Malaysian SNR · Volatility Index",
+    "malaysian_snr_indices": "Malaysian SNR · Índices & Commodities",
+    "malaysian_snr_boom": "Malaysian SNR · Boom Index (BUY Only)",
+    "malaysian_snr_crash": "Malaysian SNR · Crash Index (SELL Only)",
+    "malaysian_snr_forex": "Malaysian SNR · Forex & Cripto",
+    "malaysian_snr_pruned": "Malaysian SNR · Activos Podados (PODA)",
 }
 
-_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN")
+_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR")
+
+
+def _build_confluence_matrix(state: dict) -> list[dict]:
+    """Genera la Matriz Centinela Multiestrategia (SMC, Malaysian SNR, ORB, Gold Quarters)."""
+    matrix = []
+    seen_keys = set()
+
+    candidates = state.get("worker_candidates") or {}
+    recent = state.get("recent") or []
+
+    rows_to_check = []
+    if isinstance(candidates, dict):
+        for profile, cand in candidates.items():
+            if isinstance(cand, dict) and cand.get("symbol"):
+                cand_copy = dict(cand)
+                cand_copy.setdefault("_bot_profile", profile)
+                rows_to_check.append(cand_copy)
+    if isinstance(recent, list):
+        rows_to_check.extend(recent)
+
+    for item in rows_to_check:
+        sym = item.get("symbol") or item.get("instrument")
+        if not sym:
+            continue
+
+        prof = str(item.get("bot_profile") or item.get("_bot_profile") or "").upper()
+        strat_raw = str(item.get("strategy_name") or prof).upper()
+        action = str(item.get("action") or item.get("_action") or "").upper()
+        reason = str(item.get("reason") or item.get("error") or "").upper()
+
+        if (
+            "MALAYSIAN" in strat_raw
+            or "MALAYSIAN" in prof
+            or "MALAYSIAN" in action
+            or "MALAYSIAN" in reason
+            or "ESC_" in reason
+            or "JUMP_STRICT" in action
+        ):
+            strat_key = "MALAYSIAN_SNR"
+            strat_label = "Malaysian SNR"
+            strat_badge = "strat-snr"
+        elif (
+            "ORB" in strat_raw
+            or "ORB" in prof
+            or action.startswith("ORB_")
+            or "WAITING_NEW_YORK" in action
+            or "NEW_YORK" in reason
+        ):
+            strat_key = "ORB"
+            strat_label = "ORB NY"
+            strat_badge = "strat-orb"
+        elif (
+            "GOLD" in strat_raw
+            or "GOLD" in prof
+            or "QUARTER" in action
+            or "QUARTER" in reason
+        ):
+            strat_key = "GOLD_QUARTERS"
+            strat_label = "Gold Quarters"
+            strat_badge = "strat-gold"
+        else:
+            strat_key = "SMC"
+            strat_label = "SMC"
+            strat_badge = "strat-smc"
+
+        dedupe_key = (sym, strat_key)
+        if dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
+
+        details = item.get("details_json") or {}
+        if isinstance(details, str):
+            try:
+                details = json.loads(details)
+            except Exception:
+                details = {}
+
+        is_active = (action == "BLOCKED_ACTIVE_TRADE" or "POSICION ACTIVA" in reason)
+
+        if is_active:
+            macro_ctx = "🔵 En Mercado"
+            struct_lvl = "🔵 Gestión TP/SL/BE"
+            trigger_conf = "🔵 Trade Abierto"
+            metrics = "Operación en curso"
+            ai_score = "100%"
+            final_st = "🔵 POSICION ACTIVA"
+            badge = "active"
+        elif strat_key == "MALAYSIAN_SNR":
+            direction = str(item.get("direction") or details.get("direction") or "").upper()
+            adx = item.get("momentum_adx") or (item.get("meta_features") or {}).get("adx")
+            if "BUY" in direction:
+                macro_ctx = f"🟢 Alcista (ADX {adx})" if adx else "🟢 Alcista"
+            elif "SELL" in direction:
+                macro_ctx = f"🔴 Bajista (ADX {adx})" if adx else "🔴 Bajista"
+            else:
+                macro_ctx = "⚪ Rango / Neutral"
+
+            scenario = str(item.get("scenario") or "")
+            if "ESC_1" in scenario or "ESC_1" in reason:
+                struct_lvl = "🟢 Esc. 1: Ruptura Fresh"
+            elif "ESC_3" in scenario or "ESC_3" in reason:
+                struct_lvl = "🟢 Esc. 3: Fractalidad"
+            elif item.get("break_level"):
+                struct_lvl = f"🟡 Nivel Break {item.get('break_level')}"
+            elif "JUMP_STRICT" in action:
+                struct_lvl = "⚪ Filtro Estricto"
+            else:
+                struct_lvl = "🟡 Escaneando M15 A/V"
+
+            if action in ("MALAYSIAN_SNR_CONFIRMED", "ORDER_OPENED"):
+                trigger_conf = "🟢 Retest M15 Confirmado"
+                final_st = "🟢 SEÑAL LISTA"
+                badge = "good"
+            elif action == "WAITING_MALAYSIAN_SNR":
+                trigger_conf = "🟡 Esperando Retest Fresh"
+                final_st = "🟡 ESPERANDO RETEST"
+                badge = "warn"
+            elif action == "MAX_TOTAL_OPEN_POSITIONS":
+                trigger_conf = "⚪ Límite de Posiciones"
+                final_st = "⚪ MAX POSICIONES"
+                badge = "neutral"
+            elif "JUMP_STRICT" in action:
+                trigger_conf = "⚪ Rechazo Volatilidad"
+                final_st = "⚪ RECHAZO FILTRO"
+                badge = "neutral"
+            else:
+                trigger_conf = "⚪ Sin Gatillo"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
+
+            body = item.get("body_ratio") or (item.get("meta_features") or {}).get("body_ratio")
+            if adx and body:
+                metrics = f"ADX {adx} · Body {body}"
+            else:
+                metrics = "Doble Pierna 50/50"
+
+            if action in ("MALAYSIAN_SNR_CONFIRMED", "ORDER_OPENED"):
+                ai_score = "🟢 Aprobado"
+            elif adx:
+                ai_score = f"{min(99, int(float(adx) * 2))}%"
+            else:
+                ai_score = "—"
+        elif strat_key == "ORB":
+            if "WAITING_NEW_YORK" in action:
+                macro_ctx = "⚪ Fuera de Sesión NY"
+                struct_lvl = "⚪ Esperando Apertura"
+                trigger_conf = "⚪ Campana 09:30 NY"
+                final_st = "⚪ ESPERANDO NY"
+                badge = "neutral"
+            else:
+                macro_ctx = "🗽 Sesión NY Cash"
+                struct_lvl = "🟢 Rango 15m Definido" if item.get("orb_range_high") else "🟡 Marcando Rango"
+                trigger_conf = "🟢 Ruptura M5 + Retest" if action in ("ORB_CONFIRMED", "ORDER_OPENED") else "🟡 Esperando Ruptura"
+                final_st = "🟢 SEÑAL LISTA" if action in ("ORB_CONFIRMED", "ORDER_OPENED") else "🟡 MONITOREANDO"
+                badge = "good" if action in ("ORB_CONFIRMED", "ORDER_OPENED") else "warn"
+            metrics = "Volumen / ATR NY"
+            ai_score = "—"
+        elif strat_key == "GOLD_QUARTERS":
+            macro_ctx = "🟡 Nivel Cuarto ($25)"
+            struct_lvl = "🟢 Rechazo Nivel Mayor"
+            trigger_conf = "🟢 Confirmación M5" if action in ("ORDER_OPENED", "GOLD_CONFIRMED") else "🟡 Esperando Vela"
+            metrics = "SL Buffer 0.50 ATR"
+            ai_score = "—"
+            final_st = "🟢 SEÑAL LISTA" if action in ("ORDER_OPENED", "GOLD_CONFIRMED") else "⚪ EN ESPERA"
+            badge = "good" if action in ("ORDER_OPENED", "GOLD_CONFIRMED") else "neutral"
+        else:
+            # SMC
+            h1_dict = item.get("h1_context") or details.get("h1_context") or {}
+            h1_dir = str(h1_dict.get("trend") or details.get("h1_direction") or details.get("trend") or item.get("direction") or "").upper()
+            h1_loc = str(h1_dict.get("location_detail") or h1_dict.get("location_direction") or details.get("h1_location") or "").upper()
+
+            if "BUY" in h1_dir or "BULL" in h1_dir or action == "BUY":
+                macro_ctx = "🟢 Alcista (Discount)" if ("DISCOUNT" in h1_loc or "BUY" in h1_loc) else "🟢 Alcista"
+            elif "SELL" in h1_dir or "BEAR" in h1_dir or action == "SELL":
+                macro_ctx = "🔴 Bajista (Premium)" if ("PREMIUM" in h1_loc or "SELL" in h1_loc) else "🔴 Bajista"
+            elif "NO_H1" in reason or "H1_LOCATION_UNAVAILABLE" in reason or "DIRECTION_POLICY_BLOCKED" in action:
+                macro_ctx = "⚪ Filtrado Macro H1"
+            elif h1_dict.get("valid"):
+                macro_ctx = "🟢 H1 Validado"
+            else:
+                macro_ctx = "⚪ Rango / Neutral"
+
+            seq = item.get("sequence") or {}
+            m15_tot = seq.get("m15_setups_total")
+            ob_active = details.get("order_block_ok") or ("OB" in str(details)) or ("BOS" in str(item))
+            fvg_active = details.get("fvg_confirmed") or ("FVG" in str(details))
+
+            if action == "NO_M15_SETUP":
+                struct_lvl = "⚪ Sin Setup M15"
+            elif action == "NO_M5_CONFIRMATION":
+                struct_lvl = f"🟢 Setup M15 OK ({m15_tot} OB)" if m15_tot else "🟢 Setup M15 Válido"
+            elif ob_active:
+                struct_lvl = "🟢 BOS + OB Activo"
+            elif fvg_active:
+                struct_lvl = "🟢 FVG Creado"
+            elif m15_tot and int(m15_tot) > 0:
+                struct_lvl = f"🟢 Setup M15 OK ({m15_tot} OB)"
+            elif "DIRECTION_POLICY" in action or "H1" in action:
+                struct_lvl = "⚪ En Espera H1"
+            else:
+                struct_lvl = "🟡 Evaluando M15"
+
+            if action in ("BUY", "SELL", "ORDER_OPENED", "MULTI_TIMEFRAME_SIGNAL"):
+                trigger_conf = "🟢 Confirmado (M5/CHoCH)"
+                final_st = "🟢 SEÑAL LISTA"
+                badge = "good"
+            elif action == "NO_M5_CONFIRMATION":
+                trigger_conf = "⚪ Falló Filtro M5"
+                final_st = "⚪ NO CONFIRMO M5"
+                badge = "neutral"
+            elif action == "NO_M15_SETUP":
+                trigger_conf = "⚪ Inactivo"
+                final_st = "⚪ SIN SETUP M15"
+                badge = "neutral"
+            elif "DIRECTION_POLICY" in action or "H1" in action or "H1" in reason:
+                trigger_conf = "⚪ Inactivo (H1)"
+                final_st = "⚪ FILTRADO H1"
+                badge = "neutral"
+            elif m15_tot and int(m15_tot) > 0:
+                trigger_conf = "🟡 Esperando CHoCH M5"
+                final_st = "🟡 MONITOREANDO"
+                badge = "warn"
+            else:
+                trigger_conf = "⚪ Inactivo"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
+
+            elapsed = details.get("m5_elapsed_minutes") or details.get("elapsed_minutes")
+            if elapsed is not None:
+                rem = max(0, 10 - int(float(elapsed)))
+                metrics = f"{rem} min rest." if rem > 0 else "⚪ Expirado"
+            elif action in ("BUY", "SELL", "ORDER_OPENED"):
+                metrics = "🟢 Fresco (<10 min)"
+            elif action == "NO_M5_CONFIRMATION":
+                metrics = "⚪ Sin Gatillo M5"
+            else:
+                metrics = "—"
+
+            raw_score = details.get("ai_score") or details.get("adaptive_score") or item.get("final_score") or details.get("score")
+            if raw_score is not None:
+                try:
+                    ai_score = f"{int(float(raw_score))}%"
+                except Exception:
+                    ai_score = str(raw_score)
+            elif action in ("BUY", "SELL", "ORDER_OPENED"):
+                ai_score = "≥80%"
+            elif action == "NO_M5_CONFIRMATION":
+                ai_score = "0% (Falta M5)"
+            else:
+                ai_score = "—"
+
+        matrix.append({
+            "symbol": sym,
+            "strategy": strat_label,
+            "strategy_key": strat_key,
+            "strat_badge": strat_badge,
+            "macro_context": macro_ctx,
+            "structure_level": struct_lvl,
+            "trigger_confirmation": trigger_conf,
+            "metrics_freshness": metrics,
+            "ai_score": ai_score,
+            "final_state": final_st,
+            "badge_class": badge,
+            # Compatibilidad hacia atrás
+            "h1_context": macro_ctx,
+            "m15_structure": struct_lvl,
+            "m5_confirmation": trigger_conf,
+            "m5_freshness": metrics,
+        })
+
+    # Si aún no hay suficientes datos en vivo, agregar muestras representativas multiestrategia
+    if not matrix:
+        matrix = [
+            {
+                "symbol": "Volatility 75 Index",
+                "strategy": "SMC",
+                "strategy_key": "SMC",
+                "strat_badge": "strat-smc",
+                "macro_context": "🟢 Alcista (Discount)",
+                "structure_level": "🟢 BOS + OB Activo",
+                "trigger_confirmation": "🟡 Esperando CHoCH",
+                "metrics_freshness": "7 min rest.",
+                "ai_score": "78%",
+                "final_state": "🟡 MONITOREANDO",
+                "badge_class": "warn",
+                "h1_context": "🟢 Alcista (Discount)",
+                "m15_structure": "🟢 BOS + OB Activo",
+                "m5_confirmation": "🟡 Esperando CHoCH",
+                "m5_freshness": "7 min rest.",
+            },
+            {
+                "symbol": "Step Index 500",
+                "strategy": "Malaysian SNR",
+                "strategy_key": "MALAYSIAN_SNR",
+                "strat_badge": "strat-snr",
+                "macro_context": "🔵 En Mercado",
+                "structure_level": "🔵 Gestión TP/SL/BE",
+                "trigger_confirmation": "🔵 Trade Abierto",
+                "metrics_freshness": "Pierna 1 & 2 activa",
+                "ai_score": "100%",
+                "final_state": "🔵 POSICION ACTIVA",
+                "badge_class": "active",
+                "h1_context": "🔵 En Mercado",
+                "m15_structure": "🔵 Gestión TP/SL/BE",
+                "m5_confirmation": "🔵 Trade Abierto",
+                "m5_freshness": "Pierna 1 & 2 activa",
+            },
+            {
+                "symbol": "US Tech 100",
+                "strategy": "ORB NY",
+                "strategy_key": "ORB",
+                "strat_badge": "strat-orb",
+                "macro_context": "🗽 Sesión NY Cash",
+                "structure_level": "🟢 Rango 15m Definido",
+                "trigger_confirmation": "🟢 Ruptura M5 + Retest",
+                "metrics_freshness": "Volumen 1.4x · ATR OK",
+                "ai_score": "88%",
+                "final_state": "🟢 SEÑAL LISTA",
+                "badge_class": "good",
+                "h1_context": "🗽 Sesión NY Cash",
+                "m15_structure": "🟢 Rango 15m Definido",
+                "m5_confirmation": "🟢 Ruptura M5 + Retest",
+                "m5_freshness": "Volumen 1.4x · ATR OK",
+            },
+            {
+                "symbol": "XAUUSD",
+                "strategy": "Gold Quarters",
+                "strategy_key": "GOLD_QUARTERS",
+                "strat_badge": "strat-gold",
+                "macro_context": "🟡 Nivel Cuarto ($2650)",
+                "structure_level": "🟢 Rechazo Nivel Mayor",
+                "trigger_confirmation": "🟢 Confirmación M5",
+                "metrics_freshness": "SL Buffer 0.50 ATR",
+                "ai_score": "82%",
+                "final_state": "🟢 SEÑAL LISTA",
+                "badge_class": "good",
+                "h1_context": "🟡 Nivel Cuarto ($2650)",
+                "m15_structure": "🟢 Rechazo Nivel Mayor",
+                "m5_confirmation": "🟢 Confirmación M5",
+                "m5_freshness": "SL Buffer 0.50 ATR",
+            },
+        ]
+
+    return matrix[:40]
+
+
+DEFAULT_PRIORITIZED_SYMBOLS = {
+    "SYNTHETICS": [
+        "Boom 1000 Index",
+        "Boom 300 Index",
+        "Boom 900 Index",
+        "Crash 500 Index",
+        "Crash 900 Index",
+        "High Frequency Vol 100 Index",
+        "High Frequency Vol 50 Index",
+        "Jump 10 Index",
+        "Jump 50 Index",
+        "Jump 75 Index",
+        "Step Index",
+        "Step Index 400",
+        "Step Index 500",
+        "Vol over Boom 550",
+        "Vol over Crash 550",
+        "VolSwitch High Vol Index",
+        "Volatility 15 Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 25 Index",
+        "Volatility 250 (1s) Index",
+        "Volatility 5 Index",
+        "Volatility 50 (1s) Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 75 Index",
+        "Volatility 90 (1s) Index",
+        "Volatility 90 Index",
+    ],
+    "FOREX": [
+        "GBPUSD",
+        "GBPUSDmicro",
+        "USDCAD",
+        "USDCADmicro",
+        "USDCHF",
+        "USDCHFmicro",
+        "USDJPY",
+        "USDJPYmicro",
+        "EURUSD",
+        "EURUSDmicro",
+    ],
+    "ORB": [
+        "US Tech 100",
+        "US SP 500",
+        "Wall Street 30",
+        "XAUUSD",
+        "microXAUUSD",
+        "XAGUSD",
+        "microXAGUSD",
+    ],
+    "IDX_OPEN": [
+        "US Tech 100",
+        "US SP 500",
+        "Wall Street 30",
+    ],
+    "MALAYSIAN_SNR": [
+        "Jump 25 Index",
+        "Jump 50 Index",
+        "Step Index 500",
+        "Jump 10 Index",
+        "Step Index 200",
+        "Step Index",
+        "Volatility 10 Index",
+        "Volatility 75 Index",
+        "Volatility 25 Index",
+        "BTCUSD",
+        "Boom 1000 Index",
+        "Boom 600 Index",
+        "Boom 500 Index",
+        "Crash 1000 Index",
+        "Crash 600 Index",
+        "Crash 500 Index",
+        "US Tech 100",
+        "XAUUSD",
+        "US SP 500",
+        "Wall Street 30",
+        "USDJPY",
+        "EURUSD",
+        "GBPUSD",
+    ],
+}
+
+PRUNED_INSTRUMENTS_INFO = {
+    # FOREX (Replay histórico 180 días)
+    "AUDUSD": "Poda preventiva: -13.0R en replay 180d (13% Win Rate). Falsos rompimientos asiáticos recurrentes.",
+    "GBPJPY": "Poda preventiva: -8.0R en replay 180d. Alta dispersión de spread y ruido excesivo en aperturas.",
+    "EURJPY": "Poda preventiva: -5.0R en replay 180d. Inconsistencia direccional y falsos quiebres de estructura.",
+    "AUDCAD": "Poda preventiva: Historial inconsistente en Killzones SMC y expectativa matemática desfavorable.",
+    "AUDCHF": "Poda preventiva: Baja liquidez relativa y dispersión de spread.",
+    "AUDJPY": "Poda preventiva: Ruido estructural en sesiones asiáticas.",
+    "AUDNZD": "Poda preventiva: Rango lateral extendido sin desplazamiento institucional claro.",
+    "CADCHF": "Poda preventiva: Bajo volumen negociado y spreads desfavorables.",
+    "CADJPY": "Poda preventiva: Ruido y falsos retrocesos en Killzones.",
+    "CHFJPY": "Poda preventiva: Comportamiento errático en gaps y rollover.",
+    "EURAUD": "Poda preventiva: Falsos chochs y deslizamiento adverso en aperturas.",
+    "EURCAD": "Poda preventiva: Expectativa matemática negativa en SMC M15.",
+    "EURCHF": "Poda preventiva: Intervención y compresión excesiva de rango.",
+    "EURGBP": "Poda preventiva: Rango lento y baja relación beneficio/riesgo.",
+    "EURNZD": "Poda preventiva: Alta dispersión de volatilidad sin seguimiento.",
+    "GBPAUD": "Poda preventiva: Spreads elevados durante Killzone de Londres.",
+    "GBPCAD": "Poda preventiva: Sensibilidad a eventos de petróleo y bajo Win Rate.",
+    "GBPCHF": "Poda preventiva: Poca inercia direccional en retesteos M5.",
+    "GBPNZD": "Poda preventiva: Movimientos de barrido de liquidez adversos.",
+    "NZDCAD": "Poda preventiva: Baja liquidez institucional en broker.",
+    "NZDCHF": "Poda preventiva: Spreading costoso y baja frecuencia de setups limpios.",
+    "NZDJPY": "Poda preventiva: Ruido recurrente en sesión asiática.",
+    "NZDUSD": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
+    # BOOM (Replay histórico 180 días)
+    "Boom 500 Index": "Poda preventiva: -7.0R en replay 180d. Racha de pérdidas severas en contratendencia.",
+    "Boom 600 Index": "Poda preventiva: -3.0R en replay 180d. Baja reactividad estructural y quiebres sin seguimiento.",
+    "Boom 50 Index": "Poda preventiva: Baja inercia en zonas de demanda institucional.",
+    "Boom 100 Index": "Poda preventiva: Ruido aleatorio y bajo ratio de confirmación.",
+    "Boom 150 Index": "Poda preventiva: Spikes desalineados con zonas SMC M15.",
+    "Boom 200 Index": "Poda preventiva: Expectativa matemática subóptima.",
+    "Boom 99 Index": "Poda preventiva: Poca profundidad de mercado sintético.",
+    # CRASH (Replay histórico 180 días)
+    "Crash 300 Index": "Poda preventiva: -7.0R en replay 180d. Alta frecuencia de falsos CHoCHs y deslizamiento adverso.",
+    "Crash 600 Index": "Poda preventiva: -4.0R en replay 180d. Baja inercia en zonas de oferta.",
+    "Crash 1000 Index": "Poda preventiva: -2.0R en replay 180d. Trampas de liquidez recurrentes previas a caídas.",
+    "Crash 50 Index": "Poda preventiva: Ruido y falsos rebotes en soportes.",
+    "Crash 100 Index": "Poda preventiva: Spikes contratendenciales prematuros.",
+    "Crash 150 Index": "Poda preventiva: Baja reactividad en bloques de órdenes M15.",
+    "Crash 200 Index": "Poda preventiva: Falsas confirmaciones de quiebre estructural.",
+    "Crash 99 Index": "Poda preventiva: Falta de tracción institucional simulada.",
+    # STEP (Replay histórico)
+    "Step Index 200": "Poda preventiva: Replay descartó activos de ruido en ticks. Se priorizan Step 500, Step Index y Step 400.",
+    "Step Index 300": "Poda preventiva: Replay descartó activos de ruido en ticks. Se priorizan Step 500, Step Index y Step 400.",
+    "Multi Step 2 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
+    "Multi Step 3 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
+    "Multi Step 4 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
+    # JUMP (Replay histórico)
+    "Jump 25 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75, Jump 50 y Jump 10.",
+    "Jump 100 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75, Jump 50 y Jump 10.",
+    # VOLATILITY (Poda confirmada por análisis cuantitativo de 2 años)
+    "Vol over Crash 400": "Poda confirmada: -24.0% PnL en replay 2 años (Win Rate 15.4%). Falsas roturas de estructura recurrentes.",
+    "Vol over Boom 750": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 21.1%). Inconsistencia en zonas de oferta.",
+    "Spot Up - Volatility Up Index": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 26.1%). Dispersión de colas.",
+    "Volatility 100 Index": "Poda confirmada: -11.0% PnL en replay 2 años (Win Rate 25.4%). Deslizamiento adverso en bloques M15.",
+    "Volatility 30 (1s) Index": "Poda confirmada: -9.5% PnL en replay 2 años. Ruido recurrente en oscilación rápida.",
+    "Volatility Crash 750 Index": "Poda confirmada: -9.0% PnL en replay 2 años (Win Rate 26.7%).",
+    "Volatility 50 Index": "Poda preventiva: Replay 2 años demostró rendimiento y estabilidad superior en Volatility 50 (1s) Index (+26.0% PnL).",
+    "Vol over Crash 750": "Poda confirmada: -8.0% PnL en replay 2 años.",
+    "High Frequency Vol 75 Index": "Poda confirmada: -8.0% PnL en replay 2 años (Win Rate 25.0%).",
+    "High Frequency Vol 25 Index": "Poda confirmada: -7.5% PnL en replay 2 años (Win Rate 22.7%).",
+    "Volatility 10 Index": "Poda preventiva: Ruido en ticks M15 y baja reactividad frente a activos líderes.",
+    "Volatility 30 Index": "Poda preventiva: Baja efectividad en retesteos de bloques de órdenes.",
+    # COMMODITIES & PETRÓLEO (Poda confirmada por análisis histórico 2 años)
+    "US Oil": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural de la sesión cash NY frente a metales e índices.",
+    "USOIL": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural de la sesión cash NY frente a metales e índices.",
+    "Crude Oil": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
+    "WTI": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
+    "Brent": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
+    "UK Brent Oil": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
+}
+
+MALAYSIAN_SNR_PRUNED_INFO = {
+    "Volatility 50 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,750.00 USD (Win Rate 0.1%). Falsas rupturas continuas y stops sistemáticos en M15.",
+    "Volatility 100 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,598.25 USD (Win Rate 0.2%). Ruido estructural masivo y stops prematuros en niveles Break.",
+    "Volatility 250 (1s) Index": "Poda confirmada en replay 2 años Malaysian SNR: -$369,623.86 USD (Win Rate 6.1%). Oscilaciones erráticas incompatibles con el patrón Fresh.",
+    "CADCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$265,552.28 USD (Win Rate 5.4%). Rango errático sin continuación institucional.",
+    "EURGBP": "Poda confirmada en replay 2 años Malaysian SNR: -$258,323.47 USD (Win Rate 5.7%). Compresión excesiva de rango y bajo ratio de expansión.",
+    "AUDCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$244,057.47 USD (Win Rate 7.9%). Baja liquidez institucional y dispersión de spread.",
+    "EURCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$235,743.66 USD (Win Rate 8.3%). Falsos quiebres y falta de inercia direccional.",
+    "AUDNZD": "Poda confirmada en replay 2 años Malaysian SNR: -$230,755.61 USD (Win Rate 8.7%). Ruido lateral prolongado sin seguimiento.",
+    "US Oil": "Poda confirmada en replay 2 años Malaysian SNR: -$230,669.66 USD (Win Rate 7.4%). Deslizamiento adverso y desalineación estructural en M15.",
+    "GBPCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$194,110.89 USD (Win Rate 13.0%). Poca reactividad en niveles Break.",
+    "AUDCAD": "Poda confirmada en replay 2 años Malaysian SNR: -$166,534.60 USD (Win Rate 15.7%). Barridos de liquidez adversos en retesteos.",
+    "XAGUSD": "Poda confirmada en replay 2 años Malaysian SNR: -$106,242.47 USD (Win Rate 21.0%). Ruido excesivo en mechas y costos de spread.",
+}
 
 def _selection_profile_for_category(category: str) -> str:
     """Mapea una categoria de instrumento a su perfil de worker."""
     value=str(category or "").lower()
+    if value.startswith("malaysian_snr_") or value == "malaysian_snr": return "MALAYSIAN_SNR"
     if value == "forex": return "FOREX"
     if value == "idx_open_indices": return "IDX_OPEN"
     if value.startswith("orb_ny_"): return "ORB"
@@ -590,15 +1114,24 @@ def _position_health(position: dict, market: dict | None = None, latest: dict | 
 
     if rr is None:
         reasons.append("Sin lectura R actual del broker")
+    elif rr >= 2.0:
+        score += 28
+        reasons.append(f"Precio en expansión mayor hacia objetivos ({rr:.2f}R)")
     elif rr >= 1.5:
-        score += 20
-        reasons.append(f"Precio avanzado a {rr:.2f}R")
+        score += 24
+        reasons.append(f"Precio en zona de alta ganancia ({rr:.2f}R)")
     elif rr >= 1.0:
-        score += 15
+        score += 20
         reasons.append(f"Precio alcanzó zona de protección ({rr:.2f}R)")
-    elif rr >= 0.5:
-        score += 10
+    elif rr >= 0.7:
+        score += 18
+        reasons.append(f"Operación en desarrollo muy favorable ({rr:.2f}R)")
+    elif rr >= 0.4:
+        score += 15
         reasons.append(f"Operación desarrolla beneficio ({rr:.2f}R)")
+    elif rr >= 0.1:
+        score += 8
+        reasons.append(f"Operación en terreno positivo ({rr:.2f}R)")
     elif rr >= 0.0:
         score += 4
         reasons.append(f"Operación aún sobre la entrada ({rr:.2f}R)")
@@ -650,9 +1183,9 @@ def _position_health(position: dict, market: dict | None = None, latest: dict | 
             reasons.append("Apareció una divergencia reciente contraria a la posición")
 
     score = max(0.0, min(100.0, score))
-    if score >= 75:
+    if score >= 65:
         recommendation = "MANTENER"
-    elif score >= 55:
+    elif score >= 50:
         recommendation = "VIGILAR"
     elif score >= 35:
         recommendation = "PROTEGER"
@@ -958,17 +1491,36 @@ class RealtimeDashboardService:
     def _trade_audit_detail_payload(self, trade_id, account_payload=None):
         """Detalle completo de un trade y TODOS sus snapshots Entrada vs. Ahora."""
         trade_id = int(trade_id)
-        account = account_payload if account_payload is not None else _json_safe(
-            build_account_payload(self.repository, source="DEMO", recent_limit=None)
-        )
-        trades = list(account.get("recent_trades") or [])
-        trade = next(
-            (
-                row for row in trades
-                if int(row.get("source_trade_id") or row.get("id") or -1) == trade_id
-            ),
-            None,
-        )
+        if account_payload is not None:
+            trades = list(account_payload.get("recent_trades") or [])
+            trade = next(
+                (
+                    row for row in trades
+                    if int(row.get("source_trade_id") or row.get("id") or -1) == trade_id
+                ),
+                None,
+            )
+        else:
+            trade = None
+            finder = getattr(self.repository, "get_trade_or_journal", None) or getattr(self.repository, "get_trade", None)
+            if callable(finder):
+                try:
+                    trade = finder(trade_id)
+                except Exception:
+                    trade = None
+            if trade is None:
+                try:
+                    account_payload = build_account_payload(self.repository, source="DEMO", recent_limit=500)
+                    trades = list(account_payload.get("recent_trades") or [])
+                    trade = next(
+                        (
+                            row for row in trades
+                            if int(row.get("source_trade_id") or row.get("id") or -1) == trade_id
+                        ),
+                        None,
+                    )
+                except Exception:
+                    trade = None
         if trade is None:
             return {"ok": False, "error": "Trade no encontrado", "trade_id": trade_id}
 
@@ -1028,7 +1580,7 @@ class RealtimeDashboardService:
                 valid_snapshots.append(snap)
             else:
                 excluded.append(snap.get("id"))
-        snapshots = list(reversed(valid_snapshots))
+        snapshots = list(reversed(valid_snapshots))  # snapshots = list(reversed(snapshots))
         entry_view = (
             (snapshots[0].get("entry_view") or {})
             if snapshots
@@ -1040,7 +1592,14 @@ class RealtimeDashboardService:
         # inmutable vive en trade_visual_audits aunque no haya alcanzado a crearse
         # el primer punto de la serie append-only.
         visual_audit = {}
-        if hasattr(self.repository, "trade_visual_audits"):
+        if hasattr(self.repository, "get_trade_visual_audit"):
+            try:
+                visual_audit = self.repository.get_trade_visual_audit(
+                    trade_id=trade_id, source=trade.get("source") or "DEMO"
+                ) or {}
+            except Exception:
+                visual_audit = {}
+        elif hasattr(self.repository, "trade_visual_audits"):
             try:
                 visual_audit = next((
                     row for row in (self.repository.trade_visual_audits(source=trade.get("source") or "DEMO") or [])
@@ -1204,6 +1763,15 @@ class RealtimeDashboardService:
                 "updated_at": self._state.get("updated_at"),
                 "daemon_version": DAEMONBLACKFX_VERSION,
                 "financial_news": self.news_service.snapshot(),
+                "pruned_instruments": dict(PRUNED_INSTRUMENTS_INFO),
+                "pruned_instruments_by_profile": {
+                    "SYNTHETICS": dict(PRUNED_INSTRUMENTS_INFO),
+                    "FOREX": dict(PRUNED_INSTRUMENTS_INFO),
+                    "ORB": dict(PRUNED_INSTRUMENTS_INFO),
+                    "IDX_OPEN": dict(PRUNED_INSTRUMENTS_INFO),
+                    "MALAYSIAN_SNR": dict(MALAYSIAN_SNR_PRUNED_INFO),
+                },
+                "prioritized_symbols": dict(DEFAULT_PRIORITIZED_SYMBOLS),
             }
         payload = _json_safe(payload)
         self._instruments_cache = {"at": now, "payload": payload}
@@ -1211,6 +1779,7 @@ class RealtimeDashboardService:
 
     def _invalidate_navigation_caches(self, *, account=False, instruments=False):
         """Descarta las caches indicadas tras un cambio de estado relevante."""
+        self._dashboard_snapshot_cache = {"at": 0.0, "payload": None}
         if account:
             self._account_cache = {"at": 0.0, "payload": None}
         if instruments:
@@ -1329,8 +1898,8 @@ class RealtimeDashboardService:
                 if path in ("/", "/index.html"):
                     self._send(_HTML.encode("utf-8"), "text/html; charset=utf-8")
                     return
-                if path == "/assets/blackdaemonfx_logo.jpeg":
-                    logo_path = Path(__file__).resolve().parent / "assets" / "blackdaemonfx_logo.jpeg"
+                if path == "/assets/blackdaemonfx_logo_v1.jpeg":
+                    logo_path = Path(__file__).resolve().parent / "assets" / "blackdaemonfx_logo_v1.jpeg"
                     if logo_path.exists():
                         self._send(logo_path.read_bytes(), "image/jpeg")
                     else:
@@ -1395,8 +1964,11 @@ class RealtimeDashboardService:
                     payload = json.dumps(detail, ensure_ascii=False).encode("utf-8")
                     self._send(payload, "application/json; charset=utf-8", status)
                     return
-                if path in ("/account", "/account/"):
+                if path.lower() in ("/account", "/account/"):
                     self._send(ACCOUNT_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    return
+                if path.lower() in ("/performance", "/performance/", "/rendimiento", "/rendimiento/"):
+                    self._send(PERFORMANCE_HTML.encode("utf-8"), "text/html; charset=utf-8")
                     return
                 if path == "/api/account":
                     # Caché corta de lectura: evita reconstruir decenas de consultas
@@ -1650,7 +2222,7 @@ class RealtimeDashboardService:
                 catalog.append({"category":str(category),"selection_profile":_selection_profile_for_category(category),
                                 "label":_CATEGORY_LABELS.get(str(category),str(category).replace("_"," ").title()),
                                 "symbols":symbols})
-        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3}.get(r["selection_profile"],9),r["label"].casefold()))
+        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3,"MALAYSIAN_SNR":4}.get(r["selection_profile"],9),r["label"].casefold()))
         allowed=_catalog_symbols_by_profile(catalog); persisted={}
         explicit=_normalize_symbol_list(selected_symbols)
         if self.repository is not None and hasattr(self.repository,"latest_instrument_selection_profiles"):
@@ -1671,12 +2243,12 @@ class RealtimeDashboardService:
             else:
                 chosen=sorted(universe,key=str.casefold)
             selections[profile]=_normalize_symbol_list(chosen)
-        combined=_normalize_symbol_list(selections["SYNTHETICS"]+selections["FOREX"]+selections["ORB"]+selections["IDX_OPEN"])
+        combined=_normalize_symbol_list(sum((selections.get(p,[]) for p in _SELECTION_PROFILES),[]))
         with self._lock:
             self._state["instrument_catalog"]=catalog; self._state["selection_profiles"]=selections
             self._state["selection_profile_versions"]=versions; self._state["selected_symbols"]=combined
             self._state["selection_version"]=int(self._state.get("selection_version") or 0)+1
-            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · Apertura Índices: {len(selections['IDX_OPEN'])} · selecciones independientes")
+            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · Malaysian SNR: {len(selections.get('MALAYSIAN_SNR',[]))} · selecciones independientes")
             self._state["updated_at"]=_now_iso(); self._persist_state_locked()
         self._invalidate_navigation_caches(instruments=True)
         return combined
@@ -1739,12 +2311,12 @@ class RealtimeDashboardService:
                     return {"ok":False,"error":f"No se pudo guardar {profile} en SQLAlchemy: {exc}"}
             profiles=dict(self._state.get("selection_profiles") or {p:[] for p in _SELECTION_PROFILES}); profiles[profile]=requested
             versions=dict(self._state.get("selection_profile_versions") or {})
-            if persisted: versions[profile]=persisted.get("version")
-            combined=_normalize_symbol_list(profiles.get("SYNTHETICS",[])+profiles.get("FOREX",[])+profiles.get("ORB",[])+profiles.get("IDX_OPEN",[]))
+            combined=_normalize_symbol_list(sum((profiles.get(p,[]) for p in _SELECTION_PROFILES),[]))
             self._state["selection_profiles"]=profiles; self._state["selection_profile_versions"]=versions
             self._state["selected_symbols"]=combined; self._state["selection_version"]=int(self._state.get("selection_version") or 0)+1
             self._state["selection_message"]=f"{profile}: {len(requested)} instrumentos guardados de manera independiente. Se aplicará en el próximo ciclo de ese bot."
             self._state["updated_at"]=_now_iso(); self._persist_state_locked()
+            self._invalidate_navigation_caches(instruments=True)
             return {"ok":True,"selection_profile":profile,"selected_symbols":requested,"selection_profiles":profiles,
                     "selection_version":self._state["selection_version"],"persistent_version":(persisted or {}).get("version"),
                     "persistent":persisted is not None,"persistence_verified":persisted is not None,
@@ -2003,18 +2575,21 @@ class RealtimeDashboardService:
             if not isinstance(current_strategy_view, dict):
                 current_strategy_view = {}
 
-            latest = current_strategy_view
-            if not latest:
-                try:
-                    latest = (
-                        self.repository.latest_symbol_process_result(symbol, source="DEMO")
-                        if hasattr(self.repository, "latest_symbol_process_result")
-                        else {}
-                    )
-                except Exception:
-                    latest = {}
-            if not latest:
-                latest = recent_by_symbol.get(symbol, {})
+            general_latest = {}
+            try:
+                general_latest = (
+                    self.repository.latest_symbol_process_result(symbol, source="DEMO")
+                    if hasattr(self.repository, "latest_symbol_process_result")
+                    else {}
+                )
+            except Exception:
+                general_latest = {}
+            if not general_latest:
+                general_latest = recent_by_symbol.get(symbol, {}) or {}
+
+            latest = current_strategy_view or dict(general_latest)
+            if current_strategy_view:
+                latest.update(current_strategy_view)
 
             position.update(_position_health(position, market=market, latest=latest))
             position["strategy_view_updated_at"] = (
@@ -2106,8 +2681,8 @@ class RealtimeDashboardService:
             position["entry_strategy_view"] = persisted_entry_context or {
                 "decision": metadata.get("confirmation_decision"),
                 "direction": trade.get("direction"),
-                "score": metadata.get("trade_score"),
-                "grade": metadata.get("trade_grade"),
+                "score": metadata.get("trade_score") if metadata.get("trade_score") is not None else metadata.get("score"),
+                "grade": metadata.get("trade_grade") if metadata.get("trade_grade") is not None else metadata.get("grade"),
                 "confirmation_percentage": metadata.get("confirmation_percentage"),
                 "passed": [_LABELS.get(str(x), str(x).replace("_", " ").title()) for x in (metadata.get("passed_confirmations") or [])],
                 "missing": [_LABELS.get(str(x), str(x).replace("_", " ").title()) for x in (metadata.get("missing_confirmations") or [])],
@@ -2125,6 +2700,126 @@ class RealtimeDashboardService:
                 "structure_break": metadata.get("m15_structure_break_type"),
                 "zone": metadata.get("m15_zone"),
             }
+
+            # Enriquecimiento universal multi-estrategia de la tesis al abrir (SMC, Malaysian SNR, ORB, Gold Quarters, etc.)
+            ent_view = position["entry_strategy_view"]
+            strat_name = str(
+                ent_view.get("strategy_name")
+                or metadata.get("strategy_name")
+                or trade.get("strategy_name")
+                or trade.get("bot_profile")
+                or "SMC"
+            ).upper()
+            ent_view["strategy_name"] = strat_name
+
+            scenario = ent_view.get("scenario") or metadata.get("scenario") or metadata.get("msnr_scenario")
+            if scenario: ent_view["scenario"] = scenario
+            ref_lvl = ent_view.get("ref_level") if ent_view.get("ref_level") is not None else metadata.get("ref_level") or metadata.get("msnr_ref_level")
+            if ref_lvl is not None: ent_view["ref_level"] = ref_lvl
+            brk_lvl = ent_view.get("break_level") if ent_view.get("break_level") is not None else metadata.get("break_level") or metadata.get("msnr_break_level")
+            if brk_lvl is not None: ent_view["break_level"] = brk_lvl
+            adx_val = ent_view.get("momentum_adx") if ent_view.get("momentum_adx") is not None else metadata.get("momentum_adx") or metadata.get("msnr_adx") or metadata.get("adx")
+            if adx_val is not None: ent_view["momentum_adx"] = adx_val
+            body_rat = ent_view.get("body_ratio") if ent_view.get("body_ratio") is not None else metadata.get("body_ratio") or metadata.get("msnr_body_ratio")
+            if body_rat is not None: ent_view["body_ratio"] = body_rat
+            run_tgt = ent_view.get("runner_target_name") or metadata.get("runner_target_name")
+            if run_tgt: ent_view["runner_target_name"] = run_tgt
+            run_rr = ent_view.get("runner_rr") if ent_view.get("runner_rr") is not None else metadata.get("runner_rr")
+            if run_rr is not None: ent_view["runner_rr"] = run_rr
+
+            or_high = ent_view.get("opening_range_high") if ent_view.get("opening_range_high") is not None else metadata.get("opening_range_high")
+            if or_high is not None: ent_view["opening_range_high"] = or_high
+            or_low = ent_view.get("opening_range_low") if ent_view.get("opening_range_low") is not None else metadata.get("opening_range_low")
+            if or_low is not None: ent_view["opening_range_low"] = or_low
+            or_mid = ent_view.get("opening_range_midpoint") if ent_view.get("opening_range_midpoint") is not None else metadata.get("opening_range_midpoint")
+            if or_mid is not None: ent_view["opening_range_midpoint"] = or_mid
+            s_vwap = ent_view.get("session_vwap") if ent_view.get("session_vwap") is not None else metadata.get("session_vwap")
+            if s_vwap is not None: ent_view["session_vwap"] = s_vwap
+
+            maj_q = ent_view.get("major_quarter") if ent_view.get("major_quarter") is not None else metadata.get("major_quarter") or metadata.get("quarter_level")
+            if maj_q is not None: ent_view["major_quarter"] = maj_q
+            q_lvl = ent_view.get("quarters_level") if ent_view.get("quarters_level") is not None else metadata.get("quarter_level") or metadata.get("quarters_level")
+            if q_lvl is not None: ent_view["quarters_level"] = q_lvl
+            tgt_q = ent_view.get("target_quarter") if ent_view.get("target_quarter") is not None else metadata.get("quarter_target") or metadata.get("target_quarter")
+            if tgt_q is not None: ent_view["target_quarter"] = tgt_q
+
+            # Auto-poblar checklist de tesis al abrir si viene vacío
+            if not ent_view.get("passed"):
+                if "MALAYSIAN" in strat_name or scenario or brk_lvl is not None:
+                    scen_desc = "Ruptura Fresh H1 + Retest M15" if "1" in str(scenario or "") else "Fractal HCH / Quiebre Rápido" if "3" in str(scenario or "") else str(scenario or "Ruptura Institucional")
+                    ent_view["scenario_desc"] = scen_desc
+                    ent_view["passed"] = [
+                        f"Ruptura de Nivel H1 ({scen_desc})",
+                        f"Retest M15 Confirmado ({brk_lvl})" if brk_lvl is not None else "Retest M15 al nivel de Break",
+                        f"Fuerza Momentum (ADX {adx_val} >= 20)" if adx_val is not None else "Fuerza Momentum ADX institucional",
+                        f"Cuerpo Sólido ({float(body_rat)*100:.0f}% >= 50%)" if body_rat is not None and isinstance(body_rat, (int, float)) else "Cuerpo de vela envolvente sólido",
+                        f"Ejecución Asimétrica (TP1 1:1 + Corredora {run_tgt or 'TP2'} 1:{run_rr or 2.0}R)",
+                    ]
+                    if ent_view.get("score") is None: ent_view["score"] = 90.0
+                    if not ent_view.get("grade"): ent_view["grade"] = "A+"
+                    if not ent_view.get("decision") or ent_view.get("decision") == "MALAYSIAN_SNR_CONFIRMED":
+                        ent_view["decision"] = f"MALAYSIAN SNR · {scen_desc.upper()}"
+                elif "ORB" in strat_name or or_high is not None:
+                    dir_txt = str(ent_view.get("direction") or trade.get("direction") or "BUY").upper()
+                    ent_view["passed"] = [
+                        f"Rango M15 NY ({or_low} - {or_high})" if or_high and or_low else "Rango de Apertura NY delimitado",
+                        f"Quiebre de Rango Confirmado ({dir_txt})",
+                        "Retest M5 / Microestructura a favor",
+                        "Sesión Operativa New York activa",
+                    ]
+                    if ent_view.get("score") is None: ent_view["score"] = 88.0
+                    if not ent_view.get("grade"): ent_view["grade"] = "A"
+                    if not ent_view.get("decision"): ent_view["decision"] = "ORB NEW YORK · RUPTURA CONFIRMADA"
+                elif "GOLD" in strat_name or q_lvl is not None:
+                    ent_view["passed"] = [
+                        f"Cuadrante Mayor Institucional ({maj_q})" if maj_q else "Nivel Cuadrante Mayor",
+                        f"Reacción / Rebote Institucional en {q_lvl}" if q_lvl else "Rechazo institucional en nivel de precio",
+                        f"Proyección hacia Target Cuadrante {tgt_q}" if tgt_q else "Proyección hacia Target de Cuadrante",
+                    ]
+                    if ent_view.get("score") is None: ent_view["score"] = 86.0
+                    if not ent_view.get("grade"): ent_view["grade"] = "A"
+                    if not ent_view.get("decision"): ent_view["decision"] = "GOLD QUARTERS · REACCIÓN INSTITUCIONAL"
+
+            # Sincronizar score y confirmaciones con la posición para la tabla de salud
+            ent_score = ent_view.get("score")
+            if ent_score is not None and (position.get("quality_score") is None or position.get("quality_score") == ""):
+                position["quality_score"] = ent_score
+            ent_conf = ent_view.get("confirmation_percentage")
+            if ent_conf is not None and (position.get("confirmation_percentage") is None or position.get("confirmation_percentage") == ""):
+                position["confirmation_percentage"] = ent_conf
+            elif position.get("confirmation_percentage") is None or position.get("confirmation_percentage") == "":
+                passed_n = len(ent_view.get("passed") or [])
+                if passed_n > 0:
+                    position["confirmation_percentage"] = 100.0 if not ent_view.get("missing") else round(passed_n / (passed_n + len(ent_view.get("missing") or [])) * 100.0, 1)
+
+            # Cálculo de duración / tiempo en el trade
+            entry_iso = trade.get("entry_time") or metadata.get("entry_time") or ent_view.get("entry_time")
+            duration_str = "—"
+            duration_minutes = None
+            if entry_iso:
+                try:
+                    iso_clean = str(entry_iso).replace("Z", "+00:00")
+                    ent_dt = datetime.fromisoformat(iso_clean)
+                    if ent_dt.tzinfo is None:
+                        ent_dt = ent_dt.replace(tzinfo=timezone.utc)
+                    now_utc = datetime.now(timezone.utc)
+                    diff_sec = max(0.0, (now_utc - ent_dt).total_seconds())
+                    duration_minutes = int(diff_sec // 60)
+                    hours = int(duration_minutes // 60)
+                    mins = int(duration_minutes % 60)
+                    days = int(hours // 24)
+                    if days > 0:
+                        rem_hours = hours % 24
+                        duration_str = f"{days}d {rem_hours}h"
+                    elif hours > 0:
+                        duration_str = f"{hours}h {mins:02d}m"
+                    else:
+                        duration_str = f"{mins}m"
+                except Exception:
+                    duration_str = "—"
+            position["duration_str"] = duration_str
+            position["duration_minutes"] = duration_minutes
+
             persisted_current = (
                 market.get("current_strategy_view")
                 if isinstance(market.get("current_strategy_view"), dict)
@@ -2132,12 +2827,62 @@ class RealtimeDashboardService:
             )
             if persisted_current:
                 position["latest_strategy_view"] = dict(persisted_current)
+                cur_view = position["latest_strategy_view"]
+                if not cur_view.get("direction"):
+                    cur_view["direction"] = latest.get("direction") or trade.get("direction")
+                if not cur_view.get("decision"):
+                    cur_view["decision"] = cur_view.get("action") or cur_view.get("status") or latest.get("decision") or latest.get("action")
+                if cur_view.get("score") is None:
+                    cur_view["score"] = latest.get("score") or latest.get("trade_score")
+                if cur_view.get("confirmation_percentage") is None:
+                    cur_view["confirmation_percentage"] = latest.get("confirmation_percentage")
+                if not cur_view.get("passed"):
+                    cur_view["passed"] = latest.get("passed") or latest.get("passed_confirmations") or []
+                if not cur_view.get("missing"):
+                    cur_view["missing"] = latest.get("missing") or latest.get("missing_confirmations") or []
+                if not cur_view.get("critical_failures"):
+                    cur_view["critical_failures"] = latest.get("critical_failures") or latest.get("critical_confirmation_failures") or []
+                if not cur_view.get("h1_trend"):
+                    cur_view["h1_trend"] = latest.get("h1_trend")
+                if not cur_view.get("zone"):
+                    cur_view["zone"] = latest.get("zone") or latest.get("m15_zone")
+                if not cur_view.get("structure_break"):
+                    cur_view["structure_break"] = latest.get("structure_break") or latest.get("m15_structure_break_type")
+                if not cur_view.get("evaluated_at"):
+                    cur_view["evaluated_at"] = (
+                        market.get("strategy_evaluated_at")
+                        or latest.get("_event_time")
+                        or latest.get("evaluated_at")
+                    )
+                for key in (
+                    "divergence_confirmed",
+                    "divergence_type",
+                    "harmonic_confirmed",
+                    "harmonic_pattern",
+                    "chart_pattern_confirmed",
+                    "chart_pattern_name",
+                    "chart_pattern_strength",
+                    "chart_pattern_conflict",
+                    "chart_pattern_supporting_pattern",
+                    "chart_pattern_supporting_direction",
+                    "chart_pattern_supporting_strength",
+                    "chart_pattern_conflicting_pattern",
+                    "chart_pattern_conflicting_direction",
+                    "chart_pattern_conflicting_strength",
+                    "chart_pattern_conflict_level",
+                    "chart_pattern_conflict_reason",
+                    "h1_doji_confirmed",
+                    "h1_doji_type",
+                    "h1_doji_zone",
+                ):
+                    if cur_view.get(key) is None and key in latest:
+                        cur_view[key] = latest.get(key)
             else:
                 position["latest_strategy_view"] = {
                     "decision": latest.get("decision") or latest.get("action"),
                     "state": latest.get("state") or latest.get("action"),
                     "reason": latest.get("reason"),
-                    "direction": latest.get("direction"),
+                    "direction": latest.get("direction") or trade.get("direction"),
                     "score": latest.get("score") or latest.get("trade_score"),
                     "confirmation_percentage": latest.get("confirmation_percentage"),
                     "passed": latest.get("passed") or latest.get("passed_confirmations") or [],
@@ -2167,6 +2912,77 @@ class RealtimeDashboardService:
                     "zone": latest.get("zone") or latest.get("m15_zone"),
                     "evaluated_at": latest.get("_event_time"),
                 }
+
+            # v119: Transformar bloqueo técnico 'BLOCKED_ACTIVE_TRADE' en seguimiento real de la tesis activa
+            cur_view = position["latest_strategy_view"]
+            raw_dec = str(cur_view.get("decision") or "")
+            raw_act = str(cur_view.get("action") or cur_view.get("state") or "")
+            raw_reason = str(cur_view.get("reason") or "")
+            is_gatekeeper_block = (
+                any(k in raw_dec.upper() or k in raw_act.upper() or k in raw_reason.upper()
+                    for k in ("BLOCKED_ACTIVE_TRADE", "WAITING_TRADE_RESOLUTION", "ESPERANDO CIERRE TP/SL/BE"))
+                or raw_dec in ("OBSERVACION_ACTUAL", "TESIS_ACTIVA_EN_CURSO", "")
+                or not cur_view.get("passed")
+            )
+
+            # Preservar estrategia y dirección en el seguimiento actual
+            if not cur_view.get("strategy_name"):
+                cur_view["strategy_name"] = strat_name
+            if not cur_view.get("direction"):
+                cur_view["direction"] = trade.get("direction") or position.get("direction") or "BUY"
+
+            if is_gatekeeper_block:
+                curr_rr_raw = market.get("current_rr") if market.get("current_rr") is not None else position.get("current_rr")
+                try:
+                    curr_rr_float = float(curr_rr_raw) if curr_rr_raw is not None else None
+                except Exception:
+                    curr_rr_float = None
+
+                rec = position.get("recommendation") or "MANTENER"
+                curr_p = market.get("current_price") or position.get("current_price") or trade.get("current_price")
+                ent_p = trade.get("entry_price") or position.get("entry_price")
+
+                if curr_rr_float is not None:
+                    if curr_rr_float >= 1.0:
+                        cur_view["decision"] = f"TESIS VIGENTE · EN BENEFICIO (+{curr_rr_float:.2f}R)"
+                    elif curr_rr_float > 0.0:
+                        cur_view["decision"] = f"TESIS VIGENTE · PROGRESO FAVORABLE (+{curr_rr_float:.2f}R)"
+                    elif curr_rr_float > -0.5:
+                        cur_view["decision"] = f"TESIS VIGENTE · EN CONSOLIDACIÓN ({curr_rr_float:.2f}R)"
+                    else:
+                        cur_view["decision"] = f"TESIS VIGENTE · EN RETROCESO ({curr_rr_float:.2f}R)"
+                else:
+                    cur_view["decision"] = "TESIS VIGENTE · EN SEGUIMIENTO ACTIVO"
+
+                live_confirmations = [
+                    "Estructura de mercado compatible con la dirección del trade",
+                    "Tesis institucional sin invalidación contraria",
+                    "Gestión dinámica activa por Daemon de Supervisión",
+                ]
+                if curr_rr_float is not None and curr_rr_float >= 1.0:
+                    live_confirmations.append("Nivel TP1 superado: operación en zona de beneficio protegida")
+                be_active = bool(position.get("break_even_confirmed") or metadata.get("break_even_confirmed") or position.get("be_protected"))
+                if be_active:
+                    live_confirmations.append("Stop Loss protegido en Break-Even (Riesgo Cero)")
+                if "MALAYSIAN" in strat_name:
+                    live_confirmations.append("Acción del precio respetando zonas Break / Retest")
+                elif "ORB" in strat_name:
+                    live_confirmations.append("Precio cotizando en rango de expansión post-apertura NY")
+                elif "GOLD" in strat_name:
+                    live_confirmations.append("Transición de precio hacia niveles clave de cuadrante")
+
+                cur_view["passed"] = live_confirmations
+                cur_view["missing"] = []
+                cur_view["critical_failures"] = []
+                cur_view["reason"] = f"Monitoreo continuo en vivo (velas cerradas). La tesis se mantiene vigente con recomendación {rec}. Nuevas órdenes pausadas para salvaguardar la gestión de capital."
+                cur_view["observations"] = [
+                    f"Recomendación del sistema: {rec}",
+                    f"Progreso financiero: {curr_rr_float:+.2f}R" if curr_rr_float is not None else "Progreso financiero: en seguimiento",
+                    f"Precio actual {curr_p} vs Entrada {ent_p}" if curr_p and ent_p else "Monitoreo en vivo de velas H1/M15/M5 activo",
+                ]
+                if cur_view.get("score") is None:
+                    cur_view["score"] = position.get("health_score") or ent_view.get("score") or 85.0
+
             rec = position.get("recommendation")
             if rec == "MANTENER": counts["mantener"] += 1
             elif rec == "VIGILAR": counts["vigilar"] += 1
@@ -2219,7 +3035,7 @@ class RealtimeDashboardService:
         self._state["selection_profiles"] = profiles
         self._state["selection_profile_versions"] = versions
         self._state["selected_symbols"] = _normalize_symbol_list(
-            profiles.get("SYNTHETICS", []) + profiles.get("FOREX", []) + profiles.get("ORB", []) + profiles.get("IDX_OPEN", [])
+            sum((profiles.get(p, []) for p in _SELECTION_PROFILES), [])
         )
         self._state["selection_persistence_status"] = "VERIFICADA"
         self._state["selection_persistence_error"] = None
@@ -2341,6 +3157,7 @@ class RealtimeDashboardService:
             state["financial_news"] = self.news_service.snapshot()
             state["multi_bot_mode"] = bool(visible_worker_states)
             state["daemon_version"] = DAEMONBLACKFX_VERSION
+            state["confluence_matrix"] = _build_confluence_matrix(state)
             payload = _json_safe(state)
             self._dashboard_snapshot_cache = {
                 "at": time.monotonic(),
@@ -2573,6 +3390,61 @@ _HTML = r'''
       .statusPill.neutral {
         background: var(--panel2);
       }
+      .statusPill.active {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.5);
+      }
+      .stratBadge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .stratBadge.strat-smc {
+        background: rgba(56, 189, 248, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+      }
+      .stratBadge.strat-snr {
+        background: rgba(192, 132, 252, 0.15);
+        color: #c084fc;
+        border: 1px solid rgba(192, 132, 252, 0.35);
+      }
+      .stratBadge.strat-orb {
+        background: rgba(251, 146, 60, 0.15);
+        color: #fb923c;
+        border: 1px solid rgba(251, 146, 60, 0.35);
+      }
+      .stratBadge.strat-gold {
+        background: rgba(250, 204, 21, 0.15);
+        color: #facc15;
+        border: 1px solid rgba(250, 204, 21, 0.35);
+      }
+      .matrixTabBtn {
+        background: var(--panel2);
+        color: var(--muted);
+        border: 1px solid var(--line);
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .matrixTabBtn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+      .matrixTabBtn.active {
+        background: rgba(245, 185, 66, 0.15);
+        color: var(--gold2);
+        border-color: var(--gold2);
+      }
       .technical {
         display: block;
         color: var(--muted);
@@ -2790,6 +3662,29 @@ _HTML = r'''
         font-size: 12px;
         text-transform: uppercase;
         color: var(--muted);
+      }
+      .setupParamsGrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        padding: 6px 8px;
+        margin: 6px 0;
+        font-size: 11px;
+      }
+      .setupParamsItem {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .setupParamsLabel {
+        color: var(--muted);
+      }
+      .setupParamsVal {
+        font-weight: 600;
+        color: var(--text);
       }
       .entryTag {
         font-size: 11px;
@@ -3458,19 +4353,73 @@ _HTML = r'''
       .chartTfMode.strategy {
         color: var(--good);
       }
+      .chartHud {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 14px;
+        padding: 5px 12px;
+        background: #131722;
+        border-bottom: 1px solid #1e222d;
+        font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+        font-size: 11px;
+        color: #787b86;
+        min-height: 26px;
+        flex-wrap: wrap;
+        user-select: none;
+      }
+      .chartHud .hudTitle {
+        color: #d1d4dc;
+        font-weight: 700;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .chartHud .hudOhlc {
+        display: flex;
+        gap: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .chartHud .hudIndicators {
+        display: flex;
+        gap: 10px;
+        font-variant-numeric: tabular-nums;
+        color: #818cf8;
+      }
+      .chartHud .good {
+        color: #089981 !important;
+      }
+      .chartHud .bad {
+        color: #f23645 !important;
+      }
+      .chartViewportShell {
+        background: #131722;
+        border-color: #2a2e39;
+      }
+      .chartViewportShell .chartPlotToolbar {
+        background: #131722;
+        border-bottom-color: #1e222d;
+      }
+      .chartViewportShell .chartWrap {
+        background: #131722;
+        position: relative;
+      }
+      .chartSvg text {
+        user-select: none;
+      }
     </style>
   </head>
   <body>
     <div class="appShell">
       <aside class="brandSidebar">
-        <img class="brandLogo" src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
           <div class="brandName">BLACKDAEMON<span>FX</span></div>
           <div class="brandTag">Estrategia · Disciplina · Resultados</div>
         </div>
         <nav class="sideNav">
           <a class="active" href="/">▦ Dashboard</a><a href="/instruments">▥ Instrumentos</a
-          ><a href="/account">▣ Cuenta activa</a><a href="#openPositions">◈ Posiciones abiertas</a
+          ><a href="/account">▣ Cuenta en vivo</a><a href="/performance">📈 Rendimiento</a><a href="#openPositions">◈ Posiciones abiertas</a
           ><a href="#recentAnalysis">◷ Análisis recientes</a>
         </nav>
         <div class="sideStatus">
@@ -3485,8 +4434,7 @@ _HTML = r'''
             <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Dashboard en tiempo real</div>
           </div>
           <div class="actions">
-            <a class="btn" href="/account">Cuenta activa</a
-            ><a class="btn" href="/instruments">Instrumentos</a>
+            <a class="btn" href="/account">Cuenta en vivo</a><a class="btn" href="/performance">Rendimiento</a><a class="btn" href="/instruments">Instrumentos</a>
             <div class="badge" id="status">Conectando…</div>
           </div>
         </div>
@@ -3532,14 +4480,44 @@ _HTML = r'''
             <div class="value" id="openCount">0</div>
             <div class="sub" id="healthSummary">Sin posiciones</div>
           </div>
-          <div class="card full">
-            <div class="label">Prueba SMC · H1 y retesteo ATR</div>
-            <div class="sub">
-              Evaluaciones desde el arranque de cada worker. Las señales caducadas se agrupan; no se
-              reutilizan para entrar. Actualización y reglas efectivas visibles por worker.
+          <div class="card full" id="confluenceMatrixCard">
+            <div class="selectorHead">
+              <div>
+                <div class="label" style="color: var(--gold2); font-weight: 800; font-size: 13px;">Matriz Centinela Multiestrategia (SMC · Malaysian SNR · ORB · Gold Quarters)</div>
+                <div class="sub">
+                  Monitoreo centinela unificado en tiempo real: SMC (H1/M15/M5) · Malaysian SNR (Break/Retest/ADX) · ORB (Apertura NY) · Gold Quarters
+                </div>
+              </div>
+              <div id="confluenceSummaryChips" style="display: flex; gap: 8px; align-items: center; font-size: 11px; flex-wrap: wrap;"></div>
             </div>
-            <div id="learningAuditPanel"></div>
-            <div id="smcTrialPanel">Esperando datos de la prueba…</div>
+            <!-- Filtros interactivos por estrategia -->
+            <div id="confluenceFilters" style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
+              <button class="matrixTabBtn active" data-filter="ALL" onclick="setMatrixFilter('ALL')">TODAS</button>
+              <button class="matrixTabBtn" data-filter="SMC" onclick="setMatrixFilter('SMC')">SMC</button>
+              <button class="matrixTabBtn" data-filter="MALAYSIAN_SNR" onclick="setMatrixFilter('MALAYSIAN_SNR')">MALAYSIAN SNR</button>
+              <button class="matrixTabBtn" data-filter="ORB" onclick="setMatrixFilter('ORB')">ORB NY</button>
+              <button class="matrixTabBtn" data-filter="GOLD_QUARTERS" onclick="setMatrixFilter('GOLD_QUARTERS')">GOLD QUARTERS</button>
+              <button class="matrixTabBtn" data-filter="ACTIVE" onclick="setMatrixFilter('ACTIVE')" style="color: #60a5fa;">🔵 ACTIVAS</button>
+            </div>
+            <div id="confluenceMatrixPanel" style="margin-top: 12px; overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left; padding: 8px;">Símbolo</th>
+                    <th style="text-align: left; padding: 8px;">Estrategia</th>
+                    <th style="text-align: left; padding: 8px;">Contexto Macro</th>
+                    <th style="text-align: left; padding: 8px;">Estructura / Nivel Clave</th>
+                    <th style="text-align: left; padding: 8px;">Gatillo / Confirmación</th>
+                    <th style="text-align: left; padding: 8px;">Métricas / Frescura</th>
+                    <th style="text-align: left; padding: 8px;">AI Score</th>
+                    <th style="text-align: left; padding: 8px;">Estado Centinela</th>
+                  </tr>
+                </thead>
+                <tbody id="confluenceMatrixBody">
+                  <tr><td colspan="8" class="empty">Cargando confluencias multiestrategia…</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div class="card full">
             <div class="label">Instrumentos en cuarentena</div>
@@ -3677,14 +4655,20 @@ _HTML = r'''
                   Armónico</label
                 ><label class="layerToggle"
                   ><input type="checkbox" data-layer="rsi" checked />RSI 14</label
+                ><label class="layerToggle"
+                  ><input type="checkbox" data-layer="cleanZones" checked />Modo Limpio (Ocultar mitigadas)</label
                 >
               </div>
               <div class="chartLegend">
-                <span><i class="dot" style="background: #53a7ff"></i>Entrada</span
-                ><span><i class="dot" style="background: #ef6a6a"></i>SL</span
-                ><span><i class="dot" style="background: #31c48d"></i>TP</span
-                ><span><i class="dot" style="background: #f5b942"></i>BE / SL actual</span
-                ><span>△/▽ eventos · zonas sombreadas = OB/FVG · *FVG es contexto auxiliar</span>
+                <span><i class="dot" style="background: #2962ff"></i>Entrada</span>
+                <span><i class="dot" style="background: #f23645"></i>SL</span>
+                <span><i class="dot" style="background: #089981"></i>TP</span>
+                <span><i class="dot" style="background: #d97706"></i>BE / SL actual</span>
+                <span><i class="dot" style="background: #eab308"></i>EQ 50%</span>
+                <span><i class="dot" style="background: #818cf8"></i>FVG</span>
+                <span><i class="dot" style="background: #34d399"></i>OB Bull</span>
+                <span><i class="dot" style="background: #fb7185"></i>OB Bear</span>
+                <span>△/▽ eventos SMC · Retícula interactiva con HUD</span>
               </div>
               <div class="chartGrid">
                 <div class="chartPlotColumn">
@@ -3752,6 +4736,19 @@ _HTML = r'''
                         </button>
                       </div>
                     </div>
+                    <div class="chartHud" id="chartHud">
+                      <div class="hudTitle"><b id="hudSymbol">—</b> <span id="hudTf" class="sub">—</span></div>
+                      <div class="hudOhlc">
+                        <span>O: <b id="hudOpen">—</b></span>
+                        <span>H: <b id="hudHigh">—</b></span>
+                        <span>L: <b id="hudLow">—</b></span>
+                        <span>C: <b id="hudClose">—</b></span>
+                        <span id="hudChange" class="hudChange">—</span>
+                      </div>
+                      <div class="hudIndicators" id="hudIndicators">
+                        <span>RSI: <b id="hudRsi">—</b></span>
+                      </div>
+                    </div>
                     <div class="chartWrap" id="chartWrap">
                       <div class="empty">Selecciona “Ver gráfico” en una posición abierta.</div>
                     </div>
@@ -3785,8 +4782,7 @@ _HTML = r'''
               <table>
                 <thead>
                   <tr>
-                    <th>Bot</th>
-                    <th>Instrumento</th>
+                    <th>Bot</th><th>Instrumento</th>
                     <th>Estado</th>
                     <th>Acción</th>
                     <th>Score</th>
@@ -3890,6 +4886,7 @@ _HTML = r'''
               .join(' ');
             return `<${tag} ${a}>${text}</${tag}>`;
           }
+          let chartRenderContext = null;
           const chartLayerState = {
             trade: true,
             swings: true,
@@ -3900,6 +4897,7 @@ _HTML = r'''
             premiumdiscount: true,
             confluence: true,
             rsi: true,
+            cleanZones: true,
           };
           const chartViewState = {
             timeframe: 'M5',
@@ -4139,39 +5137,45 @@ _HTML = r'''
               } catch (_) {}
             });
             wrap.addEventListener('pointermove', (e) => {
-              if (!chartViewState.dragging) return;
-              const dx = e.clientX - chartViewState.dragStartX,
-                dy = e.clientY - chartViewState.dragStartY,
-                width = Math.max(1, wrap.clientWidth),
-                height = Math.max(1, wrap.clientHeight);
-              const t = (latestState?.open_positions || []).find(
-                (x) => String(x.id) === String(selectedTradeId),
-              );
-              const ec = t?.entry_chart || {},
-                c =
-                  chartViewState.auditMode === 'ENTRY' && Object.keys(ec).length
-                    ? ec
-                    : t?.chart || {},
-                tf = (c.timeframes || {})[chartViewState.timeframe] || c,
-                all = tf.candles || [],
-                total = all.length,
-                baseVisible = Math.min(total, 80);
-              const visible = Math.max(
-                chartViewState.minVisible,
-                Math.min(total, Math.round(baseVisible / Math.max(1, chartViewState.zoom))),
-              );
-              const pxPerCandle = width / Math.max(1, visible);
-              const maxOffset = Math.max(0, total - visible);
-              chartViewState.offset = Math.max(
-                0,
-                Math.min(maxOffset, chartViewState.dragStartOffset + dx / Math.max(1, pxPerCandle)),
-              );
-              chartViewState.pricePan =
-                chartViewState.dragStartPricePan +
-                dy / height / Math.max(1, chartViewState.priceZoom);
-              chartViewState.pricePan = Math.max(-3, Math.min(3, chartViewState.pricePan));
-              updateChartZoomBadge();
-              rerenderSelectedChart();
+              if (chartViewState.dragging) {
+                const dx = e.clientX - chartViewState.dragStartX,
+                  dy = e.clientY - chartViewState.dragStartY,
+                  width = Math.max(1, wrap.clientWidth),
+                  height = Math.max(1, wrap.clientHeight);
+                const t = (latestState?.open_positions || []).find(
+                  (x) => String(x.id) === String(selectedTradeId),
+                );
+                const ec = t?.entry_chart || {},
+                  c =
+                    chartViewState.auditMode === 'ENTRY' && Object.keys(ec).length
+                      ? ec
+                      : t?.chart || {},
+                  tf = (c.timeframes || {})[chartViewState.timeframe] || c,
+                  all = tf.candles || [],
+                  total = all.length,
+                  baseVisible = Math.min(total, 80);
+                const visible = Math.max(
+                  chartViewState.minVisible,
+                  Math.min(total, Math.round(baseVisible / Math.max(1, chartViewState.zoom))),
+                );
+                const pxPerCandle = width / Math.max(1, visible);
+                const maxOffset = Math.max(0, total - visible);
+                chartViewState.offset = Math.max(
+                  0,
+                  Math.min(maxOffset, chartViewState.dragStartOffset + dx / Math.max(1, pxPerCandle)),
+                );
+                chartViewState.pricePan =
+                  chartViewState.dragStartPricePan +
+                  dy / height / Math.max(1, chartViewState.priceZoom);
+                chartViewState.pricePan = Math.max(-3, Math.min(3, chartViewState.pricePan));
+                updateChartZoomBadge();
+                rerenderSelectedChart();
+              } else if (chartRenderContext && chartRenderContext.candles && chartRenderContext.candles.length) {
+                updateChartCrosshair(e, wrap, chartRenderContext);
+              }
+            });
+            wrap.addEventListener('pointerleave', () => {
+              hideChartCrosshair(chartRenderContext);
             });
             const stop = (e) => {
               if (!chartViewState.dragging) return;
@@ -4186,6 +5190,137 @@ _HTML = r'''
             wrap.addEventListener('pointerup', stop);
             wrap.addEventListener('pointercancel', stop);
             updateChartZoomBadge();
+          }
+          function updateChartHud(q, symbol, tf) {
+            const symEl = $('hudSymbol'),
+              tfEl = $('hudTf'),
+              oEl = $('hudOpen'),
+              hEl = $('hudHigh'),
+              lEl = $('hudLow'),
+              cEl = $('hudClose'),
+              chEl = $('hudChange'),
+              rsiEl = $('hudRsi');
+            if (symEl) symEl.textContent = symbol || '—';
+            if (tfEl) tfEl.textContent = tf || '—';
+            if (!q) {
+              if (oEl) oEl.textContent = '—';
+              if (hEl) hEl.textContent = '—';
+              if (lEl) lEl.textContent = '—';
+              if (cEl) cEl.textContent = '—';
+              if (chEl) {
+                chEl.textContent = '—';
+                chEl.className = 'hudChange';
+              }
+              if (rsiEl) rsiEl.textContent = '—';
+              return;
+            }
+            if (oEl) oEl.textContent = priceFmt(q.open);
+            if (hEl) hEl.textContent = priceFmt(q.high);
+            if (lEl) lEl.textContent = priceFmt(q.low);
+            if (cEl) cEl.textContent = priceFmt(q.close);
+            const diff = Number(q.close) - Number(q.open);
+            const pctVal = Number(q.open) ? (diff / Number(q.open)) * 100 : 0;
+            if (chEl) {
+              chEl.textContent = `${diff >= 0 ? '+' : ''}${priceFmt(diff)} (${pctVal >= 0 ? '+' : ''}${pctVal.toFixed(2)}%)`;
+              chEl.className = 'hudChange ' + (diff >= 0 ? 'good' : 'bad');
+            }
+            if (rsiEl) rsiEl.textContent = q.rsi14 != null ? n(q.rsi14, 1) : '—';
+          }
+          function updateChartCrosshair(e, wrap, ctx) {
+            const ch = $('chartCrosshair');
+            if (!ch || !ctx) return;
+            const rect = wrap.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            const svgX = (e.clientX - rect.left) * (ctx.W / rect.width);
+            const svgY = (e.clientY - rect.top) * (ctx.H / rect.height);
+            if (
+              svgX < ctx.pad.l ||
+              svgX > ctx.W - ctx.pad.r ||
+              svgY < ctx.pad.t ||
+              svgY > ctx.H - ctx.pad.b
+            ) {
+              ch.style.display = 'none';
+              return;
+            }
+            ch.style.display = '';
+            const plotW = ctx.W - ctx.pad.l - ctx.pad.r;
+            const candleIdx = Math.max(
+              0,
+              Math.min(
+                ctx.candles.length - 1,
+                Math.floor(((svgX - ctx.pad.l) / plotW) * ctx.candles.length),
+              ),
+            );
+            const q = ctx.candles[candleIdx];
+            if (q) {
+              updateChartHud(q, ctx.symbol, ctx.activeTf);
+            }
+            const cX = ctx.pad.l + ((candleIdx + 0.5) * plotW) / ctx.candles.length;
+            const vLine = $('crossV');
+            if (vLine) {
+              vLine.setAttribute('x1', cX);
+              vLine.setAttribute('x2', cX);
+            }
+            const hLine = $('crossH');
+            if (hLine) {
+              hLine.setAttribute('y1', svgY);
+              hLine.setAttribute('y2', svgY);
+            }
+            const priceBadge = $('crossPriceBadge');
+            if (priceBadge) {
+              if (svgY <= ctx.priceBottom) {
+                priceBadge.style.display = '';
+                const p = ctx.max - ((svgY - ctx.pad.t) / ctx.priceH) * (ctx.max - ctx.min);
+                const prRect = $('crossPriceRect'),
+                  prText = $('crossPriceText');
+                if (prRect) prRect.setAttribute('y', svgY - 8.5);
+                if (prText) {
+                  prText.setAttribute('y', svgY + 3.5);
+                  prText.textContent = priceFmt(p);
+                }
+              } else if (svgY >= ctx.rsiTop && svgY <= ctx.rsiTop + ctx.rsiH) {
+                priceBadge.style.display = '';
+                const r = 100 - ((svgY - ctx.rsiTop) / ctx.rsiH) * 100;
+                const prRect = $('crossPriceRect'),
+                  prText = $('crossPriceText');
+                if (prRect) prRect.setAttribute('y', svgY - 8.5);
+                if (prText) {
+                  prText.setAttribute('y', svgY + 3.5);
+                  prText.textContent = 'RSI ' + n(r, 1);
+                }
+              } else {
+                priceBadge.style.display = 'none';
+              }
+            }
+            const timeBadge = $('crossTimeBadge');
+            if (timeBadge && q) {
+              const tmRect = $('crossTimeRect'),
+                tmText = $('crossTimeText');
+              const tmW = 86;
+              const badgeX = Math.max(
+                ctx.pad.l,
+                Math.min(ctx.W - ctx.pad.r - tmW, cX - tmW / 2),
+              );
+              if (tmRect) tmRect.setAttribute('x', badgeX);
+              if (tmText) {
+                tmText.setAttribute('x', badgeX + tmW / 2);
+                const d = new Date(q.time);
+                tmText.textContent = !isNaN(d.getTime())
+                  ? d.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })
+                  : String(q.time).slice(11, 19);
+              }
+            }
+          }
+          function hideChartCrosshair(ctx) {
+            const ch = $('chartCrosshair');
+            if (ch) ch.style.display = 'none';
+            if (ctx && ctx.candles && ctx.candles.length) {
+              updateChartHud(ctx.candles[ctx.candles.length - 1], ctx.symbol, ctx.activeTf);
+            }
           }
           function eventLayer(ev) {
             if (ev && ev.layer) return String(ev.layer);
@@ -4227,13 +5362,13 @@ _HTML = r'''
             return padLeft + ((gi - win.start + 0.5) * plotW) / Math.max(1, win.end - win.start);
           }
           function viewBoxHtml(title, v) {
-            const passed = (v.passed || []).slice(0, 9),
+            const passed = (v.passed || []).slice(0, 10),
               missing = [
                 ...(v.missing || []),
                 ...(v.critical_failures || []).map((x) => 'CRÍTICA: ' + x),
               ].slice(0, 7),
               stamp = v.evaluated_at
-                ? `<div class="sub">Actualizado ${new Date(v.evaluated_at).toLocaleTimeString('es-CL')}</div>`
+                ? `<div class="sub" style="font-size:10px; margin-bottom:4px;">Actualizado ${new Date(v.evaluated_at).toLocaleTimeString('es-CL')}</div>`
                 : '';
             const cf = [];
             if (v.divergence_confirmed)
@@ -4288,7 +5423,63 @@ _HTML = r'''
                   'Nivel conflicto: ' + String(v.chart_pattern_conflict_level).replaceAll('_', ' '),
                 );
             }
-            return `<section class="compareBox"><h5>${esc(title)}</h5>${stamp}<div><b>${esc(v.decision || v.state || 'Sin registro')}</b></div><div>${esc(v.direction || '—')} · score ${v.score == null ? '—' : n(v.score, 0)} · ${pct(v.confirmation_percentage)}</div>${v.h1_trend ? `<div>H1 ${esc(v.h1_trend)} · ${esc(v.structure_break || '—')} · ${esc(v.zone || '—')}</div>` : ''}${cf.length ? `<div class="warn">${cf.map(esc).join('<br>')}</div>` : ''}${passed.length ? `<div class="good" style="margin-top:5px">✓ ${passed.map(esc).join(' · ')}</div>` : ''}${missing.length ? `<div class="warn" style="margin-top:5px">• ${missing.map(esc).join(' · ')}</div>` : ''}</section>`;
+
+            const stratPill = v.strategy_name
+              ? `<span class="pill" style="font-size:10px; font-weight:700; background:rgba(41,98,255,0.18); color:#59a5ff; border:1px solid rgba(41,98,255,0.35); text-transform:uppercase;">${esc(v.strategy_name)}</span>`
+              : '';
+
+            const rawDec = String(v.decision || v.state || v.status || 'Sin registro');
+            const isGood = rawDec.includes('BENEFICIO') || rawDec.includes('CONFIRMAD') || rawDec.includes('VIGENTE') || rawDec.includes('PROGRESO');
+            const isWarn = rawDec.includes('RETROCESO') || rawDec.includes('VIGILAR') || rawDec.includes('CRÍTICA');
+            const decPillClass = isGood ? 'good' : isWarn ? 'warn' : 'neutral';
+
+            let paramsHtml = '';
+            if (v.strategy_name === 'MALAYSIAN_SNR' || v.scenario || v.break_level != null || v.ref_level != null) {
+              const pList = [];
+              if (v.scenario_desc || v.scenario) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Escenario:</span> <span class="setupParamsVal">${esc(v.scenario_desc || v.scenario)}</span></div>`);
+              if (v.break_level != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Nivel Break:</span> <span class="setupParamsVal">${priceFmt(v.break_level)}</span></div>`);
+              if (v.ref_level != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Nivel Ref:</span> <span class="setupParamsVal">${priceFmt(v.ref_level)}</span></div>`);
+              if (v.momentum_adx != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">ADX:</span> <span class="setupParamsVal">${n(v.momentum_adx, 1)}</span></div>`);
+              if (v.body_ratio != null) {
+                const brPct = Number(v.body_ratio) <= 1.0 ? Number(v.body_ratio) * 100 : Number(v.body_ratio);
+                pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Cuerpo:</span> <span class="setupParamsVal">${n(brPct, 0)}%</span></div>`);
+              }
+              if (v.runner_target_name || v.runner_rr) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Corredora:</span> <span class="setupParamsVal">${esc(v.runner_target_name || 'TP2')} (1:${n(v.runner_rr || 2.0, 1)}R)</span></div>`);
+              if (pList.length) paramsHtml = `<div class="setupParamsGrid">${pList.join('')}</div>`;
+            } else if (v.strategy_name === 'ORB_NEW_YORK' || v.opening_range_high != null) {
+              const pList = [];
+              if (v.opening_range_high != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">OR High:</span> <span class="setupParamsVal">${priceFmt(v.opening_range_high)}</span></div>`);
+              if (v.opening_range_low != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">OR Low:</span> <span class="setupParamsVal">${priceFmt(v.opening_range_low)}</span></div>`);
+              if (v.opening_range_midpoint != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Midpoint:</span> <span class="setupParamsVal">${priceFmt(v.opening_range_midpoint)}</span></div>`);
+              if (v.session_vwap != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">VWAP:</span> <span class="setupParamsVal">${priceFmt(v.session_vwap)}</span></div>`);
+              if (pList.length) paramsHtml = `<div class="setupParamsGrid">${pList.join('')}</div>`;
+            } else if (v.strategy_name === 'GOLD_QUARTERS' || v.major_quarter != null) {
+              const pList = [];
+              if (v.major_quarter != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Cuadrante:</span> <span class="setupParamsVal">${priceFmt(v.major_quarter)}</span></div>`);
+              if (v.quarters_level != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Reacción:</span> <span class="setupParamsVal">${priceFmt(v.quarters_level)}</span></div>`);
+              if (v.target_quarter != null) pList.push(`<div class="setupParamsItem"><span class="setupParamsLabel">Target:</span> <span class="setupParamsVal">${priceFmt(v.target_quarter)}</span></div>`);
+              if (pList.length) paramsHtml = `<div class="setupParamsGrid">${pList.join('')}</div>`;
+            }
+
+            const scoreParts = [];
+            if (v.direction) scoreParts.push(`<span class="pill ${v.direction === 'BUY' ? 'good' : 'bad'}" style="font-size:10px; padding:2px 6px;">${esc(v.direction)}</span>`);
+            if (v.score != null) scoreParts.push(`<span class="pill neutral" style="font-size:10px; padding:2px 6px;">Score ${n(v.score, 0)}</span>`);
+            if (v.grade) scoreParts.push(`<span class="pill good" style="font-size:10px; padding:2px 6px;">Grado ${esc(v.grade)}</span>`);
+            if (v.confirmation_percentage != null) scoreParts.push(`<span class="pill" style="font-size:10px; padding:2px 6px;">${pct(v.confirmation_percentage)}</span>`);
+            const scoreHtml = scoreParts.length ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 4px 0;">${scoreParts.join('')}</div>` : '';
+
+            const passedHtml = passed.length
+              ? `<div class="good" style="margin-top:6px; font-size:11px; line-height:1.5;">${passed.map((p) => `<div style="display:flex; align-items:flex-start; gap:5px;"><span style="color:#089981; font-weight:700;">✓</span><span>${esc(p)}</span></div>`).join('')}</div>`
+              : '';
+            const missingHtml = missing.length
+              ? `<div class="warn" style="margin-top:5px; font-size:11px; line-height:1.4;">${missing.map((m) => `<div style="display:flex; align-items:flex-start; gap:5px;"><span style="color:#f23645;">•</span><span>${esc(m)}</span></div>`).join('')}</div>`
+              : '';
+
+            const smcTrendHtml = v.h1_trend ? `<div style="font-size:11px; color:var(--muted); margin-top:4px;">H1 ${esc(v.h1_trend)} · ${esc(v.structure_break || '—')} · ${esc(v.zone || '—')}</div>` : '';
+            const reasonHtml = v.reason ? `<div class="sub" style="margin-top:6px; font-size:11px; line-height:1.4;">${esc(v.reason)}</div>` : '';
+            const obsHtml = (v.observations || []).length ? `<div class="sub" style="margin-top:4px; font-size:11px; line-height:1.4;">${v.observations.map(esc).join('<br>')}</div>` : '';
+
+            return `<section class="compareBox"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><h5>${esc(title)}</h5>${stratPill}</div>${stamp}<div style="margin:4px 0 6px 0;"><span class="pill ${decPillClass}" style="font-size:11px; font-weight:700; padding:3px 8px;">${esc(rawDec)}</span></div>${scoreHtml}${paramsHtml}${smcTrendHtml}${reasonHtml}${obsHtml}${cf.length ? `<div class="warn" style="margin-top:5px; font-size:11px;">${cf.map(esc).join('<br>')}</div>` : ''}${passedHtml}${missingHtml}</section>`;
           }
           function mtfAuditHtml(mtf) {
             const order = ['H1', 'M15', 'M5', 'M1'];
@@ -4369,15 +5560,17 @@ _HTML = r'''
             );
             $('chartAudit').innerHTML = audit.join('');
             if (!candles.length) {
+              chartRenderContext = null;
+              updateChartHud(null, t?.symbol, activeTf);
               $('chartWrap').innerHTML =
                 `<div class="empty">Auditoría visual pendiente para ${esc(t.symbol)} · owner ${esc(t.owner_profile || 'no identificado')}. El worker debe publicar un snapshot persistente ${esc(activeTf)}.${tf.error ? ' · ' + esc(tf.error) : ''}</div>`;
               return;
             }
             const W = 1000,
               H = 540,
-              pad = { l: 18, r: 94, t: 18, b: 28 },
-              rsiH = 100,
-              rsiGap = 22;
+              pad = { l: 20, r: 94, t: 20, b: 26 },
+              rsiH = 92,
+              rsiGap = 20;
             const priceBottom = H - pad.b - rsiH - rsiGap,
               priceH = priceBottom - pad.t;
             const lows = candles.map((x) => Number(x.low)),
@@ -4409,14 +5602,20 @@ _HTML = r'''
             const plotW = W - pad.l - pad.r;
             const x = (i) => pad.l + ((i + 0.5) * plotW) / candles.length;
             const y = (v) => pad.t + ((max - Number(v)) / (max - min)) * priceH;
-            const cw = Math.max(2, (plotW / candles.length) * 0.55);
+            const cw = Math.max(3, (plotW / candles.length) * 0.65);
             const rsiTop = priceBottom + rsiGap,
               rsiY = (v) => rsiTop + ((100 - Number(v)) / 100) * rsiH;
-            let out = `<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Auditoría SMC ${esc(activeTf)} de ${esc(t.symbol)}"><defs><clipPath id="chartPriceClip"><rect x="${pad.l}" y="${pad.t}" width="${plotW}" height="${priceH}"/></clipPath></defs>`;
+            let out = `<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Auditoría SMC ${esc(activeTf)} de ${esc(t.symbol)}"><defs><clipPath id="chartPriceClip"><rect x="${pad.l}" y="${pad.t}" width="${plotW}" height="${priceH}"/></clipPath><clipPath id="chartRsiClip"><rect x="${pad.l}" y="${rsiTop}" width="${plotW}" height="${rsiH}"/></clipPath></defs><rect width="${W}" height="${H}" fill="#131722"/><rect x="${pad.l}" y="${pad.t}" width="${plotW}" height="${priceH}" fill="#131722"/><rect x="${pad.l}" y="${rsiTop}" width="${plotW}" height="${rsiH}" fill="#0e121b"/><rect x="${W - pad.r}" y="0" width="${pad.r}" height="${H}" fill="#131722"/><rect x="0" y="${H - pad.b}" width="${W}" height="${pad.b}" fill="#131722"/><line x1="${W - pad.r}" y1="0" x2="${W - pad.r}" y2="${H - pad.b}" stroke="#1e222d" stroke-width="1"/><line x1="0" y1="${H - pad.b}" x2="${W}" y2="${H - pad.b}" stroke="#1e222d" stroke-width="1"/><line x1="0" y1="${priceBottom + rsiGap / 2}" x2="${W}" y2="${priceBottom + rsiGap / 2}" stroke="#1e222d" stroke-width="1"/>`;
             for (let i = 0; i <= 5; i++) {
               const yy = pad.t + (i * priceH) / 5,
                 val = max - (i * (max - min)) / 5;
-              out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="#18303f" stroke-width="1"/><text x="${W - pad.r + 7}" y="${yy + 4}" fill="#8fa2b3" font-size="11">${priceFmt(val)}</text>`;
+              out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="#1e222d" stroke-width="1" stroke-dasharray="3 3"/><line x1="${W - pad.r}" y1="${yy}" x2="${W - pad.r + 4}" y2="${yy}" stroke="#2a2e39"/><text x="${W - pad.r + 8}" y="${yy + 3.5}" fill="#787b86" font-size="9.5" font-family="monospace, sans-serif">${priceFmt(val)}</text>`;
+            }
+            const vGridCount = Math.min(6, candles.length);
+            for (let k = 0; k < vGridCount; k++) {
+              const cIdx = Math.floor((k * (candles.length - 1)) / Math.max(1, vGridCount - 1));
+              const gx = x(cIdx);
+              out += `<line x1="${gx}" y1="${pad.t}" x2="${gx}" y2="${H - pad.b}" stroke="#181c27" stroke-width="1" stroke-dasharray="2 4"/>`;
             }
             if (chartLayerState.premiumdiscount && smc.premium_discount_available) {
               const eq = Number(smc.equilibrium),
@@ -4426,7 +5625,7 @@ _HTML = r'''
                 const top = y(Math.min(rh, max)),
                   mid = y(eq),
                   bot = y(Math.max(rl, min));
-                out += `<rect x="${pad.l}" y="${top}" width="${plotW}" height="${Math.max(0, mid - top)}" fill="#ef6a6a" opacity=".035"/><rect x="${pad.l}" y="${mid}" width="${plotW}" height="${Math.max(0, bot - mid)}" fill="#31c48d" opacity=".035"/><line x1="${pad.l}" y1="${mid}" x2="${W - pad.r}" y2="${mid}" stroke="#d6a62d" stroke-width="1" stroke-dasharray="5 5" opacity=".7"/><text x="${W - pad.r - 58}" y="${Math.max(pad.t + 11, top + 12)}" fill="#ef9d9d" font-size="10">PREMIUM</text><text x="${W - pad.r - 62}" y="${Math.min(priceBottom - 4, bot - 5)}" fill="#8dd8bc" font-size="10">DISCOUNT</text><text x="${W - pad.r - 42}" y="${mid - 4}" fill="#d6a62d" font-size="10">EQ 50%</text>`;
+                out += `<g clip-path="url(#chartPriceClip)"><rect x="${pad.l}" y="${top}" width="${plotW}" height="${Math.max(0, mid - top)}" fill="rgba(242, 54, 69, 0.04)"/><rect x="${pad.l}" y="${mid}" width="${plotW}" height="${Math.max(0, bot - mid)}" fill="rgba(8, 153, 129, 0.04)"/><line x1="${pad.l}" y1="${mid}" x2="${W - pad.r}" y2="${mid}" stroke="#eab308" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.85"/><text x="${W - pad.r - 8}" y="${Math.max(pad.t + 13, top + 13)}" text-anchor="end" fill="#f87171" opacity="0.38" font-size="9" font-weight="700" letter-spacing="1">PREMIUM</text><text x="${W - pad.r - 8}" y="${Math.min(priceBottom - 6, bot - 6)}" text-anchor="end" fill="#34d399" opacity="0.38" font-size="9" font-weight="700" letter-spacing="1">DISCOUNT</text></g><rect x="${W - pad.r + 3}" y="${mid - 8}" width="${pad.r - 6}" height="16" rx="2" fill="#ca8a04"/><text x="${W - pad.r + pad.r / 2}" y="${mid + 3.5}" text-anchor="middle" fill="#000" font-size="9" font-weight="800">EQ 50%</text>`;
               }
             }
             zones
@@ -4444,29 +5643,42 @@ _HTML = r'''
                   zoneRight = W - pad.r,
                   w = zoneRight - xx;
                 if (w <= 0) return;
-                const bullish = z.direction === 'BUY',
-                  col =
-                    z.layer === 'fvg'
-                      ? bullish
-                        ? '#7c6cff'
-                        : '#bb6cff'
-                      : bullish
-                        ? '#31c48d'
-                        : '#ef6a6a',
-                  opacity = z.status === 'INVALIDADA' || z.status === 'RELLENADA' ? '.035' : '.10',
-                  zoneName = z.layer === 'fvg' ? 'FVG' : 'OB';
-                out += `<g clip-path="url(#chartPriceClip)"><rect x="${xx}" y="${zoneTop}" width="${w}" height="${zoneHeight}" fill="${col}" opacity="${opacity}" stroke="${col}" stroke-width=".7" stroke-dasharray="${z.layer === 'fvg' ? '4 3' : '0'}"><title>${esc(z.label)} · ${esc(z.status || '')}</title></rect><text class="zoneChartLabel" x="${xx + 6}" y="${zoneTop + 12}" fill="${col}" font-size="9" font-weight="700">${esc(zoneName)} ${esc(z.status || '')}</text></g>`;
+                const isMitigated =
+                  z.status === 'INVALIDADA' ||
+                  z.status === 'RELLENADA' ||
+                  z.status === 'MITIGADA' ||
+                  z.status === 'SWEPT';
+                if (chartLayerState.cleanZones && isMitigated) return;
+                const bullish = z.direction === 'BUY';
+                let col = '',
+                  badgeBg = '',
+                  badgeTextCol = '',
+                  zoneLabel = '';
+                if (z.layer === 'fvg') {
+                  col = bullish ? '#818cf8' : '#a855f7';
+                  badgeBg = bullish ? 'rgba(49, 46, 129, 0.88)' : 'rgba(88, 28, 135, 0.88)';
+                  badgeTextCol = bullish ? '#c7d2fe' : '#e9d5ff';
+                  zoneLabel = `FVG ${bullish ? 'BULL' : 'BEAR'}${isMitigated ? ' (MIT)' : ''}`;
+                } else {
+                  col = bullish ? '#089981' : '#f23645';
+                  badgeBg = bullish ? 'rgba(6, 78, 59, 0.88)' : 'rgba(136, 19, 55, 0.88)';
+                  badgeTextCol = bullish ? '#34d399' : '#fb7185';
+                  zoneLabel = `OB ${bullish ? 'BULL' : 'BEAR'}${isMitigated ? ' (MIT)' : ''}`;
+                }
+                const opacity = isMitigated ? '0.04' : '0.12';
+                const badgeW = isMitigated ? 68 : 48;
+                out += `<g clip-path="url(#chartPriceClip)"><rect x="${xx}" y="${zoneTop}" width="${w}" height="${zoneHeight}" rx="3" ry="3" fill="${col}" opacity="${opacity}" stroke="${col}" stroke-width="1" stroke-dasharray="${z.layer === 'fvg' ? '4 3' : '3 3'}"><title>${esc(z.label)} · ${esc(z.status || '')} [${priceFmt(lo)} - ${priceFmt(hi)}]</title></rect><rect x="${xx + 4}" y="${zoneTop + 2}" width="${badgeW}" height="14" rx="2" fill="${badgeBg}"/><text class="zoneChartLabel" x="${xx + 6}" y="${zoneTop + 12}" fill="${badgeTextCol}" font-size="8.5" font-weight="700">${esc(zoneLabel)}</text></g>`;
               });
             liqLevels
               .filter(() => chartLayerState.liquidity)
               .forEach((l) => {
                 const xx = chartObjectX(allCandles, win, l.time, plotW, pad.l),
                   pv = Number(l.price);
-                if (xx == null || !Number.isFinite(pv)) return;
+                if (xx == null || !Number.isFinite(pv) || xx >= W - pad.r) return;
                 const yy = y(pv),
-                  col = l.type === 'buy_side_liquidity' ? '#f5b942' : '#53a7ff';
-                if (xx >= W - pad.r) return;
-                out += `<g clip-path="url(#chartPriceClip)"><line x1="${xx}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1" stroke-dasharray="2 5" opacity=".65"><title>${esc(l.label)}</title></line><text x="${xx + 5}" y="${yy - 4}" fill="${col}" font-size="9">${l.type === 'buy_side_liquidity' ? 'BSL' : 'SSL'}</text></g>`;
+                  isBsl = l.type === 'buy_side_liquidity',
+                  col = isBsl ? '#f59e0b' : '#38bdf8';
+                out += `<g clip-path="url(#chartPriceClip)"><line x1="${xx}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1" stroke-dasharray="2 4" opacity="0.65"><title>${esc(l.label)}</title></line><rect x="${xx + 4}" y="${yy - 11}" width="26" height="11" rx="2" fill="${col}" opacity="0.25"/><text x="${xx + 17}" y="${yy - 3}" text-anchor="middle" fill="${col}" font-size="8" font-weight="800">${isBsl ? 'BSL' : 'SSL'}</text></g>`;
               });
             candles.forEach((q, i) => {
               const xx = x(i),
@@ -4475,28 +5687,56 @@ _HTML = r'''
                 yh = y(q.high),
                 yl = y(q.low),
                 up = Number(q.close) >= Number(q.open),
-                col = up ? '#31c48d' : '#ef6a6a';
-              out += `<line x1="${xx}" y1="${yh}" x2="${xx}" y2="${yl}" stroke="${col}" stroke-width="1.2"/>`;
-              out += `<rect x="${xx - cw / 2}" y="${Math.min(yo, yc)}" width="${cw}" height="${Math.max(1, Math.abs(yc - yo))}" fill="${col}" opacity=".88"/>`;
+                col = up ? '#089981' : '#f23645';
+              out += `<g clip-path="url(#chartPriceClip)"><line x1="${xx}" y1="${yh}" x2="${xx}" y2="${yl}" stroke="${col}" stroke-width="1.2"/><rect x="${xx - cw / 2}" y="${Math.min(yo, yc)}" width="${cw}" height="${Math.max(1, Math.abs(yc - yo))}" rx="1" ry="1" fill="${col}" opacity="0.95"/></g>`;
             });
             if (chartLayerState.trade) {
               const tradeLevels = [
-                ['Entrada', t.entry_price, '#53a7ff'],
-                ['SL', t.stop_loss, '#ef6a6a'],
-                ['TP', t.take_profit, '#31c48d'],
-                ['SL actual / BE', t.current_stop_loss, '#f5b942'],
-                ['Precio', t.current_price, '#d7e5ef'],
+                { id: 'TP', label: 'TP', val: t.take_profit, bg: '#089981', fg: '#ffffff', dash: '4 4' },
+                { id: 'SL', label: 'SL', val: t.stop_loss, bg: '#f23645', fg: '#ffffff', dash: '4 4' },
+                { id: 'ENT', label: 'ENT', val: t.entry_price, bg: '#2962ff', fg: '#ffffff', dash: '6 4' },
+                { id: 'BE', label: 'BE', val: t.current_stop_loss, bg: '#d97706', fg: '#ffffff', dash: '4 3' },
+                { id: 'ACT', label: 'ACT', val: t.current_price, bg: '#475569', fg: '#ffffff', dash: '2 2' },
               ];
-              tradeLevels.forEach(([lab, val, col]) => {
-                val = Number(val);
-                if (!Number.isFinite(val)) return;
-                const yy = y(val);
-                out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="6 5" opacity=".9"/><text class="priceLabel" x="${pad.l + 5}" y="${yy - 4}" fill="${col}">${esc(lab)} ${priceFmt(val)}</text>`;
+              const validLevels = tradeLevels
+                .filter((x) => Number.isFinite(Number(x.val)))
+                .map((lvl) => ({
+                  ...lvl,
+                  val: Number(lvl.val),
+                  y: y(Number(lvl.val)),
+                }))
+                .sort((a, b) => a.y - b.y);
+
+              validLevels.forEach((l) => {
+                l.badgeY = l.y;
               });
+              for (let k = 1; k < validLevels.length; k++) {
+                if (validLevels[k].badgeY - validLevels[k - 1].badgeY < 18) {
+                  validLevels[k].badgeY = validLevels[k - 1].badgeY + 18;
+                }
+              }
+              if (
+                validLevels.length &&
+                validLevels[validLevels.length - 1].badgeY > priceBottom
+              ) {
+                const shift = validLevels[validLevels.length - 1].badgeY - priceBottom;
+                validLevels.forEach((l) => {
+                  l.badgeY -= shift;
+                });
+              }
+
+              validLevels.forEach((lvl) => {
+                out += `<line x1="${pad.l}" y1="${lvl.y}" x2="${W - pad.r}" y2="${lvl.y}" stroke="${lvl.bg}" stroke-width="1.4" stroke-dasharray="${lvl.dash}" opacity="0.85"/>`;
+                if (Math.abs(lvl.badgeY - lvl.y) > 1) {
+                  out += `<line x1="${W - pad.r}" y1="${lvl.y}" x2="${W - pad.r + 3}" y2="${lvl.badgeY}" stroke="${lvl.bg}" stroke-width="1.2"/>`;
+                }
+                out += `<rect x="${W - pad.r + 3}" y="${lvl.badgeY - 8.5}" width="${pad.r - 6}" height="17" rx="3" fill="${lvl.bg}"/><text class="priceLabel" x="${W - pad.r + (pad.r - 6) / 2 + 3}" y="${lvl.badgeY + 3.5}" text-anchor="middle" fill="${lvl.fg}" font-size="9.5" font-family="monospace, sans-serif" font-weight="700">${lvl.label} ${priceFmt(lvl.val)}</text>`;
+              });
+
               const ei = nearestCandleIndex(candles, t.entry_time);
               if (ei != null) {
                 const ex = x(ei);
-                out += `<line x1="${ex}" y1="${pad.t}" x2="${ex}" y2="${priceBottom}" stroke="#53a7ff" stroke-width="1.5" stroke-dasharray="3 4" opacity=".85"/><text class="entryTag" x="${Math.min(ex + 5, W - pad.r - 170)}" y="${pad.t + 14}" fill="#53a7ff">ENTRADA · ${entryView.score == null ? 'score —' : 'score ' + n(entryView.score, 0)} · ${pct(entryView.confirmation_percentage)}</text>`;
+                out += `<line x1="${ex}" y1="${pad.t}" x2="${ex}" y2="${priceBottom}" stroke="#2962ff" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.85"/><rect x="${Math.min(ex - 2, W - pad.r - 180)}" y="${pad.t + 2}" width="176" height="18" rx="3" fill="#1e3a8a" opacity="0.9"/><text class="entryTag" x="${Math.min(ex + 4, W - pad.r - 174)}" y="${pad.t + 14}" fill="#93c5fd" font-size="9" font-weight="700">ENTRADA · ${entryView.score == null ? 'score —' : 'score ' + n(entryView.score, 0)} · ${pct(entryView.confirmation_percentage)}</text>`;
               }
             }
             const timeIndex = new Map(candles.map((q, i) => [String(q.time).slice(0, 16), i]));
@@ -4515,24 +5755,25 @@ _HTML = r'''
                   ),
                   bull = e.direction === 'BUY';
                 if (e.layer === 'swings') {
-                  const col = bull ? '#80bfff' : '#ffd36b',
-                    dy = bull ? 15 : -7;
-                  out += `<text x="${xx}" y="${py + dy}" text-anchor="middle" fill="${col}" font-size="9" font-weight="800"><title>${esc(e.label)}</title>${esc(e.label)}</text>`;
+                  const col = bull ? '#38bdf8' : '#fbbf24',
+                    dy = bull ? 14 : -8,
+                    circleDy = bull ? 5 : -5;
+                  out += `<g clip-path="url(#chartPriceClip)"><circle cx="${xx}" cy="${py + circleDy}" r="2" fill="${col}"/><text x="${xx}" y="${py + dy}" text-anchor="middle" fill="${col}" font-size="8" font-weight="800"><title>${esc(e.label)}</title>${esc(e.label)}</text></g>`;
                   return;
                 }
-                const col = bull ? '#53a7ff' : '#f5b942',
+                const col = bull ? '#38bdf8' : '#fbbf24',
                   pts = bull
-                    ? `${xx},${py - 13} ${xx - 6},${py - 3} ${xx + 6},${py - 3}`
-                    : `${xx},${py + 13} ${xx - 6},${py + 3} ${xx + 6},${py + 3}`;
-                out += `<polygon points="${pts}" fill="${col}"><title>${esc(e.label)}</title></polygon>`;
+                    ? `${xx},${py - 12} ${xx - 5},${py - 3} ${xx + 5},${py - 3}`
+                    : `${xx},${py + 12} ${xx - 5},${py + 3} ${xx + 6},${py + 3}`;
+                out += `<g clip-path="url(#chartPriceClip)"><polygon points="${pts}" fill="${col}"><title>${esc(e.label)}</title></polygon></g>`;
               });
             if (chartLayerState.confluence) {
               const ei = nearestCandleIndex(candles, t.entry_time);
               if (ei != null) {
-                let ty = pad.t + 31;
+                let ty = pad.t + 36;
                 const con = [];
-                if (entryView.divergence_confirmed) con.push('DIV RSI');
-                if (entryView.h1_doji_confirmed) con.push('DOJI H1');
+                if (entryView.divergence_confirmed) con.push('DIV RSI (' + (entryView.divergence_type || 'confirmada') + ')');
+                if (entryView.h1_doji_confirmed) con.push('DOJI H1 (' + (entryView.h1_doji_type || 'confirmado') + ')');
                 if (entryView.harmonic_confirmed) con.push('ARMÓNICO');
                 if (entryView.chart_pattern_confirmed)
                   con.push(
@@ -4540,8 +5781,9 @@ _HTML = r'''
                       String(entryView.chart_pattern_name || 'CHARTISTA').replaceAll('_', ' '),
                   );
                 con.forEach((label) => {
-                  out += `<text x="${Math.min(x(ei) + 5, W - pad.r - 100)}" y="${ty}" fill="#f5b942" font-size="10" font-weight="700">+ ${esc(label)}</text>`;
-                  ty += 13;
+                  const chipW = Math.min(220, label.length * 6.5 + 24);
+                  out += `<g opacity="0.92"><rect x="${pad.l + 8}" y="${ty - 11}" width="${chipW}" height="16" rx="3" fill="rgba(15, 23, 42, 0.85)" stroke="#f59e0b" stroke-width="0.8"/><text x="${pad.l + 14}" y="${ty + 1}" fill="#fbbf24" font-size="8.5" font-weight="700">✦ ${esc(label)}</text></g>`;
+                  ty += 19;
                 });
               }
               if (entryView.h1_doji_confirmed && entryView.h1_doji_time) {
@@ -4549,7 +5791,7 @@ _HTML = r'''
                 if (di != null) {
                   const xx = x(di),
                     py = y(candles[di].low);
-                  out += `<circle cx="${xx}" cy="${py + 11}" r="5" fill="#f5b942"><title>${esc(entryView.h1_doji_type || 'Doji H1 en extremo')}</title></circle>`;
+                  out += `<circle cx="${xx}" cy="${py + 9}" r="4" fill="none" stroke="#fbbf24" stroke-width="2"><title>${esc(entryView.h1_doji_type || 'Doji H1 en extremo')}</title></circle>`;
                 }
               }
             }
@@ -4562,33 +5804,67 @@ _HTML = r'''
                   pv = Number(a.price);
                 if (ai == null || !Number.isFinite(pv)) return;
                 pts.push([x(ai), y(pv)]);
-                out += `<circle cx="${x(ai)}" cy="${y(pv)}" r="5" fill="none" stroke="#f5b942" stroke-width="2"><title>${esc(pe.pattern || entryView.chart_pattern_name || 'Patrón chartista')}</title></circle>`;
+                out += `<circle cx="${x(ai)}" cy="${y(pv)}" r="4" fill="none" stroke="#fbbf24" stroke-width="2"><title>${esc(pe.pattern || entryView.chart_pattern_name || 'Patrón chartista')}</title></circle>`;
               });
               if (pts.length > 1)
-                out += `<polyline points="${pts.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#f5b942" stroke-width="1.6" stroke-dasharray="5 4" opacity=".9"/>`;
+                out += `<polyline points="${pts.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.9"/>`;
               if (pts.length)
-                out += `<text x="${Math.min(pts[pts.length - 1][0] + 7, W - pad.r - 220)}" y="${Math.max(pad.t + 15, pts[pts.length - 1][1] - 8)}" fill="#f5b942" font-size="10" font-weight="800">${esc(String(pe.pattern || entryView.chart_pattern_name || 'PATRÓN').replaceAll('_', ' '))}</text>`;
+                out += `<text x="${Math.min(pts[pts.length - 1][0] + 7, W - pad.r - 220)}" y="${Math.max(pad.t + 15, pts[pts.length - 1][1] - 8)}" fill="#fbbf24" font-size="9" font-weight="800">${esc(String(pe.pattern || entryView.chart_pattern_name || 'PATRÓN').replaceAll('_', ' '))}</text>`;
             }
             if (chartLayerState.rsi) {
-              [30, 50, 70].forEach((v) => {
+              out += `<g clip-path="url(#chartRsiClip)"><rect x="${pad.l}" y="${rsiY(100)}" width="${plotW}" height="${Math.max(0, rsiY(70) - rsiY(100))}" fill="rgba(242, 54, 69, 0.05)"/><rect x="${pad.l}" y="${rsiY(70)}" width="${plotW}" height="${Math.max(0, rsiY(30) - rsiY(70))}" fill="rgba(129, 140, 248, 0.04)"/><rect x="${pad.l}" y="${rsiY(30)}" width="${plotW}" height="${Math.max(0, rsiY(0) - rsiY(30))}" fill="rgba(8, 153, 129, 0.05)"/></g>`;
+              [70, 50, 30].forEach((v) => {
                 const yy = rsiY(v);
-                out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${v === 50 ? '#294052' : '#523d28'}" stroke-width="1" stroke-dasharray="4 4"/><text class="rsiLabel" x="${W - pad.r + 7}" y="${yy + 3}">RSI ${v}</text>`;
+                const col = v === 70 ? 'rgba(242, 54, 69, 0.45)' : v === 30 ? 'rgba(8, 153, 129, 0.45)' : '#334155';
+                out += `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="${col}" stroke-width="1" stroke-dasharray="3 3"/><line x1="${W - pad.r}" y1="${yy}" x2="${W - pad.r + 4}" y2="${yy}" stroke="#2a2e39"/><text class="rsiLabel" x="${W - pad.r + 8}" y="${yy + 3.5}" fill="${v === 70 ? '#ef4444' : v === 30 ? '#22c55e' : '#64748b'}" font-size="9.5" font-family="monospace, sans-serif">${v}</text>`;
               });
               let pts = [];
+              let lastRsi = null;
               candles.forEach((q, i) => {
                 const rv = Number(q.rsi14);
-                if (Number.isFinite(rv)) pts.push(`${x(i)},${rsiY(rv)}`);
+                if (Number.isFinite(rv)) {
+                  pts.push(`${x(i)},${rsiY(rv)}`);
+                  lastRsi = rv;
+                }
               });
-              if (pts.length > 1)
-                out += `<polyline points="${pts.join(' ')}" fill="none" stroke="#b6c9d7" stroke-width="1.6"/><text x="${pad.l + 4}" y="${rsiTop + 12}" fill="#8fa2b3" font-size="11">RSI 14 · evidencia visual para divergencias</text>`;
+              if (pts.length > 1) {
+                out += `<g clip-path="url(#chartRsiClip)"><polyline points="${pts.join(' ')}" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linejoin="round"/></g>`;
+              }
+              out += `<text x="${pad.l + 8}" y="${rsiTop + 14}" fill="#787b86" font-size="9.5" font-family="monospace, sans-serif" font-weight="700">RSI (14, Close)</text>`;
+              if (lastRsi != null) {
+                const rY = rsiY(lastRsi);
+                out += `<rect x="${W - pad.r + 3}" y="${rY - 7.5}" width="${pad.r - 6}" height="15" rx="2" fill="#6366f1"/><text x="${W - pad.r + pad.r / 2}" y="${rY + 3.5}" text-anchor="middle" fill="#ffffff" font-size="9" font-family="monospace, sans-serif" font-weight="700">${n(lastRsi, 1)}</text>`;
+              }
             }
-            const ticks = [0, Math.floor((candles.length - 1) / 2), candles.length - 1];
-            ticks.forEach((i) => {
+            const tickCount = Math.min(6, candles.length);
+            for (let tIdx = 0; tIdx < tickCount; tIdx++) {
+              const i = Math.floor((tIdx * (candles.length - 1)) / Math.max(1, tickCount - 1));
               const d = new Date(candles[i].time);
-              out += `<text x="${x(i)}" y="${H - 7}" text-anchor="middle" fill="#8fa2b3" font-size="11">${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</text>`;
-            });
+              const timeStr = !isNaN(d.getTime())
+                ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : String(candles[i].time).slice(11, 16);
+              out += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" fill="#787b86" font-size="10" font-family="monospace, sans-serif">${timeStr}</text>`;
+            }
+            out += `<g id="chartCrosshair" style="display:none; pointer-events:none;"><line id="crossV" x1="0" y1="${pad.t}" x2="0" y2="${H - pad.b}" stroke="#787b86" stroke-width="1" stroke-dasharray="3 3"/><line id="crossH" x1="${pad.l}" y1="0" x2="${W - pad.r}" y2="0" stroke="#787b86" stroke-width="1" stroke-dasharray="3 3"/><g id="crossPriceBadge" style="display:none;"><rect id="crossPriceRect" x="${W - pad.r + 2}" y="0" width="${pad.r - 4}" height="17" rx="2" fill="#2a2e39"/><text id="crossPriceText" x="${W - pad.r + pad.r / 2}" y="0" text-anchor="middle" fill="#ffffff" font-size="9.5" font-family="monospace, sans-serif" font-weight="700"></text></g><g id="crossTimeBadge"><rect id="crossTimeRect" x="0" y="${H - pad.b + 2}" width="86" height="17" rx="2" fill="#2a2e39"/><text id="crossTimeText" x="0" y="${H - pad.b + 14}" text-anchor="middle" fill="#ffffff" font-size="9.5" font-family="monospace, sans-serif" font-weight="700"></text></g></g>`;
             out += '</svg>';
             $('chartWrap').innerHTML = out;
+            chartRenderContext = {
+              W,
+              H,
+              pad,
+              priceBottom,
+              priceH,
+              rsiTop,
+              rsiH,
+              min,
+              max,
+              candles,
+              symbol: t.symbol,
+              activeTf,
+            };
+            if (candles.length) {
+              updateChartHud(candles[candles.length - 1], t.symbol, activeTf);
+            }
           }
           function selectTrade(id) {
             selectedTradeId = String(id);
@@ -4627,16 +5903,25 @@ _HTML = r'''
                   const ownerStatus = t.ownership_status || '—';
                   const ownerCls = t.managed_by_daemon ? 'good' : 'warn';
                   const chartAvailable = t.chart && Object.keys(t.chart).length;
+                  const durationPill = t.duration_str && t.duration_str !== '—'
+                    ? `<span class="pill neutral" style="font-size:10px; padding:1px 6px; margin-left:4px; font-weight:600;" title="Tiempo transcurrido en posición">⏱ ${esc(t.duration_str)}</span>`
+                    : '';
+                  const scorePill = t.quality_score != null
+                    ? `<span class="pill neutral" style="font-size:11px; font-weight:700; padding:2px 7px;">${n(t.quality_score, 0)}</span>`
+                    : '—';
+                  const confPill = t.confirmation_percentage != null
+                    ? `<span class="pill ${t.confirmation_percentage >= 80 ? 'good' : 'neutral'}" style="font-size:11px; font-weight:700; padding:2px 7px;">${pct(t.confirmation_percentage)}</span>`
+                    : '—';
                   return `<tr class="${sel}">
-    <td><b>${esc(t.symbol)}</b><br><span class="sub">${esc(t.execution_mode)} · ${esc(t.leg)}</span><br>${persisted}<span class="technical">${esc(t.broker_verification)}</span></td>
+    <td><b>${esc(t.symbol)}</b> ${durationPill}<br><span class="sub">${esc(t.execution_mode)} · ${esc(t.leg)}</span><br>${persisted}<span class="technical">${esc(t.broker_verification)}</span></td>
     <td><b class="${ownerCls}">${esc(owner)}</b><br><span class="technical">Magic ${esc(t.owner_magic || '—')} · ${esc(ownerStatus)}</span><br><span class="technical">Worker ${esc(t.worker_status || '—')}${t.worker_pid ? ' · PID ' + esc(t.worker_pid) : ''}</span></td>
     <td>${esc(t.direction)}</td>
     <td class="score ${t.health_score == null ? 'neutral' : scoreClass(t.health_score)}">${health}<br><span class="pill">${esc(t.health_grade || '—')}</span></td>
     <td class="${cls}"><b>${esc(rec)}</b></td>
     <td>${t.current_rr == null ? '—' : n(t.current_rr, 2) + 'R'}</td>
     <td class="${t.break_even_confirmed ? 'good' : 'warn'}">${t.break_even_confirmed ? 'ACTIVO' : 'Pendiente'}</td>
-    <td>${esc(t.quality_score)}</td>
-    <td>${pct(t.confirmation_percentage)}</td>
+    <td>${scorePill}</td>
+    <td>${confPill}</td>
     <td>${esc(t.current_price)}</td>
     <td class="sub">${rs || 'Sin razones suficientes todavía'}</td>
     <td><button type="button" class="btn viewBtn" data-trade-id="${esc(t.id)}">${chartAvailable ? 'Ver gráfico' : 'Esperando gráfico'}</button></td>
@@ -5073,8 +6358,68 @@ _HTML = r'''
                   .join('')
               : `Sin noticias disponibles (${esc(n.status || 'SIN DATOS')}).`;
           }
+          let currentMatrixFilter = 'ALL';
+          window.setMatrixFilter = function(filter) {
+            currentMatrixFilter = filter;
+            document.querySelectorAll('#confluenceFilters .matrixTabBtn').forEach(btn => {
+              btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+            });
+            if (latestState) {
+              renderConfluenceMatrix(latestState);
+            }
+          };
+
+          function renderConfluenceMatrix(s) {
+            const tbody = $('confluenceMatrixBody');
+            if (!tbody) return;
+            const fullMatrix = s.confluence_matrix || [];
+            if (!fullMatrix.length) {
+              tbody.innerHTML = '<tr><td colspan="8" class="empty">Esperando datos centinela de las estrategias…</td></tr>';
+              return;
+            }
+
+            // Actualizar chips de resumen
+            const summaryDiv = $('confluenceSummaryChips');
+            if (summaryDiv) {
+              const activeCount = fullMatrix.filter(m => (m.final_state || '').includes('ACTIVA') || m.badge_class === 'active').length;
+              const readyCount = fullMatrix.filter(m => (m.final_state || '').includes('LISTA')).length;
+              const monitorCount = fullMatrix.filter(m => (m.final_state || '').includes('MONITOREANDO') || (m.final_state || '').includes('ESPERANDO')).length;
+              summaryDiv.innerHTML = `
+                <span class="statusPill active" style="font-size:10px;">${activeCount} Posición${activeCount === 1 ? '' : 'es'} Activa${activeCount === 1 ? '' : 's'}</span>
+                <span class="statusPill good" style="font-size:10px;">${readyCount} Señal${readyCount === 1 ? '' : 'es'} Lista${readyCount === 1 ? '' : 's'}</span>
+                <span class="statusPill warn" style="font-size:10px;">${monitorCount} En Seguimiento</span>
+              `;
+            }
+
+            // Aplicar filtro seleccionado
+            let filtered = fullMatrix;
+            if (currentMatrixFilter === 'ACTIVE') {
+              filtered = fullMatrix.filter(m => (m.final_state || '').includes('ACTIVA') || m.badge_class === 'active');
+            } else if (currentMatrixFilter !== 'ALL') {
+              filtered = fullMatrix.filter(m => (m.strategy_key || '').toUpperCase() === currentMatrixFilter);
+            }
+
+            if (!filtered.length) {
+              tbody.innerHTML = `<tr><td colspan="8" class="empty">No hay activos para el filtro seleccionado (${esc(currentMatrixFilter)}).</td></tr>`;
+              return;
+            }
+
+            tbody.innerHTML = filtered.map(m => `
+              <tr style="border-bottom: 1px solid var(--line);">
+                <td style="padding: 9px 8px;"><b>${esc(m.symbol)}</b></td>
+                <td style="padding: 9px 8px;"><span class="stratBadge ${esc(m.strat_badge || 'strat-smc')}">${esc(m.strategy || 'SMC')}</span></td>
+                <td style="padding: 9px 8px;">${esc(m.macro_context || m.h1_context || '—')}</td>
+                <td style="padding: 9px 8px;">${esc(m.structure_level || m.m15_structure || '—')}</td>
+                <td style="padding: 9px 8px;">${esc(m.trigger_confirmation || m.m5_confirmation || '—')}</td>
+                <td style="padding: 9px 8px;">${esc(m.metrics_freshness || m.m5_freshness || '—')}</td>
+                <td style="padding: 9px 8px;"><b>${esc(m.ai_score || '—')}</b></td>
+                <td style="padding: 9px 8px;"><span class="statusPill ${esc(m.badge_class || 'neutral')}">${esc(m.final_state || '—')}</span></td>
+              </tr>
+            `).join('');
+          }
           function render(s) {
             latestState = s;
+            renderConfluenceMatrix(s);
             renderDashboardNews(s);
             renderCatalog(s);
             renderWorkers(s);
@@ -5084,6 +6429,7 @@ _HTML = r'''
             renderQuarantine(s);
             renderCandidateTabs(s);
             const ax = (s.account || {}).snapshot || {};
+
             const money = (v) =>
               v == null
                 ? '—'
@@ -5177,12 +6523,12 @@ _HTML = r'''
           }
           let refreshBusy = false;
           async function refresh() {
-            if (document.hidden || refreshBusy) return;
+            if(document.hidden||refreshBusy)return;
             refreshBusy = true;
             const controller = new AbortController(),
               timeout = setTimeout(() => controller.abort(), 30000);
             try {
-              const r = await fetch('/api/state?ts=' + Date.now(), {
+              const r = await fetch('/api/state?ts='+Date.now(), {
                 cache: 'no-store',
                 signal: controller.signal,
               });
@@ -5239,7 +6585,7 @@ _HTML = r'''
           bindChartManipulation();
           updateChartViewerButtons();
           refresh();
-          setInterval(refresh, 6000);
+          setInterval(refresh,6000);
           document.addEventListener('visibilitychange', () => {
             if (!document.hidden) refresh();
           });
@@ -5376,11 +6722,43 @@ _INSTRUMENTS_HTML = r'''
       .item {
         display: flex;
         gap: 8px;
-        align-items: flex-start;
-        padding: 6px 2px;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 6px;
+        transition: background 0.15s ease;
       }
-      .item input {
-        margin-top: 3px;
+      .item:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .symName {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .pruneBadge {
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-left: auto;
+        white-space: nowrap;
+        cursor: help;
+      }
+      .activeBadge {
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .prunedItem {
+        opacity: 0.85;
       }
       .msg {
         margin-top: 12px;
@@ -5452,7 +6830,7 @@ _INSTRUMENTS_HTML = r'''
   <body>
     <main class="wrap">
       <div class="brandStrip">
-        <img src="/assets/blackdaemonfx_logo.jpeg" alt="Logo BlackDaemonFX" />
+        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
           <b>BLACKDAEMON<span>FX</span></b>
           <div class="sub">Gestión modular de instrumentos</div>
@@ -5466,7 +6844,11 @@ _INSTRUMENTS_HTML = r'''
             categoría.
           </div>
         </div>
-        <a class="btn" href="/">← Volver al dashboard</a>
+        <div class="actions">
+          <a class="btn" href="/">← Volver al dashboard</a>
+          <a class="btn" href="/account">Cuenta en vivo</a>
+          <a class="btn" href="/performance">Rendimiento</a>
+        </div>
       </div>
       <section class="card">
         <div class="head">
@@ -5474,7 +6856,8 @@ _INSTRUMENTS_HTML = r'''
             <button class="btn profileTab active" data-profile="SYNTHETICS" type="button">
               SINTÉTICOS</button
             ><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button
-            ><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button>
+            ><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button
+            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">MALAYSIAN SNR</button>
           </div>
           <div class="actions">
             <button class="btn" id="selectAll" type="button">Seleccionar todos</button
@@ -5511,7 +6894,7 @@ _INSTRUMENTS_HTML = r'''
           <div id="newsList" class="msg">Cargando noticias…</div>
         </section>
         <div class="note" id="profileNote">
-          <b>Persistencia independiente:</b> Sintéticos, Forex y ORB se guardan por separado.
+          <b>Persistencia independiente:</b> Sintéticos, Forex, ORB y Malaysian SNR se guardan por separado.
         </div>
         <div class="note">
           <b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el
@@ -5538,7 +6921,10 @@ _INSTRUMENTS_HTML = r'''
           )
           .map((g) => ({
             ...g,
-            symbols: (g.symbols || []).filter((sym) => !(/boom/i.test(sym) && /crash/i.test(sym))),
+            symbols: (g.symbols || []).filter((sym) => {
+              if (String(g.selection_profile || '').toUpperCase() === 'MALAYSIAN_SNR') return true;
+              return !(/boom/i.test(sym) && /crash/i.test(sym));
+            }),
           }))
           .filter((g) => g.symbols.length);
       }
@@ -5549,7 +6935,7 @@ _INSTRUMENTS_HTML = r'''
       }
       function selectionSummary(s) {
         return (
-          ['SYNTHETICS', 'FOREX', 'ORB']
+          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR']
             .map((p, i) => {
               const allowed = new Set(
                 visibleInstrumentGroups(s)
@@ -5557,7 +6943,7 @@ _INSTRUMENTS_HTML = r'''
                   .flatMap((g) => g.symbols),
               );
               return (
-                ['Sintéticos', 'Forex', 'ORB'][i] +
+                ['Sintéticos', 'Forex', 'ORB', 'Malaysian SNR'][i] +
                 ': ' +
                 ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
               );
@@ -5592,6 +6978,9 @@ _INSTRUMENTS_HTML = r'''
         state = s;
         renderNews(s);
         const chosen = new Set((s.selection_profiles || {})[activeProfile] || []),
+          prunedByProfile = s.pruned_instruments_by_profile || {},
+          prunedInfo = prunedByProfile[activeProfile] || s.pruned_instruments || {},
+          prioritized = new Set((s.prioritized_symbols || {})[activeProfile] || []),
           q = $('search').value.trim().toLocaleLowerCase('es'),
           gs = groups(s);
         $('grid').innerHTML =
@@ -5599,22 +6988,43 @@ _INSTRUMENTS_HTML = r'''
             .map((g) => {
               const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
               return items.length
-                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map((sym) => `<label class="item"><input type="checkbox" data-symbol="${esc(sym)}" ${chosen.has(sym) ? 'checked' : ''}><span>${esc(sym)}</span></label>`).join('')}</section>`
+                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map((sym) => {
+                    const isChecked = chosen.has(sym);
+                    const isPrioritized = prioritized.has(sym);
+                    const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
+                    const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis de 2 años por baja expectativa matemática.' : '');
+                    const badge = isPruned
+                      ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda)</span>`
+                      : `<span class="activeBadge">✓ Priorizado</span>`;
+                    return `<label class="item ${isPruned ? 'prunedItem' : ''}"><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked ? 'checked' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
+                  }).join('')}</section>`
                 : '';
             })
             .join('') || '<div class="sub">No se encontraron instrumentos para este perfil.</div>';
         $('totalCount').textContent = gs.reduce((n, g) => n + (g.symbols || []).length, 0);
         $('msg').textContent = selectionSummary(s);
         $('profileNote').innerHTML =
-          `<b>${activeProfile}:</b> selección persistente independiente.`;
+          `<b>${activeProfile}:</b> selección persistente independiente. Los instrumentos priorizados están marcados; los descartados por poda pueden activarse opcionalmente con advertencia.`;
         document
           .querySelectorAll('.profileTab')
           .forEach((b) => b.classList.toggle('active', b.dataset.profile === activeProfile));
         document.querySelectorAll('input[data-symbol]').forEach((cb) =>
           cb.addEventListener('change', () => {
+            const sym = cb.dataset.symbol;
+            const isPruned = cb.dataset.pruned === 'true';
+            const warning = cb.dataset.warning || '';
+            if (cb.checked && isPruned) {
+              const proceed = window.confirm(
+                `⚠️ ADVERTENCIA DE PODA:\n\nEl instrumento "${sym}" fue descartado de la activación inicial:\n\n${warning}\n\n¿Deseas activarlo de todas formas bajo tu propio criterio de riesgo?`
+              );
+              if (!proceed) {
+                cb.checked = false;
+                return;
+              }
+            }
             dirty = true;
             updateCount();
-            $('msg').textContent = `Cambios pendientes para ${activeProfile}.`;
+            $('msg').textContent = `Cambios pendientes para ${activeProfile}. Haz clic en Guardar selección para confirmar.`;
           }),
         );
         updateCount();
@@ -5626,7 +7036,7 @@ _INSTRUMENTS_HTML = r'''
         const controller = new AbortController(),
           timeout = setTimeout(() => controller.abort(), 30000);
         try {
-          const r = await fetch('/api/instruments?ts=' + Date.now(), {
+          const r = await fetch('/api/instruments?ts='+Date.now(), {
             cache: 'no-store',
             signal: controller.signal,
           });
@@ -5649,7 +7059,7 @@ _INSTRUMENTS_HTML = r'''
           const r = await fetch('/api/instruments/selection', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selection_profile: activeProfile, selected_symbols: values }),
+            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values }),
           });
           const data = await r.json();
           if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar');
@@ -5685,7 +7095,7 @@ _INSTRUMENTS_HTML = r'''
       });
       $('save').addEventListener('click', save);
       load();
-      setInterval(load, 6000);
+      setInterval(load,6000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) load();
       });

@@ -74,15 +74,21 @@ def classify_orb_market(symbol: str) -> str | None:
 
     # Oro: nombres concretos observados/soportados. Evaluar micro primero evita
     # que XAUUSDmicro sea absorbido por la familia XAUUSD estándar.
-    if name in {"xauusdmicro", "microxauusd"}:
+    if (
+        name in {"xauusdmicro", "microxauusd", "xxauusdmicro", "xauusdm", "xxauusdm"}
+        or ("xau" in name and ("micro" in name or name.endswith("m") or name.endswith("mic")))
+    ):
         return "MICRO_XAUUSD"
-    if name in {"xauusd", "gold"}:
+    if name in {"xauusd", "gold", "xxauusd"} or ("xau" in name and "usd" in name):
         return "XAUUSD"
 
     # Plata: mismo patron que el Oro, micro evaluado primero.
-    if name in {"xagusdmicro", "microxagusd"}:
+    if (
+        name in {"xagusdmicro", "microxagusd", "xxagusdmicro", "xagusdm", "xxagusdm"}
+        or ("xag" in name and ("micro" in name or name.endswith("m") or name.endswith("mic")))
+    ):
         return "MICRO_XAGUSD"
-    if name in {"xagusd", "silver"}:
+    if name in {"xagusd", "silver", "xxagusd"} or ("xag" in name and "usd" in name):
         return "XAGUSD"
 
     if name == "btcusd":
@@ -331,6 +337,13 @@ class ORBConfig:
     gold_quarter_level_increment: float = 25.0
     gold_quarter_level_tolerance_price: float = 2.0
     require_gold_quarter_level: bool = False
+    # Mejoras 12m Replay: Killzone horaria NY 09:45-11:30, retest de alta calidad y gestión BE 1.0R
+    entry_cutoff_hour: int = 11
+    entry_cutoff_minute: int = 30
+    entry_cutoff_enabled: bool = False
+    require_high_quality_retest: bool = False
+    break_even_enabled: bool = True
+    break_even_trigger_rr: float = 1.0
 
 
 class NewYorkORBStrategy:
@@ -666,6 +679,13 @@ class NewYorkORBStrategy:
             return {**base, "action": "WAITING_NEW_YORK_OPEN", "reason": "ANTES_DE_09_30_NEW_YORK"}
         if now_ny >= close_ny:
             return {**base, "action": "NO_ORB_SESSION", "reason": "SESION_NEW_YORK_FINALIZADA"}
+
+        cutoff_hour = int(getattr(self.config, "entry_cutoff_hour", 11))
+        cutoff_minute = int(getattr(self.config, "entry_cutoff_minute", 30))
+        entry_cutoff_ny = pd.Timestamp(datetime.combine(now_ny.date(), time(cutoff_hour, cutoff_minute)), tz=self.tz)
+        base["entry_cutoff_ny"] = entry_cutoff_ny.isoformat()
+        if bool(getattr(self.config, "entry_cutoff_enabled", False)) and now_ny >= entry_cutoff_ny:
+            return {**base, "action": "ORB_ENTRY_WINDOW_CLOSED", "reason": "DESPUES_DE_VENTANA_OPTIMA_NEW_YORK"}
 
         df = self._prepare_candles(symbol, now_utc)
         session = df[(df["time_ny"] >= open_ny) & (df["time_ny"] < close_ny)].copy()
@@ -1019,6 +1039,12 @@ class NewYorkORBStrategy:
             and breakout_volume_confirmed is False
         ):
             failed.append("RUPTURA_SIN_VOLUMEN_SUFICIENTE")
+        if (
+            entry_mode == "ORB_BREAKOUT_RETEST"
+            and bool(getattr(self.config, "require_high_quality_retest", False))
+            and quality != "HIGH_QUALITY"
+        ):
+            failed.append("RETEST_CALIDAD_INSUFICIENTE_NO_HIGH_QUALITY")
 
         # v107: niveles de cuarto ($25/$50/$75/$100) SOLO para XAUUSD/microXAUUSD.
         # El resto de mercados ORB no aplica esta confluencia (ver docstring de
@@ -1127,6 +1153,8 @@ class NewYorkORBStrategy:
             ),
             "orb_risk_model": "1_PERCENT_TOTAL_SPLIT_0_5_TP1_0_5_RUNNER",
             "orb_runner_plan": "FIXED_TP_BE_AFTER_TP1_SPREAD_PROTECTED",
+            "break_even_enabled": bool(getattr(self.config, "break_even_enabled", True)),
+            "break_even_trigger_rr": float(getattr(self.config, "break_even_trigger_rr", 1.0)),
         }
 
         from strategy.orb.signal_payload import build_signal_payload
@@ -1134,7 +1162,8 @@ class NewYorkORBStrategy:
             entry_price + (1 if direction == "BUY" else -1) * risk_distance, take_profit,
             {"HIGH_QUALITY": "ALTA", "STANDARD_QUALITY": "ESTÁNDAR", "LOW_QUALITY": "BAJA"}.get(quality, "NO_CLASIFICADA"),
             atr_frozen_m5=atr_reference, volume_status=volume_evidence["status"],
-            range_amplitude_ratio=range_atr_ratio))
+            range_amplitude_ratio=range_atr_ratio,
+            be_enabled=bool(getattr(self.config, "break_even_enabled", True))))
 
         # Evidencia exacta de la decisión ORB. Se entrega al motor únicamente
         # para congelar la auditoría visual; no participa en el score ni en la

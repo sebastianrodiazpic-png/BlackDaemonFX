@@ -55,7 +55,7 @@ if str(PROJECT_ROOT) not in sys.path:
 import pandas as pd
 
 from config.instruments import InstrumentManager
-from config.strategy_config import TIMEFRAMES
+from config.strategy_config import TIMEFRAMES, PRUNED_ASSET_UNIVERSE
 from data.collector import update_historical_csv
 from database.repository import TradingRepository
 from database.reporting import export_trading_report
@@ -394,7 +394,7 @@ def run_demo_bot(
     auto_export: bool = True,
     chart_pattern_conflict_min_margin: float = 0.25,
     hard_risk_tolerance: float = 0.035,
-    recoverable_quarantine_extra_tolerance: float = 0.015,
+    recoverable_quarantine_extra_tolerance: float = 0.025,
     market_data_mode: str | None = None,
 ):
     """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
@@ -504,27 +504,35 @@ def run_demo_bot(
         min_actual_risk_ratio=0.97,
         execution_enabled=execute,
         orb_enabled=(str(bot_profile).upper() == "ORB"),
+        malaysian_snr_enabled=(str(bot_profile).upper() == "MALAYSIAN_SNR"),
         forex_event_timeframe="M5",
-        first_target_rr=1.0,
-        second_target_rr=2.0,
+        first_target_rr=2.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 1.0,
+        second_target_rr=3.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 2.0,
         single_entry_target_rr=2.0,
 
-        runner_extension_enabled=(
-            not str(bot_profile).upper().startswith(("FOREX", "VOLATILITY"))
-            and str(bot_profile).upper() not in {
-                "SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB",
-            }
+        runner_extension_enabled=bool(
+            str(bot_profile).upper().startswith("VOLATILITY")
+            or str(bot_profile).upper() in {"STEP", "JUMP"}
+            or (
+                not str(bot_profile).upper().startswith("FOREX")
+                and str(bot_profile).upper() not in {
+                    "SYNTHETICS", "BOOM", "CRASH", "FLIP", "ORB",
+                }
+            )
         ),
         runner_extension_first_trigger_rr=2.0,
         runner_extension_first_lock_rr=1.0,
-        runner_extension_second_trigger_rr=3.0,
+        runner_extension_second_trigger_rr=2.5 if str(bot_profile).upper() in {"STEP", "JUMP"} else 3.0,
         runner_extension_second_lock_rr=2.0,
-        runner_extension_max_target_rr=2.0,
+        runner_extension_max_target_rr=3.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 2.0,
+        smc_runner_max_target_rr=3.0 if str(bot_profile).upper() in {"STEP", "JUMP", "VOLATILITY"} else 2.0,
+        smc_runner_tp3_guard_trigger_rr=2.5,
+        smc_runner_tp3_guard_lock_rr=2.0,
 
-        # Jump sigue operativo, pero necesita confirmaciones reforzadas.
+        # Jump sigue operativo con Jump 75 priorizado y filtros calibrados.
         jump_strict_filter_enabled=True,
-        jump_min_confirmation_ratio=0.90,
-        jump_min_trade_score=90.0,
+        jump_min_confirmation_ratio=0.85,
+        jump_min_trade_score=85.0,
         jump_allow_single_fallback=False,
         chart_pattern_conflict_min_margin=chart_pattern_conflict_min_margin,
         hard_risk_tolerance=hard_risk_tolerance,
@@ -1121,6 +1129,40 @@ BOT_PROFILES = {
         "magic": 26082030,
         "categories": [],
     },
+    "MALAYSIAN_SNR": {
+        "mode": "malaysian-snr-daemon",
+        "magic": 26082031,
+        "categories": [],
+        "symbols": [
+            "Jump 25 Index",
+            "Jump 50 Index",
+            "Step Index 500",
+            "Jump 10 Index",
+            "Step Index 200",
+            "Step Index",
+            "Volatility 10 Index",
+            "Volatility 75 Index",
+            "Volatility 25 Index",
+            "BTCUSD",
+            "Boom 1000 Index",
+            "Boom 600 Index",
+            "Boom 500 Index",
+            "Crash 1000 Index",
+            "Crash 600 Index",
+            "Crash 500 Index",
+            "US Tech 100",
+            "XAUUSD",
+            "US SP 500",
+            "Wall Street 30",
+            "USDJPY",
+            "EURUSD",
+            "GBPUSD",
+        ],
+        "pruned_symbols": [
+            "CADCHF", "EURGBP", "AUDCHF", "EURCHF", "AUDNZD", "GBPCHF", "AUDCAD",
+            "US Oil", "Volatility 50 Index", "Volatility 100 Index", "Volatility 250 (1s) Index", "XAGUSD"
+        ],
+    },
 }
 
 # FLIP remains available for explicit manual launch, but is excluded from
@@ -1131,13 +1173,14 @@ SYNTHETIC_SPLIT_PROFILES = (
     "VOLATILITY",
     "STEP",
     "JUMP",
+    "FLIP",
 )
 
 VOLATILITY_SHARD_PROFILES = (
     "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
 )
 MULTIBOT_SYNTHETIC_PROFILES = (
-    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP",
+    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
 )
 FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 # v109: IDX_OPEN se retiró de la arquitectura multi-bot activa (desactivado
@@ -1151,7 +1194,7 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB",
+    "GOLD", "ORB", "MALAYSIAN_SNR",
 )
 
 
@@ -1163,6 +1206,7 @@ def _assert_synthetic_split_architecture():
         "VOLATILITY": ("volatility-daemon", 26082103, ("volatility",)),
         "STEP": ("step-daemon", 26082104, ("step",)),
         "JUMP": ("jump-daemon", 26082105, ("jump",)),
+        "FLIP": ("flip-daemon", 26082106, ("flip",)),
     }
     if tuple(SYNTHETIC_SPLIT_PROFILES) != tuple(expected):
         raise RuntimeError("SYNTHETIC_SPLIT_ARCHITECTURE_ERROR: perfiles alterados.")
@@ -1205,6 +1249,7 @@ def _selection_profile_for_bot(profile: str) -> str:
     _SELECTION_PROFILES en el dashboard), asi que se mapea a si mismo.
     """
     profile = str(profile or "").upper()
+    if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
     if profile.startswith("FOREX"): return "FOREX"
     if profile == "IDX_OPEN": return "IDX_OPEN"
     if profile in {"ORB", "GOLD"}: return "ORB"
@@ -1271,11 +1316,12 @@ def _resolve_live_symbols_for_profile(args, profile: str):
         if profile == "ORB":
             universe = sorted(set(discover_orb_symbols(provider)))
         elif profile == "GOLD":
-            # El worker GOLD comparte el mismo universo completo que ORB
-            # (Oro, Plata, Petroleo e indices US). Los niveles de cuarto
-            # (25/50/75/100) solo se aplican internamente para XAUUSD/
-            # microXAUUSD; el resto de instrumentos opera sin esa confluencia.
-            universe = sorted(set(discover_orb_symbols(provider)))
+            # El worker GOLD aísla estrictamente la Plata (XAGUSD / microXAGUSD)
+            # para evitar contaminación de modelo de riesgo y spread.
+            universe = sorted({
+                s for s in discover_orb_symbols(provider)
+                if not ("xag" in s.lower() or "silver" in s.lower())
+            })
         elif profile == "IDX_OPEN":
             # Apertura Indices Bursatiles: solo los 3 indices US (Wall Street
             # 30, US Tech 100, US SP 500), reutilizando el mismo descubrimiento
@@ -1284,6 +1330,39 @@ def _resolve_live_symbols_for_profile(args, profile: str):
                 symbol for symbol in discover_orb_symbols(provider)
                 if is_orb_index_symbol(symbol)
             })
+        elif profile == "MALAYSIAN_SNR":
+            universe = sorted(BOT_PROFILES["MALAYSIAN_SNR"].get("symbols", []))
+        elif profile == "STEP":
+            step_syms = manager.get_active_symbols(categories=["step"]) or []
+            allowed = {"Step Index", "Step Index 500", "Step Index 400"}
+            universe = sorted({s for s in step_syms if s in allowed} or allowed)
+        elif profile == "JUMP":
+            jump_syms = manager.get_active_symbols(categories=["jump"]) or []
+            allowed = {"Jump 75 Index", "Jump 50 Index", "Jump 10 Index"}
+            universe = sorted({s for s in jump_syms if s in allowed} or allowed)
+        elif profile.startswith("VOLATILITY"):
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+            allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 50 Index", "Volatility 75 Index")))
+            universe = sorted({s for s in vol_syms if s in allowed} or allowed)
+        elif profile == "BOOM":
+            boom_syms = manager.get_active_symbols(categories=["boom"]) or []
+            allowed = {"Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"}
+            universe = sorted({s for s in boom_syms if s in allowed} or allowed)
+        elif profile == "CRASH":
+            crash_syms = manager.get_active_symbols(categories=["crash"]) or []
+            allowed = {"Crash 500 Index", "Crash 900 Index"}
+            universe = sorted({s for s in crash_syms if s in allowed} or allowed)
+        elif profile.startswith("FOREX"):
+            try:
+                forex_syms = list(manager.discovery.get_tradeable_forex())
+            except Exception:
+                forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+            allowed = {
+                "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
+                "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
+            }
+            filtered_forex = [s for s in forex_syms if s in allowed]
+            universe = sorted(filtered_forex or allowed)
         else:
             universe = manager.get_active_symbols(
                 categories=BOT_PROFILES[profile]["categories"]
@@ -1352,6 +1431,26 @@ def _build_multi_bot_dashboard_catalog(profiles):
                 for symbol in discover_orb_symbols(provider):
                     if is_orb_index_symbol(symbol):
                         categorized.setdefault("idx_open_indices", []).append(symbol)
+                continue
+            if profile == "MALAYSIAN_SNR":
+                for sym in spec.get("symbols", []):
+                    sym_lower = sym.lower()
+                    if "jump" in sym_lower:
+                        categorized.setdefault("malaysian_snr_jump", []).append(sym)
+                    elif "step" in sym_lower:
+                        categorized.setdefault("malaysian_snr_step", []).append(sym)
+                    elif "volatility" in sym_lower:
+                        categorized.setdefault("malaysian_snr_volatility", []).append(sym)
+                    elif "boom" in sym_lower:
+                        categorized.setdefault("malaysian_snr_boom", []).append(sym)
+                    elif "crash" in sym_lower:
+                        categorized.setdefault("malaysian_snr_crash", []).append(sym)
+                    elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
+                        categorized.setdefault("malaysian_snr_forex", []).append(sym)
+                    else:
+                        categorized.setdefault("malaysian_snr_indices", []).append(sym)
+                for sym in spec.get("pruned_symbols", []):
+                    categorized.setdefault("malaysian_snr_pruned", []).append(sym)
                 continue
 
             for category in spec.get("categories", []):
@@ -1470,19 +1569,49 @@ def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
     if profile == "ORB":
         universe = list(discover_orb_symbols(provider))
     elif profile == "GOLD":
-        # Mismo universo compartido que ORB; ver nota en
-        # _resolve_live_symbols_for_profile sobre niveles de cuarto.
-        universe = list(discover_orb_symbols(provider))
+        # Aislamiento estricto de Plata (XAGUSD/microXAGUSD)
+        universe = [
+            s for s in discover_orb_symbols(provider)
+            if not ("xag" in s.lower() or "silver" in s.lower())
+        ]
     elif profile == "IDX_OPEN":
         # Apertura Indices Bursatiles: solo los 3 indices US.
         universe = [
             s for s in discover_orb_symbols(provider) if is_orb_index_symbol(s)
         ]
+    elif profile == "MALAYSIAN_SNR":
+        universe = list(spec.get("symbols", []))
     elif profile.startswith("FOREX"):
         try:
-            universe = list(manager.discovery.get_tradeable_forex())
+            forex_syms = list(manager.discovery.get_tradeable_forex())
         except Exception:
-            universe = list(manager.get_active_symbols(categories=["forex"]))
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        allowed = {
+            "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
+            "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
+        }
+        filtered_forex = [s for s in forex_syms if s in allowed]
+        universe = sorted(filtered_forex or allowed)
+    elif profile == "STEP":
+        step_syms = manager.get_active_symbols(categories=["step"]) or []
+        allowed = {"Step Index", "Step Index 500", "Step Index 400"}
+        universe = sorted({s for s in step_syms if s in allowed} or allowed)
+    elif profile == "JUMP":
+        jump_syms = manager.get_active_symbols(categories=["jump"]) or []
+        allowed = {"Jump 75 Index", "Jump 50 Index", "Jump 10 Index"}
+        universe = sorted({s for s in jump_syms if s in allowed} or allowed)
+    elif profile.startswith("VOLATILITY"):
+        vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 50 Index", "Volatility 75 Index")))
+        universe = sorted({s for s in vol_syms if s in allowed} or allowed)
+    elif profile == "BOOM":
+        boom_syms = manager.get_active_symbols(categories=["boom"]) or []
+        allowed = {"Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"}
+        universe = sorted({s for s in boom_syms if s in allowed} or allowed)
+    elif profile == "CRASH":
+        crash_syms = manager.get_active_symbols(categories=["crash"]) or []
+        allowed = {"Crash 500 Index", "Crash 900 Index"}
+        universe = sorted({s for s in crash_syms if s in allowed} or allowed)
     else:
         universe = []
         for category in spec.get("categories", []):
@@ -1490,10 +1619,19 @@ def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
 
     universe = sorted({str(s) for s in universe if s}, key=str.casefold)
     if spec.get("shard_count"):
-        universe = _stable_symbol_shard(
-            universe,
-            int(spec.get("shard_index") or 0),
-            int(spec.get("shard_count") or 1),
+        universe = (
+            _stable_grouped_symbol_shard(
+                universe,
+                int(spec.get("shard_index") or 0),
+                int(spec.get("shard_count") or 1),
+                key=_forex_native_family_key,
+            )
+            if profile.startswith("FOREX")
+            else _stable_symbol_shard(
+                universe,
+                int(spec.get("shard_index") or 0),
+                int(spec.get("shard_count") or 1),
+            )
         )
     selection_profile = _selection_profile_for_bot(profile)
     reader = getattr(repo, "latest_instrument_selection_profile", None)
@@ -1598,6 +1736,25 @@ def run_unified_multibot_daemon(args, profiles=None):
                 for symbol in discover_orb_symbols(provider):
                     market = classify_orb_market(symbol) or "ORB"
                     categorized.setdefault(f"orb_ny_{str(market).lower()}", []).append(symbol)
+            elif profile == "MALAYSIAN_SNR":
+                for sym in spec.get("symbols", []):
+                    sym_lower = sym.lower()
+                    if "jump" in sym_lower:
+                        categorized.setdefault("malaysian_snr_jump", []).append(sym)
+                    elif "step" in sym_lower:
+                        categorized.setdefault("malaysian_snr_step", []).append(sym)
+                    elif "volatility" in sym_lower:
+                        categorized.setdefault("malaysian_snr_volatility", []).append(sym)
+                    elif "boom" in sym_lower:
+                        categorized.setdefault("malaysian_snr_boom", []).append(sym)
+                    elif "crash" in sym_lower:
+                        categorized.setdefault("malaysian_snr_crash", []).append(sym)
+                    elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
+                        categorized.setdefault("malaysian_snr_forex", []).append(sym)
+                    else:
+                        categorized.setdefault("malaysian_snr_indices", []).append(sym)
+                for sym in spec.get("pruned_symbols", []):
+                    categorized.setdefault("malaysian_snr_pruned", []).append(sym)
             elif profile.startswith("FOREX"):
                 if "forex" not in categorized:
                     try:
@@ -1650,19 +1807,23 @@ def run_unified_multibot_daemon(args, profiles=None):
                 min_actual_risk_ratio=0.97,
                 execution_enabled=args.execute,
                 orb_enabled=(profile == "ORB"),
+                malaysian_snr_enabled=(profile == "MALAYSIAN_SNR"),
                 forex_event_timeframe="M5",
-                first_target_rr=1.0,
-                second_target_rr=2.0,
+                first_target_rr=2.0 if profile.startswith("VOLATILITY") else 1.0,
+                second_target_rr=3.0 if profile.startswith("VOLATILITY") else 2.0,
                 single_entry_target_rr=2.0,
                 runner_extension_enabled=bool(
-                    not profile.startswith(("FOREX", "VOLATILITY"))
-                    and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB"}
+                    profile.startswith("VOLATILITY")
+                    or (
+                        not profile.startswith("FOREX")
+                        and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB"}
+                    )
                 ),
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
                 runner_extension_second_trigger_rr=3.0,
                 runner_extension_second_lock_rr=2.0,
-                runner_extension_max_target_rr=2.0,
+                runner_extension_max_target_rr=3.0 if profile.startswith("VOLATILITY") else 2.0,
                 jump_strict_filter_enabled=True,
                 jump_min_confirmation_ratio=0.90,
                 jump_min_trade_score=90.0,
@@ -1820,7 +1981,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                     if args.debug:
                         print(f"[{profile}] ERROR: {exc}")
 
-                if profile.startswith("FOREX") or profile == "GOLD":
+                if profile.startswith("FOREX") or str(profile) == "GOLD":
                     delay = max(2.0, float(getattr(engine.config, "forex_event_poll_seconds", 10.0)))
                 elif profile == "ORB":
                     delay = min(max(5.0, float(args.interval)), 10.0)
@@ -2948,7 +3109,7 @@ def run_train_meta_labeling(profiles=None, strategy_name: str = "ALL"):
     targets = [str(item).upper() for item in (profiles or [])]
     if not targets:
         targets = [
-            "SYNTHETICS", "BOOM", "CRASH", "VOLATILITY",
+            "GLOBAL", "SYNTHETICS", "BOOM", "CRASH", "VOLATILITY",
             "STEP", "JUMP", "FLIP", "GOLD", "FOREX",
         ]
 
@@ -3169,6 +3330,7 @@ def main():
             "gold-session-daemon",
             "orb-daemon",
             "idx-open-daemon",
+            "malaysian-snr-daemon",
             "synthetics-split-daemon",
             "multi-bot-daemon",
             "unified-multibot-daemon",
@@ -3323,13 +3485,13 @@ def main():
     parser.add_argument(
         "--recoverable-quarantine-extra-tolerance",
         type=float,
-        default=0.015,
+        default=0.025,
         help=(
             "Tolerancia adicional (0-1), sumada a --hard-risk-tolerance, "
             "hasta la cual un breach de riesgo post-fill se clasifica como "
             "RECUPERABLE (cuarentena temporal que expira sola) en vez de "
             "requerir revisión manual. Ej: con hard-risk-tolerance=0.035 y "
-            "este valor en 0.015, un exceso de hasta 5%% se auto-recupera."
+            "este valor en 0.025, un exceso de hasta 6%% se auto-recupera."
         ),
     )
 
@@ -3559,6 +3721,7 @@ def main():
         "gold-session-daemon": "GOLD",
         "orb-daemon": "ORB",
         "idx-open-daemon": "IDX_OPEN",
+        "malaysian-snr-daemon": "MALAYSIAN_SNR",
     }
     if args.mode in strategy_worker_modes:
         profile = strategy_worker_modes[args.mode]

@@ -113,7 +113,21 @@ class SMCTelemetryTracker:
             self.last_evaluation = dict(symbol=symbol, status=status, score=score,
                                         reasons=reasons, evaluation_id=evaluation_id,
                                         h1_context=evaluation_result.get("h1_context"),
-                                        m5_detail=evaluation_result.get("m5_detail"))
+                                        m5_detail=evaluation_result.get("m5_detail"),
+                                        score_breakdown=evaluation_result.get("score_breakdown"),
+                                        m15_evidence=evaluation_result.get("m15_evidence"))
+            if self.output_dir is not None:
+                try:
+                    self.output_dir.mkdir(parents=True, exist_ok=True)
+                    name = re.sub(r'[^A-Za-z0-9_-]', '_', self.bot_name)
+                    day = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+                    event = dict(self.last_evaluation, bot_name=self.bot_name, pid=os.getpid(),
+                                 session_started_at=self.start_time.isoformat(),
+                                 observed_at=datetime.now(timezone.utc).isoformat())
+                    with (self.output_dir / f'{name}_{os.getpid()}_{day}.jsonl').open('a', encoding='utf-8') as stream:
+                        stream.write(json.dumps(event, default=_json_default, ensure_ascii=True)+'\n')
+                except (OSError, TypeError, ValueError):
+                    logger.exception('Unable to persist candidate event')
             now = time.monotonic()
             if self.total_evaluations == 1 or now-self._last_flush >= 30 or self.total_evaluations % self.report_every == 0:
                 self.flush()
@@ -202,7 +216,8 @@ class SMCTelemetryTracker:
 
     def print_telemetry_dashboard(self):
         # ASCII-safe console output through the worker's existing logging handlers.
-        logger.info("SMC TELEMETRY | %s", json.dumps(self.get_summary_report(), ensure_ascii=True))
+        logger.info("SMC TELEMETRY | %s", json.dumps(
+            self.get_summary_report(), ensure_ascii=True, default=_json_default))
 
     def flush(self):
         if self.output_dir is None:

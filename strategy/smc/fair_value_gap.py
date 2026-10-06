@@ -50,6 +50,11 @@ class FVGConfig:
     require_alignment_with_zone: bool = False
     bonus_points: float = 6.0
     require_pattern: bool = False
+    is_crash: bool = False
+    min_displacement_atr_multiplier: float = 1.5
+    min_fvg_atr_multiplier: float = 0.0
+    min_volume_multiplier: float = 1.5
+    require_volume_filter: bool = False
 
 
 def _float(value: Any):
@@ -140,6 +145,13 @@ def detect_fvg_confirmation(
         if None in (left_high, left_low, cur_high, cur_low):
             continue
 
+        # Normalización de mecha de spike para Crash Index (salto discreto de cotización)
+        if config and config.is_crash:
+            left_close, left_open = _float(left.get("close")), _float(left.get("open"))
+            if left_close is not None and left_open is not None:
+                # La base real del cuerpo ignorando la mecha artificial del spike
+                left_low = max(left_low, min(left_open, left_close))
+
         gap_direction = None
         gap_low = gap_high = None
         if cur_low > left_high:
@@ -150,6 +162,53 @@ def detect_fvg_confirmation(
             gap_low, gap_high = cur_high, left_low
         if gap_direction is None or gap_direction != normalized_direction:
             continue
+
+        # Filtro de desplazamiento mínimo: la vela intermedia debe superar 1.5x ATR(14)
+        middle = data.iloc[i - 1]
+        mid_high = _float(middle.get("high"))
+        mid_low = _float(middle.get("low"))
+        mid_range = max(mid_high - mid_low, 0.0) if (mid_high is not None and mid_low is not None) else 0.0
+
+        min_mult = float(getattr(config, "min_displacement_atr_multiplier", 1.5) or 0.0)
+        atr_14 = 0.0
+        if min_mult > 0.0 and len(data) >= 15 and i >= 2:
+            prior_slice = data.iloc[max(0, i - 16):i]
+            if len(prior_slice) >= 5:
+                prev_close = prior_slice["close"].shift(1)
+                tr = pd.concat([
+                    (prior_slice["high"] - prior_slice["low"]),
+                    (prior_slice["high"] - prev_close).abs(),
+                    (prior_slice["low"] - prev_close).abs(),
+                ], axis=1).max(axis=1)
+                atr_14 = float(tr.tail(14).mean()) if len(tr.dropna()) >= 1 else 0.0
+
+        if min_mult > 0.0 and atr_14 > 1e-9:
+            if mid_range < (min_mult * atr_14) - 1e-9:
+                # Descarta FVG de baja inercia o rango acumulativo
+                continue
+
+        # Filtro de Imbalance Strength (LuxAlgo): FVG size >= 1.2 * ATR(14)
+        gap_size = max(0.0, float(gap_high - gap_low)) if (gap_high is not None and gap_low is not None) else 0.0
+        min_fvg_mult = float(getattr(config, "min_fvg_atr_multiplier", 1.2) or 0.0)
+        if min_fvg_mult > 0.0 and atr_14 > 1e-9:
+            if gap_size < (min_fvg_mult * atr_14) - 1e-9:
+                # Descarta huecos minúsculos que no representan desbalance institucional
+                continue
+
+        # Filtro de Volumen de Desplazamiento Institucional: Volumen de vela intermedia > 1.5 * Media(20)
+        vol_col = "volume" if "volume" in data.columns else ("tick_volume" if "tick_volume" in data.columns else None)
+        min_vol_mult = float(getattr(config, "min_volume_multiplier", 1.5) or 0.0)
+        vol_ratio = 1.0
+        if getattr(config, "require_volume_filter", True) and vol_col and min_vol_mult > 0.0 and len(data) >= 25 and i >= 2:
+            prior_vol = data[vol_col].iloc[max(0, i - 21):i - 1]
+            if len(prior_vol) >= 10 and float(prior_vol.std()) > 1e-6:
+                mean_vol_20 = float(prior_vol.tail(20).mean())
+                mid_vol = _float(middle.get(vol_col))
+                if mid_vol is not None and mean_vol_20 > 1e-9:
+                    vol_ratio = mid_vol / mean_vol_20
+                    if mid_vol <= (min_vol_mult * mean_vol_20):
+                        # Descarta FVG formado sin volumen institucional anómalo
+                        continue
 
         age_candles = confirmation_index - i
         if age_candles > max(0, int(config.max_age_candles)):
@@ -184,9 +243,16 @@ def detect_fvg_confirmation(
             "fvg_index": i,
             "fvg_age_candles": age_candles,
             "fvg_filled": False,
+            "fvg_displacement_range": mid_range,
+            "fvg_gap_size": gap_size,
+            "fvg_atr_14": atr_14,
+            "fvg_size_ratio": (gap_size / atr_14) if atr_14 > 1e-9 else 0.0,
+            "fvg_volume_ratio": vol_ratio,
+            "fvg_displacement_ratio": (mid_range / atr_14) if atr_14 > 1e-9 else 0.0,
             "fvg_rejection_reason": None,
         })
         return result
+
 
     result["fvg_rejection_reason"] = "NO_ALIGNED_FVG_FOUND"
     return result

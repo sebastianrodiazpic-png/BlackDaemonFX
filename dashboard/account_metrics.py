@@ -191,12 +191,41 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         snapshot = repository.latest_account_snapshot() if hasattr(repository, "latest_account_snapshot") else None
         stats_reset = repository.latest_account_stats_reset(source=source) if hasattr(repository, "latest_account_stats_reset") else None
         # Cuenta activa es DB-only y respeta la ventana estadística persistente.
-        frame = repository.account_trade_history_dataframe(source=source) if hasattr(repository, "account_trade_history_dataframe") else (repository.trade_history_dataframe(source=source) if hasattr(repository, "trade_history_dataframe") else (repository.trades_dataframe(source=source) if hasattr(repository, "trades_dataframe") else None))
+        # Cargamos el historial una sola vez para evitar doble consulta pesada a SQLite.
+        if hasattr(repository, "account_trade_history_dataframe"):
+            try:
+                history_frame = repository.account_trade_history_dataframe(source=source, apply_stats_reset=False)
+            except TypeError:
+                history_frame = repository.account_trade_history_dataframe(source=source)
+            historical_records = [] if history_frame is None or getattr(history_frame, "empty", True) else history_frame.to_dict("records")
+            if stats_reset and stats_reset.get("reset_time"):
+                # Ventana estadística activa: filtra en memoria sin segunda consulta a base de datos.
+                reset_time_raw = stats_reset["reset_time"]
+                records = []
+                for r in historical_records:
+                    if str(r.get("status") or "").upper() == "OPEN":
+                        records.append(r)
+                    else:
+                        exit_t = r.get("exit_time")
+                        if exit_t and str(exit_t) >= str(reset_time_raw):
+                            records.append(r)
+            else:
+                records = list(historical_records)
+        else:
+            frame = repository.trade_history_dataframe(source=source) if hasattr(repository, "trade_history_dataframe") else (repository.trades_dataframe(source=source) if hasattr(repository, "trades_dataframe") else None)
+            records = [] if frame is None or getattr(frame, "empty", True) else frame.to_dict("records")
+            historical_records = list(records)
     except Exception as exc:
         payload["error"] = str(exc)
         return payload
 
-    records = [] if frame is None or getattr(frame, "empty", True) else frame.to_dict("records")
+    from dashboard.period_performance import build_period_performance
+    try:
+        payload['period_performance'] = build_period_performance(historical_records, _strategy_name, _metadata)
+    except TypeError:
+        payload['period_performance'] = build_period_performance(records, _strategy_name, _metadata)
+    except Exception as exc:
+        payload['period_performance'] = {'error': str(exc), 'years': [], 'operations': []}
 
     confirmation_audits = {}
     try:
@@ -370,6 +399,18 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         meta = _metadata(trade)
         source_trade_id = trade.get("source_trade_id") or trade.get("id")
         entry_audit = confirmation_audits.get(str(source_trade_id), {})
+        snap_summary = audit_snapshot_summaries.get(str(source_trade_id), {})
+        snap_count = snap_summary.get("count", 0)
+        snap_latest_at = snap_summary.get("latest_snapshot_at")
+
+        latest_snapshot = None
+        if snap_count > 0 and hasattr(repository, "trade_audit_snapshots") and source_trade_id is not None:
+            try:
+                snaps = repository.trade_audit_snapshots(trade_id=int(source_trade_id), source=source, limit=1)
+                latest_snapshot = snaps[0] if snaps else None
+            except Exception:
+                latest_snapshot = None
+
         recent.append({
             "id": trade.get("id"), "source_trade_id": source_trade_id, "instrument": trade.get("instrument"), "direction": trade.get("direction"),
             "strategy": _strategy_name(trade),
@@ -404,16 +445,12 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             "chart_pattern_conflicting_strength": entry_audit.get("chart_pattern_conflicting_strength"),
             "chart_pattern_conflict_level": entry_audit.get("chart_pattern_conflict_level"),
             "chart_pattern_conflict_reason": entry_audit.get("chart_pattern_conflict_reason"),
-            "entry_vs_now_snapshot_count": audit_snapshot_summaries.get(
-                str(source_trade_id), {}
-            ).get("count", 0),
-            "entry_vs_now_latest": audit_snapshot_summaries.get(
-                str(source_trade_id), {}
-            ).get("latest_snapshot") or {
-                "snapshot_at": audit_snapshot_summaries.get(
-                    str(source_trade_id), {}
-                ).get("latest_snapshot_at")
-            },
+            "entry_vs_now_snapshot_count": snap_count,
+            "entry_vs_now_latest": (
+                latest_snapshot
+                or snap_summary.get("latest_snapshot")
+                or ({"snapshot_at": snap_latest_at} if snap_latest_at else None)
+            ),
         })
     try:
         db_info = repository.database_diagnostics() if hasattr(repository, "database_diagnostics") else None
@@ -425,11 +462,66 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         if hasattr(repository, "meta_label_decision_summary"):
             meta_labeling = repository.meta_label_decision_summary(source=source)
             from strategy.ai.continuous_audit import snapshot as learning_snapshot
-            reports = {r.get("worker"):r for r in learning_snapshot() if r.get("source")==source}
-            for worker in meta_labeling.get("by_worker", []):
-                report = reports.get(worker["worker"], {})
-                worker["learning_audit_updated_at"] = report.get("updated_at")
+            from strategy.ai.model_inventory import scan_trained_models_catalog
+
+            reports = {r.get("worker"): r for r in learning_snapshot() if r.get("source") == source}
+            models_catalog = scan_trained_models_catalog()
+            meta_labeling["models_catalog"] = models_catalog
+            meta_labeling["models_count"] = len(models_catalog)
+
+            # Unificar trabajadores para garantizar cobertura de todos los modelos entrenados
+            workers_map = {w["worker"]: w for w in meta_labeling.get("by_worker", [])}
+
+            for model_info in models_catalog:
+                w_name = model_info["worker"]
+                if w_name not in workers_map:
+                    workers_map[w_name] = {
+                        "worker": w_name,
+                        "analyzed": 0,
+                        "allowed": 0,
+                        "rejected": 0,
+                        "shadow": 0,
+                        "trained": bool(model_info.get("trained")),
+                        "model_strategy": model_info.get("strategy_name"),
+                        "model_samples": model_info.get("samples"),
+                        "model_trained_at": model_info.get("trained_at"),
+                        "model_positive_rate": model_info.get("positive_rate"),
+                        "model_win_rr": model_info.get("average_win_rr"),
+                        "model_loss_rr": model_info.get("average_loss_rr"),
+                        "family": model_info.get("family"),
+                        "in_disk": True,
+                    }
+                else:
+                    entry = workers_map[w_name]
+                    entry["trained"] = bool(entry.get("trained") or model_info.get("trained"))
+                    if not entry.get("model_strategy"):
+                        entry["model_strategy"] = model_info.get("strategy_name")
+                    if not entry.get("model_samples"):
+                        entry["model_samples"] = model_info.get("samples")
+                    if not entry.get("model_trained_at"):
+                        entry["model_trained_at"] = model_info.get("trained_at")
+                    if not entry.get("model_positive_rate"):
+                        entry["model_positive_rate"] = model_info.get("positive_rate")
+                    if not entry.get("model_win_rr"):
+                        entry["model_win_rr"] = model_info.get("average_win_rr")
+                    if not entry.get("model_loss_rr"):
+                        entry["model_loss_rr"] = model_info.get("average_loss_rr")
+                    entry["family"] = model_info.get("family")
+                    entry["in_disk"] = True
+
+            for worker_name, worker in workers_map.items():
+                report = (
+                    reports.get(worker_name)
+                    or reports.get(worker_name.split("_")[0])
+                    or {}
+                )
+                worker["learning_audit_updated_at"] = report.get("updated_at") or worker.get("model_trained_at")
                 worker["learning_strategies"] = report.get("strategies", {})
+
+            meta_labeling["by_worker"] = sorted(
+                workers_map.values(),
+                key=lambda w: (-int(w.get("analyzed", 0)), -int(w.get("trained", 0)), w.get("worker", "")),
+            )
 
     except Exception as exc:
         meta_labeling = {"error": str(exc)}
@@ -439,6 +531,7 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         "stats": stats,
         "recent_trades": recent,
         "meta_labeling": meta_labeling,
+        "period_performance": payload.get("period_performance"),
         "data_source": "SQLALCHEMY_LOCAL_ONLY",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "stats_reset": stats_reset,

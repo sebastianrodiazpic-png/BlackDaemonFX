@@ -29,7 +29,7 @@ Vinculaciones:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from database.database import Base
 
@@ -240,6 +240,9 @@ class InstrumentSelectionProfilePreference(Base):
 class DaemonAuditEvent(Base):
     """Bitácora append-only de todo evento operativo relevante de DaemonBlackFx."""
     __tablename__ = "daemon_audit_events"
+    __table_args__ = (
+        Index("ix_daemon_audit_events_recent", "source", "event_type", "event_time", "id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
@@ -293,6 +296,9 @@ class PositionVisualAudit(Base):
 class TradeVisualAudit(Base):
     """Auditoría visual persistente por trade: entrada inmutable + estado actual."""
     __tablename__ = "trade_visual_audits"
+    __table_args__ = (
+        Index("ix_trade_visual_audits_lookup", "source", "trade_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     trade_id: Mapped[int] = mapped_column(Integer, index=True, unique=True)
@@ -317,6 +323,9 @@ class TradeAuditSnapshot(Base):
     la evolución de la tesis sin sobrescribir la evidencia original.
     """
     __tablename__ = "trade_audit_snapshots"
+    __table_args__ = (
+        Index("ix_trade_audit_snapshots_lookup", "source", "trade_id", "snapshot_at", "id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     trade_id: Mapped[int] = mapped_column(Integer, index=True)

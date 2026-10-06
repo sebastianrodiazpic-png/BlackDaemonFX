@@ -49,9 +49,9 @@ def test_jump_consumes_real_price_action_evidence_and_still_rejects_missing_requ
     signal.update(trade_score=95,confirmation_percentage=100,confirmations={'m5_choch':True})
     engine=object.__new__(LiveTradingEngine)
     engine.config=LiveTradingConfig(jump_strict_filter_enabled=True)
-    assert engine._jump_quality_gate('Jump 100 Index',signal) is None
+    assert engine._jump_quality_gate('Jump 50 Index',signal) is None
     signal['price_action_confirmations']['displacement']=False
-    blocked=engine._jump_quality_gate('Jump 100 Index',signal)
+    blocked=engine._jump_quality_gate('Jump 50 Index',signal)
     assert blocked is not None and blocked['action']=='JUMP_STRICT_FILTER_REJECTED'
 
 

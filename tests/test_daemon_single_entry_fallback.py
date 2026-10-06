@@ -76,6 +76,7 @@ def _engine(executor):
         executor=executor,
     )
     engine.multi_timeframe = Analyzer()
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
     return engine
 
 

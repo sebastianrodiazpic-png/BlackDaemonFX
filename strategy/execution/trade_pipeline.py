@@ -82,20 +82,20 @@ class PipelineConfig:
 
     # M5 confirmation engine. These values are deliberately explicit so every
     # backtest/live run can reproduce exactly why an entry was accepted.
-    minimum_trade_score: float = 85.0
+    minimum_trade_score: float = 70.0
     require_rejection: bool = True
     require_displacement: bool = True
     require_micro_confirmation: bool = True
     require_momentum: bool = False
-    minimum_body_ratio: float = 0.65
+    minimum_body_ratio: float = 0.50
     minimum_rejection_wick_ratio: float = 0.30
     retest_tolerance_mode: str = "STRICT"  # STRICT | ATR_BOUNDED
     displacement_range_multiplier: float = 1.35
     momentum_range_multiplier: float = 1.00
     confirmation_range_lookback: int = 20
-    max_ob_touches: int = 1
+    max_ob_touches: int = 2
     confirmation_mode: str = "midpoint"
-    max_m5_confirmation_age_candles: int = 2
+    max_m5_confirmation_age_candles: int = 4
     require_strong_close: bool = True
     strong_close_fraction: float = 0.30
     harmonic_enabled: bool = True
@@ -104,8 +104,8 @@ class PipelineConfig:
     harmonic_bonus_points: float = 10.0
     require_harmonic: bool = False
     adaptive_confirmation_enabled: bool = True
-    minimum_confirmation_ratio: float = 0.80
-    minimum_viable_trade_score: float = 75.0
+    minimum_confirmation_ratio: float = 0.70
+    minimum_viable_trade_score: float = 65.0
     chart_patterns_enabled: bool = True
     chart_patterns_lookback: int = 80
     chart_patterns_pivot_window: int = 2
@@ -136,6 +136,7 @@ class PipelineConfig:
     fvg_max_age_candles: int = 10
     fvg_require_alignment_with_zone: bool = False
     fvg_bonus_points: float = 6.0
+    fvg_min_displacement_atr_multiplier: float = 1.5
     h1_fractal_window: int = 5
     h1_fractal_left: int = 3
     h1_fractal_right: int = 1
@@ -571,6 +572,7 @@ def run_trade_pipeline(
         fvg_max_age_candles=getattr(config, "fvg_max_age_candles", 10),
         fvg_require_alignment_with_zone=getattr(config, "fvg_require_alignment_with_zone", False),
         fvg_bonus_points=getattr(config, "fvg_bonus_points", 6.0),
+        fvg_min_displacement_atr_multiplier=getattr(config, "fvg_min_displacement_atr_multiplier", 1.5),
         require_choch_fvg=config.require_choch_fvg,
         adaptive_smc_score_enabled=config.adaptive_smc_score_enabled,
         m5_choch_fvg_window=config.m5_choch_fvg_window,

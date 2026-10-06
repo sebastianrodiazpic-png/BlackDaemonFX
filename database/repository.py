@@ -776,6 +776,82 @@ class TradingRepository:
             "preserved_event_types": "ALL_EXCEPT_OPERATIONAL_ALLOWLIST",
         }
 
+    def prune_trade_audit_snapshots(
+        self,
+        *,
+        retention_days: int = 14,
+        max_rows: int = 50_000,
+        batch_size: int = 5_000,
+    ) -> dict:
+        """Poda incremental de snapshots de auditoría para evitar saturación de disco.
+
+        Borra por lotes acotados sin bloquear SQLite. Protege las posiciones
+        actualmente abiertas en `trades` y conserva la serie reciente.
+        """
+        retention_days = max(1, int(retention_days))
+        max_rows = max(5_000, int(max_rows))
+        batch_size = max(100, min(10_000, int(batch_size)))
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        deleted_by_age = 0
+        deleted_by_cap = 0
+
+        # Identificar IDs de trades que siguen abiertas para no podar sus snapshots
+        with self.Session() as session:
+            open_trade_ids = set(
+                session.execute(
+                    select(Trade.id).where(Trade.status.in_(["OPEN", "PENDING"]))
+                ).scalars().all()
+            )
+
+        def delete_batch(where_clause) -> int:
+            with self.Session() as session:
+                stmt = select(TradeAuditSnapshot.id).where(where_clause)
+                if open_trade_ids:
+                    stmt = stmt.where(~TradeAuditSnapshot.trade_id.in_(open_trade_ids))
+                ids = list(session.execute(
+                    stmt.order_by(TradeAuditSnapshot.id).limit(batch_size)
+                ).scalars())
+                if not ids:
+                    return 0
+                session.execute(delete(TradeAuditSnapshot).where(TradeAuditSnapshot.id.in_(ids)))
+                session.commit()
+                return len(ids)
+
+        while True:
+            removed = delete_batch(TradeAuditSnapshot.snapshot_at < cutoff)
+            deleted_by_age += removed
+            if removed < batch_size:
+                break
+
+        with self.Session() as session:
+            total_count = int(session.execute(
+                select(func.count(TradeAuditSnapshot.id))
+            ).scalar_one())
+            boundary_id = None
+            if total_count > max_rows:
+                boundary_id = session.execute(
+                    select(TradeAuditSnapshot.id)
+                    .order_by(TradeAuditSnapshot.id.desc())
+                    .offset(max_rows - 1)
+                    .limit(1)
+                ).scalar_one_or_none()
+
+        if boundary_id is not None:
+            while True:
+                removed = delete_batch(TradeAuditSnapshot.id < int(boundary_id))
+                deleted_by_cap += removed
+                if removed < batch_size:
+                    break
+
+        return {
+            "retention_days": retention_days,
+            "max_rows": max_rows,
+            "cutoff": cutoff.isoformat(),
+            "deleted_by_age": deleted_by_age,
+            "deleted_by_cap": deleted_by_cap,
+            "deleted_total": deleted_by_age + deleted_by_cap,
+        }
+
     def checkpoint_database(self, mode: str = "PASSIVE") -> dict:
         """Checkpoint WAL explícito; TRUNCATE se reserva para mantenimiento coordinado."""
         normalized = str(mode or "PASSIVE").upper()
@@ -872,8 +948,13 @@ class TradingRepository:
             retention_days=retention_days,
             max_rows=max_rows,
         )
+        retention_snapshots = self.prune_trade_audit_snapshots(
+            retention_days=retention_days,
+            max_rows=min(max_rows, 50_000),
+        )
         return {
             "retention": retention,
+            "retention_snapshots": retention_snapshots,
             "checkpoint": self.checkpoint_database(checkpoint_mode),
             "database": self.database_diagnostics(),
         }
@@ -1334,6 +1415,39 @@ class TradingRepository:
                 "latest_market": decode(row.latest_market_json),
                 "latest_updated_at": row.latest_updated_at,
             } for row in rows]
+
+    def get_trade_visual_audit(self, trade_id: int, source: str = "DEMO") -> dict | None:
+        """Recupera la auditoría visual de un trade concreto sin cargar toda la tabla."""
+        source = str(source or "DEMO").upper()
+        with self.Session() as session:
+            row = session.execute(
+                select(TradeVisualAudit)
+                .where(TradeVisualAudit.trade_id == int(trade_id), TradeVisualAudit.source == source)
+            ).scalar_one_or_none()
+            if row is None:
+                return None
+            def decode(value):
+                if not value:
+                    return {}
+                try:
+                    parsed = json.loads(value)
+                    return parsed if isinstance(parsed, dict) else {}
+                except Exception:
+                    return {}
+            return {
+                "trade_id": row.trade_id,
+                "source": row.source,
+                "bot_profile": row.bot_profile,
+                "daemon_magic": row.daemon_magic,
+                "instrument": row.instrument,
+                "broker_position_ticket": row.broker_position_ticket,
+                "entry_chart": decode(row.entry_chart_json),
+                "entry_context": decode(row.entry_context_json),
+                "entry_captured_at": row.entry_captured_at,
+                "latest_chart": decode(row.latest_chart_json),
+                "latest_market": decode(row.latest_market_json),
+                "latest_updated_at": row.latest_updated_at,
+            }
 
     def save_trade_audit_snapshot(
         self,
@@ -2049,7 +2163,7 @@ class TradingRepository:
             ValueError: si el perfil no es uno de los soportados.
         """
         value = str(profile or "SYNTHETICS").upper().strip()
-        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN"}:
+        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
         return value
 
@@ -2164,7 +2278,7 @@ class TradingRepository:
             Dict `perfil -> seleccion`, solo con los perfiles configurados.
         """
         result={}
-        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN"):
+        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR"):
             row=self.latest_instrument_selection_profile(profile,source=source)
             if row is not None: result[profile]=row
         return result
@@ -2576,6 +2690,27 @@ class TradingRepository:
             )
 
             return self._trade_dict(row)
+
+    def get_trade_or_journal(self, trade_id: int):
+        """Busca un trade por ID primero en la tabla operativa y luego en trade_journal."""
+        trade = self.get_trade(trade_id)
+        if trade:
+            return trade
+        with self.Session() as session:
+            row = session.execute(
+                select(TradeJournal).where(
+                    (TradeJournal.id == int(trade_id)) | (TradeJournal.source_trade_id == int(trade_id))
+                )
+            ).scalars().first()
+            if not row:
+                return None
+            d = {c.name: getattr(row, c.name) for c in row.__table__.columns}
+            if row.details_json:
+                try:
+                    d["details"] = json.loads(row.details_json)
+                except Exception:
+                    d["details"] = row.details_json
+            return d
 
     def get_trade_by_execution_key(
         self,
@@ -3417,6 +3552,7 @@ class TradingRepository:
         self,
         executor,
         source: str = "DEMO",
+        on_trade_closed = None,
     ):
         """
         Sincroniza SQLite con MT5.
@@ -3609,22 +3745,28 @@ class TradingRepository:
                 else "BREAKEVEN"
             )
 
+            closed_payload = {
+                "status": "CLOSED",
+                "result": result,
+                "exit_time": exit_time,
+                "exit_price": exit_price,
+                "gross_pnl": profit,
+                "commission": commission,
+                "swap": swap,
+                "net_pnl": net,
+                "realized_rr": realized_rr,
+                "exit_reason": "mt5_" + reason_name.lower() if reason_name != "UNKNOWN" else "mt5_history_sync",
+                "details": details,
+            }
             self.update_trade(
                 int(trade["id"]),
-                {
-                    "status": "CLOSED",
-                    "result": result,
-                    "exit_time": exit_time,
-                    "exit_price": exit_price,
-                    "gross_pnl": profit,
-                    "commission": commission,
-                    "swap": swap,
-                    "net_pnl": net,
-                    "realized_rr": realized_rr,
-                    "exit_reason": "mt5_" + reason_name.lower() if reason_name != "UNKNOWN" else "mt5_history_sync",
-                    "details": details,
-                },
+                closed_payload,
             )
+            if callable(on_trade_closed):
+                try:
+                    on_trade_closed({**trade, **closed_payload})
+                except Exception:
+                    pass
 
             updated += 1
 

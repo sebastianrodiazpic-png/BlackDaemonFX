@@ -101,9 +101,10 @@ def test_gold_quarters_execution_keeps_one_leg_and_fixed_target():
     from test_demo_daemon_integration import Provider, ExecutionRepo, Executor, FakeLifecycleManager
     e=LiveTradingEngine(provider=Provider(), repository=ExecutionRepo(), executor=Executor(),
         lifecycle_manager=FakeLifecycleManager(),config=LiveTradingConfig(bot_profile='GOLD',orb_enabled=False,
-            execution_enabled=True, max_entry_drift_r=None))
+            split_entries_enabled=False, execution_enabled=True, max_entry_drift_r=None, meta_labeling_enabled=False))
     e.multi_timeframe=SimpleNamespace(analyze_symbol=lambda s:{'valid':False,'reason':'NO_SMC_SETUP'})
     e._attach_exhaustion_reversal_shadow=lambda s,a:a
+    e._gold_smc_entry_gate = lambda s: None
     e._gold_quarters_analysis=lambda s:{'valid':True,'strategy_name':'GOLD_QUARTERS','signal':{
         'strategy_name':'GOLD_QUARTERS','direction':'BUY','entry_time':pd.Timestamp.now(tz='UTC').isoformat(),
         'entry_price':100.,'stop_loss':95.,'quarter_target':125.,'take_profit':125.,'risk_reward_ratio':5.,

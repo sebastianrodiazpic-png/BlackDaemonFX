@@ -1,6 +1,6 @@
 # DaemonBlackFx v17 · Identidad visual BlackDaemonFX
 
-Se integró el logo suministrado por el usuario en `dashboard/assets/blackdaemonfx_logo.jpeg`.
+Se integró el logo suministrado por el usuario en `dashboard/assets/blackdaemonfx_logo_v1.jpeg`.
 
 ## Cambios
 - Dashboard principal con sidebar negro/dorado, logo y navegación.
@@ -8,7 +8,7 @@ Se integró el logo suministrado por el usuario en `dashboard/assets/blackdaemon
 - KPIs de Balance, Equity, P&L flotante y Margen libre en el dashboard.
 - Tema consistente negro/dorado para dashboard, instrumentos y cuenta activa.
 - Se mantienen todas las APIs y la lógica de trading sin cambios.
-- El logo se sirve localmente en `/assets/blackdaemonfx_logo.jpeg`; no requiere Internet.
+- El logo se sirve localmente en `/assets/blackdaemonfx_logo_v1.jpeg`; no requiere Internet.
 
 ## URLs
 - `/` Dashboard

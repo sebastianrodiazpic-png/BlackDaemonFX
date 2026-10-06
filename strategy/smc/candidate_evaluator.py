@@ -7,6 +7,8 @@ from strategy.smc.adaptive_score import calculate_adaptive_score
 def evaluate_h1_context(h1_range, current_price, signal_type):
     side = str(signal_type).upper()
     context = evaluate_h1_adaptive_context(None, current_price, h1_range)
+    if h1_range and 'temporal_audit' in h1_range:
+        context['temporal_audit'] = h1_range['temporal_audit']
     valid = bool(side in {'BUY','SELL'} and context['is_valid_location'] and context['direction']==side)
     if h1_range and h1_range.get('adaptive_context_enabled') is False and context['context_type'].startswith('EXPANSION'):
         valid = False
