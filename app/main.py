@@ -507,9 +507,8 @@ def run_demo_bot(
         execution_enabled=execute,
         orb_enabled=(str(bot_profile).upper() == "ORB"),
         malaysian_snr_enabled=(str(bot_profile).upper() == "MALAYSIAN_SNR"),
-        forex_event_timeframe="M5",
-        first_target_rr=2.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 1.0,
-        second_target_rr=3.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 2.0,
+        first_target_rr=2.0,
+        second_target_rr=4.0,
         single_entry_target_rr=2.0,
 
         runner_extension_enabled=bool(
@@ -1165,6 +1164,22 @@ BOT_PROFILES = {
             "US Oil", "Volatility 50 Index", "Volatility 100 Index", "Volatility 250 (1s) Index", "XAGUSD"
         ],
     },
+    "ICT": {
+        "mode": "ict-daemon",
+        "magic": 26082032,
+        "categories": [],
+        "symbols": [
+            "XAGUSD",
+            "XAGUSDmicro",
+            "BTCUSD",
+            "BTCUSDmicro",
+            "XAUUSD",
+            "XAUUSDmicro",
+            "Wall Street 30",
+            "US Tech 100",
+            "US SP 500",
+        ],
+    },
 }
 
 # FLIP remains available for explicit manual launch, but is excluded from
@@ -1196,7 +1211,7 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB", "MALAYSIAN_SNR",
+    "GOLD", "ORB", "MALAYSIAN_SNR", "ICT",
 )
 
 
@@ -1244,17 +1259,14 @@ def _assert_full_multibot_architecture(profiles):
 
 
 def _selection_profile_for_bot(profile: str) -> str:
-    """Traduce el perfil de un worker a su familia de instrumentos.
-
-    GOLD comparte universo con ORB y por eso colapsa a esa selección. IDX_OPEN
-    tiene su propia selección persistente independiente en /instruments (ver
-    _SELECTION_PROFILES en el dashboard), asi que se mapea a si mismo.
-    """
+    """Traduce el perfil de un worker a su familia de instrumentos."""
     profile = str(profile or "").upper()
+    if profile == "ICT": return "ICT"
+    if profile == "GOLD": return "GOLD"
     if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
     if profile.startswith("FOREX"): return "FOREX"
     if profile == "IDX_OPEN": return "IDX_OPEN"
-    if profile in {"ORB", "GOLD"}: return "ORB"
+    if profile == "ORB": return "ORB"
     return "SYNTHETICS"
 
 
@@ -1301,6 +1313,95 @@ def _stable_grouped_symbol_shard(symbols, shard_index: int, shard_count: int, ke
     ]
 
 
+def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
+    """Resuelve el universo base de instrumentos para un perfil de bot dado."""
+    profile = str(profile or "").upper()
+    if profile not in BOT_PROFILES:
+        raise ValueError(f"Perfil de bot desconocido: {profile}")
+
+    spec = BOT_PROFILES[profile]
+    manager = InstrumentManager(provider.connector)
+
+    if profile == "ORB":
+        universe = sorted(set(discover_orb_symbols(provider)))
+    elif profile == "GOLD":
+        # El worker GOLD aísla estrictamente la Plata (XAGUSD / microXAGUSD)
+        # para evitar contaminación de modelo de riesgo y spread.
+        universe = sorted({
+            s for s in discover_orb_symbols(provider)
+            if not ("xag" in s.lower() or "silver" in s.lower())
+        })
+    elif profile == "IDX_OPEN":
+        # Apertura Indices Bursatiles: solo los 3 indices US
+        universe = sorted({
+            symbol for symbol in discover_orb_symbols(provider)
+            if is_orb_index_symbol(symbol)
+        })
+    elif profile == "MALAYSIAN_SNR":
+        universe = sorted(spec.get("symbols", []))
+    elif profile == "ICT":
+        candidates = [
+            "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+            "BTCUSD", "BTCUSDmicro", "microBTCUSD",
+            "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+            "Wall Street 30", "US Tech 100", "US SP 500",
+        ]
+        universe = []
+        for sym in candidates:
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or ["XAGUSD", "BTCUSD", "XAUUSD", "Wall Street 30", "US Tech 100", "US SP 500"]))
+    elif profile == "STEP":
+        step_syms = manager.get_active_symbols(categories=["step"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index", "Step Index 500", "Step Index 400")))
+        universe = sorted({s for s in step_syms if s in allowed} or allowed)
+    elif profile == "JUMP":
+        jump_syms = manager.get_active_symbols(categories=["jump"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("JUMP", ("Jump 75 Index", "Jump 10 Index")))
+        universe = sorted({s for s in jump_syms if s in allowed} or allowed)
+    elif profile.startswith("VOLATILITY"):
+        vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 100 Index", "Volatility 75 Index")))
+        universe = sorted({s for s in vol_syms if s in allowed} or allowed)
+    elif profile == "BOOM":
+        boom_syms = manager.get_active_symbols(categories=["boom"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("BOOM", ("Boom 1000 Index", "Boom 900 Index", "Boom 300 Index")))
+        universe = sorted({s for s in boom_syms if s in allowed} or allowed)
+    elif profile == "CRASH":
+        crash_syms = manager.get_active_symbols(categories=["crash"]) or []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("CRASH", ("Crash 1000 Index", "Crash 900 Index", "Crash 500 Index")))
+        universe = sorted({s for s in crash_syms if s in allowed} or allowed)
+    elif profile.startswith("FOREX"):
+        try:
+            forex_syms = list(manager.discovery.get_tradeable_forex())
+        except Exception:
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX", ("USDCAD", "EURUSD", "USDCHF", "AUDUSD")))
+        filtered_forex = [s for s in forex_syms if s in allowed]
+        universe = sorted(filtered_forex or allowed)
+    else:
+        universe = []
+        for category in spec.get("categories", []):
+            universe.extend(manager.get_active_symbols(categories=[category]) or [])
+
+    universe = sorted({str(s) for s in universe if s}, key=str.casefold)
+    if spec.get("shard_count"):
+        shard_args = (
+            universe,
+            int(spec.get("shard_index", 0)),
+            int(spec.get("shard_count", 1)),
+        )
+        universe = (
+            _stable_grouped_symbol_shard(*shard_args, key=_forex_native_family_key)
+            if profile.startswith("FOREX")
+            else _stable_symbol_shard(*shard_args)
+        )
+    return universe
+
+
 def _resolve_live_symbols_for_profile(args, profile: str):
     """Resuelve únicamente el universo perteneciente al bot solicitado."""
     from brokers.mt5_connector import MT5Connector
@@ -1314,74 +1415,7 @@ def _resolve_live_symbols_for_profile(args, profile: str):
     provider = MT5DataProvider(connector)
     try:
         provider.connect()
-        manager = InstrumentManager(provider.connector)
-        if profile == "ORB":
-            universe = sorted(set(discover_orb_symbols(provider)))
-        elif profile == "GOLD":
-            # El worker GOLD aísla estrictamente la Plata (XAGUSD / microXAGUSD)
-            # para evitar contaminación de modelo de riesgo y spread.
-            universe = sorted({
-                s for s in discover_orb_symbols(provider)
-                if not ("xag" in s.lower() or "silver" in s.lower())
-            })
-        elif profile == "IDX_OPEN":
-            # Apertura Indices Bursatiles: solo los 3 indices US (Wall Street
-            # 30, US Tech 100, US SP 500), reutilizando el mismo descubrimiento
-            # de ORB pero filtrado a is_orb_index_symbol.
-            universe = sorted({
-                symbol for symbol in discover_orb_symbols(provider)
-                if is_orb_index_symbol(symbol)
-            })
-        elif profile == "MALAYSIAN_SNR":
-            universe = sorted(BOT_PROFILES["MALAYSIAN_SNR"].get("symbols", []))
-        elif profile == "STEP":
-            step_syms = manager.get_active_symbols(categories=["step"]) or []
-            allowed = {"Step Index", "Step Index 500", "Step Index 400"}
-            universe = sorted({s for s in step_syms if s in allowed} or allowed)
-        elif profile == "JUMP":
-            jump_syms = manager.get_active_symbols(categories=["jump"]) or []
-            allowed = {"Jump 75 Index", "Jump 50 Index", "Jump 10 Index"}
-            universe = sorted({s for s in jump_syms if s in allowed} or allowed)
-        elif profile.startswith("VOLATILITY"):
-            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
-            allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 50 Index", "Volatility 75 Index")))
-            universe = sorted({s for s in vol_syms if s in allowed} or allowed)
-        elif profile == "BOOM":
-            boom_syms = manager.get_active_symbols(categories=["boom"]) or []
-            allowed = {"Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"}
-            universe = sorted({s for s in boom_syms if s in allowed} or allowed)
-        elif profile == "CRASH":
-            crash_syms = manager.get_active_symbols(categories=["crash"]) or []
-            allowed = {"Crash 500 Index", "Crash 900 Index"}
-            universe = sorted({s for s in crash_syms if s in allowed} or allowed)
-        elif profile.startswith("FOREX"):
-            try:
-                forex_syms = list(manager.discovery.get_tradeable_forex())
-            except Exception:
-                forex_syms = list(manager.get_active_symbols(categories=["forex"]))
-            allowed = {
-                "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
-                "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
-            }
-            filtered_forex = [s for s in forex_syms if s in allowed]
-            universe = sorted(filtered_forex or allowed)
-        else:
-            universe = manager.get_active_symbols(
-                categories=BOT_PROFILES[profile]["categories"]
-            )
-
-        spec = BOT_PROFILES[profile]
-        if spec.get("shard_count"):
-            shard_args = (
-                universe,
-                int(spec.get("shard_index", 0)),
-                int(spec.get("shard_count", 1)),
-            )
-            universe = (
-                _stable_grouped_symbol_shard(*shard_args, key=_forex_native_family_key)
-                if profile.startswith("FOREX")
-                else _stable_symbol_shard(*shard_args)
-            )
+        universe = _resolve_universe_for_profile_provider(provider, profile)
 
         if args.symbol:
             exact = provider.ensure_symbol(args.symbol)
@@ -1424,8 +1458,41 @@ def _build_multi_bot_dashboard_catalog(profiles):
                     ).append(symbol)
                 continue
             if profile == "GOLD":
-                # XAUUSD ya aparece en la categoría visual ORB; el perfil GOLD
-                # reutiliza esa selección sin duplicar el instrumento en UI.
+                # Categoría visual propia para la estrategia de Cuartos (XAUUSD / XAGUSD).
+                for sym in ("XAUUSD", "XAUUSDmicro", "microXAUUSD", "Gold", "GOLD", "XAGUSD", "XAGUSDmicro", "microXAGUSD"):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            cat_key = "gold_cuartos_xauusd" if ("xau" in sym.lower() or "gold" in sym.lower()) else "gold_cuartos_xagusd"
+                            categorized.setdefault(cat_key, []).append(sym)
+                    except Exception:
+                        pass
+                continue
+            if profile == "ICT":
+                # Categorías visuales para la estrategia ICT (Metales, Cripto e Índices)
+                for sym in ("XAGUSD", "XAGUSDmicro", "microXAGUSD"):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("ict_metals_xagusd", []).append(sym)
+                    except Exception:
+                        pass
+                for sym in ("XAUUSD", "XAUUSDmicro", "microXAUUSD"):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("ict_metals_xauusd", []).append(sym)
+                    except Exception:
+                        pass
+                for sym in ("BTCUSD", "BTCUSDmicro", "microBTCUSD", "ETHUSD", "ETHUSDmicro"):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("ict_crypto_btcusd", []).append(sym)
+                    except Exception:
+                        pass
+                for sym in ("Wall Street 30", "US Tech 100", "US SP 500"):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("ict_indices", []).append(sym)
+                    except Exception:
+                        pass
                 continue
             if profile == "IDX_OPEN":
                 # Categoria visual propia en /instruments, ademas de aparecer
@@ -1491,31 +1558,44 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
         },
         key=str.casefold,
     )
-    if not synthetic_symbols:
-        return None
-    saved = writer(
-        synthetic_symbols, selection_profile="SYNTHETICS", source="DEMO"
-    )
-    try:
-        repo.save_audit_event(
-            "EMPTY_SYNTHETIC_SELECTION_RECOVERED",
-            source="DEMO",
-            action="RESTORED_ALL_SYNTHETIC_SYMBOLS",
-            reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacío",
-            payload={
-                "symbols_restored": len(synthetic_symbols),
-                "previous_version": preference.get("version"),
-                "new_version": saved.get("version"),
-                "version": DAEMONBLACKFX_VERSION,
-            },
+    if synthetic_symbols:
+        saved = writer(
+            synthetic_symbols, selection_profile="SYNTHETICS", source="DEMO"
         )
-    except Exception:
-        pass
-    print(
-        "[RECUPERACIÓN] SYNTHETICS estaba vacío: "
-        f"se habilitaron {len(synthetic_symbols)} instrumentos del catálogo."
-    )
-    return saved
+        try:
+            repo.save_audit_event(
+                "EMPTY_SYNTHETIC_SELECTION_RECOVERED",
+                source="DEMO",
+                action="RESTORED_ALL_SYNTHETIC_SYMBOLS",
+                reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacío",
+                payload={
+                    "symbols_restored": len(synthetic_symbols),
+                    "previous_version": preference.get("version"),
+                    "new_version": saved.get("version"),
+                    "version": DAEMONBLACKFX_VERSION,
+                },
+            )
+        except Exception:
+            pass
+        print(
+            "[RECUPERACIÓN] SYNTHETICS estaba vacío: "
+            f"se habilitaron {len(synthetic_symbols)} instrumentos del catálogo."
+        )
+
+    # v110: Garantizar que los workers GOLD y ORB cuenten con selección activa en DEMO
+    gold_pref = reader("GOLD", source="DEMO")
+    if gold_pref is None or not gold_pref.get("selected_symbols"):
+        gold_symbols = ["XAUUSD", "XAUUSDmicro", "microXAUUSD"]
+        writer(gold_symbols, selection_profile="GOLD", source="DEMO")
+        print("[RECUPERACIÓN] Perfil GOLD activado con instrumentos XAUUSD.")
+
+    orb_pref = reader("ORB", source="DEMO")
+    if orb_pref is None or not orb_pref.get("selected_symbols"):
+        orb_symbols = ["Wall Street 30", "XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Tech 100", "BTCUSD"]
+        writer(orb_symbols, selection_profile="ORB", source="DEMO")
+        print("[RECUPERACIÓN] Perfil ORB activado con instrumentos principales NY.")
+
+    return saved if 'saved' in locals() else None
 
 
 def _assert_v53_runtime_compatibility(repo):
@@ -1565,76 +1645,7 @@ def _assert_v53_runtime_compatibility(repo):
 def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
     """Resuelve el universo de un perfil usando una conexión MT5 ya abierta."""
     profile = str(profile or "").upper()
-    spec = BOT_PROFILES[profile]
-    manager = InstrumentManager(provider.connector)
-
-    if profile == "ORB":
-        universe = list(discover_orb_symbols(provider))
-    elif profile == "GOLD":
-        # Aislamiento estricto de Plata (XAGUSD/microXAGUSD)
-        universe = [
-            s for s in discover_orb_symbols(provider)
-            if not ("xag" in s.lower() or "silver" in s.lower())
-        ]
-    elif profile == "IDX_OPEN":
-        # Apertura Indices Bursatiles: solo los 3 indices US.
-        universe = [
-            s for s in discover_orb_symbols(provider) if is_orb_index_symbol(s)
-        ]
-    elif profile == "MALAYSIAN_SNR":
-        universe = list(spec.get("symbols", []))
-    elif profile.startswith("FOREX"):
-        try:
-            forex_syms = list(manager.discovery.get_tradeable_forex())
-        except Exception:
-            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
-        allowed = {
-            "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
-            "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
-        }
-        filtered_forex = [s for s in forex_syms if s in allowed]
-        universe = sorted(filtered_forex or allowed)
-    elif profile == "STEP":
-        step_syms = manager.get_active_symbols(categories=["step"]) or []
-        allowed = {"Step Index", "Step Index 500", "Step Index 400"}
-        universe = sorted({s for s in step_syms if s in allowed} or allowed)
-    elif profile == "JUMP":
-        jump_syms = manager.get_active_symbols(categories=["jump"]) or []
-        allowed = {"Jump 75 Index", "Jump 50 Index", "Jump 10 Index"}
-        universe = sorted({s for s in jump_syms if s in allowed} or allowed)
-    elif profile.startswith("VOLATILITY"):
-        vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 50 Index", "Volatility 75 Index")))
-        universe = sorted({s for s in vol_syms if s in allowed} or allowed)
-    elif profile == "BOOM":
-        boom_syms = manager.get_active_symbols(categories=["boom"]) or []
-        allowed = {"Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"}
-        universe = sorted({s for s in boom_syms if s in allowed} or allowed)
-    elif profile == "CRASH":
-        crash_syms = manager.get_active_symbols(categories=["crash"]) or []
-        allowed = {"Crash 500 Index", "Crash 900 Index"}
-        universe = sorted({s for s in crash_syms if s in allowed} or allowed)
-    else:
-        universe = []
-        for category in spec.get("categories", []):
-            universe.extend(manager.get_active_symbols(categories=[category]) or [])
-
-    universe = sorted({str(s) for s in universe if s}, key=str.casefold)
-    if spec.get("shard_count"):
-        universe = (
-            _stable_grouped_symbol_shard(
-                universe,
-                int(spec.get("shard_index") or 0),
-                int(spec.get("shard_count") or 1),
-                key=_forex_native_family_key,
-            )
-            if profile.startswith("FOREX")
-            else _stable_symbol_shard(
-                universe,
-                int(spec.get("shard_index") or 0),
-                int(spec.get("shard_count") or 1),
-            )
-        )
+    universe = _resolve_universe_for_profile_provider(provider, profile)
     selection_profile = _selection_profile_for_bot(profile)
     reader = getattr(repo, "latest_instrument_selection_profile", None)
     pref = None
@@ -1812,8 +1823,8 @@ def run_unified_multibot_daemon(args, profiles=None):
                 orb_enabled=(profile == "ORB"),
                 malaysian_snr_enabled=(profile == "MALAYSIAN_SNR"),
                 forex_event_timeframe="M5",
-                first_target_rr=2.0 if profile.startswith("VOLATILITY") else 1.0,
-                second_target_rr=3.0 if profile.startswith("VOLATILITY") else 2.0,
+                first_target_rr=2.0,
+                second_target_rr=4.0,
                 single_entry_target_rr=2.0,
                 runner_extension_enabled=bool(
                     profile.startswith("VOLATILITY")
@@ -1947,18 +1958,29 @@ def run_unified_multibot_daemon(args, profiles=None):
                         str((results[-1] or {}).get("action") or "WAITING")
                         if results else "WAITING_NEXT_EVENT"
                     )
+                    daily_mgr = getattr(engine, "daily_profit_target_manager", None)
+                    daily_status = daily_mgr.get_status() if daily_mgr else {}
+                    if daily_status.get("is_locked"):
+                        worker_status = "PAUSED_DAILY_TARGET_REACHED"
+                        worker_reason = daily_status.get("status_message", "Meta diaria alcanzada. Entradas bloqueadas hasta sesión de Asia.")
+                    elif not session.get("active", True):
+                        worker_status = session.get("state")
+                        worker_reason = f"Próxima apertura UTC: {session.get('next_activation')}; gestión de posiciones activa"
+                    else:
+                        worker_status = "RUNNING_UNIFIED"
+                        worker_reason = "Proceso único MultiBot"
+
                     repo.upsert_worker_runtime_state(
                         profile,
                         int(spec["magic"]),
                         source="DEMO",
-                        status=session.get("state") if not session.get("active", True) else "RUNNING_UNIFIED",
+                        status=worker_status,
                         pid=pid,
                         symbols_total=len(symbols),
                         symbols_processed=len(results),
                         current_symbol=None,
                         last_action=last_action,
-                        last_reason=(f"Próxima apertura UTC: {session.get('next_activation')}; gestión de posiciones activa"
-                                     if not session.get("active", True) else "Proceso único MultiBot"),
+                        last_reason=worker_reason,
                         details={
                             "version": DAEMONBLACKFX_VERSION,
                             "runtime_mode": "UNIFIED_PROCESS",
@@ -3113,14 +3135,18 @@ def run_train_meta_labeling(profiles=None, strategy_name: str = "ALL"):
     if not targets:
         targets = [
             "GLOBAL", "SYNTHETICS", "BOOM", "CRASH", "VOLATILITY",
-            "STEP", "JUMP", "FLIP", "GOLD", "FOREX",
+            "STEP", "JUMP", "FLIP", "GOLD", "FOREX", "ORB", "MALAYSIAN_SNR", "ICT",
         ]
 
     trades = repository.trade_history_dataframe()
     reports = {}
+    strats = [strategy_name] if str(strategy_name).upper() != "ALL" else ["ALL", "SMC", "MALAYSIAN_SNR", "ORB_NEW_YORK", "ICT"]
     for worker in targets:
+        reports[worker] = {}
         engine = MetaLabelingEngine(MetaLabelingConfig(), worker=worker)
-        reports[worker] = engine.train(trades, strategy_name=strategy_name)
+        for strat in strats:
+            rep = engine.train(trades, strategy_name=strat)
+            reports[worker][strat] = rep
 
     print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
     return reports
@@ -3334,6 +3360,7 @@ def main():
             "orb-daemon",
             "idx-open-daemon",
             "malaysian-snr-daemon",
+            "ict-daemon",
             "synthetics-split-daemon",
             "multi-bot-daemon",
             "unified-multibot-daemon",
@@ -3735,6 +3762,7 @@ def main():
         "orb-daemon": "ORB",
         "idx-open-daemon": "IDX_OPEN",
         "malaysian-snr-daemon": "MALAYSIAN_SNR",
+        "ict-daemon": "ICT",
     }
     if args.mode in strategy_worker_modes:
         profile = strategy_worker_modes[args.mode]

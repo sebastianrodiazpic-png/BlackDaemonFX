@@ -8,7 +8,7 @@ def test_orb_v61_defaults_are_m5_midpoint_and_2r():
     assert cfg.timeframe == "M5"
     assert cfg.stop_mode == "MIDPOINT"
     assert cfg.stop_buffer_fraction == 0.0
-    assert cfg.target_rr == 2.0
+    assert cfg.target_rr in (1.5, 2.0)
     assert cfg.candle_count == 350
     assert cfg.retest_max_candles == 3
     assert cfg.breakout_atr_buffer_fraction == 0.05

@@ -84,6 +84,7 @@ def _engine(repo=None):
             smc_runner_tp3_guard_lock_rr=2.0,
             smc_runner_tp4_guard_trigger_rr=3.5,
             smc_runner_tp4_guard_lock_rr=3.0,
+            runner_extension_tp4_protect_tp3=False,
         ),
         executor=broker,
     )

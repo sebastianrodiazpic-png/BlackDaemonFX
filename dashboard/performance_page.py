@@ -121,6 +121,7 @@ _PERFORMANCE_BASE = r'''<!doctype html>
           <a class="btn" href="/account">Cuenta en vivo</a>
           <a class="btn active" href="/performance">Rendimiento</a>
           <a class="btn" href="/instruments">Instrumentos</a>
+          <a class="btn" href="/strategy-bases">Bases de Estrategias</a>
         </div>
       </div>
       <!-- PERIOD_PANEL_PLACEHOLDER -->

@@ -237,6 +237,25 @@ class InstrumentSelectionProfilePreference(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class DailyProfitTargetPreference(Base):
+    """Preferencia de meta de ganancia diaria configurable."""
+
+    __tablename__ = "daily_profit_target_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String(32), default="DEMO", index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    target_percent: Mapped[float] = mapped_column(Float, default=2.0)
+    extra_target_buffer_percent: Mapped[float] = mapped_column(Float, default=1.0)
+    is_target_reached: Mapped[bool] = mapped_column(Boolean, default=False)
+    override_unlocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    locked_date: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_reset_date: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    asia_session_start_hour_utc: Mapped[int] = mapped_column(Integer, default=0)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 class DaemonAuditEvent(Base):
     """Bitácora append-only de todo evento operativo relevante de DaemonBlackFx."""
     __tablename__ = "daemon_audit_events"

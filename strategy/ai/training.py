@@ -257,7 +257,11 @@ def build_training_dataset(
             continue
         if worker and not _profiles_match(worker, metadata.get("bot_profile")):
             continue
-        if strategy_name and str(metadata.get("strategy_name") or "SMC").upper() != str(strategy_name).upper():
+        if (
+            strategy_name
+            and str(strategy_name).upper() not in ("ALL", "GLOBAL")
+            and str(metadata.get("strategy_name") or "SMC").upper() != str(strategy_name).upper()
+        ):
             continue
 
         # Imported fills lack a contemporaneous strategy context. Audit them,

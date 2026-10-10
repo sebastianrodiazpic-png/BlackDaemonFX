@@ -1,4 +1,5 @@
 import re
+import urllib.request
 from dashboard.realtime_dashboard import RealtimeDashboardService, _enrich_recent_row
 from strategy.execution.live_trading_engine import LiveTradingConfig
 
@@ -735,3 +736,27 @@ def test_dashboard_explicit_initial_selection_temporarily_overrides_persisted_pr
     assert selected == ["Volatility 75 Index"]
     # El override visual no modifica la preferencia guardada.
     assert repo.latest_instrument_selection(source="DEMO")["selected_symbols"] == ["XAUUSD"]
+
+
+def test_dashboard_serves_strategy_bases_page():
+    dash = RealtimeDashboardService(repository=Repo(), host="127.0.0.1", port=0)
+    try:
+        dash.start()
+        for endpoint in ("/strategy-bases", "/bases-estrategias"):
+            req = urllib.request.Request(f"{dash.url}{endpoint}")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                assert resp.status == 200
+                html = resp.read().decode("utf-8")
+                assert "Bases de las Estrategias Implementadas" in html
+                assert "Malaysian SNR" in html
+                assert "Jonathan Núñez" in html
+                assert "ICT Sabri Malle" in html
+                assert "TP1" in html
+                assert "TP2" in html
+                assert "TP3" in html
+                assert "TP4" in html
+                assert "Jump 25 Index" in html
+                assert "Volatility 50 Index" in html
+    finally:
+        dash.stop()
+

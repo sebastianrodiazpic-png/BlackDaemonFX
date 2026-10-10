@@ -211,6 +211,8 @@ def discover_orb_symbols(data_provider) -> list[str]:
     """
     terms = (
         "XAUUSD",
+        "XAGUSD",
+        "Silver",
         "EURUSD",
         "EUR/USD",
         "BTCUSD",
@@ -318,7 +320,7 @@ class ORBConfig:
     # vez). Ver el uso en la evaluacion de retest para el detalle.
     vwap_poc_require_both: bool = False
     poc_bins: int = 24
-    target_rr: float = 2.0
+    target_rr: float = 1.5
     stop_mode: str = "MIDPOINT"  # v61: protección estructural al 50% del ORB
     stop_buffer_fraction: float = 0.0
     one_signal_per_session: bool = True
@@ -335,10 +337,12 @@ class ORBConfig:
     gold_quarter_level_increment: float = 25.0
     gold_quarter_level_tolerance_price: float = 2.0
     require_gold_quarter_level: bool = False
-    # Mejoras 12m Replay: Killzone horaria NY 09:45-11:30, retest de alta calidad y gestión BE 1.0R
+    # Mejoras Replay 2 Años: Killzone horaria NY 09:45-11:30, filtro macro HTF (PDH/PDL), retest de alta calidad y gestión BE 1.0R
     entry_cutoff_hour: int = 11
     entry_cutoff_minute: int = 30
-    entry_cutoff_enabled: bool = False
+    entry_cutoff_enabled: bool = True
+    macro_liquidity_filter_enabled: bool = True
+    macro_liquidity_min_distance_atr: float = 0.25
     require_high_quality_retest: bool = False
     break_even_enabled: bool = True
     break_even_trigger_rr: float = 1.0
@@ -1059,6 +1063,42 @@ class NewYorkORBStrategy:
             quarter_level_ok = abs(retest_close - nearest_quarter_level) <= tolerance
             if bool(self.config.require_gold_quarter_level) and not quarter_level_ok:
                 failed.append("SIN_CONFLUENCIA_NIVEL_DE_CUARTO_GOLD")
+
+        # Filtro de Liquidez Macro HTF (PDH / PDL previo)
+        macro_liquidity_applicable = bool(getattr(self.config, "macro_liquidity_filter_enabled", True))
+        macro_liquidity_ok = True
+        pdh_level = None
+        pdl_level = None
+        dist_to_pdh_atr = None
+        dist_to_pdl_atr = None
+        if macro_liquidity_applicable:
+            prior_df = df[df["time_ny"].dt.date < now_ny.date()]
+            if not prior_df.empty:
+                last_prior_date = prior_df["time_ny"].dt.date.iloc[-1]
+                prev_day = prior_df[prior_df["time_ny"].dt.date == last_prior_date]
+                pdh_val = float(prev_day["high"].max())
+                pdl_val = float(prev_day["low"].min())
+                atr_ref = signal_atr or 1.0
+                min_dist = float(getattr(self.config, "macro_liquidity_min_distance_atr", 0.25)) * atr_ref
+                pdh_level = pdh_val
+                pdl_level = pdl_val
+                dist_to_pdh_atr = (pdh_val - retest_close) / atr_ref if atr_ref > 0 else None
+                dist_to_pdl_atr = (retest_close - pdl_val) / atr_ref if atr_ref > 0 else None
+                if direction == "BUY" and (retest_close >= pdh_val - min_dist):
+                    macro_liquidity_ok = False
+                    failed.append("PROXIMIDAD_EXCESIVA_A_PDH_RESISTENCIA_MACRO")
+                elif direction == "SELL" and (retest_close <= pdl_val + min_dist):
+                    macro_liquidity_ok = False
+                    failed.append("PROXIMIDAD_EXCESIVA_A_PDL_SOPORTE_MACRO")
+
+        diagnostics.update(
+            macro_liquidity_clear=macro_liquidity_ok,
+            pdh=pdh_level,
+            pdl=pdl_level,
+            distance_to_pdh_atr=dist_to_pdh_atr,
+            distance_to_pdl_atr=dist_to_pdl_atr,
+        )
+
         if failed:
             return {
                 **base, **diagnostics, "direction": direction,
@@ -1083,6 +1123,7 @@ class NewYorkORBStrategy:
             ("orb_retest_confirmed" if entry_mode == "ORB_BREAKOUT_RETEST" else "orb_momentum_confirmed"): True,
             "vwap_alignment": bool(vwap_ok),
             "poc_alignment": bool(poc_ok),
+            "macro_liquidity_clear": bool(macro_liquidity_ok),
             "new_york_session": True,
             "eligible_market": True,
             "stop_at_orb_50_percent": True,
@@ -1151,6 +1192,11 @@ class NewYorkORBStrategy:
             ),
             "orb_risk_model": "1_PERCENT_TOTAL_SPLIT_0_5_TP1_0_5_RUNNER",
             "orb_runner_plan": "FIXED_TP_BE_AFTER_TP1_SPREAD_PROTECTED",
+            "macro_liquidity_clear": macro_liquidity_ok,
+            "pdh": pdh_level,
+            "pdl": pdl_level,
+            "distance_to_pdh_atr": dist_to_pdh_atr,
+            "distance_to_pdl_atr": dist_to_pdl_atr,
             "break_even_enabled": bool(getattr(self.config, "break_even_enabled", True)),
             "break_even_trigger_rr": float(getattr(self.config, "break_even_trigger_rr", 1.0)),
         }

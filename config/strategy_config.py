@@ -25,7 +25,7 @@ Vinculaciones:
       `strategy.execution.multi_timeframe`.
 """
 
-STRATEGY_VERSION = "SMC_V2"
+STRATEGY_VERSION = "ict-sabri-malle-v1"
 
 TIMEFRAMES = {
 
@@ -76,7 +76,7 @@ RISK_CONFIG = {
 
     "risk_percent": 1.0,
 
-    "minimum_rr": 1.5,
+    "minimum_rr": 2.0,
 
     "default_rr": 2.0,
 
@@ -88,11 +88,14 @@ RISK_CONFIG = {
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
     "STEP": ("Step Index", "Step Index 500", "Step Index 400"),
-    "JUMP": ("Jump 75 Index", "Jump 50 Index", "Jump 10 Index"),
+    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 75 y Jump 10.
+    "JUMP": ("Jump 75 Index", "Jump 10 Index"),
     "VOLATILITY": (
-        "Volatility 50 (1s) Index",
+        "Volatility 100 Index",
+        "Volatility 100 (1s) Index",
         "Volatility 75 Index",
         "Volatility 75 (1s) Index",
+        "Volatility 50 (1s) Index",
         "VolSwitch High Vol Index",
         "High Frequency Vol 50 Index",
         "Vol over Crash 550",
@@ -106,10 +109,23 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 90 (1s) Index",
         "Volatility 25 Index",
     ),
-    "BOOM": ("Boom 900 Index", "Boom 1000 Index", "Boom 300 Index"),
-    "CRASH": ("Crash 500 Index", "Crash 900 Index"),
+    "BOOM": ("Boom 1000 Index", "Boom 900 Index", "Boom 300 Index"),
+    # ACTIVACIÓN: Crash 1000 Index (+17.9 R en replay 2Y) se incorpora como líder.
+    "CRASH": ("Crash 1000 Index", "Crash 900 Index", "Crash 500 Index"),
+    # PODA: Eliminados GBPUSD (-5.0R) y USDJPY (-7.0R). ACTIVADOS: USDCAD (+12.0R, 62.5% WR), EURUSD (+7.0R), USDCHF (+3.0R) y AUDUSD (+2.0R).
     "FOREX": (
-        "GBPUSD", "USDJPY", "USDCHF", "USDCAD", "EURUSD",
-        "GBPUSDmicro", "USDJPYmicro", "USDCHFmicro", "USDCADmicro", "EURUSDmicro",
+        "USDCAD", "EURUSD", "USDCHF", "AUDUSD",
+        "USDCADmicro", "EURUSDmicro", "USDCHFmicro", "AUDUSDmicro",
+    ),
+    # ACTIVACIÓN: XAGUSD (Plata) generó +38.1 R (activo #1 del ecosistema). Se habilita plenamente.
+    "GOLD": (
+        "XAUUSD", "XAGUSD",
+        "XAUUSDmicro", "XAGUSDmicro",
+    ),
+    # ICT SABRI MALLE: Metales, Cripto e Índices (XAGUSD #1 +38.1R, BTCUSD #2 +28.1R, Wall Street 30 +12.0R, US Tech 100 +6.0R, XAUUSD +6.0R, US SP 500 +1.0R).
+    "ICT": (
+        "XAGUSD", "BTCUSD", "XAUUSD",
+        "XAGUSDmicro", "BTCUSDmicro", "XAUUSDmicro",
+        "Wall Street 30", "US Tech 100", "US SP 500",
     ),
 }

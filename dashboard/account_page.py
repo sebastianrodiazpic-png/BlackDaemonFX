@@ -45,9 +45,9 @@ ACCOUNT_HTML = r'''
         font: 14px system-ui;
       }
       .w {
-        max-width: 1380px;
+        max-width: 1720px;
         margin: auto;
-        padding: 18px;
+        padding: 18px 24px;
       }
       .brand {
         display: flex;
@@ -275,6 +275,32 @@ ACCOUNT_HTML = r'''
       td:nth-child(8) {
         width: auto;
       }
+      .dayOpsTable th,
+      .dayOpsTable td {
+        vertical-align: middle;
+      }
+      .dayOpsTable th:nth-child(1),
+      .dayOpsTable td:nth-child(1) { width: 36px; text-align: center; }
+      .dayOpsTable th:nth-child(2),
+      .dayOpsTable td:nth-child(2) { width: 95px; }
+      .dayOpsTable th:nth-child(3),
+      .dayOpsTable td:nth-child(3) { width: 75px; }
+      .dayOpsTable th:nth-child(4),
+      .dayOpsTable td:nth-child(4) { width: 110px; }
+      .dayOpsTable th:nth-child(5),
+      .dayOpsTable td:nth-child(5) { width: 135px; }
+      .dayOpsTable th:nth-child(6),
+      .dayOpsTable td:nth-child(6) { width: 70px; }
+      .dayOpsTable th:nth-child(7),
+      .dayOpsTable td:nth-child(7) { width: 80px; }
+      .dayOpsTable th:nth-child(8),
+      .dayOpsTable td:nth-child(8) { width: 120px; }
+      .dayOpsTable th:nth-child(9),
+      .dayOpsTable td:nth-child(9) { width: 125px; }
+      .dayOpsTable th:nth-child(10),
+      .dayOpsTable td:nth-child(10) { width: 70px; }
+      .dayOpsTable th:nth-child(11),
+      .dayOpsTable td:nth-child(11) { width: auto; min-width: 290px; }
       .tradeMeta {
         color: var(--m);
         font-size: 11px;
@@ -382,9 +408,460 @@ ACCOUNT_HTML = r'''
         .brand {
           margin-bottom: 10px;
         }
+      }
       .nav .btn:hover {
         border-color: #f4ce63;
         color: #f4ce63;
+      }
+
+      /* ========================================================
+         CALENDARIO MENSUAL DE RENDIMIENTO & INSPECTOR DIARIO
+         ======================================================== */
+      .calHeaderBar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #1c262e;
+      }
+      .calNavGroup {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .calMonthSelect {
+        background: #0f171d;
+        border: 1px solid #d79b19;
+        color: #f4c84f;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        outline: none;
+      }
+      .calMonthSelect option {
+        background: #0b1115;
+        color: #e2e8f0;
+      }
+      .calBtn {
+        background: #141c22;
+        border: 1px solid #23313a;
+        color: #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .calBtn:hover {
+        background: #1e293b;
+        border-color: #d79b19;
+        color: #f4c84f;
+      }
+      .calBtn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        border-color: #23313a;
+        color: #64748b;
+      }
+
+      /* Grid de 7 columnas estilo calendario real */
+      .calWeekdaysHeader {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-top: 14px;
+        text-align: center;
+      }
+      .calWeekdayCol {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #8b9bb4;
+        padding: 6px 0;
+        background: #0c1318;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
+      .calWeekdayCol.weekend {
+        color: #64748b;
+      }
+
+      .calMonthGrid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .calEmptyCell {
+        min-height: 86px;
+        background: rgba(13, 19, 24, 0.25);
+        border: 1px dashed rgba(35, 46, 53, 0.4);
+        border-radius: 8px;
+      }
+      .calDayCell {
+        background: #0d1318;
+        border: 1px solid #222d36;
+        border-radius: 8px;
+        padding: 8px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 88px;
+      }
+      .calDayCell:hover {
+        transform: translateY(-2px);
+        border-color: #f4c84f;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+        z-index: 2;
+      }
+      .calDayCell.win {
+        background: linear-gradient(180deg, #091a13 0%, #0a1216 100%);
+        border-color: rgba(0, 219, 121, 0.35);
+      }
+      .calDayCell.win:hover {
+        border-color: #00db79;
+        box-shadow: 0 0 14px rgba(0, 219, 121, 0.25);
+      }
+      .calDayCell.loss {
+        background: linear-gradient(180deg, #1d0f11 0%, #0a1216 100%);
+        border-color: rgba(255, 69, 58, 0.35);
+      }
+      .calDayCell.loss:hover {
+        border-color: #ff453a;
+        box-shadow: 0 0 14px rgba(255, 69, 58, 0.25);
+      }
+      .calDayCell.neutral {
+        background: #0d1318;
+        border-color: #2a3842;
+      }
+      .calDayCell.today {
+        border: 2px solid #f4c84f !important;
+        box-shadow: 0 0 14px rgba(244, 200, 79, 0.35) !important;
+      }
+      .calDayCell.selected {
+        outline: 2px solid #38bdf8;
+        outline-offset: 1px;
+      }
+      .calDayCell.future {
+        opacity: 0.35;
+        cursor: not-allowed;
+        background: #090e11;
+        border-color: #172127;
+      }
+      .calDayCell.future:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: #172127;
+      }
+
+      .calCellTop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .calDayNum {
+        font-size: 13px;
+        font-weight: 800;
+        color: #e2e8f0;
+      }
+      .calDayBadges {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .calBadge {
+        font-size: 8.5px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .calBadge.today {
+        background: #f4c84f;
+        color: #000;
+      }
+      .calBadge.top {
+        background: rgba(0, 219, 121, 0.2);
+        color: #00db79;
+        border: 1px solid rgba(0, 219, 121, 0.4);
+      }
+      .calBadge.low {
+        background: rgba(255, 69, 58, 0.2);
+        color: #ff453a;
+        border: 1px solid rgba(255, 69, 58, 0.4);
+      }
+      .calCellPnl {
+        font-size: 14px;
+        font-weight: 800;
+        margin: 3px 0 1px;
+        letter-spacing: -0.01em;
+      }
+      .calCellRet {
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 2px;
+      }
+      .calCellTrades {
+        font-size: 10px;
+        color: #94a3b8;
+        margin-top: 2px;
+      }
+      .calWinLossMiniBar {
+        height: 3px;
+        background: #1e293b;
+        border-radius: 2px;
+        overflow: hidden;
+        display: flex;
+        margin-top: 4px;
+      }
+      .calWinLossMiniBar .barW {
+        background: #00db79;
+        height: 100%;
+      }
+      .calWinLossMiniBar .barL {
+        background: #ff453a;
+        height: 100%;
+      }
+
+      /* Inspector del Día Permanente */
+      .calDayInspector {
+        margin-top: 16px;
+        padding: 16px;
+        border: 1px solid #23313a;
+        border-radius: 10px;
+        background: #0c1217;
+      }
+      .inspectorHead {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #1a242c;
+      }
+      .inspectorTitle {
+        font-size: 16px;
+        font-weight: 800;
+        color: #f4c84f;
+      }
+      .inspectorSubtitle {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 2px;
+      }
+      .inspectorKpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .inspKpiCard {
+        background: #111a21;
+        border: 1px solid #202d37;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .inspKpiCard .lab {
+        font-size: 10.5px;
+        color: #8b9bb4;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .inspKpiCard .val {
+        font-size: 18px;
+        font-weight: 800;
+        margin-top: 3px;
+      }
+      .inspKpiCard .sub {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 2px;
+      }
+      .inspStratsRow {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .inspStratCard {
+        background: #141d24;
+        border: 1px solid #23323c;
+        border-radius: 6px;
+        padding: 8px 12px;
+        flex: 1 1 150px;
+      }
+
+      @media (max-width: 768px) {
+        .calWeekdaysHeader,
+        .calMonthGrid {
+          gap: 3px;
+        }
+        .calDayCell {
+          min-height: 70px;
+          padding: 5px;
+        }
+        .calCellPnl {
+          font-size: 12px;
+        }
+        .inspectorKpis {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* ========================================================
+         META DE GANANCIA DIARIA (DAILY PROFIT TARGET)
+         ======================================================== */
+      .dptCard {
+        background: linear-gradient(180deg, #10161a 0%, #0a0e10 100%);
+        border: 1px solid #765719;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      .dptHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid #23313a;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+      }
+      .dptTitle {
+        font-size: 14px;
+        font-weight: 800;
+        color: #f4c84f;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dptSub {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin-top: 3px;
+      }
+      .dptControlBar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        background: #090e12;
+        border: 1px solid #1c2730;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-top: 10px;
+      }
+      .dptControlGroup {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dptInput {
+        background: #141c22;
+        border: 1px solid #d79b19;
+        color: #f4c84f;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        width: 75px;
+        text-align: right;
+        outline: none;
+      }
+      .dptBtn {
+        background: #1a252f;
+        border: 1px solid #d79b19;
+        color: #f4c84f;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .dptBtn:hover {
+        background: #d79b19;
+        color: #000;
+      }
+      .dptGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .dptKpi {
+        background: #0d1419;
+        border: 1px solid #1c2730;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .dptKpi .lab {
+        font-size: 11px;
+        color: #8fa2b3;
+      }
+      .dptKpi .val {
+        font-size: 17px;
+        font-weight: 800;
+        margin-top: 2px;
+      }
+      .dptKpi .sub {
+        font-size: 10.5px;
+        color: #64748b;
+        margin-top: 2px;
+      }
+      .dptProgressTrack {
+        width: 100%;
+        height: 8px;
+        background: #151e25;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .dptProgressBar {
+        height: 100%;
+        width: 0%;
+        background: #d79b19;
+        transition: width 0.3s ease;
+      }
+      .dptLockedBanner {
+        background: linear-gradient(135deg, rgba(215, 155, 25, 0.18), rgba(245, 189, 54, 0.06));
+        border: 1.5px solid #f5bd36;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 14px;
+        display: none;
+      }
+      .dptModalOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(5px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+      }
+      .dptModalBox {
+        background: #0e151b;
+        border: 2px solid #ef6a6a;
+        border-radius: 14px;
+        max-width: 550px;
+        width: 90%;
+        padding: 24px;
+        box-shadow: 0 10px 40px rgba(239, 106, 106, 0.3);
       }
     </style>
   </head>
@@ -408,6 +885,7 @@ ACCOUNT_HTML = r'''
           <a class="btn" href="/">Dashboard</a>
           <a class="btn" href="/performance">Rendimiento</a>
           <a class="btn" href="/instruments">Instrumentos</a>
+          <a class="btn" href="/strategy-bases">Bases de Estrategias</a>
         </div>
       </div>
       <section class="grid">
@@ -465,6 +943,228 @@ ACCOUNT_HTML = r'''
             hay pérdidas registradas.
           </div>
           <div id="strategyStats" class="ranking"></div>
+        </div>
+
+        <!-- META DE GANANCIA DIARIA (DAILY PROFIT TARGET) -->
+        <div class="c full dptCard" id="dailyProfitTargetCard">
+          <div class="dptHeader">
+            <div>
+              <div class="dptTitle">🎯 Meta de Ganancia Diaria (Daily Profit Target)</div>
+              <div class="dptSub">
+                Fija un objetivo diario en % sobre el balance. Al cumplirse, se bloquean todas las nuevas entradas para proteger ganancias. Reactivación automática en la sesión de Asia (00:00 UTC).
+              </div>
+            </div>
+            <div id="dptStatusBadge" class="statusPill good">Cargando...</div>
+          </div>
+
+          <div class="dptControlBar">
+            <label class="dptControlGroup" style="cursor: pointer; user-select: none;">
+              <input type="checkbox" id="dptEnabledCheckbox" style="accent-color: #d79b19; width: 16px; height: 16px;" onchange="saveDailyTargetSettings()" checked />
+              <span style="font-weight: 700; font-size: 12.5px;">Habilitar meta diaria de beneficio</span>
+            </label>
+
+            <div class="dptControlGroup" style="margin-left: auto;">
+              <span style="font-size: 12px; color: #94a3b8;">Meta Diaria:</span>
+              <input type="number" id="dptTargetPercentInput" class="dptInput" step="0.1" min="0.1" max="100" value="2.0" onchange="saveDailyTargetSettings()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveDailyTargetSettings();}" />
+              <span style="font-weight: 700; color: #f4c84f;">%</span>
+              <button type="button" id="dptSaveSettingsBtn" class="dptBtn" onclick="saveDailyTargetSettings()">Guardar Meta</button>
+            </div>
+          </div>
+
+          <div class="dptGrid">
+            <div class="dptKpi">
+              <div class="lab">Retorno Diario Cerrado</div>
+              <div class="val" id="dptReturnDisplay">+0.00%</div>
+              <div class="sub" id="dptTodayPnlDisplay">+$0.00 hoy</div>
+            </div>
+            <div class="dptKpi">
+              <div class="lab">Meta Objetivo</div>
+              <div class="val" id="dptTargetDisplay" style="color: #f4c84f;">2.00%</div>
+              <div class="sub">Límite diario establecido</div>
+            </div>
+            <div class="dptKpi">
+              <div class="lab">Progreso Hacia la Meta</div>
+              <div class="dptProgressTrack"><div class="dptProgressBar" id="dptProgressBar"></div></div>
+              <div class="sub" id="dptTradesSummary">0 cerrados hoy</div>
+            </div>
+            <div class="dptKpi">
+              <div class="lab">Próxima Reactivación</div>
+              <div class="val" style="font-size: 14px; color: #60a5fa;">Sesión de Asia</div>
+              <div class="sub">00:00 UTC / 09:00 Tokio (Automática)</div>
+            </div>
+          </div>
+
+          <div class="dptLockedBanner" id="dptLockedBanner">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div id="dptBannerText" style="flex: 1 1 320px; line-height: 1.5;">
+                <b>🎯 ¡META DIARIA CUMPLIDA!</b> Entradas bloqueadas para proteger tus ganancias.
+              </div>
+              <div>
+                <button type="button" id="dptOverrideBtn" onclick="openDptOverrideModal()" style="background: linear-gradient(135deg, #d79b19, #f5bd36); color: #000; font-weight: 800; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 10px rgba(215, 155, 25, 0.4); font-size: 12.5px;">
+                  🚀 ¿Deseas ganar un poquito más?
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL DE ADVERTENCIA DE RIESGO DE OVERTRADING -->
+        <div class="dptModalOverlay" id="dptRiskModal">
+          <div class="dptModalBox">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+              <span style="font-size: 24px;">⚠️</span>
+              <b style="font-size: 16px; color: #ff6b6b; letter-spacing: 0.03em;">ADVERTENCIA DE RIESGO: PELIGRO DE OVERTRADING</b>
+            </div>
+            <p style="font-size: 13px; line-height: 1.55; color: #e2e8f0; margin-bottom: 12px;">
+              ¡Felicidades! Has cumplido la meta de rentabilidad diaria prevista en tu plan de trading.
+            </p>
+            <div style="background: rgba(255, 69, 58, 0.12); border-left: 3px solid #ff453a; padding: 10px 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #fca5a5; margin-bottom: 16px;">
+              <b>ALERTA DE DISCIPLINA:</b> Continuar operando desafía las reglas de gestión de riesgo y expone tus ganancias a reversiones inesperadas del mercado, incremento de spreads y deslizamientos. <b>Corres el riesgo real de perder parte o la totalidad de los beneficios acumulados en la sesión.</b>
+            </div>
+            <p style="font-size: 12.5px; color: #cbd5e1; margin-bottom: 20px;">
+              ¿Deseas desbloquear temporalmente el escaneo de nuevas entradas para buscar un objetivo adicional (+1.0% de margen) asumiendo este riesgo?
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+              <button type="button" onclick="closeDptOverrideModal()" style="background: #1e293b; border: 1px solid #475569; color: #f1f5f9; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                🛡️ Mantener Ganancias Protegidas (Recomendado)
+              </button>
+              <button type="button" id="dptConfirmOverrideBtn" onclick="confirmDptOverride()" style="background: #dc2626; border: 1px solid #ef4444; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer;">
+                ⚠️ Asumo el Riesgo, Desbloquear (+1.0%)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RENDIMIENTO DIARIO DEL MES (CALENDARIO Y COMPORTAMIENTO DE ESTRATEGIAS) -->
+        <div class="c full" id="monthlyDailyPerformanceSection">
+          <div class="calHeaderBar">
+            <div>
+              <div class="lab" style="color: #f4c84f; font-size: 13.5px; font-weight: 800; letter-spacing: 0.05em">
+                🗓️ Calendario de Rendimiento Diario y Estrategias
+              </div>
+              <div class="muted" style="font-size: 11.5px; margin-top: 3px">
+                Auditoría estilo calendario día a día. Selecciona cualquier día del mes para inspeccionar trades tomados, rentabilidad %, porcentaje de acierto/pérdida y el historial detallado de operaciones.
+              </div>
+            </div>
+            <div class="calNavGroup">
+              <button type="button" class="calBtn" id="calPrevMonthBtn" onclick="navigateMonth(1)" title="Ver mes anterior">◀ Mes anterior</button>
+              <select id="calMonthSelect" class="calMonthSelect" onchange="onCalMonthSelectChange(this.value)"></select>
+              <button type="button" class="calBtn" id="calNextMonthBtn" onclick="navigateMonth(-1)" title="Ver mes siguiente">Mes siguiente ▶</button>
+              <button type="button" class="calBtn" id="calTodayBtn" onclick="goToToday()" style="border-color:#f4c84f; color:#f4c84f">📅 Ir a Hoy</button>
+            </div>
+          </div>
+
+          <!-- HIGHLIGHT KPIS (MEJOR DÍA, PEOR DÍA, BALANCE DÍAS, PNL TOTAL) -->
+          <div class="stats" style="grid-template-columns: repeat(4, 1fr); margin-top: 14px">
+            <div class="s" style="border-left: 3px solid #00db79; background: #0b1610">
+              <span class="lab" style="color: #00db79; font-size: 10px">🏆 Mejor Día (Mayor Ganancia)</span>
+              <b id="calBestDayPnl" style="color: #00db79; font-size: 18px">—</b>
+              <div class="muted" style="font-size: 11px; margin-top: 2px" id="calBestDaySub">—</div>
+            </div>
+            <div class="s" style="border-left: 3px solid #ff453a; background: #160c0d">
+              <span class="lab" style="color: #ff453a; font-size: 10px">⚠️ Día Más Adverso (Mayor Pérdida)</span>
+              <b id="calWorstDayPnl" style="color: #ff453a; font-size: 18px">—</b>
+              <div class="muted" style="font-size: 11px; margin-top: 2px" id="calWorstDaySub">—</div>
+            </div>
+            <div class="s" style="border-left: 3px solid #f5bd36; background: #15130b">
+              <span class="lab" style="color: #f5bd36; font-size: 10px">📊 Días Ganadores vs Perdedores</span>
+              <b id="calDaysRatio" style="color: #f5bd36; font-size: 18px">—</b>
+              <div class="muted" style="font-size: 11px; margin-top: 2px" id="calDaysWinrate">—</div>
+            </div>
+            <div class="s" style="border-left: 3px solid #d79b19; background: #12181d">
+              <span class="lab" style="color: #d79b19; font-size: 10px">💰 PnL y Rentabilidad Mensual</span>
+              <b id="calTotalPnl" style="font-size: 18px">—</b>
+              <div class="muted" style="font-size: 11px; margin-top: 2px" id="calDaysElapsed">—</div>
+            </div>
+          </div>
+
+          <!-- CALENDARIO DE 7 COLUMNAS -->
+          <div style="margin-top: 16px">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px">
+              <span class="lab" id="calCalendarGridTitle">Calendario Mensual</span>
+              <span class="muted" style="font-size: 11px">Haz clic en cualquier día para cargar instantáneamente su inspector</span>
+            </div>
+            <div class="calWeekdaysHeader">
+              <div class="calWeekdayCol">LUN</div>
+              <div class="calWeekdayCol">MAR</div>
+              <div class="calWeekdayCol">MIÉ</div>
+              <div class="calWeekdayCol">JUE</div>
+              <div class="calWeekdayCol">VIE</div>
+              <div class="calWeekdayCol weekend">SÁB</div>
+              <div class="calWeekdayCol weekend">DOM</div>
+            </div>
+            <div class="calMonthGrid" id="calDaysGrid"></div>
+          </div>
+
+          <!-- INSPECTOR PERMANENTE DEL DÍA SELECCIONADO (AL MOMENTO Y SIEMPRE SE MUESTRA EL DÍA ACTUAL) -->
+          <div class="calDayInspector" id="calDayInspector">
+            <div class="inspectorHead">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span class="inspectorTitle" id="inspDayTitle">Día Actual</span>
+                  <span class="pill" id="inspDayBadge" style="font-size: 10px">HOY</span>
+                </div>
+                <div class="inspectorSubtitle" id="inspDaySubtitle">Detalle de operaciones y rentabilidad del día</div>
+              </div>
+              <div id="inspDayStatusPill" class="pill" style="font-size: 11px">—</div>
+            </div>
+
+            <!-- 4 KPIS ESPECÍFICOS DEL DÍA PEDIDOS POR EL USUARIO -->
+            <div class="inspectorKpis">
+              <div class="inspKpiCard" style="border-left: 3px solid #f4c84f">
+                <div class="lab">Rentabilidad y PnL</div>
+                <div class="val" id="inspDayPnl">—</div>
+                <div class="sub" id="inspDayReturnPct">—</div>
+              </div>
+              <div class="inspKpiCard" style="border-left: 3px solid #38bdf8">
+                <div class="lab">Trades Tomados</div>
+                <div class="val" id="inspDayTradesCount">0</div>
+                <div class="sub" id="inspDayTradesSub">Operaciones cerradas</div>
+              </div>
+              <div class="inspKpiCard" style="border-left: 3px solid #00db79">
+                <div class="lab">Trades Positivos</div>
+                <div class="val" id="inspDayPosPct" style="color: #00db79">—</div>
+                <div class="sub" id="inspDayPosCount">0 ganadas</div>
+              </div>
+              <div class="inspKpiCard" style="border-left: 3px solid #ff453a">
+                <div class="lab">Trades Negativos / BE</div>
+                <div class="val" id="inspDayNegPct" style="color: #ff453a">—</div>
+                <div class="sub" id="inspDayNegCount">0 pérdidas · 0 BE</div>
+              </div>
+            </div>
+
+            <!-- DESGLOSE DE ESTRATEGIAS DEL DÍA -->
+            <div style="margin-top: 14px">
+              <div class="lab" style="font-size: 11px">Estrategias Activas en el Día</div>
+              <div class="inspStratsRow" id="inspDayStrategies"></div>
+            </div>
+
+            <!-- HISTORIAL DE OPERACIONES DEL DÍA CON AUDITORÍA INTEGRADA Y DESCARGA POR LOTE -->
+            <div style="margin-top: 18px">
+              <div class="historyHead" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px">
+                <div>
+                  <div class="lab" style="font-size: 12.5px; color: #f4c84f">Historial de Operaciones del Día · Auditoría Técnica Completa</div>
+                  <div class="muted" style="font-size: 11px; margin-top: 2px">
+                    Cada auditoría muestra su resumen directamente; abre la vista completa para revisar toda la evidencia técnica.
+                    <!-- Confirmaciones persistentes · Detalle técnico persistido · snapshots persistentes · Historial Entrada vs. Ahora · Conflicto chartista: -->
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span class="muted" style="font-size: 11px" id="inspDayOpsCount">—</span>
+                  <button id="bulkDownloadBtn" class="btn" disabled onclick="downloadSelectedAudits()">
+                    Descargar seleccionados (.xlsx)
+                  </button>
+                </div>
+              </div>
+              <div class="tbl" style="max-height: 1100px" id="inspDayOperationsTable"></div>
+            </div>
+          </div>
+
+          <!-- TABLA RESUMEN DE ESTRATEGIAS EN EL MES -->
+          <div style="margin-top: 18px">
+            <div class="lab" style="margin-bottom: 8px">Comportamiento Mensual Global por Estrategia</div>
+            <div id="calStrategyTable"></div>
+          </div>
         </div>
         <div class="c full">
           <div class="historyHead">
@@ -536,42 +1236,7 @@ ACCOUNT_HTML = r'''
             </div>
           </div>
         </div>
-        <div class="c full">
-          <div class="historyHead">
-            <div>
-              <div class="lab">Historial de operaciones</div>
-              <div class="muted" style="font-size: 12px; margin-top: 4px">
-                Cada auditoría muestra su resumen directamente; abre la vista completa para revisar
-                toda la evidencia técnica.
-                <!-- Confirmaciones persistentes · Detalle técnico persistido · snapshots persistentes · Historial Entrada vs. Ahora · Conflicto chartista: -->
-              </div>
-            </div>
-            <div>
-              <button id="bulkDownloadBtn" class="btn" disabled onclick="downloadSelectedAudits()">
-                Descargar seleccionados (.xlsx)
-              </button>
-            </div>
-          </div>
-          <div class="tbl">
-            <table>
-              <thead>
-                <tr>
-                  <th>
-                    <input type="checkbox" id="selectAllRows" onchange="toggleAllRows(this)" />
-                  </th>
-                  <th>ID</th>
-                  <th>Estrategia / instrumento</th>
-                  <th>Operación</th>
-                  <th>Entrada</th>
-                  <th>Resultado</th>
-                  <th>Cierre</th>
-                  <th>Auditoría</th>
-                </tr>
-              </thead>
-              <tbody id="rows"></tbody>
-            </table>
-          </div>
-        </div>
+
       </section>
     </main>
     <script>
@@ -594,7 +1259,7 @@ ACCOUNT_HTML = r'''
           missing = q.missing_confirmations || [],
           critical = q.critical_confirmation_failures || [],
           total = q.entry_vs_now_snapshot_count || 0,
-          id = q.source_trade_id || q.id,
+          id = q.source_trade_id || q.trade_id || q.id,
           score = q.confirmation_score == null ? '—' : num(q.confirmation_score, 0);
         let pattern = q.chart_pattern_confirmed
           ? '<div class="auditPattern">Patrón confirmado · <b>' +
@@ -947,9 +1612,627 @@ ACCOUNT_HTML = r'''
         }
         renderAIWorkersFiltered();
       }
+      let currentMdpPayload = null;
+      let activeMonthKey = null;
+      let activeDayNum = null;
+
+      function onCalMonthSelectChange(monthKey) {
+        if (!currentMdpPayload || !currentMdpPayload.all_months) return;
+        selectMonthKey(monthKey, false);
+      }
+
+      function navigateMonth(direction) {
+        if (!currentMdpPayload || !currentMdpPayload.available_months) return;
+        const months = currentMdpPayload.available_months;
+        const idx = months.findIndex((m) => m.key === activeMonthKey);
+        if (idx === -1) return;
+        const targetIdx = idx + direction;
+        if (targetIdx >= 0 && targetIdx < months.length) {
+          selectMonthKey(months[targetIdx].key, false);
+        }
+      }
+
+      function goToToday() {
+        if (!currentMdpPayload) return;
+        const months = currentMdpPayload.available_months || [];
+        const todayMonth = months.find((m) => m.is_current) || months[0];
+        if (todayMonth) {
+          selectMonthKey(todayMonth.key, true);
+        }
+      }
+
+      function selectMonthKey(monthKey, forceSelectToday) {
+        if (!currentMdpPayload) return;
+        activeMonthKey = monthKey;
+        const monthData = (currentMdpPayload.all_months && currentMdpPayload.all_months[monthKey])
+          ? currentMdpPayload.all_months[monthKey]
+          : currentMdpPayload;
+
+        const sel = $('calMonthSelect');
+        if (sel) sel.value = monthKey;
+
+        // Actualizar estado de botones prev/next
+        const months = currentMdpPayload.available_months || [];
+        const idx = months.findIndex((m) => m.key === activeMonthKey);
+        if ($('calPrevMonthBtn')) $('calPrevMonthBtn').disabled = (idx >= months.length - 1);
+        if ($('calNextMonthBtn')) $('calNextMonthBtn').disabled = (idx <= 0);
+
+        // Determinar qué día seleccionar
+        if (forceSelectToday || monthData.today_day) {
+          activeDayNum = monthData.today_day || (new Date()).getDate();
+        } else {
+          // Mes anterior: seleccionar el día con mejor PnL o el último día con trades
+          if (monthData.best_day) {
+            activeDayNum = monthData.best_day.day;
+          } else if (monthData.days && monthData.days.length) {
+            const activeDays = monthData.days.filter((x) => x.has_trades);
+            activeDayNum = activeDays.length ? activeDays[activeDays.length - 1].day : monthData.days[0].day;
+          } else {
+            activeDayNum = 1;
+          }
+        }
+
+        renderMonthCalendar(monthData);
+        selectCalDay(activeDayNum);
+      }
+
+      function renderMonthlyDailyPerformance(mdp) {
+        if (!mdp || (!mdp.days && !mdp.calendar_days)) {
+          if ($('calDaysGrid')) $('calDaysGrid').innerHTML = '<div class="empty">Sin datos de días transcurridos.</div>';
+          return;
+        }
+        currentMdpPayload = mdp;
+
+        // Poblar selector de meses si está disponible
+        const sel = $('calMonthSelect');
+        if (sel && mdp.available_months) {
+          const currentOptions = Array.from(sel.options).map((o) => o.value).join(',');
+          const newOptions = mdp.available_months.map((m) => m.key).join(',');
+          if (currentOptions !== newOptions) {
+            sel.innerHTML = mdp.available_months.map((m) =>
+              '<option value="' + m.key + '">' + e(m.label) + (m.is_current ? ' (Actual)' : '') + '</option>'
+            ).join('');
+          }
+        }
+
+        // Si no hay mes activo seleccionado, fijar el del payload
+        if (!activeMonthKey || !mdp.all_months || !mdp.all_months[activeMonthKey]) {
+          activeMonthKey = mdp.month_key || (mdp.year + '-' + (mdp.month < 10 ? '0' : '') + mdp.month);
+        }
+
+        const monthData = (mdp.all_months && mdp.all_months[activeMonthKey]) ? mdp.all_months[activeMonthKey] : mdp;
+
+        // Mantener el día seleccionado o inicializar con hoy
+        if (!activeDayNum) {
+          activeDayNum = monthData.today_day || (new Date()).getDate();
+        }
+
+        const months = mdp.available_months || [];
+        const idx = months.findIndex((m) => m.key === activeMonthKey);
+        if ($('calPrevMonthBtn')) $('calPrevMonthBtn').disabled = (idx >= months.length - 1);
+        if ($('calNextMonthBtn')) $('calNextMonthBtn').disabled = (idx <= 0);
+        if (sel) sel.value = activeMonthKey;
+
+        renderMonthCalendar(monthData);
+        selectCalDay(activeDayNum);
+      }
+
+      function renderMonthCalendar(monthData) {
+        if (!monthData) return;
+
+        // 1. Título y KPIs globales del mes
+        if ($('calCalendarGridTitle')) {
+          $('calCalendarGridTitle').textContent = 'Calendario de ' + (monthData.month_name || '') + ' ' + (monthData.year || '');
+        }
+
+        if (monthData.best_day) {
+          $('calBestDayPnl').textContent = '+' + money(monthData.best_day.net_pnl);
+          $('calBestDaySub').textContent = 'Día ' + monthData.best_day.day + ' (' + monthData.best_day.weekday + ') · Líder: ' + e(monthData.best_day.top_strategy);
+        } else {
+          $('calBestDayPnl').textContent = '—';
+          $('calBestDaySub').textContent = 'Sin días con ganancia aún';
+        }
+
+        if (monthData.worst_day) {
+          $('calWorstDayPnl').textContent = money(monthData.worst_day.net_pnl);
+          $('calWorstDaySub').textContent = 'Día ' + monthData.worst_day.day + ' (' + monthData.worst_day.weekday + ') · Mayor drawdown: ' + e(monthData.worst_day.worst_strategy || '—');
+        } else {
+          $('calWorstDayPnl').textContent = '—';
+          $('calWorstDaySub').textContent = 'Sin días en pérdida registrados';
+        }
+
+        $('calDaysRatio').textContent = (monthData.winning_days_count || 0) + ' Verdes / ' + (monthData.losing_days_count || 0) + ' Rojos';
+        $('calDaysWinrate').textContent = (monthData.daily_winrate || 0).toFixed(1) + '% días ganadores · ' + (monthData.neutral_days_count || 0) + ' neutros';
+
+        const totalPnl = Number(monthData.total_month_pnl || 0);
+        const retPct = Number(monthData.total_month_return_pct || 0);
+        $('calTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + money(totalPnl) + ' (' + (retPct >= 0 ? '+' : '') + num(retPct, 2) + '%)';
+        $('calTotalPnl').className = 'val ' + (totalPnl > 0 ? 'good' : (totalPnl < 0 ? 'bad' : ''));
+        $('calDaysElapsed').textContent = (monthData.days_elapsed || 0) + ' de ' + (monthData.total_days_in_month || 30) + ' días transcurridos';
+
+        // 2. Grid de 7 columnas estilo calendario real
+        const grid = $('calDaysGrid');
+        if (grid) {
+          const cells = [];
+          // Preceder con celdas vacías según first_weekday_idx (0=Lun..6=Dom)
+          const offset = monthData.first_weekday_idx || 0;
+          for (let i = 0; i < offset; i++) {
+            cells.push('<div class="calEmptyCell"></div>');
+          }
+
+          const calDays = monthData.calendar_days || monthData.days || [];
+          for (const d of calDays) {
+            const isSelected = (d.day === activeDayNum);
+            const isFuture = Boolean(d.is_future);
+            const isToday = Boolean(d.is_today);
+
+            if (isFuture) {
+              cells.push(
+                '<div class="calDayCell future" data-day="' + d.day + '">' +
+                  '<div class="calCellTop">' +
+                    '<span class="calDayNum">' + (d.day < 10 ? '0' : '') + d.day + '</span>' +
+                  '</div>' +
+                  '<div class="muted" style="font-size: 10px; margin-top: 14px">Próximo</div>' +
+                '</div>'
+              );
+              continue;
+            }
+
+            const pnlNum = Number(d.net_pnl || 0);
+            const cellClasses = ['calDayCell'];
+            if (isToday) cellClasses.push('today');
+            if (isSelected) cellClasses.push('selected');
+
+            if (d.has_trades) {
+              if (pnlNum > 0.001) cellClasses.push('win');
+              else if (pnlNum < -0.001) cellClasses.push('loss');
+              else cellClasses.push('neutral');
+            } else {
+              cellClasses.push('neutral');
+            }
+
+            if (d.is_best_day) cellClasses.push('bestDay');
+            if (d.is_worst_day) cellClasses.push('worstDay');
+
+            // Badges
+            let badgesHtml = '<div class="calDayBadges">';
+            if (isToday) badgesHtml += '<span class="calBadge today">HOY</span>';
+            if (d.is_best_day) badgesHtml += '<span class="calBadge top">TOP</span>';
+            if (d.is_worst_day) badgesHtml += '<span class="calBadge low">DRAW</span>';
+            badgesHtml += '</div>';
+
+            const pnlColor = pnlNum > 0 ? 'good' : (pnlNum < 0 ? 'bad' : '');
+            const pnlDisplay = d.has_trades
+              ? (pnlNum >= 0 ? '+' : '') + money(d.net_pnl)
+              : '<span class="muted" style="font-weight: normal; font-size: 12px">0.00</span>';
+
+            const retDisplay = d.has_trades && d.return_pct != null
+              ? '<span class="calCellRet ' + pnlColor + '">' + (d.return_pct >= 0 ? '+' : '') + num(d.return_pct, 1) + '%</span>'
+              : '';
+
+            const tradesSub = d.has_trades
+              ? d.trades_count + ' trades · ' + num(d.pos_trades_pct, 0) + '% W'
+              : 'Sin trades';
+
+            // Mini bar de distribución de aciertos/pérdidas
+            let miniBarHtml = '';
+            if (d.has_trades && d.trades_count > 0) {
+              miniBarHtml =
+                '<div class="calWinLossMiniBar">' +
+                  '<div class="barW" style="width:' + (d.pos_trades_pct || 0) + '%"></div>' +
+                  '<div class="barL" style="width:' + (d.neg_trades_pct || 0) + '%"></div>' +
+                '</div>';
+            }
+
+            cells.push(
+              '<div class="' + cellClasses.join(' ') + '" data-day="' + d.day + '" onclick="selectCalDay(' + d.day + ')">' +
+                '<div class="calCellTop">' +
+                  '<span class="calDayNum">' + (d.day < 10 ? '0' : '') + d.day + '</span>' +
+                  badgesHtml +
+                '</div>' +
+                '<div>' +
+                  '<div class="calCellPnl ' + pnlColor + '">' + pnlDisplay + retDisplay + '</div>' +
+                  '<div class="calCellTrades">' + tradesSub + '</div>' +
+                  miniBarHtml +
+                '</div>' +
+              '</div>'
+            );
+          }
+          grid.innerHTML = cells.join('');
+        }
+
+        // 3. Tabla Resumen Global de Estrategias
+        const stratTable = $('calStrategyTable');
+        if (stratTable) {
+          if (!monthData.strategy_summary || !monthData.strategy_summary.length) {
+            stratTable.innerHTML = '<div class="empty">Sin actividad de estrategias en este mes.</div>';
+          } else {
+            stratTable.innerHTML =
+              '<div class="tbl" style="max-height: 280px">' +
+                '<table>' +
+                  '<thead>' +
+                    '<tr>' +
+                      '<th style="width: 25%">Estrategia</th>' +
+                      '<th style="width: 15%">PnL Neto</th>' +
+                      '<th style="width: 12%">Setups</th>' +
+                      '<th style="width: 12%">Ganadas</th>' +
+                      '<th style="width: 12%">Perdidas</th>' +
+                      '<th style="width: 12%">Win Rate</th>' +
+                      '<th style="width: 12%">Mejor Día</th>' +
+                    '</tr>' +
+                  '</thead>' +
+                  '<tbody>' +
+                    monthData.strategy_summary.map((st) => {
+                      const pnlNum = Number(st.pnl || 0);
+                      const pnlColor = pnlNum > 0 ? 'good' : (pnlNum < 0 ? 'bad' : '');
+                      return (
+                        '<tr>' +
+                          '<td><b>' + e(st.strategy) + '</b></td>' +
+                          '<td><b class="' + pnlColor + '">' + (pnlNum >= 0 ? '+' : '') + money(st.pnl) + '</b></td>' +
+                          '<td>' + st.trades + '</td>' +
+                          '<td><span class="good">' + st.wins + '</span></td>' +
+                          '<td><span class="bad">' + st.losses + '</span></td>' +
+                          '<td><b>' + num(st.winrate, 1) + '%</b></td>' +
+                          '<td>' + (st.best_day ? 'Día ' + st.best_day : '—') + '</td>' +
+                        '</tr>'
+                      );
+                    }).join('') +
+                  '</tbody>' +
+                '</table>' +
+              '</div>';
+          }
+        }
+      }
+
+      function showCalDayDetail(dayNum) {
+        selectCalDay(dayNum);
+      }
+
+      function selectCalDay(dayNum) {
+        activeDayNum = dayNum;
+
+        // Actualizar clase selected en todas las celdas
+        document.querySelectorAll('.calDayCell').forEach((el) => {
+          if (Number(el.dataset.day) === dayNum) el.classList.add('selected');
+          else el.classList.remove('selected');
+        });
+
+        // Actualizar inspector
+        const monthData = (currentMdpPayload && currentMdpPayload.all_months && currentMdpPayload.all_months[activeMonthKey])
+          ? currentMdpPayload.all_months[activeMonthKey]
+          : currentMdpPayload;
+
+        if (monthData) {
+          updateDayInspector(dayNum, monthData);
+        }
+      }
+
+      function updateDayInspector(dayNum, monthData) {
+        if (!monthData) return;
+        const allDays = monthData.calendar_days || monthData.days || [];
+        const d = allDays.find((x) => x.day === dayNum);
+        if (!d) return;
+
+        // Header del Inspector
+        $('inspDayTitle').textContent = 'Día ' + (d.day < 10 ? '0' : '') + d.day + ' · ' + e(d.weekday) + ' (' + d.date + ')';
+
+        const badgeEl = $('inspDayBadge');
+        if (badgeEl) {
+          if (d.is_today) {
+            badgeEl.textContent = 'HOY (ACTUAL)';
+            badgeEl.className = 'pill warn';
+          } else if (d.is_future) {
+            badgeEl.textContent = 'PRÓXIMO DÍA';
+            badgeEl.className = 'pill';
+          } else if (d.has_trades) {
+            if (Number(d.net_pnl) > 0.001) {
+              badgeEl.textContent = 'DÍA GANADOR';
+              badgeEl.className = 'pill good';
+            } else if (Number(d.net_pnl) < -0.001) {
+              badgeEl.textContent = 'DÍA PERDEDOR';
+              badgeEl.className = 'pill bad';
+            } else {
+              badgeEl.textContent = 'BREAK-EVEN';
+              badgeEl.className = 'pill warn';
+            }
+          } else {
+            badgeEl.textContent = 'SIN ACTIVIDAD';
+            badgeEl.className = 'pill';
+          }
+        }
+
+        const pnlNum = Number(d.net_pnl || 0);
+        const retNum = Number(d.return_pct || 0);
+        const pnlClass = pnlNum > 0 ? 'good' : (pnlNum < 0 ? 'bad' : '');
+
+        if ($('inspDayStatusPill')) {
+          if (d.has_trades) {
+            $('inspDayStatusPill').textContent = d.trades_count + ' trades cerrados · ' + (pnlNum >= 0 ? '+' : '') + money(d.net_pnl);
+            $('inspDayStatusPill').className = 'pill ' + (pnlNum > 0 ? 'good' : (pnlNum < 0 ? 'bad' : 'warn'));
+          } else {
+            $('inspDayStatusPill').textContent = 'Sin trades cerrados';
+            $('inspDayStatusPill').className = 'pill';
+          }
+        }
+
+        // 4 KPIs Específicos del Día
+        $('inspDayPnl').textContent = (pnlNum >= 0 ? '+' : '') + money(pnlNum);
+        $('inspDayPnl').className = 'val ' + pnlClass;
+        $('inspDayReturnPct').textContent = 'Rentabilidad: ' + (retNum >= 0 ? '+' : '') + num(retNum, 2) + '% sobre balance';
+
+        $('inspDayTradesCount').textContent = d.trades_count + ' trades';
+        $('inspDayTradesSub').textContent = d.has_trades ? 'Operaciones completadas en la jornada' : 'Sin trades tomados este día';
+
+        $('inspDayPosPct').textContent = num(d.pos_trades_pct, 1) + '% WIN';
+        $('inspDayPosCount').textContent = d.wins + ' de ' + d.trades_count + ' ganadoras (acierto)';
+
+        $('inspDayNegPct').textContent = num(d.neg_trades_pct, 1) + '% LOSS';
+        $('inspDayNegCount').textContent = d.losses + ' pérdidas (' + num(d.neg_trades_pct, 1) + '%) · ' + d.break_even + ' BE (' + num(d.be_trades_pct, 1) + '%)';
+
+        // Desglose de Estrategias
+        const stratsRow = $('inspDayStrategies');
+        if (stratsRow) {
+          const strats = Object.entries(d.strategies || {});
+          if (!strats.length) {
+            stratsRow.innerHTML = '<span class="muted" style="font-size: 11px">Sin estrategias operadas en este día.</span>';
+          } else {
+            stratsRow.innerHTML = strats.map(([sName, sData]) => {
+              const sPnl = Number(sData.pnl || 0);
+              const sCls = sPnl > 0 ? 'good' : (sPnl < 0 ? 'bad' : '');
+              const sWr = sData.trades > 0 ? ((sData.wins / sData.trades) * 100).toFixed(1) : '0.0';
+              return (
+                '<div class="inspStratCard">' +
+                  '<div style="display: flex; justify-content: space-between; align-items: center">' +
+                    '<b style="font-size: 11.5px; color: #f4c84f">' + e(sName) + '</b>' +
+                    '<b class="' + sCls + '" style="font-size: 12.5px">' + (sPnl >= 0 ? '+' : '') + money(sPnl) + '</b>' +
+                  '</div>' +
+                  '<div class="muted" style="font-size: 10px; margin-top: 4px">' +
+                    sData.trades + ' trades · ' + sWr + '% WR (' + sData.wins + 'W / ' + sData.losses + 'L)' +
+                  '</div>' +
+                '</div>'
+              );
+            }).join('');
+          }
+        }
+
+        // Historial Detallado de Operaciones del Día
+        const opsTable = $('inspDayOperationsTable');
+        if (opsTable) {
+          const ops = (d.operations || []).slice();
+          // Ordenar siempre desde la hora más reciente a la más antigua
+          ops.sort((a, b) => {
+            const timeA = String(a.datetime || a.time_str || '');
+            const timeB = String(b.datetime || b.time_str || '');
+            if (timeA < timeB) return 1;
+            if (timeA > timeB) return -1;
+            const tA = Number(a.ticket || a.trade_id || 0);
+            const tB = Number(b.ticket || b.trade_id || 0);
+            return tB - tA;
+          });
+          if ($('inspDayOpsCount')) $('inspDayOpsCount').textContent = ops.length + ' operaciones';
+
+          if (!ops.length) {
+            opsTable.innerHTML = '<div class="empty" style="padding: 16px">No se registraron operaciones cerradas en esta fecha.</div>';
+          } else {
+            opsTable.innerHTML =
+              '<table class="dayOpsTable">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th style="width: 38px; text-align: center">' +
+                      '<input type="checkbox" id="selectAllRows" onchange="toggleAllRows(this)" />' +
+                    '</th>' +
+                    '<th style="width: 85px">Ticket / ID</th>' +
+                    '<th style="width: 75px">Hora</th>' +
+                    '<th style="width: 105px">Activo</th>' +
+                    '<th style="width: 135px">Estrategia</th>' +
+                    '<th style="width: 65px">Dirección</th>' +
+                    '<th style="width: 75px">Pierna</th>' +
+                    '<th style="width: 110px">Resultado</th>' +
+                    '<th style="width: 110px">PnL Neto</th>' +
+                    '<th style="width: 65px">R:R</th>' +
+                    '<th style="min-width: 280px">Auditoría Técnica</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  ops.map((op) => {
+                    const opPnl = Number(op.net_pnl || 0);
+                    const opPnlClass = opPnl > 0 ? 'good' : (opPnl < 0 ? 'bad' : '');
+                    const resPill = op.is_win
+                      ? '<span class="pill good">GANADA (WIN)</span>'
+                      : (op.is_loss ? '<span class="pill bad">PERDIDA (LOSS)</span>' : '<span class="pill warn">BREAK-EVEN</span>');
+                    const dirPill = op.direction === 'BUY'
+                      ? '<span style="color: #00db79; font-weight: 700">BUY</span>'
+                      : (op.direction === 'SELL' ? '<span style="color: #ff453a; font-weight: 700">SELL</span>' : e(op.direction || '—'));
+                    const retStr = op.pnl_percent != null
+                      ? ' (' + (op.pnl_percent >= 0 ? '+' : '') + num(op.pnl_percent, 2) + '%)'
+                      : '';
+                    const timeDisplay = op.time_str || (op.datetime ? new Date(op.datetime).toLocaleTimeString('es-CL') : '—');
+                    const tradeIdVal = String(op.source_trade_id || op.trade_id || op.id || '');
+                    const isChecked = selectedTradeIds.has(tradeIdVal);
+                    return (
+                      '<tr>' +
+                        '<td style="text-align: center">' +
+                          '<input type="checkbox" class="rowSelect" value="' + e(tradeIdVal) + '"' + (isChecked ? ' checked' : '') + ' onchange="onRowSelectChange()">' +
+                        '</td>' +
+                        '<td><b>#' + e(op.ticket || op.trade_id || '—') + '</b></td>' +
+                        '<td class="muted">' + e(timeDisplay) + '</td>' +
+                        '<td><b>' + e(op.asset || op.instrument || '—') + '</b></td>' +
+                        '<td><b>' + e(op.strategy || '—') + '</b></td>' +
+                        '<td>' + dirPill + '</td>' +
+                        '<td><span class="muted">' + e(op.leg || '—') + '</span></td>' +
+                        '<td>' + resPill + '</td>' +
+                        '<td><b class="' + opPnlClass + '">' + (opPnl >= 0 ? '+' : '') + money(opPnl) + '</b><span class="muted" style="font-size: 10px">' + retStr + '</span></td>' +
+                        '<td><b>' + (op.realized_rr != null ? num(op.realized_rr, 2) + 'R' : '—') + '</b></td>' +
+                        '<td>' + auditHtml(op) + '</td>' +
+                      '</tr>'
+                    );
+                  }).join('') +
+                '</tbody>' +
+              '</table>';
+            onRowSelectChange();
+          }
+        }
+      }
+
+      function showDptNotification(msg, isError) {
+        let toast = $('dptToast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'dptToast';
+          toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-weight:700;font-size:13px;z-index:99999;box-shadow:0 6px 18px rgba(0,0,0,0.5);transition:all 0.3s ease;pointer-events:none;';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.background = isError ? '#ff453a' : '#00db79';
+        toast.style.color = '#000000';
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        setTimeout(() => {
+          if (toast) {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+          }
+        }, 3500);
+      }
+
+      function renderDailyProfitTarget(s) {
+        const d = (s && s.daily_profit_target) ? s.daily_profit_target : (s || {});
+        const card = $('dailyProfitTargetCard');
+        if (!card) return;
+        const enabled = Boolean(d.enabled);
+        const isLocked = Boolean(d.is_locked);
+        const overrideUnlocked = Boolean(d.override_unlocked);
+        const targetPct = Number(d.target_percent != null ? d.target_percent : 2.0).toFixed(2);
+        const extraBuffer = Number(d.extra_target_buffer_percent != null ? d.extra_target_buffer_percent : 1.0).toFixed(2);
+        const effectiveTarget = Number(d.effective_target_percent != null ? d.effective_target_percent : targetPct).toFixed(2);
+        const dailyReturn = Number(d.daily_return_pct || 0.0);
+        const todayPnl = Number(d.today_net_pnl || 0.0);
+        const tradesCount = Number(d.today_trades_count || 0);
+        const wins = Number(d.today_winning_trades || 0);
+        const losses = Number(d.today_losing_trades || 0);
+
+        const badge = $('dptStatusBadge');
+        if (badge) {
+          if (!enabled) {
+            badge.className = 'pill';
+            badge.textContent = '⚪ Desactivado';
+          } else if (isLocked) {
+            badge.className = 'pill bad';
+            badge.textContent = '🔒 Meta Alcanzada · Entradas Bloqueadas';
+          } else if (overrideUnlocked) {
+            badge.className = 'pill warn';
+            badge.textContent = `⚡ Desbloqueo Activo (+${extraBuffer}% extra)`;
+          } else {
+            badge.className = 'pill good';
+            badge.textContent = '🟢 Operando Normal';
+          }
+        }
+
+        const chk = $('dptEnabledCheckbox');
+        if (chk && document.activeElement !== chk) chk.checked = enabled;
+        const inp = $('dptTargetPercentInput');
+        if (inp && document.activeElement !== inp) inp.value = targetPct;
+
+        if ($('dptReturnDisplay')) {
+          $('dptReturnDisplay').textContent = (dailyReturn >= 0 ? '+' : '') + dailyReturn.toFixed(2) + '%';
+          $('dptReturnDisplay').style.color = dailyReturn > 0 ? '#00db79' : dailyReturn < 0 ? '#ff453a' : 'inherit';
+        }
+        if ($('dptTodayPnlDisplay')) {
+          $('dptTodayPnlDisplay').textContent = (todayPnl >= 0 ? '+$' : '-$') + Math.abs(todayPnl).toFixed(2) + ' hoy';
+          $('dptTodayPnlDisplay').style.color = todayPnl > 0 ? '#00db79' : todayPnl < 0 ? '#ff453a' : '#94a3b8';
+        }
+        if ($('dptTargetDisplay')) {
+          $('dptTargetDisplay').textContent = effectiveTarget + '%' + (overrideUnlocked ? ` (base ${targetPct}% + ${extraBuffer}% buffer)` : '');
+        }
+        if ($('dptTradesSummary')) {
+          $('dptTradesSummary').textContent = `${tradesCount} cerrados · ${wins} ganados / ${losses} perdidos`;
+        }
+
+        const prog = $('dptProgressBar');
+        if (prog) {
+          const eff = parseFloat(effectiveTarget) || 2.0;
+          const ratio = eff > 0 ? Math.min(100, Math.max(0, (dailyReturn / eff) * 100)) : 0;
+          prog.style.width = ratio.toFixed(1) + '%';
+          prog.style.background = isLocked ? '#00db79' : dailyReturn < 0 ? '#ff453a' : '#d79b19';
+        }
+
+        const banner = $('dptLockedBanner');
+        if (banner) {
+          banner.style.display = isLocked ? 'block' : 'none';
+          if (isLocked && $('dptBannerText')) {
+            $('dptBannerText').innerHTML = `<b>🎯 ¡META DIARIA CUMPLIDA!</b> Se ha alcanzado un retorno de <b>+${dailyReturn.toFixed(2)}%</b> (meta: ${effectiveTarget}%). Las nuevas entradas se encuentran bloqueadas en todos los workers para proteger tus ganancias.<br><span style="font-size:11px; color:#cbd5e1;">🛡️ Las posiciones abiertas continúan activas con gestión de riesgo (SL, TP, BE con protección de swap y spread).<br>🌏 Reactivación automática de todos los workers en la próxima <b>sesión de Asia (00:00 UTC / 09:00 JST)</b>.</span>`;
+          }
+        }
+      }
+
+      window.saveDailyTargetSettings = async function() {
+        const chk = $('dptEnabledCheckbox');
+        const inp = $('dptTargetPercentInput');
+        const btn = $('dptSaveSettingsBtn');
+        if (!inp) return;
+        const enabled = chk ? chk.checked : true;
+        const target_percent = parseFloat(inp.value) || 2.0;
+        if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+        try {
+          const res = await fetch('/api/daily-target/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled, target_percent })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la meta');
+          if (data.daily_profit_target) {
+            renderDailyProfitTarget(data.daily_profit_target);
+          }
+          showDptNotification(`✓ Meta diaria (${enabled ? target_percent.toFixed(2) + '%' : 'Desactivada'}) guardada exitosamente y persistida.`);
+          if (typeof go === 'function') await go();
+          else if (typeof window.go === 'function') await window.go();
+        } catch (err) {
+          showDptNotification('❌ Error al guardar meta diaria: ' + err.message, true);
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Guardar Meta'; }
+        }
+      };
+
+      window.openDptOverrideModal = function() {
+        const modal = $('dptRiskModal');
+        if (modal) modal.style.display = 'flex';
+      };
+
+      window.closeDptOverrideModal = function() {
+        const modal = $('dptRiskModal');
+        if (modal) modal.style.display = 'none';
+      };
+
+      window.confirmDptOverride = async function() {
+        const btn = $('dptConfirmOverrideBtn');
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch('/api/daily-target/override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirm: true, extra_percent: 1.0 })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo desbloquear');
+          closeDptOverrideModal();
+          if (data.daily_profit_target) {
+            renderDailyProfitTarget(data.daily_profit_target);
+          }
+          showDptNotification('⚡ Nuevas entradas desbloqueadas con buffer adicional asumido.');
+          if (typeof go === 'function') await go();
+          else if (typeof window.go === 'function') await window.go();
+        } catch (err) {
+          showDptNotification('❌ Error al desbloquear: ' + err.message, true);
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+
       let selectedTradeIds = new Set();
       function render(a) {
         a = a || {};
+        renderDailyProfitTarget(a.daily_profit_target);
         let x = a.snapshot || {},
           z = a.stats || {},
           r = a.recent_trades || [];
@@ -969,6 +2252,7 @@ ACCOUNT_HTML = r'''
           Number(z.net_pnl || 0) > 0 ? 'good' : Number(z.net_pnl || 0) < 0 ? 'bad' : '';
         renderAI(a.meta_labeling);
         renderPrePost(a.winrate_pre_post);
+        renderMonthlyDailyPerformance(a.monthly_daily_performance || (a.period_performance || {}).monthly_daily_performance);
         $('strategyStats').innerHTML =
           (z.by_strategy || []).map(strategyHtml).join('') ||
           '<div class="empty">Aún no hay setups cerrados para comparar.</div>';
@@ -1021,45 +2305,45 @@ ACCOUNT_HTML = r'''
         for (const id of Array.from(selectedTradeIds)) {
           if (!liveIds.has(id)) selectedTradeIds.delete(id);
         }
-        $('rows').innerHTML =
-          r
-            .map(
-              (q) =>
-                '<tr><td><input type="checkbox" class="rowSelect" value="' +
-                e(q.id) +
-                '"' +
-                (selectedTradeIds.has(String(q.id)) ? ' checked' : '') +
-                ' onchange="onRowSelectChange()"></td><td>' +
-                e(q.id) +
-                '</td><td><b>' +
-                e(q.strategy) +
-                '</b><div class="tradeMeta">' +
-                e(q.instrument) +
-                '</div></td><td>' +
-                e(q.direction) +
-                '<div class="tradeMeta">' +
-                e(q.status) +
-                ' · ' +
-                e(q.leg || q.execution_mode) +
-                '</div></td><td>' +
-                e(q.entry_time ? new Date(q.entry_time).toLocaleString('es-CL') : '—') +
-                '</td><td><b class="' +
-                (Number(q.net_pnl || 0) > 0 ? 'good' : Number(q.net_pnl || 0) < 0 ? 'bad' : '') +
-                '">' +
-                money(q.net_pnl) +
-                '</b><div class="tradeMeta">RR ' +
-                num(q.realized_rr) +
-                ' / plan ' +
-                num(q.planned_rr) +
-                '</div></td><td>' +
-                e(q.classification) +
-                '</td><td>' +
-                auditHtml(q) +
-                '</td></tr>',
-            )
-            .join('') || '<tr><td colspan="8" class="empty">No hay trades registrados.</td></tr>';
-        $('selectAllRows').checked =
-          r.length > 0 && r.every((q) => selectedTradeIds.has(String(q.id)));
+        if ($('rows')) {
+          $('rows').innerHTML =
+            r
+              .map(
+                (q) =>
+                  '<tr><td><input type="checkbox" class="rowSelect" value="' +
+                  e(q.id) +
+                  '"' +
+                  (selectedTradeIds.has(String(q.id)) ? ' checked' : '') +
+                  ' onchange="onRowSelectChange()"></td><td>' +
+                  e(q.id) +
+                  '</td><td><b>' +
+                  e(q.strategy) +
+                  '</b><div class="tradeMeta">' +
+                  e(q.instrument) +
+                  '</div></td><td>' +
+                  e(q.direction) +
+                  '<div class="tradeMeta">' +
+                  e(q.status) +
+                  ' · ' +
+                  e(q.leg || q.execution_mode) +
+                  '</div></td><td>' +
+                  e(q.entry_time ? new Date(q.entry_time).toLocaleString('es-CL') : '—') +
+                  '</td><td><b class="' +
+                  (Number(q.net_pnl || 0) > 0 ? 'good' : Number(q.net_pnl || 0) < 0 ? 'bad' : '') +
+                  '">' +
+                  money(q.net_pnl) +
+                  '</b><div class="tradeMeta">RR ' +
+                  num(q.realized_rr) +
+                  ' / plan ' +
+                  num(q.planned_rr) +
+                  '</div></td><td>' +
+                  e(q.classification) +
+                  '</td><td>' +
+                  auditHtml(q) +
+                  '</td></tr>',
+              )
+              .join('') || '<tr><td colspan="8" class="empty">No hay trades registrados.</td></tr>';
+        }
         onRowSelectChange();
       }
       function toggleAllRows(cb) {
@@ -1076,9 +2360,15 @@ ACCOUNT_HTML = r'''
           else selectedTradeIds.delete(el.value);
         });
         const count = selectedTradeIds.size;
-        $('bulkDownloadBtn').disabled = count === 0;
-        $('bulkDownloadBtn').textContent =
-          'Descargar seleccionados (.xlsx)' + (count ? ' (' + count + ')' : '');
+        if ($('bulkDownloadBtn')) {
+          $('bulkDownloadBtn').disabled = count === 0;
+          $('bulkDownloadBtn').textContent =
+            'Descargar seleccionados (.xlsx)' + (count ? ' (' + count + ')' : '');
+        }
+        if ($('selectAllRows')) {
+          const all = document.querySelectorAll('.rowSelect');
+          $('selectAllRows').checked = all.length > 0 && Array.from(all).every((el) => el.checked);
+        }
       }
       async function downloadSelectedAudits() {
         const ids = Array.from(selectedTradeIds)
@@ -1144,6 +2434,7 @@ ACCOUNT_HTML = r'''
           accountBusy = false;
         }
       }
+      window.go = go;
       go();
       setInterval(go,6000);
       document.addEventListener('visibilitychange', () => {

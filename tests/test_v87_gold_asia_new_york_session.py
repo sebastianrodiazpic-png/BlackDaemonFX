@@ -15,7 +15,7 @@ def test_gold_profile_is_independent_and_uses_orb_gold_selection():
     assert BOT_PROFILES["GOLD"]["magic"] == 26082029
     assert BOT_PROFILES["GOLD"]["mode"] == "gold-session-daemon"
     assert "GOLD" in FULL_MULTI_BOT_PROFILES
-    assert _selection_profile_for_bot("GOLD") == "ORB"
+    assert _selection_profile_for_bot("GOLD") == "GOLD"
 
 
 def test_gold_window_opens_at_tokyo_0900_and_closes_at_new_york_0930_summer():

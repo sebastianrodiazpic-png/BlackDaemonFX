@@ -21,6 +21,7 @@ Vinculaciones:
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -143,7 +144,7 @@ class TradeReportingService:
                 lifecycle=lifecycle,
                 volume=volume,
             )
-            self._export_if_enabled()
+            self._export_if_enabled(min_interval_seconds=30.0)
             return {
                 "event": event,
                 "trade_id": trade_id,
@@ -270,7 +271,17 @@ class TradeReportingService:
         execution_key = self._execution_key(lifecycle)
         broker = self._broker(lifecycle)
 
-        return {
+        metadata = dict(lifecycle.metadata or {})
+        setup_reason = metadata.get("setup_reason")
+        if not setup_reason:
+            strat = metadata.get("strategy_name") or metadata.get("scenario") or "SMC"
+            ml_prob = metadata.get("meta_label_probability")
+            if ml_prob is not None:
+                setup_reason = f"{strat} | ML Prob: {ml_prob:.2f}"
+            else:
+                setup_reason = f"{strat} CONFIRMED"
+
+        data = {
             "execution_key": execution_key,
             "external_ticket": lifecycle.execution_id or lifecycle.position_ticket,
             "broker_position_ticket": lifecycle.position_ticket,
@@ -286,13 +297,14 @@ class TradeReportingService:
             "take_profit": lifecycle.take_profit,
             "volume": self._volume(lifecycle, volume),
             "planned_rr": lifecycle.risk_reward_ratio,
-            "risk_percent": (lifecycle.metadata or {}).get("risk_percent"),
-            "risk_amount": (lifecycle.metadata or {}).get("actual_risk_amount")
-                or (lifecycle.metadata or {}).get("risk_amount"),
-            "balance_before": (lifecycle.metadata or {}).get("risk_base_value"),
-            "equity": (lifecycle.metadata or {}).get("risk_base_value")
-                if str((lifecycle.metadata or {}).get("risk_base", "")).upper() == "EQUITY"
+            "risk_percent": metadata.get("risk_percent"),
+            "risk_amount": metadata.get("actual_risk_amount")
+                or metadata.get("risk_amount"),
+            "balance_before": metadata.get("risk_base_value"),
+            "equity": metadata.get("risk_base_value")
+                if str(metadata.get("risk_base", "")).upper() == "EQUITY"
                 else None,
+            "setup_reason": setup_reason,
             "details": self._build_details(lifecycle),
         }
         strategy_version = self._strategy_version(lifecycle)
@@ -500,7 +512,7 @@ class TradeReportingService:
         """Fuerza la regeneracion del XLSX ignorando `auto_export`."""
         return self.exporter.export(source=self.source)
 
-    def _export_if_enabled(self):
+    def _export_if_enabled(self, min_interval_seconds: float = 0.0):
         """Exporta el XLSX si esta habilitado, absorbiendo cualquier fallo.
 
         Un Excel abierto por el usuario provoca `PermissionError`. Ese error se
@@ -510,6 +522,12 @@ class TradeReportingService:
         """
         if not self.config.auto_export:
             return None
+        now = time.monotonic()
+        if min_interval_seconds > 0.0:
+            last = getattr(self, "_last_auto_export_at", 0.0)
+            if now - last < min_interval_seconds:
+                return None
+        self._last_auto_export_at = now
         try:
             return self.export_now()
         except Exception as exc:

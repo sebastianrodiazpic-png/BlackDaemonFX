@@ -180,7 +180,7 @@ class LiveTradingConfig:
 
     # Gestión activa de posiciones DEMO.
     break_even_enabled: bool = True
-    break_even_trigger_rr: float = 2.0
+    break_even_trigger_rr: float = 1.0
     # BE protector: desplaza el SL hacia beneficio para cubrir spread/costes.
     break_even_offset_points: int = 2
     # v105: el BE clásico (entrada + spread/offset) solo evita pérdida, pero no
@@ -193,6 +193,8 @@ class LiveTradingConfig:
     break_even_confirmation_retries: int = 3
     break_even_confirmation_delay_seconds: float = 0.20
     orb_correlated_entry_min_break_even_offset_points: int = 2
+    # Cierre defensivo de emergencia si el trade es elegible para BE pero no es posible protegerlo (rechazo broker, stops_level, gap o cierre de mercado)
+    break_even_close_if_unprotectable: bool = True
     # El monitor pesado se ejecuta en un hilo independiente del scanner de
     # señales. Así una sincronización lenta de SQLite/MT5 no envejece M5/M1.
     background_position_monitor_enabled: bool = True
@@ -211,7 +213,7 @@ class LiveTradingConfig:
     # visuales se reconstruyen con menor cadencia en el hilo del monitor.
     visual_audit_refresh_seconds: float = 30.0
 
-    min_rr: float = 1.5
+    min_rr: float = 2.0
     stop_safety_points: int = 2
     validate_order_in_dry_run: bool = True
 
@@ -226,10 +228,10 @@ class LiveTradingConfig:
     # Gestión 50/50 del riesgo de una operación lógica (0.5% por pierna, 1.0% total).
     split_entries_enabled: bool = True
     split_entry_risk_fraction: float = 0.50
-    first_target_rr: float = 2.0
-    second_target_rr: float = 3.5
+    first_target_rr: float = 1.0
+    second_target_rr: float = 2.0
     volatility_first_target_rr: float = 2.0
-    volatility_second_target_rr: float = 3.5
+    volatility_second_target_rr: float = 3.0
     # Si el broker no permite dividir el 1% en dos piernas seguras, intentamos
     # una sola entrada de hasta 1% con TP 2.0R y BE al alcanzar 1R.
     single_entry_fallback_enabled: bool = True
@@ -242,6 +244,7 @@ class LiveTradingConfig:
         "Step Index 500",
         "Step Index 400",
     )
+    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 10 y Jump 75.
     jump_prune_toxic_assets: bool = True
     jump_allowed_symbols: tuple[str, ...] = (
         "Jump 50 Index",
@@ -272,8 +275,10 @@ class LiveTradingConfig:
         "Boom 900 Index",
         "Boom 300 Index",
     )
+    # ACTIVACIÓN: Crash 1000 Index (+17.9 R en replay 2Y) se incorpora como líder.
     crash_prune_toxic_assets: bool = True
     crash_allowed_symbols: tuple[str, ...] = (
+        "Crash 1000 Index",
         "Crash 900 Index",
         "Crash 500 Index",
     )
@@ -284,15 +289,18 @@ class LiveTradingConfig:
         "GBPUSD",
         "USDCAD",
         "USDCHF",
+        "GBPCAD",
+        "AUDUSD",
         "EURUSDmicro",
         "USDJPYmicro",
         "GBPUSDmicro",
         "USDCADmicro",
         "USDCHFmicro",
+        "GBPCADmicro",
+        "AUDUSDmicro",
     )
 
-    # Los perfiles SMC sintéticos cierran el runner en TP2. Las extensiones
-    # siguientes se reservan para estrategias que las habiliten explícitamente.
+    # Los perfiles SMC sintéticos y forex permiten buscar TP3 o TP4 protegiendo ganancias de manera progresiva.
     runner_extension_enabled: bool = False
     runner_extension_first_trigger_rr: float = 2.0
     runner_extension_first_lock_rr: float = 1.0
@@ -306,13 +314,14 @@ class LiveTradingConfig:
     # Protección intermedia mientras busca TP4.
     smc_runner_tp4_guard_trigger_rr: float = 3.5
     smc_runner_tp4_guard_lock_rr: float = 3.0
+    runner_extension_tp4_protect_tp3: bool = False
 
     # v73: Forex usa objetivos lógicos progresivos aunque el broker conserve
-    # un TP4 máximo como fail-safe. El runner nace buscando TP2.
+    # un TP4 máximo como fail-safe. El runner nace buscando TP2 y puede extenderse a TP4.
     forex_runner_initial_target_rr: float = 2.0
     forex_runner_tp3_lock_rr: float = 1.0
-    forex_runner_tp4_pre_eval_lock_rr: float = 2.0
-    forex_runner_tp4_lock_rr: float = 2.5
+    forex_runner_tp4_pre_eval_lock_rr: float = 2.5
+    forex_runner_tp4_lock_rr: float = 3.0
     forex_runner_max_target_rr: float = 3.0
     forex_runner_broker_safety_target_rr: float = 3.0
 
@@ -349,10 +358,9 @@ class LiveTradingConfig:
     # v101: meta-etiquetado con IA. Cada worker entrena y puntúa por separado.
     # SHADOW puntúa sin bloquear; FILTER exige probabilidad y expectativa neta.
     meta_labeling_enabled: bool = True
-    # Se mantiene SHADOW por seguridad. RANKING/FILTER sólo se activan de
-    # forma explícita por entorno, sin editar el código de cada worker.
+    # FILTER exige probabilidad y expectativa neta activa como guía y filtro de entradas
     meta_labeling_mode: str = os.getenv(
-        "DAEMONBLACKFX_META_LABELING_MODE", "SHADOW"
+        "DAEMONBLACKFX_META_LABELING_MODE", "FILTER"
     ).upper()
     meta_labeling_min_probability: float = 0.55
     meta_labeling_min_probability_forex: float = 0.60
@@ -560,7 +568,7 @@ class LiveTradingConfig:
     # (vs. 5.6% en Forex, que no lo usa). Nueva frontera PRE/POST para medir
     # el efecto real con `tools/winrate_pre_post_report.py` una vez se
     # acumulen operaciones.
-    strategy_version: str = "smc-v109-relaxed-gates-orb-vwap-poc-gold-asian-sweep-off"
+    strategy_version: str = "ict-sabri-malle-v1"
 
 
     # Segunda estrategia: Opening Range Breakout exclusivo para mercados NY autorizados.
@@ -691,6 +699,11 @@ class LiveTradingConfig:
     smc_obstacle_min_distance_r: float = 1.0
     smc_execution_max_later_m5_bars: int = 1
     require_latest_m15_setup: bool = True
+    # R:R mínimo ejecutable exigido contra el quote fresco de mercado antes del envío.
+    min_executable_rr: float = 1.0
+    # Salida forzada de emergencia si el llenado real en el broker sufre slippage severo y queda con R:R inferior al umbral.
+    emergency_unfavorable_rr_exit_enabled: bool = True
+    min_acceptable_fill_rr: float = 1.0
 
 
 class LiveTradingEngine:
@@ -897,6 +910,13 @@ class LiveTradingEngine:
             ),
         )
 
+        from strategy.ict.ict_strategy import ICTSabriMalleStrategy
+        from strategy.ict.config import ICTSabriMalleConfig
+        self.ict_strategy = ICTSabriMalleStrategy(
+            data_provider=provider,
+            config=ICTSabriMalleConfig(),
+        )
+
         is_step_worker = str(self.config.bot_profile).upper() == "STEP"
         step_entry_tf = "M15" if is_step_worker else self.config.entry_timeframe
         step_dual_trig = False if is_step_worker else self.config.dual_m5_m1_trigger_enabled
@@ -944,6 +964,11 @@ class LiveTradingEngine:
             worker=str(self.config.bot_profile or "DEFAULT"),
         )
         self._meta_label_cycle_decisions = []
+        from strategy.execution.daily_profit_target import DailyProfitTargetManager
+        self.daily_profit_target_manager = DailyProfitTargetManager(
+            repository=self.repository,
+            source=self.config.source,
+        )
 
     def _quarantine_file(self) -> Path:
         """Resuelve la ruta absoluta del fichero de cuarentena y crea su carpeta.
@@ -2868,16 +2893,19 @@ class LiveTradingEngine:
         direction: str,
         entry_price: float,
         profit_lock_amount: float = 0.0,
+        position: Any = None,
     ) -> tuple[float, float]:
-        """Calcula BE neto de spread más offset, hacia el lado favorable del trade.
+        """Calcula BE neto protegiendo Spread, SWAP y costes, hacia el lado favorable del trade.
 
         ``profit_lock_amount`` (en precio, no en R) suma una distancia extra al
-        offset para que el BE asegure una fracción de la ganancia ya alcanzada,
-        en lugar de limitarse a cubrir spread/costes de la operación.
+        offset para que el BE asegure una fracción de la ganancia ya alcanzada.
+        Adicionalmente, si la posición acumula SWAP negativo en MT5, se traduce a
+        distancia de precio para que el cierre en Break Even sea rigurosamente >= 0.00 USD.
         """
         offset_points = max(0, int(self.config.break_even_offset_points))
         point = 0.0
         digits = None
+        constraints = {}
         get_constraints = getattr(self.executor, "get_symbol_constraints", None)
         if callable(get_constraints):
             try:
@@ -2889,7 +2917,9 @@ class LiveTradingEngine:
                 digits = None
 
         offset = point * offset_points
-        get_tick = getattr(self.provider, "get_current_tick", None)
+        # Consulta prioritaria de tick real ejecutable en MT5 (executor), con fallback a provider
+        get_tick = getattr(self.executor, "get_current_tick", None) or getattr(self.provider, "get_current_tick", None)
+        spread = 0.0
         if callable(get_tick):
             try:
                 tick = get_tick(symbol) or {}
@@ -2897,10 +2927,42 @@ class LiveTradingEngine:
                     0.0,
                     float(tick.get("ask") or 0.0) - float(tick.get("bid") or 0.0),
                 )
-                offset += spread
-            except (TypeError, ValueError, RuntimeError):
-                # Conserva el offset mínimo protector si el tick puntual no está disponible.
+            except (TypeError, ValueError, RuntimeError, Exception):
+                spread = 0.0
+        if spread <= 0.0 and constraints:
+            spread = max(0.0, float(constraints.get("spread", 0.0) or 0.0))
+        offset += spread
+
+        # Protección activa contra SWAP devengado negativo (garantiza PnL >= 0.00 USD)
+        if position is not None:
+            try:
+                pos_swap = (
+                    float(position.get("swap", 0.0) or 0.0)
+                    if isinstance(position, dict)
+                    else float(getattr(position, "swap", 0.0) or 0.0)
+                )
+                pos_volume = (
+                    float(position.get("volume", 0.0) or 0.0)
+                    if isinstance(position, dict)
+                    else float(getattr(position, "volume", 0.0) or 0.0)
+                )
+                if pos_swap < 0 and pos_volume > 0:
+                    contract_size = float(constraints.get("trade_contract_size", 1.0) or 1.0) if constraints else 1.0
+                    tick_value = float(constraints.get("tick_value", 0.0) or 0.0) if constraints else 0.0
+                    tick_size = float(constraints.get("tick_size", 0.0) or constraints.get("trade_tick_size", 0.0) or point or 0.0) if constraints else 0.0
+                    swap_points = 0.0
+                    if tick_value > 0 and tick_size > 0:
+                        monetary_per_price_unit = pos_volume * (tick_value / tick_size)
+                        if monetary_per_price_unit > 0:
+                            swap_points = abs(pos_swap) / monetary_per_price_unit
+                    if swap_points <= 0:
+                        denom = pos_volume * contract_size
+                        if denom > 0:
+                            swap_points = abs(pos_swap) / denom
+                    offset += max(0.0, swap_points)
+            except Exception:
                 pass
+
         offset += max(0.0, float(profit_lock_amount or 0.0))
         target = float(entry_price) + offset if str(direction).upper() == "BUY" else float(entry_price) - offset
         if digits is not None:
@@ -3024,8 +3086,24 @@ class LiveTradingEngine:
             return dict(result, action='ORB_BE_ALREADY_CONFIRMED')
         metadata['break_even_confirmed'] = False
         persist()
-        safe = self._gold_protected_be_stop(str(trade['instrument']), direction, entry, 0.0, evidence, 0.0)
+        safe = self._gold_protected_be_stop(str(trade['instrument']), direction, entry, 0.0, evidence, 0.0, position=position)
         if safe is None:
+            trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+            close_pos = getattr(trade_executor, "close_position", None)
+            if callable(close_pos) and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                close_res = close_pos(
+                    position_ticket=str(trade['broker_position_ticket']),
+                    reason='orb_runner_unable_to_protect_be_safe_stop_closed',
+                )
+                if close_res.get("closed", False):
+                    metadata['break_even_activated'] = True
+                    metadata['break_even_fallback_closed'] = True
+                    metadata['break_even_fallback_reason'] = 'PRICE_TOO_CLOSE_TO_PROTECT_BE'
+                    metadata['break_even_fallback_closed_at'] = datetime.now(timezone.utc).isoformat()
+                    self.repository.update_trade(int(trade['id']), {
+                        'details': {**(trade.get('details') or {}), 'metadata': metadata}
+                    })
+                    return dict(result, action='ORB_RUNNER_UNPROTECTED_BE_CLOSED', activated=True, close_result=close_res)
             return dict(result, action='ORB_BE_WAITING_SAFE_STOP')
         target, offset = safe
         if stop > 0 and (stop >= target if direction == 'BUY' else stop <= target):
@@ -3034,11 +3112,43 @@ class LiveTradingEngine:
             modified = move_stop(position_ticket=str(trade['broker_position_ticket']), stop_loss=target,
                                  take_profit=float(position.tp or 0), reason='orb_tp1_spread_break_even')
         if not modified.get('modified', False):
+            trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+            close_pos = getattr(trade_executor, "close_position", None)
+            if callable(close_pos) and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                close_res = close_pos(
+                    position_ticket=str(trade['broker_position_ticket']),
+                    reason='orb_runner_modification_rejected_closed',
+                )
+                if close_res.get("closed", False):
+                    metadata['break_even_activated'] = True
+                    metadata['break_even_fallback_closed'] = True
+                    metadata['break_even_fallback_reason'] = 'MODIFICATION_REJECTED'
+                    metadata['break_even_fallback_closed_at'] = datetime.now(timezone.utc).isoformat()
+                    self.repository.update_trade(int(trade['id']), {
+                        'details': {**(trade.get('details') or {}), 'metadata': metadata}
+                    })
+                    return dict(result, action='ORB_RUNNER_UNPROTECTED_BE_CLOSED', activated=True, close_result=close_res)
             return dict(result, action='ORB_BE_MODIFICATION_FAILED', broker_result=modified)
         actual = self.executor.get_position(int(trade['broker_position_ticket']))
         actual_sl = float(getattr(actual, 'sl', 0) or 0)
         confirmed = actual_sl > 0 and (actual_sl >= target if direction == 'BUY' else actual_sl <= target)
         if not confirmed:
+            trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+            close_pos = getattr(trade_executor, "close_position", None)
+            if callable(close_pos) and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                close_res = close_pos(
+                    position_ticket=str(trade['broker_position_ticket']),
+                    reason='orb_runner_unconfirmed_by_broker_closed',
+                )
+                if close_res.get("closed", False):
+                    metadata['break_even_activated'] = True
+                    metadata['break_even_fallback_closed'] = True
+                    metadata['break_even_fallback_reason'] = 'NOT_CONFIRMED_BY_BROKER'
+                    metadata['break_even_fallback_closed_at'] = datetime.now(timezone.utc).isoformat()
+                    self.repository.update_trade(int(trade['id']), {
+                        'details': {**(trade.get('details') or {}), 'metadata': metadata}
+                    })
+                    return dict(result, action='ORB_RUNNER_UNPROTECTED_BE_CLOSED', activated=True, close_result=close_res)
             return dict(result, action='ORB_BE_AWAITING_BROKER_CONFIRMATION')
         metadata.update(break_even_confirmed=True, break_even_activated=True,
             break_even_price=target, break_even_offset=offset,
@@ -3049,14 +3159,41 @@ class LiveTradingEngine:
             'details': {**(trade.get('details') or {}), 'metadata': metadata}})
         return dict(result, action='ORB_TP1_BREAK_EVEN_CONFIRMED', activated=True, stop_loss=actual_sl)
 
-    def _gold_protected_be_stop(self, symbol, direction, entry, current_sl, evidence, profit_lock):
-        """Cover spread and offset; defer if stops/freeze distance prevents safe placement."""
+    def _gold_protected_be_stop(self, symbol, direction, entry, current_sl, evidence, profit_lock, position=None):
+        """Cover spread, swap and offset; defer if stops/freeze distance prevents safe placement."""
         constraints = self.executor.get_symbol_constraints(symbol)
         point = float(constraints.get('point') or 0)
         tick_size = float(constraints.get('trade_tick_size') or constraints.get('tick_size') or point)
         if not math.isfinite(tick_size) or tick_size <= 0 or not math.isfinite(point) or point <= 0:
             raise ValueError('GOLD_BE_INVALID_TICK_SIZE')
         offset = evidence['ask']-evidence['bid'] + point*max(0, self.config.break_even_offset_points) + max(0.,profit_lock)
+        if position is not None:
+            try:
+                pos_swap = (
+                    float(position.get("swap", 0.0) or 0.0)
+                    if isinstance(position, dict)
+                    else float(getattr(position, "swap", 0.0) or 0.0)
+                )
+                pos_volume = (
+                    float(position.get("volume", 0.0) or 0.0)
+                    if isinstance(position, dict)
+                    else float(getattr(position, "volume", 0.0) or 0.0)
+                )
+                if pos_swap < 0 and pos_volume > 0:
+                    contract_size = float(constraints.get("trade_contract_size", 1.0) or 1.0)
+                    tick_value = float(constraints.get("tick_value", 0.0) or 0.0)
+                    swap_points = 0.0
+                    if tick_value > 0 and tick_size > 0:
+                        monetary_per_price_unit = pos_volume * (tick_value / tick_size)
+                        if monetary_per_price_unit > 0:
+                            swap_points = abs(pos_swap) / monetary_per_price_unit
+                    if swap_points <= 0:
+                        denom = pos_volume * contract_size
+                        if denom > 0:
+                            swap_points = abs(pos_swap) / denom
+                    offset += max(0.0, swap_points)
+            except Exception:
+                pass
         raw = entry+offset if direction == 'BUY' else entry-offset
         target = (math.ceil(raw/tick_size-1e-10) if direction == 'BUY' else math.floor(raw/tick_size+1e-10))*tick_size
         target = round(target,int(constraints.get('digits',8)))
@@ -3345,6 +3482,23 @@ class LiveTradingEngine:
         if current_rr is None or not callable(close_position):
             return result
 
+        # Cierre forzado si la posición fue llenada con un R:R inaceptable por slippage severo.
+        exec_rr_audit = metadata.get("execution_rr_audit") or {}
+        filled_target_rr = exec_rr_audit.get("filled_target_rr")
+        min_acceptable_fill_rr = float(getattr(self.config, "min_acceptable_fill_rr", 1.0))
+        if (
+            bool(getattr(self.config, "emergency_unfavorable_rr_exit_enabled", True))
+            and filled_target_rr is not None
+            and filled_target_rr < (min_acceptable_fill_rr - 1e-9)
+        ):
+            close_info = close_position("emergency_slippage_unfavorable_rr")
+            return {
+                "managed": True,
+                "closed": bool(close_info.get("closed")),
+                "reason": f"EMERGENCY_SLIPPAGE_EXIT: filled_rr={filled_target_rr:.3f} < {min_acceptable_fill_rr:.2f}",
+                "detail": close_info,
+            }
+
         # NY_INDEX_OPEN: el cierre defensivo por invalidación de análisis
         # sólo debe operar dentro de la ventana propia de la estrategia
         # (apertura NY + `m5_confirmation_window_minutes`, 20 min por
@@ -3610,7 +3764,7 @@ class LiveTradingEngine:
         if not ticket or entry_price <= 0 or direction not in {"BUY", "SELL"}:
             return result
 
-        trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
         close_position = getattr(trade_executor, "close_position", None)
         if not callable(close_position):
             result["error"] = "TRADE_EXECUTOR_DOES_NOT_SUPPORT_RUNNER_CLOSE"
@@ -3677,6 +3831,27 @@ class LiveTradingEngine:
             or metadata.get("runner_initial_target_rr")
             or (self.config.forex_runner_initial_target_rr if is_forex_runner else max_target_rr)
         )
+
+        # Si el runner ya alcanzó o superó el objetivo máximo (TP4 o max_target_rr), cerrar a mercado de inmediato
+        if current_rr >= (max_target_rr - 1e-4):
+            metadata["runner_exit_reason"] = f"MAX_TARGET_REACHED_RR_{current_rr:.2f}"
+            metadata["runner_exit_requested_rr"] = round(current_rr, 4)
+            details = dict(trade.get("details") or {})
+            details["metadata"] = metadata
+            self.repository.update_trade(int(trade["id"]), {"details": details})
+            close_result = close_position(
+                position_ticket=ticket,
+                reason=f"runner_max_target_reached_rr_{current_rr:.2f}",
+            )
+            result.update({
+                "managed": True,
+                "closed": bool((close_result or {}).get("closed", False)),
+                "stage": "MAX_TARGET_REACHED",
+                "target_rr": max_target_rr,
+                "current_rr": current_rr,
+                "close_result": close_result,
+            })
+            return result
 
         # v65: si SMC ya fue extendido a TP3, al alcanzar ~2.5R se protege
         # automáticamente +2R sin esperar a que llegue al TP3.
@@ -3971,9 +4146,13 @@ class LiveTradingEngine:
             # ------------------------------------------------------------
             # 3b) CONTINUACIÓN: habilitar siguiente objetivo
             # ------------------------------------------------------------
-            if is_forex_runner and stage_name == "3R_TO_4R":
-                # El mercado ganó el derecho a TP4: elevar protección a +2.5R.
-                tp4_lock_rr = float(self.config.forex_runner_tp4_lock_rr)
+            protect_tp3_on_tp4 = bool(
+                metadata.get("runner_extension_tp4_protect_tp3")
+                or getattr(self.config, "runner_extension_tp4_protect_tp3", False)
+            )
+            if stage_name == "3R_TO_4R" and (is_forex_runner or protect_tp3_on_tp4):
+                # El mercado ganó el derecho a buscar TP4: proteger estrictamente TP3 (+3.0R) para maximizar ganancias
+                tp4_lock_rr = 3.0 if protect_tp3_on_tp4 else float(self.config.forex_runner_tp4_lock_rr)
                 tp4_lock_price = rr_price(
                     entry_price,
                     float(initial_stop_loss),
@@ -3991,18 +4170,20 @@ class LiveTradingEngine:
                     position_ticket=ticket,
                     stop_loss=float(tp4_protected_sl),
                     take_profit=float(target_price),
-                    reason="forex_runner_tp4_lock_2_5r",
+                    reason="runner_tp4_protect_tp3_lock_3r" if protect_tp3_on_tp4 else "forex_runner_tp4_lock_2_5r",
                 )
                 if post_eval_lock.get("modified", False):
                     protected_sl = float(tp4_protected_sl)
                     lock_rr = tp4_lock_rr
                     metadata["runner_profit_lock_rr"] = tp4_lock_rr
                     metadata["runner_profit_lock_price"] = float(tp4_protected_sl)
+                    if protect_tp3_on_tp4:
+                        metadata["runner_extension_stage"] = "PROTECTED_TP3_SEEKING_TP4"
                     self.repository.update_trade(
                         int(trade["id"]),
                         {
                             "stop_loss": float(tp4_protected_sl),
-                            "planned_rr": 4.0,
+                            "planned_rr": float(next_target_rr if is_forex_runner else max_target_rr),
                         },
                     )
 
@@ -4542,6 +4723,97 @@ class LiveTradingEngine:
                     "runner_profit_lock_rr": metadata.get("runner_profit_lock_rr"),
                 })
 
+                if bool(self.config.split_entries_enabled) and trade_leg == "TP1" and not self._orb_fixed_exit_policy(metadata):
+                    tp1_target_rr = float(
+                        metadata.get("target_rr")
+                        or metadata.get("logical_target_rr")
+                        or trade.get("planned_rr")
+                        or 1.0
+                    )
+                    # Si el precio actual alcanzó o cruzó el objetivo de TP1 (>= target_rr),
+                    # cerrar la posición INMEDIATAMENTE a mercado para no permitir que persista abierta buscando más.
+                    if current_rr_snapshot is not None and current_rr_snapshot >= (tp1_target_rr - 1e-4):
+                        if callable(close_position):
+                            close_res = close_position(
+                                position_ticket=str(ticket),
+                                reason=f"tp1_target_reached_rr_{current_rr_snapshot:.2f}",
+                            )
+                            if close_res.get("closed", False):
+                                activated += 1
+                                self.sync_closed_trades()
+                                updates.append({
+                                    "trade_id": trade.get("id"),
+                                    "ticket": str(ticket),
+                                    "symbol": trade.get("instrument"),
+                                    "action": "TP1_TARGET_CLOSED_AT_MARKET",
+                                    "current_rr": current_rr_snapshot,
+                                    "target_rr": tp1_target_rr,
+                                })
+                                self._persist_audit_event(
+                                    "TP1_PROFIT_TARGET_CLOSED",
+                                    instrument=trade.get("instrument"),
+                                    action="TP1_CLOSED_AT_TARGET_RR",
+                                    reason=f"REACHED_RR_{current_rr_snapshot:.2f}",
+                                    payload={
+                                        "trade_id": trade.get("id"),
+                                        "ticket": str(ticket),
+                                        "current_rr": current_rr_snapshot,
+                                        "target_rr": tp1_target_rr,
+                                        "close_result": close_res,
+                                    },
+                                )
+                    continue
+
+                if bool(self.config.split_entries_enabled) and trade_leg == "RUNNER" and not self._orb_fixed_exit_policy(metadata):
+                    runner_target_rr = float(
+                        metadata.get("runner_target_rr")
+                        or metadata.get("target_rr")
+                        or metadata.get("logical_target_rr")
+                        or trade.get("planned_rr")
+                        or 2.0
+                    )
+                    strategy_name_val = str(metadata.get("strategy_name") or "").upper()
+                    bot_prof_val = str(metadata.get("bot_profile") or self.config.bot_profile or "").upper()
+                    is_fixed_tp2_runner = (
+                        not bool(self.config.runner_extension_enabled)
+                        or strategy_name_val in {"GOLD_QUARTERS", "MALAYSIAN_SNR"}
+                        or bot_prof_val in {"BOOM", "CRASH"}
+                        or float(metadata.get("runner_max_target_rr") or runner_target_rr) <= 2.0
+                    )
+                    # Si la pierna 2 no extiende (objetivo fijado en TP2) y alcanzó su objetivo (>= 2.0R),
+                    # cerrar la posición INMEDIATAMENTE a mercado para no permitir que persista abierta.
+                    if is_fixed_tp2_runner and current_rr_snapshot is not None and current_rr_snapshot >= (runner_target_rr - 1e-4):
+                        if callable(close_position):
+                            close_res = close_position(
+                                position_ticket=str(ticket),
+                                reason=f"runner_tp2_target_reached_rr_{current_rr_snapshot:.2f}",
+                            )
+                            if close_res.get("closed", False):
+                                activated += 1
+                                self.sync_closed_trades()
+                                updates.append({
+                                    "trade_id": trade.get("id"),
+                                    "ticket": str(ticket),
+                                    "symbol": trade.get("instrument"),
+                                    "action": "RUNNER_TARGET_CLOSED_AT_MARKET",
+                                    "current_rr": current_rr_snapshot,
+                                    "target_rr": runner_target_rr,
+                                })
+                                self._persist_audit_event(
+                                    "RUNNER_PROFIT_TARGET_CLOSED",
+                                    instrument=trade.get("instrument"),
+                                    action="RUNNER_CLOSED_AT_TP2_RR",
+                                    reason=f"REACHED_RR_{current_rr_snapshot:.2f}",
+                                    payload={
+                                        "trade_id": trade.get("id"),
+                                        "ticket": str(ticket),
+                                        "current_rr": current_rr_snapshot,
+                                        "target_rr": runner_target_rr,
+                                        "close_result": close_res,
+                                    },
+                                )
+                                continue
+
                 # ORB and GOLD_QUARTERS use TP1-gated BE with spread and step-lock profit protection.
                 is_orb = self._orb_fixed_exit_policy(metadata)
                 is_gold_qtr = str(metadata.get("strategy_name") or "").upper() == "GOLD_QUARTERS"
@@ -4620,9 +4892,6 @@ class LiveTradingEngine:
                     # debe intentar BE/runner sobre una posición ya cerrada.
                     continue
 
-                if bool(self.config.split_entries_enabled) and trade_leg == "TP1":
-                    continue
-
                 # FLIP: una reversión M1 confirmada después de +0.50R protege
                 # entrada/costes antes de que actúe el BE estándar de +1R.
                 flip_view = (
@@ -4642,7 +4911,7 @@ class LiveTradingEngine:
                 )
                 if flip_protection:
                     flip_be_price, flip_offset = self._break_even_target_stop(
-                        str(trade.get("instrument") or ""), direction, entry_price
+                        str(trade.get("instrument") or ""), direction, entry_price, position=position
                     )
                     modification = move_stop(
                         position_ticket=str(ticket),
@@ -4694,10 +4963,11 @@ class LiveTradingEngine:
                     direction,
                     entry_price,
                     profit_lock_amount=profit_lock_amount,
+                    position=position,
                 )
                 if gold_tp1 is not None and not already_active:
                     safe_target = self._gold_protected_be_stop(str(trade['instrument']), direction,
-                        entry_price, current_sl, gold_tp1, profit_lock_amount)
+                        entry_price, current_sl, gold_tp1, profit_lock_amount, position=position)
                     if safe_target is None:
                         continue
                     break_even_price, break_even_offset = safe_target
@@ -4773,6 +5043,66 @@ class LiveTradingEngine:
                     else "PRICE_REACHED_TRIGGER_RR"
                 )
 
+                # Comprobación de distancia mínima para determinar si el broker puede aceptar el nuevo SL
+                get_constraints = getattr(self.executor, "get_symbol_constraints", None)
+                constraints = get_constraints(trade.get("instrument")) if callable(get_constraints) else {}
+                point = float((constraints or {}).get("point", 0.0) or 0.0)
+                tick_size = float((constraints or {}).get("tick_size", 0.0) or point or 0.0)
+                min_stop_distance = max(
+                    float((constraints or {}).get("min_stop_distance", 0.0) or 0.0),
+                    float((constraints or {}).get("stops_level_points", 0.0) or 0.0) * point,
+                    tick_size,
+                )
+                price_distance = (current_price - break_even_price) if direction == "BUY" else (break_even_price - current_price)
+                cannot_place_be_stop = (min_stop_distance > 0 and price_distance < min_stop_distance) or (price_distance <= 0)
+
+                if cannot_place_be_stop and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                    if callable(close_position):
+                        close_res = close_position(
+                            position_ticket=str(ticket),
+                            reason="unprotected_be_price_too_close_closed_at_market",
+                        )
+                        if close_res.get("closed", False):
+                            activated += 1
+                            metadata["break_even_activated"] = True
+                            metadata["break_even_fallback_closed"] = True
+                            metadata["break_even_fallback_reason"] = "PRICE_TOO_CLOSE_TO_PROTECT_BE"
+                            metadata["break_even_fallback_closed_at"] = datetime.now(timezone.utc).isoformat()
+                            self.repository.update_trade(
+                                int(trade["id"]),
+                                {
+                                    "details": {
+                                        **(trade.get("details") or {}),
+                                        "metadata": metadata,
+                                    },
+                                },
+                            )
+                            self.sync_closed_trades()
+                            updates.append({
+                                "trade_id": trade.get("id"),
+                                "ticket": str(ticket),
+                                "symbol": trade.get("instrument"),
+                                "action": "UNPROTECTED_BE_FALLBACK_CLOSED",
+                                "reason": "PRICE_TOO_CLOSE_TO_PROTECT_BE",
+                                "current_price": current_price,
+                                "break_even_price": break_even_price,
+                            })
+                            self._persist_audit_event(
+                                "BREAK_EVEN_FALLBACK_CLOSE",
+                                instrument=trade.get("instrument"),
+                                action="UNPROTECTED_BE_CLOSED_AT_MARKET",
+                                reason="PRICE_TOO_CLOSE_TO_PROTECT_BE",
+                                payload={
+                                    "trade_id": trade.get("id"),
+                                    "ticket": str(ticket),
+                                    "current_price": current_price,
+                                    "break_even_price": break_even_price,
+                                    "min_stop_distance": min_stop_distance,
+                                    "close_result": close_res,
+                                },
+                            )
+                            continue
+
                 modification = move_stop(
                     position_ticket=str(ticket),
                     stop_loss=break_even_price,
@@ -4780,6 +5110,48 @@ class LiveTradingEngine:
                     reason="break_even_1R_plus_offset",
                 )
                 if not modification.get("modified", False):
+                    if callable(close_position) and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                        close_res = close_position(
+                            position_ticket=str(ticket),
+                            reason=f"unprotected_be_modification_rejected_{modification.get('error') or 'rejected'}",
+                        )
+                        if close_res.get("closed", False):
+                            activated += 1
+                            metadata["break_even_activated"] = True
+                            metadata["break_even_fallback_closed"] = True
+                            metadata["break_even_fallback_reason"] = "MODIFICATION_REJECTED"
+                            metadata["break_even_fallback_closed_at"] = datetime.now(timezone.utc).isoformat()
+                            self.repository.update_trade(
+                                int(trade["id"]),
+                                {
+                                    "details": {
+                                        **(trade.get("details") or {}),
+                                        "metadata": metadata,
+                                    },
+                                },
+                            )
+                            self.sync_closed_trades()
+                            updates.append({
+                                "trade_id": trade.get("id"),
+                                "ticket": str(ticket),
+                                "symbol": trade.get("instrument"),
+                                "action": "UNPROTECTED_BE_FALLBACK_CLOSED",
+                                "reason": "MODIFICATION_REJECTED",
+                            })
+                            self._persist_audit_event(
+                                "BREAK_EVEN_FALLBACK_CLOSE",
+                                instrument=trade.get("instrument"),
+                                action="UNPROTECTED_BE_CLOSED_AT_MARKET",
+                                reason="MODIFICATION_REJECTED",
+                                payload={
+                                    "trade_id": trade.get("id"),
+                                    "ticket": str(ticket),
+                                    "modification": modification,
+                                    "close_result": close_res,
+                                },
+                            )
+                            continue
+
                     errors.append({
                         "trade_id": trade.get("id"),
                         "ticket": str(ticket),
@@ -4805,6 +5177,47 @@ class LiveTradingEngine:
                         time.sleep(max(0.0, float(self.config.break_even_confirmation_delay_seconds)))
 
                 if not confirmed:
+                    if callable(close_position) and bool(getattr(self.config, "break_even_close_if_unprotectable", True)):
+                        close_res = close_position(
+                            position_ticket=str(ticket),
+                            reason="unprotected_be_unconfirmed_by_broker",
+                        )
+                        if close_res.get("closed", False):
+                            activated += 1
+                            metadata["break_even_activated"] = True
+                            metadata["break_even_fallback_closed"] = True
+                            metadata["break_even_fallback_reason"] = "NOT_CONFIRMED_BY_BROKER"
+                            metadata["break_even_fallback_closed_at"] = datetime.now(timezone.utc).isoformat()
+                            self.repository.update_trade(
+                                int(trade["id"]),
+                                {
+                                    "details": {
+                                        **(trade.get("details") or {}),
+                                        "metadata": metadata,
+                                    },
+                                },
+                            )
+                            self.sync_closed_trades()
+                            updates.append({
+                                "trade_id": trade.get("id"),
+                                "ticket": str(ticket),
+                                "symbol": trade.get("instrument"),
+                                "action": "UNPROTECTED_BE_FALLBACK_CLOSED",
+                                "reason": "NOT_CONFIRMED_BY_BROKER",
+                            })
+                            self._persist_audit_event(
+                                "BREAK_EVEN_FALLBACK_CLOSE",
+                                instrument=trade.get("instrument"),
+                                action="UNPROTECTED_BE_CLOSED_AT_MARKET",
+                                reason="NOT_CONFIRMED_BY_BROKER",
+                                payload={
+                                    "trade_id": trade.get("id"),
+                                    "ticket": str(ticket),
+                                    "close_result": close_res,
+                                },
+                            )
+                            continue
+
                     errors.append({
                         "trade_id": trade.get("id"),
                         "ticket": str(ticket),
@@ -5444,6 +5857,55 @@ class LiveTradingEngine:
     def _is_forex_or_crypto_symbol(cls, symbol: str) -> bool:
         return cls._is_forex_symbol(symbol) or cls._is_crypto_symbol(symbol)
 
+    @staticmethod
+    def _is_metal_symbol(symbol: str) -> bool:
+        """Reconoce metales (XAUUSD, XAGUSD, Gold, Silver, etc.) aun con sufijos."""
+        s = str(symbol or "").strip()
+        if not s:
+            return False
+        raw = "".join(ch for ch in s.upper() if ch.isalnum())
+        if any(synth in raw.lower() for synth in ("volatility", "boom", "crash", "step", "jump", "flip", "vix")):
+            return False
+        return any(m in raw for m in ("XAU", "XAG", "GOLD", "SILVER"))
+
+    @staticmethod
+    def _is_index_symbol(symbol: str) -> bool:
+        """Reconoce índices bursátiles (Wall Street 30, US Tech 100, US SP 500, DAX40, etc.)."""
+        s = str(symbol or "").strip()
+        if not s:
+            return False
+        if is_ny_index_open_symbol(s):
+            return True
+        raw = "".join(ch for ch in s.upper() if ch.isalnum())
+        if any(synth in raw.lower() for synth in ("volatility", "boom", "crash", "step", "jump", "flip", "vix")):
+            return False
+        index_keys = (
+            "US30", "US100", "US500", "USTEC", "SPX", "NAS100", "WALLSTREET",
+            "DOW", "GER40", "DAX40", "DAX", "UK100", "FTSE", "JP225", "NIKKEI",
+            "DJ30", "TECH100", "SP500"
+        )
+        return any(k in raw for k in index_keys)
+
+    @classmethod
+    def _is_synthetic_symbol(cls, symbol: str) -> bool:
+        s = str(symbol or "").lower()
+        return (
+            cls._is_volatility_symbol(s)
+            or cls._is_crash_symbol(s)
+            or cls._is_boom_symbol(s)
+            or cls._is_step_symbol(s)
+            or cls._is_jump_symbol(s)
+            or "deriv" in s
+            or "synthetic" in s
+        )
+
+    @classmethod
+    def _is_market_closing_symbol(cls, symbol: str) -> bool:
+        """Instrumentos financieros tradicionales sujetos a cierres diarios y de fin de semana."""
+        if cls._is_synthetic_symbol(symbol):
+            return False
+        return cls._is_forex_symbol(symbol) or cls._is_crypto_symbol(symbol) or cls._is_metal_symbol(symbol) or cls._is_index_symbol(symbol)
+
     def _crypto_rollover_status(self, now_utc=None) -> dict:
         """Política de cierre y rollover para Crypto (15 minutos antes del cierre/rollover diario)."""
         current = now_utc or datetime.now(timezone.utc)
@@ -5648,9 +6110,10 @@ class LiveTradingEngine:
         }
 
     def _close_forex_positions_for_rollover(self) -> dict:
-        """Cierra posiciones Forex y Crypto administradas por el daemon 15 min antes del cierre de mercado.
+        """Cierra posiciones Forex, Crypto, Índices y Metales administradas por el daemon 15 min antes del cierre de mercado.
 
-        Evita costes excesivos de spread y cargos de SWAP nocturno y de fin de semana.
+        Evita costes excesivos de spread y cargos de SWAP nocturno y de fin de semana,
+        y protege las operaciones de gaps que violen el Break Even al reaperturar.
         """
         result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
         if not bool(self.config.execution_enabled):
@@ -5661,11 +6124,12 @@ class LiveTradingEngine:
 
         forex_flat_now = bool(forex_status.get("force_flat_now"))
         crypto_flat_now = bool(crypto_status.get("force_flat_now"))
+        forex_weekend = bool(forex_status.get("weekend"))
 
-        if not forex_flat_now and not crypto_flat_now:
+        if not forex_flat_now and not crypto_flat_now and not forex_weekend:
             return result
 
-        trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
         close_position = getattr(trade_executor, "close_position", None)
         if not callable(close_position):
             result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
@@ -5686,10 +6150,10 @@ class LiveTradingEngine:
             close_reason = None
             audit_event = None
 
-            if is_fx and forex_flat_now:
+            if is_fx and (forex_flat_now or forex_weekend):
                 should_close = True
                 schedule_status = forex_status
-                close_reason = "forex_pre_new_york_close"
+                close_reason = "forex_pre_new_york_close" if forex_flat_now else "forex_weekend_close"
                 audit_event = "FOREX_SCHEDULED_CLOSE"
             elif is_crypto and crypto_flat_now:
                 should_close = True
@@ -5732,7 +6196,111 @@ class LiveTradingEngine:
                 result["errors"].append({"ticket": ticket, "error": close_result})
         return result
 
-    _close_market_close_positions = _close_forex_positions_for_rollover
+    def _close_market_close_positions(self) -> dict:
+        """Cierra posiciones Forex, Crypto, Índices y Metales administradas por el daemon 15 min antes del cierre de mercado.
+
+        Evita costes excesivos de spread y cargos de SWAP nocturno y de fin de semana,
+        y protege las operaciones de gaps que violen el Break Even al reaperturar.
+        Los sintéticos (24/7) quedan expresamente excluidos.
+        """
+        result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
+        if not bool(self.config.execution_enabled):
+            return result
+
+        forex_status = self._forex_rollover_status()
+        crypto_status = self._crypto_rollover_status()
+
+        forex_flat_now = bool(forex_status.get("force_flat_now"))
+        crypto_flat_now = bool(crypto_status.get("force_flat_now"))
+        forex_weekend = bool(forex_status.get("weekend"))
+
+        if not forex_flat_now and not crypto_flat_now and not forex_weekend:
+            return result
+
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+        close_position = getattr(trade_executor, "close_position", None)
+        if not callable(close_position):
+            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
+            return result
+
+        seen_tickets = set()
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if not self._trade_owned_by_current_bot(trade):
+                continue
+            symbol = str(trade.get("instrument") or "")
+            is_fx = self._is_forex_symbol(symbol)
+            is_crypto = self._is_crypto_symbol(symbol)
+            is_index = self._is_index_symbol(symbol)
+            is_metal = self._is_metal_symbol(symbol)
+            if not is_fx and not is_crypto and not is_index and not is_metal:
+                continue
+
+            should_close = False
+            schedule_status = None
+            close_reason = None
+            audit_event = None
+
+            if is_fx and (forex_flat_now or forex_weekend):
+                should_close = True
+                schedule_status = forex_status
+                close_reason = "forex_pre_new_york_close" if forex_flat_now else "forex_weekend_close"
+                audit_event = "FOREX_SCHEDULED_CLOSE"
+            elif is_crypto and crypto_flat_now:
+                should_close = True
+                schedule_status = crypto_status
+                close_reason = "crypto_pre_market_close"
+                audit_event = "CRYPTO_SCHEDULED_CLOSE"
+            elif is_index and (forex_flat_now or forex_weekend):
+                should_close = True
+                schedule_status = forex_status
+                close_reason = "indices_pre_market_close" if forex_flat_now else "indices_weekend_close"
+                audit_event = "INDEX_SCHEDULED_CLOSE"
+            elif is_metal and (forex_flat_now or forex_weekend):
+                should_close = True
+                schedule_status = forex_status
+                close_reason = "metals_pre_market_close" if forex_flat_now else "metals_weekend_close"
+                audit_event = "METALS_SCHEDULED_CLOSE"
+
+            if not should_close:
+                continue
+
+            ticket = str(trade.get("broker_position_ticket") or "")
+            if not ticket or ticket in seen_tickets:
+                continue
+            seen_tickets.add(ticket)
+            result["checked"] += 1
+            close_quote = self._meta_execution_spread(symbol)
+            try:
+                close_result = close_position(
+                    position_ticket=ticket, reason=close_reason)
+            except Exception as exc:
+                close_result = {"closed": False, "error": str(exc)}
+            self._persist_audit_event(audit_event, instrument=symbol,
+                broker_position_ticket=ticket, reason=close_reason,
+                payload={"schedule": schedule_status, "result": close_result, "pre_close_quote": close_quote})
+            closed = bool(
+                (close_result or {}).get("closed", False)
+                or str((close_result or {}).get("status") or "").upper() == "CLOSED"
+            )
+            result["positions"].append({
+                "trade_id": trade.get("id"),
+                "ticket": ticket,
+                "symbol": symbol,
+                "asset_class": (
+                    "FOREX" if is_fx
+                    else "CRYPTO" if is_crypto
+                    else "INDEX" if is_index
+                    else "METAL" if is_metal
+                    else "TRADITIONAL"
+                ),
+                "closed": closed,
+                "close_result": close_result,
+            })
+            if closed:
+                result["closed"] += 1
+            else:
+                result["errors"].append({"ticket": ticket, "error": close_result})
+        return result
 
     @staticmethod
     def _is_jump_symbol(symbol: str) -> bool:
@@ -5861,7 +6429,7 @@ class LiveTradingEngine:
                 strategy_name=strategy_name,
             ).to_dict()
             decision["market_snapshot"] = dict(market)
-            if str(strategy_name).upper().startswith("ORB") or analysis.get("context_policy") == "ORB_NATIVE_ONLY":
+            if (str(strategy_name).upper().startswith("ORB") or analysis.get("context_policy") == "ORB_NATIVE_ONLY") and not engine.load_model(strategy_name).trained:
                 decision["allowed"] = True
                 decision["shadow"] = True
                 decision["reason"] = "ORB_INDEPENDENT_STRATEGY"
@@ -6673,6 +7241,16 @@ class LiveTradingEngine:
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
                     ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
                 ]
+            elif strategy_name in {"ICT", "ICT_SABRI_MALLE"}:
+                ict_tp1_rr = float(signal.get("tp1_rr") or getattr(self.config, "first_target_rr", 2.0))
+                ict_runner_rr = float(signal.get("runner_rr") or getattr(self.config, "second_target_rr", 4.0))
+                eff_first_rr = ict_tp1_rr
+                eff_second_rr = ict_runner_rr
+                runner_target_rr = eff_second_rr
+                split_specs = [
+                    ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
+                    ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
+                ]
             else:
                 eff_first_rr = 1.2 if is_asymmetric_300_500 else float(self.config.first_target_rr)
                 eff_second_rr = 2.5 if is_asymmetric_300_500 else float(self.config.second_target_rr)
@@ -6763,6 +7341,19 @@ class LiveTradingEngine:
         exact_symbol = self.provider.resolve_symbol(symbol)
         self.provider.ensure_symbol(exact_symbol)
 
+        daily_mgr = getattr(self, "daily_profit_target_manager", None)
+        if daily_mgr is not None:
+            try:
+                allowed, reason = daily_mgr.is_entry_allowed()
+                if not allowed:
+                    return {
+                        "symbol": exact_symbol,
+                        "action": "DAILY_PROFIT_TARGET_BLOCKED",
+                        "reason": reason,
+                    }
+            except Exception:
+                pass
+
         position_gate = self._active_position_gate(exact_symbol)
         if position_gate is not None:
             return position_gate
@@ -6842,7 +7433,11 @@ class LiveTradingEngine:
             and is_ny_index_open_symbol(exact_symbol)
         ):
             analysis = self.ny_index_open_strategy.analyze_symbol(exact_symbol)
-        elif bool(self.config.orb_enabled) and is_orb_eligible_symbol(exact_symbol):
+        elif (
+            bool(self.config.orb_enabled)
+            and str(self.config.bot_profile or "").upper() not in {"ICT", "GOLD", "MALAYSIAN_SNR"}
+            and is_orb_eligible_symbol(exact_symbol)
+        ):
             analysis = self.orb_strategy.analyze_symbol(exact_symbol)
             # ORB se valida exclusivamente con su rango y confirmaciones M5.
             # No añade confirmaciones H1/M15 ficticias ni depende del setup SMC.
@@ -6861,6 +7456,35 @@ class LiveTradingEngine:
                 reason=analysis.get("reason"),
                 payload={"quarters": analysis},
             )
+        elif (
+            str(self.config.bot_profile or "").upper() in {
+                "ICT", "BOOM", "CRASH", "STEP", "JUMP", "GOLD",
+                "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
+                "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4",
+                "SYNTHETICS", "FOREX",
+            }
+            or str(self.config.bot_profile or "").upper().startswith("VOLATILITY")
+            or str(self.config.bot_profile or "").upper().startswith("FOREX")
+            or getattr(self.config, "ict_strategy_enabled", False)
+        ):
+            # Prioridad institucional unificada: ICT Sabri Malle v2
+            # Mantiene compatibilidad con mocks explícitos de pruebas unitarias o modo legado
+            if (
+                bool(getattr(self.config, "legacy_smc_enabled", False))
+                or (
+                    hasattr(self, "multi_timeframe")
+                    and not isinstance(self.multi_timeframe, MultiTimeframeAnalyzer)
+                    and not getattr(self.config, "force_ict", False)
+                    and str(self.config.bot_profile or "").upper() != "ICT"
+                )
+            ):
+                analysis = self.multi_timeframe.analyze_symbol(exact_symbol)
+                analysis = self._attach_exhaustion_reversal_shadow(
+                    exact_symbol, analysis
+                )
+            else:
+                analysis = self.ict_strategy.analyze_symbol(exact_symbol)
+                analysis["context_policy"] = "ICT_NATIVE"
         else:
             analysis = self.multi_timeframe.analyze_symbol(exact_symbol)
             analysis = self._attach_exhaustion_reversal_shadow(
@@ -6886,7 +7510,9 @@ class LiveTradingEngine:
         signal.setdefault("detected_at", datetime.now(timezone.utc).isoformat())
         if is_orb_gold_symbol(exact_symbol) or is_orb_silver_symbol(exact_symbol):
             candidate_strategy_name = str(
-                signal.get("strategy_name") or analysis.get("strategy_name") or "SMC"
+                signal.get("strategy_name")
+                or analysis.get("strategy_name")
+                or ("ICT" if str(self.config.bot_profile or "").upper() == "ICT" else "SMC")
             ).upper()
             if candidate_strategy_name == "ORB_NEW_YORK" and is_orb_gold_symbol(exact_symbol):
                 gold_smc = self._gold_smc_exposure_open()
@@ -6987,7 +7613,11 @@ class LiveTradingEngine:
         from strategy.execution.worker_rules import stamp_confirmation_times
         stamp_confirmation_times(signal)
         signal_id, _ = self._save_signal(exact_symbol, signal)
-        strategy_name = str(signal.get("strategy_name") or analysis.get("strategy_name") or "SMC").upper()
+        strategy_name = str(
+            signal.get("strategy_name")
+            or analysis.get("strategy_name")
+            or ("ICT" if str(self.config.bot_profile or "").upper() == "ICT" else "SMC")
+        ).upper()
         strategy_version = str(signal.get("strategy_version") or analysis.get("strategy_version") or self.config.strategy_version)
         key = self._execution_key(exact_symbol, signal["entry_time"], direction, strategy_name=strategy_name)
 
@@ -7022,6 +7652,21 @@ class LiveTradingEngine:
                 "meta_label": meta_label,
                 "analysis": analysis if self.config.diagnostic_mode else None,
             }
+
+        daily_mgr = getattr(self, "daily_profit_target_manager", None)
+        if daily_mgr is not None:
+            try:
+                allowed, reason = daily_mgr.is_entry_allowed()
+                if not allowed:
+                    return {
+                        "symbol": exact_symbol,
+                        "action": "DAILY_PROFIT_TARGET_BLOCKED",
+                        "reason": reason,
+                        "execution_key": key,
+                        "analysis": analysis if self.config.diagnostic_mode else None,
+                    }
+            except Exception:
+                pass
 
         if strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol):
             silver_guard = self._orb_silver_open_guard(exact_symbol)
@@ -7084,7 +7729,14 @@ class LiveTradingEngine:
             return limit_result
 
         account = self._account_and_guard()
-        tick = self.provider.get_current_tick(exact_symbol)
+        tick = None
+        if hasattr(self.executor, "get_current_tick") and callable(self.executor.get_current_tick):
+            try:
+                tick = self.executor.get_current_tick(exact_symbol)
+            except Exception:
+                tick = None
+        if tick is None:
+            tick = self.provider.get_current_tick(exact_symbol)
         entry = float(tick["ask"] if direction == "BUY" else tick["bid"])
         if signal.get("orb_entry_mode") == "ORB_BREAKOUT_MOMENTUM":
             edge = float(signal["opening_range_high"] if direction == "BUY" else signal["opening_range_low"])
@@ -7362,7 +8014,7 @@ class LiveTradingEngine:
                     }
 
                 leg_key = f"{key}:{leg_name}" if execution_mode == "SPLIT" else f"{key}:SINGLE"
-                comment_prefix = "QTR" if strategy_name == "GOLD_QUARTERS" else "ORB" if strategy_name == "ORB_NEW_YORK" else "SMC"
+                comment_prefix = "QTR" if strategy_name == "GOLD_QUARTERS" else "ORB" if strategy_name == "ORB_NEW_YORK" else "MSNR" if strategy_name == "MALAYSIAN_SNR" else "ICT"
                 comment = f"{comment_prefix}-{signal_id}-{leg_name}"[:31]
                 order_check = None
                 if self.config.execution_enabled or self.config.validate_order_in_dry_run:
@@ -7635,7 +8287,11 @@ class LiveTradingEngine:
                     "risk_percent": leg["risk_percent"],
                     "risk_amount": leg["risk_amount"],
                     "pre_send_risk_cap": leg["risk_amount"] * (1.0 if silver_risk_cap else (1.0 + self.config.hard_risk_tolerance)),
-                    "minimum_executable_rr": float(leg["target_rr"]) if strategy_name == "ORB_NEW_YORK" else None,
+                    "minimum_executable_rr": (
+                        float(leg["target_rr"])
+                        if strategy_name == "ORB_NEW_YORK"
+                        else float(min(max(1.0, float(getattr(self.config, "min_executable_rr", 1.0))), float(leg.get("target_rr", 1.0))))
+                    ),
                     "actual_risk_amount": leg["actual_risk_amount"],
                     "initial_stop_loss": sl,
                     "exit_policy": "ORB_FIXED_SL_TP" if strategy_name == "ORB_NEW_YORK" else "STRATEGY_MANAGED",
@@ -7763,6 +8419,19 @@ class LiveTradingEngine:
                     "ny_index_trigger": signal.get("ny_index_trigger"),
                     "stop_validation": stop_validation,
                     "order_check": leg["order_check"],
+                    "meta_label": meta_label,
+                    "meta_label_probability": float(meta_label.get("probability", 0.0) or 0.0),
+                    "meta_label_expectancy_r": float(meta_label.get("net_expectancy_r", 0.0) or 0.0),
+                    "meta_label_allowed": bool(meta_label.get("allowed", True)),
+                    "meta_label_reason": str(meta_label.get("reason", "")),
+                    "meta_label_mode": str(meta_label.get("mode", "")),
+                    "meta_label_trained": bool(meta_label.get("trained", False)),
+                    "setup_reason": (
+                        f"{strategy_name} | {signal.get('scenario') or signal.get('decision') or 'CONFIRMED'} | "
+                        f"ML: {float(meta_label.get('probability', 0.0) or 0.0):.2f} (Exp: {float(meta_label.get('net_expectancy_r', 0.0) or 0.0):.2f}R)"
+                        if meta_label.get("trained")
+                        else f"{strategy_name} | {signal.get('scenario') or signal.get('decision') or 'CONFIRMED'}"
+                    ),
                 })
                 # La notificación EXECUTION_FILLED persiste el trade dentro de
                 # execute_with_executor. El lock impide que el monitor importe
@@ -7826,12 +8495,49 @@ class LiveTradingEngine:
                 )
                 lifecycle.metadata["post_fill_risk"] = post_fill_risk
                 fill_risk_distance = abs(float(lifecycle.entry_price) - float(sl))
+                target_rr = float(leg.get("target_rr", 1.0))
+                exact_tp = (
+                    float(lifecycle.entry_price) + fill_risk_distance * target_rr
+                    if direction == "BUY"
+                    else float(lifecycle.entry_price) - fill_risk_distance * target_rr
+                )
+                constraints = stop_validation.get("constraints") or {}
+                digits = constraints.get("digits")
+                if digits is not None:
+                    exact_tp = round(float(exact_tp), max(0, int(digits)))
+
+                trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
+                modify_stops = getattr(trade_executor, "move_stop_loss", None)
+                targets_modified = False
+                if (
+                    leg.get("name") == "TP1"
+                    and callable(modify_stops)
+                    and lifecycle.position_ticket
+                    and fill_risk_distance > 0
+                ):
+                    point_dist = float(constraints.get("point") or 1e-4)
+                    if abs(float(leg["take_profit"]) - exact_tp) > (point_dist * 2):
+                        try:
+                            mod_res = modify_stops(
+                                position_ticket=str(lifecycle.position_ticket),
+                                stop_loss=float(sl),
+                                take_profit=float(exact_tp),
+                                reason="post_fill_tp1_reconciliation",
+                            )
+                            if mod_res.get("modified"):
+                                leg["take_profit"] = exact_tp
+                                lifecycle.take_profit = exact_tp
+                                targets_modified = True
+                        except Exception:
+                            pass
+
+                effective_target = exact_tp if targets_modified else leg["take_profit"]
                 lifecycle.metadata["execution_rr_audit"] = {
                     "planned_entry": entry, "filled_entry": float(lifecycle.entry_price),
-                    "initial_stop": sl, "target": leg["take_profit"],
+                    "initial_stop": sl, "target": effective_target,
                     "planned_target_rr": leg["target_rr"],
-                    "filled_target_rr": ((float(leg["take_profit"]) - float(lifecycle.entry_price)) * (1 if direction == "BUY" else -1) / fill_risk_distance) if fill_risk_distance else None,
-                    "targets_modified": False,
+                    "filled_target_rr": ((float(effective_target) - float(lifecycle.entry_price)) * (1 if direction == "BUY" else -1) / fill_risk_distance) if fill_risk_distance else None,
+                    "targets_modified": targets_modified,
                 }
                 lifecycle.metadata["execution_timing"] = {
                     "order_sent_at": order_sent_at,
@@ -7879,6 +8585,51 @@ class LiveTradingEngine:
                         "post_fill_risk": post_fill_risk,
                         "quarantine": self._quarantine_result(exact_symbol),
                         "emergency_close": rollback,
+                        **base,
+                    }
+
+                min_acceptable_fill_rr = float(getattr(self.config, "min_acceptable_fill_rr", 1.0))
+                filled_rr = (lifecycle.metadata.get("execution_rr_audit") or {}).get("filled_target_rr")
+                if (
+                    bool(getattr(self.config, "emergency_unfavorable_rr_exit_enabled", True))
+                    and filled_rr is not None
+                    and filled_rr < (min_acceptable_fill_rr - 1e-9)
+                ):
+                    self._persist_audit_event(
+                        "EMERGENCY_SLIPPAGE_EXIT",
+                        instrument=exact_symbol,
+                        action="FORCE_CLOSE_UNFAVORABLE_FILL_RR",
+                        reason=f"FILLED_RR_BELOW_MINIMUM: filled_rr={filled_rr:.3f} < {min_acceptable_fill_rr:.2f}",
+                        payload={
+                            "filled_target_rr": filled_rr,
+                            "min_acceptable_fill_rr": min_acceptable_fill_rr,
+                            "planned_target_rr": leg["target_rr"],
+                            "filled_entry": float(lifecycle.entry_price),
+                            "initial_stop": sl,
+                            "target": leg["take_profit"],
+                            "execution_key": leg["execution_key"],
+                            "position_ticket": lifecycle.position_ticket,
+                        },
+                    )
+                    all_lifecycles = [item["lifecycle"] for item in opened] + [lifecycle]
+                    rollback = []
+                    for active in all_lifecycles:
+                        try:
+                            rollback.append(self.lifecycle_manager.close_execution(
+                                active, reason="emergency_slippage_unfavorable_rr"
+                            ))
+                        except Exception as exc:
+                            rollback.append({"closed": False, "error": str(exc)})
+                    return {
+                        "symbol": exact_symbol,
+                        "action": "EMERGENCY_SLIPPAGE_EXIT",
+                        "reason": f"FILLED_RR_BELOW_MINIMUM: {filled_rr:.3f} < {min_acceptable_fill_rr:.2f}",
+                        "failed_leg": leg["name"],
+                        "filled_target_rr": filled_rr,
+                        "emergency_close": rollback,
+                        "partial_execution": bool(opened),
+                        "opened_legs": [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened],
+                        "lifecycle": lifecycle.to_dict(),
                         **base,
                     }
 
@@ -7994,7 +8745,11 @@ class LiveTradingEngine:
                     exact_symbol, direction, leg["sizing"]["volume"], sl, leg["take_profit"],
                     self.config.magic, leg["comment"], self.config.deviation,
                     max_risk_amount=leg["risk_amount"] * (1.0 if silver_risk_cap else (1.0 + self.config.hard_risk_tolerance)),
-                    **({"minimum_executable_rr": float(leg["target_rr"])} if strategy_name == "ORB_NEW_YORK" else {}),
+                    minimum_executable_rr=(
+                        float(leg["target_rr"])
+                        if strategy_name == "ORB_NEW_YORK"
+                        else float(min(max(1.0, float(getattr(self.config, "min_executable_rr", 1.0))), float(leg.get("target_rr", 1.0))))
+                    ),
                 )
             except Exception as exc:
                 if not str(exc).startswith("PRE_SEND_RR_BLOCKED"):
@@ -8012,6 +8767,51 @@ class LiveTradingEngine:
                 "filled_target_rr": ((float(leg["take_profit"]) - float(placed["entry_price"])) * (1 if direction == "BUY" else -1) / fill_risk_distance) if fill_risk_distance else None,
                 "targets_modified": False,
             }
+            min_acceptable_fill_rr = float(getattr(self.config, "min_acceptable_fill_rr", 1.0))
+            filled_rr = execution_rr_audit.get("filled_target_rr")
+            if (
+                bool(getattr(self.config, "emergency_unfavorable_rr_exit_enabled", True))
+                and filled_rr is not None
+                and filled_rr < (min_acceptable_fill_rr - 1e-9)
+            ):
+                position_ticket = (
+                    self.executor.find_position_ticket(exact_symbol, self.config.magic, leg["comment"])
+                    or self.executor.position_ticket_from_deal(placed.get("deal_ticket"))
+                )
+                self._persist_audit_event(
+                    "EMERGENCY_SLIPPAGE_EXIT",
+                    instrument=exact_symbol,
+                    action="FORCE_CLOSE_UNFAVORABLE_FILL_RR",
+                    reason=f"FILLED_RR_BELOW_MINIMUM: filled_rr={filled_rr:.3f} < {min_acceptable_fill_rr:.2f}",
+                    payload={
+                        "filled_target_rr": filled_rr,
+                        "min_acceptable_fill_rr": min_acceptable_fill_rr,
+                        "planned_target_rr": leg["target_rr"],
+                        "filled_entry": float(placed["entry_price"]),
+                        "initial_stop": sl,
+                        "target": leg["take_profit"],
+                        "execution_key": leg["execution_key"],
+                        "position_ticket": position_ticket,
+                    },
+                )
+                rollback = []
+                for active_ticket in [x.get("position_ticket") for x in opened] + ([position_ticket] if position_ticket else []):
+                    if active_ticket:
+                        try:
+                            rollback.append(self.executor.close_position(active_ticket))
+                        except Exception as exc:
+                            rollback.append({"closed": False, "error": str(exc)})
+                return {
+                    "symbol": exact_symbol,
+                    "action": "EMERGENCY_SLIPPAGE_EXIT",
+                    "reason": f"FILLED_RR_BELOW_MINIMUM: {filled_rr:.3f} < {min_acceptable_fill_rr:.2f}",
+                    "failed_leg": leg["name"],
+                    "filled_target_rr": filled_rr,
+                    "emergency_close": rollback,
+                    "partial_execution": bool(opened),
+                    "opened_legs": opened,
+                    **base,
+                }
             position_ticket = (
                 self.executor.find_position_ticket(exact_symbol, self.config.magic, leg["comment"])
                 or self.executor.position_ticket_from_deal(placed.get("deal_ticket"))
@@ -8044,8 +8844,11 @@ class LiveTradingEngine:
                     if strategy_name == "ORB_NEW_YORK"
                     else "GOLD quarters: level rejection + closed M5 confirmation + H1 location"
                     if strategy_name == "GOLD_QUARTERS"
+                    else "ICT Sabri Malle: H4 Macro Bias + H1 AMD Judas Swing + FVG Rejection + MSS Retest"
+                    if strategy_name in {"ICT", "ICT_SABRI_MALLE"}
                     else "H1 location,M15 SMC setup,M5 OB retest + harmonic confluence"
                 ),
+                "strategy_version": strategy_version,
                 "details": {
                     "signal": signal,
                     "analysis": analysis,
@@ -8683,11 +9486,13 @@ class LiveTradingEngine:
         `SYNTHETICS`. `IDX_OPEN` (Apertura Índices Bursátiles) tiene su propia
         selección independiente en /instruments, así que se mapea a sí mismo.
         """
-        profile=str(bot_profile or "").upper()
+        profile = str(bot_profile or "").upper()
+        if profile == "ICT": return "ICT"
+        if profile == "GOLD": return "GOLD"
         if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
         if profile.startswith("FOREX"): return "FOREX"
         if profile == "IDX_OPEN": return "IDX_OPEN"
-        if profile in {"ORB", "GOLD"}: return "ORB"
+        if profile == "ORB": return "ORB"
         return "SYNTHETICS"
 
     def _smc_event_timeframe(self):
@@ -8719,6 +9524,15 @@ class LiveTradingEngine:
             fallo de lectura degrada al siguiente origen en lugar de detener
             el ciclo.
         """
+        daily_mgr = getattr(self, "daily_profit_target_manager", None)
+        if daily_mgr is not None:
+            try:
+                allowed, _ = daily_mgr.is_entry_allowed()
+                if not allowed:
+                    return []
+            except Exception:
+                pass
+
         base=[str(s) for s in (base_symbols or [])]
         profile=self._selection_profile_for_bot(getattr(self.config,"bot_profile",None))
         pref=None
@@ -9557,6 +10371,10 @@ class LiveTradingEngine:
                             if int(scheduler.get("candles_available") or 0) > 0
                             else "WAITING_FOREX_DATA"
                         )
+                    daily_mgr = getattr(self, "daily_profit_target_manager", None)
+                    daily_status = daily_mgr.get_status() if daily_mgr is not None else {}
+                    if daily_status.get("is_locked"):
+                        runtime_state = "PAUSED_DAILY_TARGET_REACHED"
                     elif not selected_symbols:
                         runtime_state = "DEGRADED_NO_SYMBOLS"
                     session = scheduler.get("session") or {}
@@ -9794,14 +10612,17 @@ class LiveTradingEngine:
         - `database.repository.sync_closed_mt5_trades` hace la reconciliacion.
         - Los resultados cerrados alimentan el entrenamiento de la IA.
         """
+        sync_fn = getattr(self.repository, "sync_closed_mt5_trades", None)
+        if not callable(sync_fn):
+            return 0
         try:
-            updated = self.repository.sync_closed_mt5_trades(
+            updated = sync_fn(
                 self.executor,
                 source=self.config.source,
                 on_trade_closed=self._feed_ai_online_learning,
             )
         except TypeError:
-            updated = self.repository.sync_closed_mt5_trades(
+            updated = sync_fn(
                 self.executor,
                 source=self.config.source,
             )

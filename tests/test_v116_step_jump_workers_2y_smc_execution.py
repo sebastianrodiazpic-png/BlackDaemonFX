@@ -35,23 +35,21 @@ def test_step_jump_unpruned_instruments_persistence():
 
 
 def test_step_jump_worker_rules_targets_and_guards():
-    """Worker rules para STEP y JUMP deben configurar TP1 1:2, TP2 1:3 y protección en 2.5R."""
+    """Worker rules para STEP y JUMP bajo ICT Sabri Malle configuran TP1 1:2, TP2 1:4 y protección."""
     for profile in ["STEP", "JUMP"]:
         base_cfg = LiveTradingConfig(bot_profile=profile)
         cfg = configure_worker_rules(base_cfg)
 
         assert cfg.first_target_rr == 2.0, f"{profile} first_target_rr debe ser 2.0"
-        assert cfg.second_target_rr == 3.0, f"{profile} second_target_rr debe ser 3.0"
-        assert cfg.smc_runner_max_target_rr == 3.0, f"{profile} smc_runner_max_target_rr debe ser 3.0"
+        assert cfg.second_target_rr == 4.0, f"{profile} second_target_rr debe ser 4.0"
+        assert cfg.smc_runner_max_target_rr == 4.0, f"{profile} smc_runner_max_target_rr debe ser 4.0"
 
         # Runner extension y protección progresiva
         assert cfg.runner_extension_enabled is True
         assert cfg.runner_extension_first_trigger_rr == 2.0
         assert cfg.runner_extension_first_lock_rr == 1.0
-        assert cfg.runner_extension_second_trigger_rr == 2.5
+        assert cfg.runner_extension_second_trigger_rr == 3.0
         assert cfg.runner_extension_second_lock_rr == 2.0
-        assert cfg.smc_runner_tp3_guard_trigger_rr == 2.5
-        assert cfg.smc_runner_tp3_guard_lock_rr == 2.0
 
 
 def test_live_trading_config_step_jump_allowed_symbols():

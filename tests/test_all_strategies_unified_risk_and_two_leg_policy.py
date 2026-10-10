@@ -557,3 +557,96 @@ def test_all_strategies_runner_extends_to_tp3_and_tp4_with_continuation(monkeypa
     assert runner_pos.sl == 120.0  # +2.0 R profit locked (+ $100 USD)
     assert metadata["runner_extension_stage"] == "EXTENDED_TO_4R"
     assert res_3r["target_rr"] == 4.0  # Seeking TP4 (+ $200 USD)
+
+
+# -------------------------------------------------------------------------
+# Test 5: TP1 Closes Immediately When Crossing 1.0R / 2.0R (No Persisting Open)
+# -------------------------------------------------------------------------
+@pytest.mark.parametrize("strategy_name,target_rr", [
+    ("MALAYSIAN_SNR", 1.0),
+    ("ORB_NEW_YORK", 1.0),
+    ("GOLD_QUARTERS", 1.0),
+    ("ICT", 2.0),
+])
+def test_tp1_closes_immediately_when_crossing_target_rr_and_never_persists_open(strategy_name, target_rr):
+    """Verifies that trades aiming for TP1 (Leg 1) close immediately at market
+    as soon as price crosses the target R:R barrier (1.0 R for MSNR/ORB/GQ, 2.0 R for ICT),
+    and NEVER persist open searching for more than TP1."""
+    repo = MockExecutionRepo()
+    entry = 100.0
+    initial_sl = 90.0  # Risk = 10.0 points
+    target_price = entry + target_rr * (entry - initial_sl)
+
+    # 1. Price has NOT reached TP1 (e.g., at 0.5 R) -> Must stay open
+    below_target_price = entry + 0.5 * (entry - initial_sl)
+    tp1_pos = SimpleNamespace(
+        ticket=5001,
+        price_open=entry,
+        price_current=below_target_price,
+        sl=initial_sl,
+        tp=target_price,
+    )
+    positions = {5001: tp1_pos}
+    pos_executor = MockPositionExecutor(positions)
+    lifecycle_executor = MockTradeLifecycleExecutor(positions)
+
+    tp1_record = repo.save_trade({
+        "id": 888,
+        "execution_key": "ORDER_TEST:TP1",
+        "broker_position_ticket": "5001",
+        "instrument": "Volatility 75 Index",
+        "direction": "BUY",
+        "status": "OPEN",
+        "entry_price": entry,
+        "stop_loss": initial_sl,
+        "take_profit": target_price,
+        "planned_rr": target_rr,
+        "details": {
+            "metadata": {
+                "parent_execution_key": "ORDER_TEST",
+                "trade_leg": "TP1",
+                "strategy_name": strategy_name,
+                "initial_stop_loss": initial_sl,
+                "target_rr": target_rr,
+                "logical_target_rr": target_rr,
+            }
+        },
+    })
+
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(
+        execution_enabled=True,
+        break_even_enabled=True,
+        split_entries_enabled=True,
+    )
+    engine.repository = repo
+    engine.executor = pos_executor
+    engine.lifecycle_manager = SimpleNamespace(trade_executor=lifecycle_executor)
+    engine._trade_owned_by_current_bot = lambda t: True
+    engine._trade_metadata = lambda t: dict((t.get("details") or {}).get("metadata") or {})
+    engine._break_even_initial_stop = lambda t, m: float(m.get("initial_stop_loss") or t.get("stop_loss"))
+    engine._update_excursion_metrics = lambda *args: (args[1], False)
+    engine._break_even_price_tolerance = lambda s, e: 0.001
+    engine._orb_fixed_exit_policy = lambda m: False
+    engine._gold_tp1_break_even_guard = lambda *a, **k: {"eligible": False}
+    engine._protect_forex_position_for_high_impact_news = lambda **k: None
+    engine._analysis_invalidation_exit = lambda **k: {"managed": False, "closed": False}
+    engine.sync_closed_trades = Mock(return_value=1)
+    engine._persist_audit_event = Mock()
+
+    # Pass 1: Price at 0.5R -> No close
+    engine._monitor_break_even_positions()
+    assert len(lifecycle_executor.closes) == 0, "TP1 should NOT close before crossing target R:R"
+
+    # Pass 2: Price reaches or crosses TP1 target barrier (e.g. +1.05 R or +2.05 R for ICT)
+    crossing_price = target_price + 0.5  # crossed barrier
+    tp1_pos.price_current = crossing_price
+    engine._monitor_break_even_positions()
+
+    # Must close IMMEDIATELY at market without persisting open
+    assert len(lifecycle_executor.closes) == 1, "TP1 MUST close immediately upon crossing target R:R"
+    closed_ticket, close_reason = lifecycle_executor.closes[0]
+    assert closed_ticket == 5001
+    assert "tp1_target_reached" in close_reason
+    assert engine.sync_closed_trades.called
+

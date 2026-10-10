@@ -23,6 +23,8 @@ def classify_worker_family(worker: str) -> str:
         return "INDICES"
     if "MALAYSIAN" in w or "SNR" in w:
         return "MALAYSIAN_SNR"
+    if "ICT" in w:
+        return "ICT"
     if "GLOBAL" in w:
         return "GLOBAL"
     return "OTROS"
@@ -72,6 +74,8 @@ def scan_trained_models_catalog(directory: str | Path | None = None) -> list[dic
                     pass
 
         trained = bool(model_obj.get("trained") or content.get("trained"))
+        if not trained:
+            continue
         samples = (
             model_obj.get("samples")
             or metrics_extra.get("samples")

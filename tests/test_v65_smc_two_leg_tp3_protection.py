@@ -60,6 +60,7 @@ def _engine():
         smc_runner_max_target_rr=4.0,
         smc_runner_tp3_guard_trigger_rr=2.5,
         smc_runner_tp3_guard_lock_rr=2.0,
+        runner_extension_tp4_protect_tp3=False,
     )
     engine.provider=Provider()
     engine.repository=Repo()

@@ -43,7 +43,7 @@ from database.database import (
     init_database,
     resolve_db_path,
 )
-from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot
+from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot, DailyProfitTargetPreference
 from trade_outcome_policy import BREAK_EVEN_RR_TOLERANCE, decisive_outcome, is_break_even_rr
 
 
@@ -2163,7 +2163,7 @@ class TradingRepository:
             ValueError: si el perfil no es uno de los soportados.
         """
         value = str(profile or "SYNTHETICS").upper().strip()
-        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR"}:
+        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
         return value
 
@@ -2278,7 +2278,7 @@ class TradingRepository:
             Dict `perfil -> seleccion`, solo con los perfiles configurados.
         """
         result={}
-        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR"):
+        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT"):
             row=self.latest_instrument_selection_profile(profile,source=source)
             if row is not None: result[profile]=row
         return result
@@ -2314,6 +2314,186 @@ class TradingRepository:
             "selected_symbols": selected,
             "version": row.version,
             "updated_at": row.updated_at,
+        }
+
+    # ============================================================
+    # DAILY PROFIT TARGET PREFERENCES
+    # ============================================================
+
+    def latest_daily_profit_target_preference(self, source: str = "DEMO") -> dict:
+        """Recupera la última preferencia de meta de ganancia diaria; devuelve valores por defecto si no existe."""
+        source = str(source or "DEMO").upper()
+        with self.Session() as session:
+            row = (
+                session.execute(
+                    select(DailyProfitTargetPreference)
+                    .where(DailyProfitTargetPreference.source == source)
+                    .order_by(
+                        DailyProfitTargetPreference.updated_at.desc(),
+                        DailyProfitTargetPreference.id.desc(),
+                    )
+                    .limit(1)
+                )
+                .scalar_one_or_none()
+            )
+        if row is None:
+            return self.save_daily_profit_target_preference(
+                source=source,
+                enabled=True,
+                target_percent=2.0,
+                extra_target_buffer_percent=1.0,
+                is_target_reached=False,
+                override_unlocked=False,
+                locked_date=None,
+                last_reset_date=None,
+                asia_session_start_hour_utc=0,
+            )
+        return {
+            "id": row.id,
+            "source": row.source,
+            "enabled": bool(row.enabled),
+            "target_percent": float(row.target_percent if row.target_percent is not None else 2.0),
+            "extra_target_buffer_percent": float(row.extra_target_buffer_percent if row.extra_target_buffer_percent is not None else 1.0),
+            "is_target_reached": bool(row.is_target_reached),
+            "override_unlocked": bool(row.override_unlocked),
+            "locked_date": row.locked_date,
+            "last_reset_date": row.last_reset_date,
+            "asia_session_start_hour_utc": int(row.asia_session_start_hour_utc or 0),
+            "version": int(row.version or 1),
+            "updated_at": row.updated_at,
+        }
+
+    def save_daily_profit_target_preference(
+        self,
+        source: str = "DEMO",
+        enabled: bool = True,
+        target_percent: float = 2.0,
+        extra_target_buffer_percent: float = 1.0,
+        is_target_reached: bool = False,
+        override_unlocked: bool = False,
+        locked_date: str | None = None,
+        last_reset_date: str | None = None,
+        asia_session_start_hour_utc: int = 0,
+    ) -> dict:
+        """Persiste la configuración o estado de la meta de ganancia diaria."""
+        source = str(source or "DEMO").upper()
+        with self.Session() as session:
+            previous = (
+                session.execute(
+                    select(DailyProfitTargetPreference)
+                    .where(DailyProfitTargetPreference.source == source)
+                    .order_by(
+                        DailyProfitTargetPreference.updated_at.desc(),
+                        DailyProfitTargetPreference.id.desc(),
+                    )
+                    .limit(1)
+                )
+                .scalar_one_or_none()
+            )
+            version = int(previous.version or 0) + 1 if previous else 1
+            row = DailyProfitTargetPreference(
+                source=source,
+                enabled=bool(enabled),
+                target_percent=max(0.01, float(target_percent if target_percent is not None else 2.0)),
+                extra_target_buffer_percent=max(0.01, float(extra_target_buffer_percent if extra_target_buffer_percent is not None else 1.0)),
+                is_target_reached=bool(is_target_reached),
+                override_unlocked=bool(override_unlocked),
+                locked_date=str(locked_date) if locked_date else None,
+                last_reset_date=str(last_reset_date) if last_reset_date else None,
+                asia_session_start_hour_utc=int(asia_session_start_hour_utc or 0),
+                version=version,
+                updated_at=datetime.now(timezone.utc),
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+
+        return {
+            "id": row.id,
+            "source": row.source,
+            "enabled": bool(row.enabled),
+            "target_percent": row.target_percent,
+            "extra_target_buffer_percent": row.extra_target_buffer_percent,
+            "is_target_reached": bool(row.is_target_reached),
+            "override_unlocked": bool(row.override_unlocked),
+            "locked_date": row.locked_date,
+            "last_reset_date": row.last_reset_date,
+            "asia_session_start_hour_utc": row.asia_session_start_hour_utc,
+            "version": row.version,
+            "updated_at": row.updated_at,
+        }
+
+    def get_daily_closed_trades_summary(
+        self,
+        source: str = "DEMO",
+        now_utc: datetime | None = None,
+    ) -> dict:
+        """Calcula el rendimiento diario de operaciones cerradas en la fecha UTC actual."""
+        source = str(source or "DEMO").upper()
+        if now_utc is None:
+            now_utc = datetime.now(timezone.utc)
+        elif now_utc.tzinfo is None:
+            now_utc = now_utc.replace(tzinfo=timezone.utc)
+
+        start_of_day = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_date_str = now_utc.strftime("%Y-%m-%d")
+
+        with self.Session() as session:
+            stmt = (
+                select(Trade)
+                .where(Trade.source == source, Trade.status == "CLOSED")
+            )
+            trades = session.execute(stmt).scalars().all()
+
+        today_trades = []
+        for t in trades:
+            ext = t.exit_time
+            if ext is None:
+                continue
+            if isinstance(ext, str):
+                try:
+                    ext = datetime.fromisoformat(ext.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+            if ext.tzinfo is None:
+                ext = ext.replace(tzinfo=timezone.utc)
+            if ext >= start_of_day:
+                today_trades.append(t)
+
+        today_pnl = sum(float(t.net_pnl or 0.0) for t in today_trades)
+        wins = sum(1 for t in today_trades if float(t.net_pnl or 0.0) > 0)
+        losses = sum(1 for t in today_trades if float(t.net_pnl or 0.0) < 0)
+
+        latest_snapshot = self.latest_account_snapshot()
+        current_balance = float(latest_snapshot["balance"]) if latest_snapshot and latest_snapshot.get("balance") else 0.0
+        current_equity = float(latest_snapshot["equity"]) if latest_snapshot and latest_snapshot.get("equity") else current_balance
+
+        if current_balance <= 0.0 and trades:
+            last_closed = sorted(trades, key=lambda x: str(x.exit_time or ""), reverse=True)[0]
+            current_balance = float(last_closed.balance_after or last_closed.balance_before or 10000.0)
+            current_equity = current_balance
+
+        if current_balance <= 0.0:
+            current_balance = 10000.0
+            current_equity = 10000.0
+
+        base_balance = current_balance - today_pnl
+        if base_balance <= 0.0:
+            base_balance = current_balance if current_balance > 0 else 10000.0
+
+        daily_return_pct = (today_pnl / base_balance) * 100.0 if base_balance > 0 else 0.0
+
+        return {
+            "source": source,
+            "today_date": today_date_str,
+            "today_closed_trades_count": len(today_trades),
+            "today_winning_trades": wins,
+            "today_losing_trades": losses,
+            "today_net_pnl": round(today_pnl, 2),
+            "base_balance": round(base_balance, 2),
+            "current_balance": round(current_balance, 2),
+            "current_equity": round(current_equity, 2),
+            "daily_return_pct": round(daily_return_pct, 4),
         }
 
     # ============================================================

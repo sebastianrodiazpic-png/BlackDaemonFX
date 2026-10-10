@@ -287,10 +287,10 @@ def extract_meta_features(
     )
 
     features = {
-        "trade_score": _to_float(_first(signal.get("trade_score"), analysis.get("trade_score"))) / 100.0,
-        "confirmation_percentage": _to_float(
+        "trade_score": _unit_strength(_first(signal.get("trade_score"), analysis.get("trade_score"))),
+        "confirmation_percentage": _unit_strength(
             _first(signal.get("confirmation_percentage"), analysis.get("confirmation_percentage"))
-        ) / 100.0,
+        ),
         "confirmations_ratio": float(confirmations_ratio),
         "adx": adx,
         "adx_normalized": min(adx / 50.0, 2.0) if adx > 0 else 0.0,
@@ -348,16 +348,40 @@ def extract_meta_features(
             )
         ),
         "breakout_volume_ratio": _to_float(
-            _first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio"))
+            _first(
+                signal.get("breakout_volume_ratio"),
+                analysis.get("breakout_volume_ratio"),
+                diagnostics.get("breakout_volume_ratio"),
+            )
         ),
-        "breakout_volume_available": float(math.isfinite(_to_float(_first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio")), float("nan")))),
+        "breakout_volume_available": float(math.isfinite(_to_float(_first(signal.get("breakout_volume_ratio"), analysis.get("breakout_volume_ratio"), diagnostics.get("breakout_volume_ratio")), float("nan")))),
         "direction_buy": 1.0 if str(_first(signal.get("direction"), analysis.get("direction"), default="")).upper() == "BUY" else 0.0,
         "critical_failures": critical_count,
         # Nuevas variables predictivas clave
         "adx_regime": 1.0 if adx >= 20.0 else 0.0,
         "signal_age_penalty": float(math.exp(-0.2 * max(0.0, age_min))),
         "spread_to_sl_ratio": min(spread / (abs(entry_price - _to_float(_first(signal.get("stop_loss"), market.get("stop_loss"))))), 2.0) if entry_price > 0 and _to_float(_first(signal.get("stop_loss"), market.get("stop_loss"))) > 0 and abs(entry_price - _to_float(_first(signal.get("stop_loss"), market.get("stop_loss")))) > 1e-9 else 0.0,
-        "session_killzone_active": 1.0 if (pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True).hour in (7, 8, 9, 12, 13, 14, 15) if not pd.isna(pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True)) else False) else 0.0,
+        "session_killzone_active": (
+            _to_bool_float(
+                _first(
+                    signal.get("session_killzone_active"),
+                    analysis.get("session_killzone_active"),
+                    diagnostics.get("session_killzone_active"),
+                    signal.get("in_killzone"),
+                    analysis.get("in_killzone"),
+                    diagnostics.get("in_killzone"),
+                )
+            )
+            if _first(
+                signal.get("session_killzone_active"),
+                analysis.get("session_killzone_active"),
+                diagnostics.get("session_killzone_active"),
+                signal.get("in_killzone"),
+                analysis.get("in_killzone"),
+                diagnostics.get("in_killzone"),
+            ) is not None
+            else (1.0 if (pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True).hour in (7, 8, 9, 12, 13, 14, 15) if not pd.isna(pd.to_datetime(evaluated_at if evaluated_at is not None else datetime.now(timezone.utc), utc=True)) else False) else 0.0)
+        ),
         "is_boom": 1.0 if "BOOM" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
         "is_crash": 1.0 if "CRASH" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" else 0.0,
         "is_volatility": 1.0 if ("VOLATILITY" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "1HZ" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V10" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V25" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V50" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V75" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}" or "V100" in f"{str(_first(signal.get('symbol'), market.get('symbol'), '')).upper()}_{str(_first(signal.get('bot_profile'), signal.get('worker'), '')).upper()}") else 0.0,
@@ -382,6 +406,11 @@ def upgrade_v4_features_to_v5(
     """
     res = dict(features)
     row_meta = row_meta or {}
+
+    if "trade_score" in res:
+        res["trade_score"] = _unit_strength(res["trade_score"])
+    if "confirmation_percentage" in res:
+        res["confirmation_percentage"] = _unit_strength(res["confirmation_percentage"])
 
     adx_val = _to_float(res.get("adx"))
     res.setdefault("adx_regime", 1.0 if adx_val >= 20.0 else 0.0)

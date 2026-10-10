@@ -116,7 +116,7 @@ def test_orb_buy_requires_m5_breakout_then_retest_and_midpoint_stop():
     assert signal["opening_range_midpoint"] == 102.5
     assert signal["stop_loss"] == 102.5
     assert signal["entry_price"] == 105.8
-    assert signal["risk_reward_ratio"] == 2.0
+    assert signal["risk_reward_ratio"] == 1.5
     assert signal["confirmations"]["m5_fresh_breakout"] is True
     assert signal["confirmations"]["orb_retest_confirmed"] is True
     assert signal["confirmations"]["stop_at_orb_50_percent"] is True
@@ -160,7 +160,7 @@ def test_orb_sell_requires_m5_breakout_then_retest_and_midpoint_stop():
     assert signal["direction"] == "SELL"
     assert signal["stop_loss"] == 102.5
     assert signal["entry_price"] == 99.2
-    assert signal["risk_reward_ratio"] == 2.0
+    assert signal["risk_reward_ratio"] == 1.5
 
 
 def test_orb_is_disabled_after_new_york_session_close():

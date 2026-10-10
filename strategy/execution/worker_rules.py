@@ -1,10 +1,15 @@
 """Shared strategy wiring for standalone and coordinated daemon workers."""
 from dataclasses import replace
 
-RULESET = 'smc-h1-adaptive-dual-m5-m1-position-guard-v4'
+RULESET = 'ict-sabri-malle-v1'
 
 
 def configure_worker_rules(config):
+    config = replace(
+        config,
+        meta_labeling_enabled=True,
+        meta_labeling_mode="FILTER",
+    )
     profile = str(config.bot_profile).upper()
     if profile == "MALAYSIAN_SNR":
         return replace(
@@ -13,23 +18,61 @@ def configure_worker_rules(config):
             dual_m5_m1_trigger_enabled=False,
             h1_location_only=False,
             entry_timeframe='M15',
-            first_target_rr=1.0,
-            second_target_rr=2.0,
-            malaysian_snr_tp1_rr=1.0,
-            malaysian_snr_runner_rr=2.0,
+            first_target_rr=2.0,
+            second_target_rr=4.0,
+            malaysian_snr_tp1_rr=2.0,
+            malaysian_snr_runner_rr=4.0,
             break_even_enabled=True,
-            break_even_trigger_rr=1.0,
+            break_even_trigger_rr=2.0,
             runner_extension_enabled=True,
             runner_extension_first_trigger_rr=2.0,
             runner_extension_first_lock_rr=1.0,
             runner_extension_second_trigger_rr=3.0,
             runner_extension_second_lock_rr=2.0,
             runner_extension_max_target_rr=4.0,
-            min_rr=1.0,
+            min_rr=2.0,
             forex_rollover_guard_enabled=True,
             forex_force_flat_friday=True,
             crypto_rollover_guard_enabled=True,
             crypto_force_flat_friday=True,
+        )
+    if profile == "ORB":
+        return replace(
+            config,
+            orb_enabled=True,
+            dual_m5_m1_trigger_enabled=False,
+            h1_location_only=False,
+            entry_timeframe='M5',
+            first_target_rr=2.0,
+            second_target_rr=4.0,
+            runner_extension_enabled=False,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            min_rr=2.0,
+        )
+    if profile == "GOLD":
+        return replace(
+            config,
+            gold_quarters_strategy_enabled=True,
+            gold_quarter_level_increment=25.0,
+            gold_quarter_level_tolerance_price=2.0,
+            gold_quarter_level_bonus_points=4.0,
+            first_target_rr=2.0,
+            second_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            orb_enabled=False,
         )
     smc = profile not in {'ORB', 'IDX_OPEN'}
     if not smc:
@@ -43,11 +86,19 @@ def configure_worker_rules(config):
             entry_timeframe='M5',
             strategy_version=RULESET,
             first_target_rr=2.0,
-            second_target_rr=3.0,
+            second_target_rr=4.0,
             volatility_first_target_rr=2.0,
-            volatility_second_target_rr=3.0,
-            smc_runner_max_target_rr=3.0,
+            volatility_second_target_rr=4.0,
+            smc_runner_max_target_rr=4.0,
             runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            min_rr=2.0,
         )
     if profile in {"STEP", "JUMP"}:
         return replace(
@@ -58,15 +109,17 @@ def configure_worker_rules(config):
             entry_timeframe='M5',
             strategy_version=RULESET,
             first_target_rr=2.0,
-            second_target_rr=3.0,
-            smc_runner_max_target_rr=3.0,
+            second_target_rr=4.0,
+            smc_runner_max_target_rr=4.0,
             runner_extension_enabled=True,
             runner_extension_first_trigger_rr=2.0,
             runner_extension_first_lock_rr=1.0,
-            runner_extension_second_trigger_rr=2.5,
+            runner_extension_second_trigger_rr=3.0,
             runner_extension_second_lock_rr=2.0,
-            smc_runner_tp3_guard_trigger_rr=2.5,
-            smc_runner_tp3_guard_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            min_rr=2.0,
         )
     if profile.startswith("FOREX"):
         return replace(
@@ -81,12 +134,56 @@ def configure_worker_rules(config):
             crypto_rollover_guard_enabled=True,
             crypto_force_flat_friday=True,
             forex_killzone_only_enabled=True,
-            forex_runner_initial_target_rr=2.0,
-            forex_runner_max_target_rr=3.0,
-            forex_runner_broker_safety_target_rr=3.0,
+            first_target_rr=2.0,
+            second_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            min_rr=2.0,
         )
-    return replace(config, h1_location_only=True, smc_entry_location_policy='H1_PRIMARY',
-        dual_m5_m1_trigger_enabled=True, entry_timeframe='M5', strategy_version=RULESET)
+    if profile == "ICT":
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version='ict-sabri-malle-v1',
+            first_target_rr=2.0,
+            second_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.0,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=2.0,
+            min_rr=2.0,
+            crypto_rollover_guard_enabled=True,
+            crypto_force_flat_friday=False,
+            orb_enabled=False,
+        )
+    return replace(
+        config,
+        h1_location_only=True,
+        smc_entry_location_policy='H1_PRIMARY',
+        dual_m5_m1_trigger_enabled=True,
+        entry_timeframe='M5',
+        strategy_version=RULESET,
+        first_target_rr=2.0,
+        second_target_rr=4.0,
+        runner_extension_enabled=True,
+        runner_extension_max_target_rr=4.0,
+        break_even_enabled=True,
+        break_even_trigger_rr=2.0,
+        min_rr=2.0,
+    )
 
 
 def worker_poll_interval(profile, interval):

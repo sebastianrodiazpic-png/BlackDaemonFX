@@ -237,12 +237,24 @@ class LogisticRegressionModel:
         - Lo usa `strategy.ai.meta_labeling.MetaLabelingEngine.load_model`.
         """
         payload = payload if isinstance(payload, dict) else {}
+        mean = [float(v) for v in (payload.get("mean") or [])]
+        scale = [float(v) for v in (payload.get("scale") or [])]
+        # Auto-alineación matemática para modelos legados entrenados en escala porcentual 0-100:
+        # (x_norm - mean/100) / (scale/100) == (x_pct - mean) / scale. Preserva con exactitud los pesos z.
+        if mean and len(mean) > 0 and mean[0] > 5.0:
+            mean[0] /= 100.0
+            if scale and len(scale) > 0:
+                scale[0] /= 100.0
+        if mean and len(mean) > 1 and mean[1] > 5.0:
+            mean[1] /= 100.0
+            if scale and len(scale) > 1:
+                scale[1] /= 100.0
         return cls(
             feature_names=tuple(payload.get("feature_names") or FEATURE_NAMES),
             weights=[float(v) for v in (payload.get("weights") or [])],
             bias=float(payload.get("bias", 0.0)),
-            mean=[float(v) for v in (payload.get("mean") or [])],
-            scale=[float(v) for v in (payload.get("scale") or [])],
+            mean=mean,
+            scale=scale,
             trained=bool(payload.get("trained", False)),
             samples=int(payload.get("samples", 0)),
             positive_rate=float(payload.get("positive_rate", 0.0)),
@@ -346,26 +358,25 @@ class ProbabilityCalibrator:
         return True
 
     def calibrate(self, probability: float) -> float:
-        """Corrige una probabilidad cruda usando la curva aprendida.
+        """Corrige una probabilidad cruda usando la curva aprendida con interpolación continua.
 
-        Si el calibrador no esta entrenado actua como identidad (solo recorta
+        Si el calibrador no está entrenado actúa como identidad (sólo recorta
         al rango 0-1), de modo que el modelo sigue siendo utilizable.
 
         Returns:
-            Probabilidad calibrada entre 0 y 1.
+            Probabilidad calibrada continua entre 0 y 1.
         """
         value = float(np.clip(probability, 0.0, 1.0))
-        if not self.trained or not self.bin_values:
+        if not self.trained or not self.bin_values or not self.bin_edges or len(self.bin_values) < 2:
             return value
         if max(self.bin_values) - min(self.bin_values) < 0.05:
             # Calibrador plano/degenerado: no discrimina, degrada a la probabilidad cruda
             return value
-        edges = self.bin_edges
-        for index in range(len(self.bin_values)):
-            high = edges[index + 1]
-            if value < high or index == len(self.bin_values) - 1:
-                return float(np.clip(self.bin_values[index], 0.0, 1.0))
-        return value
+        edges = np.asarray(self.bin_edges, dtype=float)
+        centers = (edges[:-1] + edges[1:]) / 2.0
+        x_pts = np.concatenate(([0.0], centers, [1.0]))
+        y_pts = np.concatenate(([float(self.bin_values[0])], [float(v) for v in self.bin_values], [float(self.bin_values[-1])]))
+        return float(np.clip(np.interp(value, x_pts, y_pts), 0.0, 1.0))
 
     def to_dict(self) -> dict:
         """Serializa la curva de calibracion a un dict apto para JSON."""

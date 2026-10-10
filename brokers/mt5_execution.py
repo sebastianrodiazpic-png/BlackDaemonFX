@@ -245,6 +245,9 @@ class MT5ExecutionProvider:
             "filling_mode_raw": int(
                 getattr(info, "filling_mode", 0) or 0
             ),
+            "trade_contract_size": float(
+                getattr(info, "trade_contract_size", 1.0) or 1.0
+            ),
             "trade_exemode": int(
                 getattr(info, "trade_exemode", 0) or 0
             ),

@@ -53,6 +53,7 @@ from strategy.ai.trade_observation import eligibility as trade_learning_eligibil
 from dashboard.account_page import ACCOUNT_HTML
 from dashboard.page_loading import with_page_loading
 from dashboard.performance_page import PERFORMANCE_HTML
+from dashboard.strategy_bases_page import STRATEGY_BASES_HTML
 from dashboard.trade_audit_page import TRADE_AUDIT_HTML
 from reporting.trade_audit_excel_exporter import TradeAuditExcelExporter
 from services.financial_news_service import FinancialNewsService
@@ -303,6 +304,8 @@ _CATEGORY_LABELS = {
     "orb_ny_us_500": "S&P 500",
     "orb_ny_xauusd": "XAUUSD",
     "orb_ny_micro_xauusd": "XAUUSD Micro",
+    "orb_ny_eurusd": "EURUSD",
+    "orb_ny_btcusd": "BTCUSD",
     "orb_ny_xagusd": "Plata (XAGUSD)",
     "orb_ny_micro_xagusd": "Plata Micro (XAGUSD)",
     "orb_ny_us_oil": "Petróleo (US Oil)",
@@ -315,9 +318,17 @@ _CATEGORY_LABELS = {
     "malaysian_snr_crash": "Malaysian SNR · Crash Index (SELL Only)",
     "malaysian_snr_forex": "Malaysian SNR · Forex & Cripto",
     "malaysian_snr_pruned": "Malaysian SNR · Activos Podados (PODA)",
+    "gold_cuartos_xauusd": "Oro Cuartos (XAUUSD)",
+    "gold_cuartos_micro_xauusd": "Oro Micro Cuartos (XAUUSDmicro)",
+    "gold_cuartos_xagusd": "Plata Cuartos (XAGUSD)",
+    "gold_cuartos_micro_xagusd": "Plata Micro Cuartos (XAGUSDmicro)",
+    "ict_metals_xagusd": "ICT Metales · Plata (XAGUSD)",
+    "ict_metals_xauusd": "ICT Metales · Oro (XAUUSD)",
+    "ict_crypto_btcusd": "ICT Criptomonedas · Bitcoin (BTCUSD)",
+    "ict_indices": "ICT Índices Bursátiles",
 }
 
-_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR")
+_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT")
 
 
 def _build_confluence_matrix(state: dict) -> list[dict]:
@@ -378,6 +389,13 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
             strat_key = "GOLD_QUARTERS"
             strat_label = "Gold Quarters"
             strat_badge = "strat-gold"
+        elif (
+            "ICT" in strat_raw
+            or "ICT" in prof
+        ):
+            strat_key = "ICT"
+            strat_label = "ICT Sabri Malle"
+            strat_badge = "strat-cyan"
         else:
             strat_key = "SMC"
             strat_label = "SMC"
@@ -669,12 +687,12 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "Boom 1000 Index",
         "Boom 300 Index",
         "Boom 900 Index",
+        "Crash 1000 Index",
         "Crash 500 Index",
         "Crash 900 Index",
         "High Frequency Vol 100 Index",
         "High Frequency Vol 50 Index",
         "Jump 10 Index",
-        "Jump 50 Index",
         "Jump 75 Index",
         "Step Index",
         "Step Index 400",
@@ -682,6 +700,8 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "Vol over Boom 550",
         "Vol over Crash 550",
         "VolSwitch High Vol Index",
+        "Volatility 100 (1s) Index",
+        "Volatility 100 Index",
         "Volatility 15 Index",
         "Volatility 150 (1s) Index",
         "Volatility 25 Index",
@@ -694,61 +714,66 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "Volatility 90 Index",
     ],
     "FOREX": [
-        "GBPUSD",
-        "GBPUSDmicro",
+        "AUDUSD",
+        "AUDUSDmicro",
         "USDCAD",
         "USDCADmicro",
         "USDCHF",
         "USDCHFmicro",
-        "USDJPY",
-        "USDJPYmicro",
-        "EURUSD",
-        "EURUSDmicro",
     ],
     "ORB": [
-        "US Tech 100",
-        "US SP 500",
         "Wall Street 30",
         "XAUUSD",
+        "XAUUSDmicro",
         "microXAUUSD",
-        "XAGUSD",
-        "microXAGUSD",
+        "US Tech 100",
+        "BTCUSD",
     ],
     "IDX_OPEN": [
-        "US Tech 100",
-        "US SP 500",
         "Wall Street 30",
+        "US Tech 100",
     ],
     "MALAYSIAN_SNR": [
-        "Jump 25 Index",
-        "Jump 50 Index",
+        "Crash 500 Index",
         "Step Index 500",
-        "Jump 10 Index",
-        "Step Index 200",
-        "Step Index",
-        "Volatility 10 Index",
-        "Volatility 75 Index",
-        "Volatility 25 Index",
-        "BTCUSD",
         "Boom 1000 Index",
-        "Boom 600 Index",
-        "Boom 500 Index",
+        "Boom 300 Index",
+        "XAUUSD",
+        "Jump 10 Index",
+        "Jump 75 Index",
+        "Jump 25 Index",
+        "Wall Street 30",
+        "BTCUSD",
         "Crash 1000 Index",
         "Crash 600 Index",
-        "Crash 500 Index",
-        "US Tech 100",
+        "Boom 500 Index",
+        "Boom 600 Index",
+        "Step Index 200",
+        "Volatility 10 Index",
+    ],
+    "GOLD": [
         "XAUUSD",
-        "US SP 500",
+        "XAUUSDmicro",
+        "microXAUUSD",
+    ],
+    "ICT": [
         "Wall Street 30",
-        "USDJPY",
-        "EURUSD",
-        "GBPUSD",
+        "XAUUSD",
+        "XAUUSDmicro",
+        "microXAUUSD",
+        "BTCUSD",
+        "BTCUSDmicro",
+        "microBTCUSD",
+        "US Tech 100",
     ],
 }
 
 PRUNED_INSTRUMENTS_INFO = {
-    # FOREX (Replay histórico 180 días)
-    "AUDUSD": "Poda preventiva: -13.0R en replay 180d (13% Win Rate). Falsos rompimientos asiáticos recurrentes.",
+    # FOREX (Poda confirmada por estrategia ICT Sabri Malle 2 años y análisis cuantitativo)
+    "USDJPY": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -7.0R netos (Win Rate 18.2%). Falsos rompimientos de estructura y dispersión de spread desfavorable.",
+    "USDJPYmicro": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -7.0R netos (Win Rate 18.2%).",
+    "GBPUSD": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -5.0R netos (Win Rate 20.0%). Trampas de liquidez recurrentes y reversiones prematuras en Killzone de Londres.",
+    "GBPUSDmicro": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -5.0R netos (Win Rate 20.0%).",
     "GBPJPY": "Poda preventiva: -8.0R en replay 180d. Alta dispersión de spread y ruido excesivo en aperturas.",
     "EURJPY": "Poda preventiva: -5.0R en replay 180d. Inconsistencia direccional y falsos quiebres de estructura.",
     "AUDCAD": "Poda preventiva: Historial inconsistente en Killzones SMC y expectativa matemática desfavorable.",
@@ -782,7 +807,6 @@ PRUNED_INSTRUMENTS_INFO = {
     # CRASH (Replay histórico 180 días)
     "Crash 300 Index": "Poda preventiva: -7.0R en replay 180d. Alta frecuencia de falsos CHoCHs y deslizamiento adverso.",
     "Crash 600 Index": "Poda preventiva: -4.0R en replay 180d. Baja inercia en zonas de oferta.",
-    "Crash 1000 Index": "Poda preventiva: -2.0R en replay 180d. Trampas de liquidez recurrentes previas a caídas.",
     "Crash 50 Index": "Poda preventiva: Ruido y falsos rebotes en soportes.",
     "Crash 100 Index": "Poda preventiva: Spikes contratendenciales prematuros.",
     "Crash 150 Index": "Poda preventiva: Baja reactividad en bloques de órdenes M15.",
@@ -794,14 +818,14 @@ PRUNED_INSTRUMENTS_INFO = {
     "Multi Step 2 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 3 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 4 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
-    # JUMP (Replay histórico)
-    "Jump 25 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75, Jump 50 y Jump 10.",
-    "Jump 100 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75, Jump 50 y Jump 10.",
+    # JUMP (Replay histórico 2 años)
+    "Jump 50 Index": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -9.6R netos (Win Rate 15.0%). Inconsistencia estructural severa y fallas sistemáticas en manipulación.",
+    "Jump 25 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75 y Jump 10.",
+    "Jump 100 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75 y Jump 10.",
     # VOLATILITY (Poda confirmada por análisis cuantitativo de 2 años)
     "Vol over Crash 400": "Poda confirmada: -24.0% PnL en replay 2 años (Win Rate 15.4%). Falsas roturas de estructura recurrentes.",
     "Vol over Boom 750": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 21.1%). Inconsistencia en zonas de oferta.",
     "Spot Up - Volatility Up Index": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 26.1%). Dispersión de colas.",
-    "Volatility 100 Index": "Poda confirmada: -11.0% PnL en replay 2 años (Win Rate 25.4%). Deslizamiento adverso en bloques M15.",
     "Volatility 30 (1s) Index": "Poda confirmada: -9.5% PnL en replay 2 años. Ruido recurrente en oscilación rápida.",
     "Volatility Crash 750 Index": "Poda confirmada: -9.0% PnL en replay 2 años (Win Rate 26.7%).",
     "Volatility 50 Index": "Poda preventiva: Replay 2 años demostró rendimiento y estabilidad superior en Volatility 50 (1s) Index (+26.0% PnL).",
@@ -824,6 +848,12 @@ PRUNED_INSTRUMENTS_INFO = {
 }
 
 MALAYSIAN_SNR_PRUNED_INFO = {
+    "US Oil": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 14.7%, -$11,760.19 USD. Deslizamiento severo, baja precisión en niveles Break y spread adverso.",
+    "USDCAD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 22.2%, -$6,223.64 USD. Falsos rompimientos continuos y falta de expansión hacia TP1.",
+    "XAGUSD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 23.4%, -$4,534.89 USD. Mechas erráticas en M15 que invalidan retesteos Fresh.",
+    "USDCHF": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 26.1%, -$4,913.53 USD. Compresión excesiva de rango y rechazos prematuros.",
+    "AUDUSD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 27.3%, -$3,632.00 USD. Baja liquidez institucional en horario de entrada.",
+    "Boom 500 Index": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 28.0%, -$4,497.43 USD. Ruido de mechas y caídas continuas antes de retesteo.",
     "Volatility 50 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,750.00 USD (Win Rate 0.1%). Falsas rupturas continuas y stops sistemáticos en M15.",
     "Volatility 100 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,598.25 USD (Win Rate 0.2%). Ruido estructural masivo y stops prematuros en niveles Break.",
     "Volatility 250 (1s) Index": "Poda confirmada en replay 2 años Malaysian SNR: -$369,623.86 USD (Win Rate 6.1%). Oscilaciones erráticas incompatibles con el patrón Fresh.",
@@ -832,19 +862,24 @@ MALAYSIAN_SNR_PRUNED_INFO = {
     "AUDCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$244,057.47 USD (Win Rate 7.9%). Baja liquidez institucional y dispersión de spread.",
     "EURCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$235,743.66 USD (Win Rate 8.3%). Falsos quiebres y falta de inercia direccional.",
     "AUDNZD": "Poda confirmada en replay 2 años Malaysian SNR: -$230,755.61 USD (Win Rate 8.7%). Ruido lateral prolongado sin seguimiento.",
-    "US Oil": "Poda confirmada en replay 2 años Malaysian SNR: -$230,669.66 USD (Win Rate 7.4%). Deslizamiento adverso y desalineación estructural en M15.",
     "GBPCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$194,110.89 USD (Win Rate 13.0%). Poca reactividad en niveles Break.",
     "AUDCAD": "Poda confirmada en replay 2 años Malaysian SNR: -$166,534.60 USD (Win Rate 15.7%). Barridos de liquidez adversos en retesteos.",
-    "XAGUSD": "Poda confirmada en replay 2 años Malaysian SNR: -$106,242.47 USD (Win Rate 21.0%). Ruido excesivo en mechas y costos de spread.",
+}
+
+ICT_PRUNED_INFO = {
+    "Jump 50 Index": "Poda confirmada en replay 2 años ICT: -9.6R netos (Win Rate 15.0%). Inconsistencia estructural severa y fallas sistemáticas en manipulación.",
+    "USDJPY": "Poda confirmada en replay 2 años ICT: -7.0R netos (Win Rate 18.2%). Ausencia de expansión a TP2 y dispersión de spread.",
 }
 
 def _selection_profile_for_category(category: str) -> str:
     """Mapea una categoria de instrumento a su perfil de worker."""
     value=str(category or "").lower()
+    if value.startswith("ict_") or value == "ict": return "ICT"
     if value.startswith("malaysian_snr_") or value == "malaysian_snr": return "MALAYSIAN_SNR"
     if value == "forex": return "FOREX"
     if value == "idx_open_indices": return "IDX_OPEN"
     if value.startswith("orb_ny_"): return "ORB"
+    if value.startswith("gold_") or value.startswith("cuartos_") or value in ("gold", "cuartos"): return "GOLD"
     return "SYNTHETICS"
 
 def _catalog_symbols_by_profile(catalog):
@@ -1359,6 +1394,12 @@ class RealtimeDashboardService:
         sigue siendo autoritativo. Al construirse ya refresca posiciones y
         cuenta para que la primera carga no aparezca vacia.
         """
+        if repository is None:
+            try:
+                from database.repository import TradingRepository
+                repository = TradingRepository()
+            except Exception:
+                repository = None
         self.repository = repository
         self.host = str(host)
         self.port = int(port)
@@ -1439,6 +1480,7 @@ class RealtimeDashboardService:
                 "last_monitor", "instrument_catalog", "selected_symbols",
                 "selection_profiles", "selection_profile_versions",
                 "selection_version", "selection_message", "recent",
+                "daily_profit_target",
             ):
                 if key in raw:
                     self._state[key] = raw[key]
@@ -1775,6 +1817,8 @@ class RealtimeDashboardService:
                     "ORB": dict(PRUNED_INSTRUMENTS_INFO),
                     "IDX_OPEN": dict(PRUNED_INSTRUMENTS_INFO),
                     "MALAYSIAN_SNR": dict(MALAYSIAN_SNR_PRUNED_INFO),
+                    "GOLD": {},
+                    "ICT": dict(ICT_PRUNED_INFO),
                 },
                 "prioritized_symbols": dict(DEFAULT_PRIORITIZED_SYMBOLS),
             }
@@ -1975,6 +2019,15 @@ class RealtimeDashboardService:
                 if path.lower() in ("/performance", "/performance/", "/rendimiento", "/rendimiento/"):
                     self._send(PERFORMANCE_HTML.encode("utf-8"), "text/html; charset=utf-8")
                     return
+                if path.lower() in ("/strategy-bases", "/strategy-bases/", "/bases-estrategias", "/bases-estrategias/"):
+                    try:
+                        import importlib
+                        import dashboard.strategy_bases_page as _sbp
+                        importlib.reload(_sbp)
+                        self._send(_sbp.STRATEGY_BASES_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    except Exception:
+                        self._send(STRATEGY_BASES_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    return
                 if path == "/api/account":
                     # Caché corta de lectura: evita reconstruir decenas de consultas
                     # cuando el navegador refresca/navega rápidamente.
@@ -1985,6 +2038,10 @@ class RealtimeDashboardService:
                 if path == "/api/instruments":
                     instruments = service._cached_instruments_payload()
                     payload = json.dumps(instruments, ensure_ascii=False).encode("utf-8")
+                    self._send(payload, "application/json; charset=utf-8")
+                    return
+                if path == "/api/daily-target":
+                    payload = json.dumps(service.get_daily_profit_target_payload(), ensure_ascii=False).encode("utf-8")
                     self._send(payload, "application/json; charset=utf-8")
                     return
                 if path == "/api/state":
@@ -2127,6 +2184,43 @@ class RealtimeDashboardService:
                     payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
                     self._send(payload, "application/json; charset=utf-8", status)
                     return
+                if path == "/api/daily-target/settings":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+                        enabled = body.get("enabled", True)
+                        target_pct = body.get("target_percent", 2.0)
+                        buffer_pct = body.get("extra_target_buffer_percent", None)
+                        result = service.update_daily_profit_target_settings(
+                            enabled=enabled,
+                            target_percent=target_pct,
+                            extra_target_buffer_percent=buffer_pct,
+                        )
+                        status = HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST
+                    except Exception as exc:
+                        result = {"ok": False, "error": str(exc)}
+                        status = HTTPStatus.BAD_REQUEST
+                    payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
+                    self._send(payload, "application/json; charset=utf-8", status)
+                    return
+                if path == "/api/daily-target/override":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+                        confirm = bool(body.get("confirm", False))
+                        extra_pct = float(body.get("extra_percent", 1.0))
+                        if not confirm:
+                            result = {"ok": False, "error": "Se requiere confirmación explícita del riesgo advertido"}
+                            status = HTTPStatus.BAD_REQUEST
+                        else:
+                            result = service.request_daily_profit_target_override(extra_percent=extra_pct)
+                            status = HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST
+                    except Exception as exc:
+                        result = {"ok": False, "error": str(exc)}
+                        status = HTTPStatus.BAD_REQUEST
+                    payload = json.dumps(result, ensure_ascii=False).encode("utf-8")
+                    self._send(payload, "application/json; charset=utf-8", status)
+                    return
                 if path != "/api/instruments/selection":
                     self._send(b"Not found", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
                     return
@@ -2201,11 +2295,112 @@ class RealtimeDashboardService:
         if not profile or not isinstance(enabled, bool):
             return {"ok": False, "error": "Worker o estado inválido"}
         if self._worker_controller is None:
+            if self.repository is not None and hasattr(self.repository, "upsert_worker_runtime_state"):
+                from app.main import BOT_PROFILES
+                magic = BOT_PROFILES.get(profile, {}).get("magic", 0)
+                status = "RUNNING" if enabled else "DISABLED"
+                self.repository.upsert_worker_runtime_state(
+                    profile,
+                    magic,
+                    source="DEMO",
+                    status=status,
+                    last_action="DASHBOARD_MANUAL_TOGGLE",
+                    last_reason="Estado modificado manualmente desde el dashboard",
+                )
+                self._invalidate_navigation_caches()
+                return {"ok": True, "persisted": True, "profile": profile, "status": status}
             return {
                 "ok": False,
                 "error": "El coordinador no admite controlar workers en esta ejecución",
             }
         return self._worker_controller(profile, enabled)
+
+    def _get_daily_profit_target_manager(self):
+        """Devuelve una instancia de DailyProfitTargetManager para la fuente DEMO."""
+        if not hasattr(self, "_daily_profit_target_manager") or self._daily_profit_target_manager is None:
+            if self.repository is None:
+                try:
+                    from database.repository import TradingRepository
+                    self.repository = TradingRepository()
+                except Exception:
+                    self.repository = None
+            if self.repository is not None:
+                from strategy.execution.daily_profit_target import DailyProfitTargetManager
+                self._daily_profit_target_manager = DailyProfitTargetManager(
+                    repository=self.repository,
+                    source="DEMO",
+                )
+            else:
+                self._daily_profit_target_manager = None
+        return self._daily_profit_target_manager
+
+    def get_daily_profit_target_payload(self) -> dict:
+        """Devuelve el estado completo y persistido de la meta diaria."""
+        mgr = self._get_daily_profit_target_manager()
+        if mgr is not None:
+            try:
+                status = mgr.get_status()
+                with self._lock:
+                    self._state["daily_profit_target"] = status
+                return status
+            except Exception as exc:
+                fallback = self._state.get("daily_profit_target")
+                if isinstance(fallback, dict) and fallback.get("enabled") is not None:
+                    return fallback
+                return {"ok": False, "error": str(exc), "enabled": False}
+        fallback = self._state.get("daily_profit_target")
+        if isinstance(fallback, dict) and fallback.get("enabled") is not None:
+            return fallback
+        return {
+            "source": "DEMO",
+            "enabled": True,
+            "target_percent": 2.0,
+            "extra_target_buffer_percent": 1.0,
+            "effective_target_percent": 2.0,
+            "daily_return_pct": 0.0,
+            "today_net_pnl": 0.0,
+            "is_target_reached": False,
+            "override_unlocked": False,
+            "is_locked": False,
+            "can_override": False,
+            "status_message": "Servicio no conectado a base de datos.",
+        }
+
+    def update_daily_profit_target_settings(
+        self, enabled: bool, target_percent: float, extra_target_buffer_percent: float = None
+    ) -> dict:
+        """Actualiza y persiste la meta diaria configurada."""
+        mgr = self._get_daily_profit_target_manager()
+        if mgr is None:
+            return {"ok": False, "error": "Repositorio no inicializado"}
+        try:
+            status = mgr.update_settings(
+                enabled=bool(enabled),
+                target_percent=float(target_percent),
+                extra_target_buffer_percent=float(extra_target_buffer_percent) if extra_target_buffer_percent is not None else None,
+            )
+            with self._lock:
+                self._state["daily_profit_target"] = status
+                self._persist_state_locked()
+            self._invalidate_navigation_caches(account=True)
+            return {"ok": True, "daily_profit_target": status}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    def request_daily_profit_target_override(self, extra_percent: float = 1.0) -> dict:
+        """Desbloquea temporalmente las operaciones tras confirmación de riesgo del usuario."""
+        mgr = self._get_daily_profit_target_manager()
+        if mgr is None:
+            return {"ok": False, "error": "Repositorio no inicializado"}
+        try:
+            status = mgr.request_override_more_profit(extra_percent=float(extra_percent or 1.0))
+            with self._lock:
+                self._state["daily_profit_target"] = status
+                self._persist_state_locked()
+            self._invalidate_navigation_caches(account=True)
+            return {"ok": True, "daily_profit_target": status}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
 
     def set_instrument_catalog(self, categorized, selected_symbols=None):
         """Publica el catalogo de instrumentos y resuelve la seleccion vigente.
@@ -2227,7 +2422,7 @@ class RealtimeDashboardService:
                 catalog.append({"category":str(category),"selection_profile":_selection_profile_for_category(category),
                                 "label":_CATEGORY_LABELS.get(str(category),str(category).replace("_"," ").title()),
                                 "symbols":symbols})
-        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3,"MALAYSIAN_SNR":4}.get(r["selection_profile"],9),r["label"].casefold()))
+        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3,"MALAYSIAN_SNR":4,"GOLD":5,"ICT":6}.get(r["selection_profile"],9),r["label"].casefold()))
         allowed=_catalog_symbols_by_profile(catalog); persisted={}
         explicit=_normalize_symbol_list(selected_symbols)
         if self.repository is not None and hasattr(self.repository,"latest_instrument_selection_profiles"):
@@ -2253,7 +2448,7 @@ class RealtimeDashboardService:
             self._state["instrument_catalog"]=catalog; self._state["selection_profiles"]=selections
             self._state["selection_profile_versions"]=versions; self._state["selected_symbols"]=combined
             self._state["selection_version"]=int(self._state.get("selection_version") or 0)+1
-            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · Malaysian SNR: {len(selections.get('MALAYSIAN_SNR',[]))} · selecciones independientes")
+            self._state["selection_message"]=(f"Sintéticos: {len(selections['SYNTHETICS'])} · Forex: {len(selections['FOREX'])} · ORB: {len(selections['ORB'])} · Malaysian SNR: {len(selections.get('MALAYSIAN_SNR',[]))} · Cuartos: {len(selections.get('GOLD',[]))} · ICT: {len(selections.get('ICT',[]))} · selecciones independientes")
             self._state["updated_at"]=_now_iso(); self._persist_state_locked()
         self._invalidate_navigation_caches(instruments=True)
         return combined
@@ -3019,7 +3214,25 @@ class RealtimeDashboardService:
             self._state["selection_persistence_error"] = str(exc)
             return
 
-        catalog = self._state.get("instrument_catalog") or []
+        catalog = list(self._state.get("instrument_catalog") or [])
+        cat_keys = {g.get("category") for g in catalog}
+        if "orb_ny_xagusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_xagusd", "selection_profile": "ORB", "label": "Plata (XAGUSD)", "symbols": ["XAGUSD"]})
+        if "orb_ny_micro_xagusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_micro_xagusd", "selection_profile": "ORB", "label": "Plata Micro (XAGUSD)", "symbols": ["XAGUSDmicro"]})
+        if "gold_cuartos_xauusd" not in cat_keys:
+            catalog.append({"category": "gold_cuartos_xauusd", "selection_profile": "GOLD", "label": "Oro Cuartos (XAUUSD)", "symbols": ["XAUUSD", "XAUUSDmicro"]})
+        if "gold_cuartos_xagusd" not in cat_keys:
+            catalog.append({"category": "gold_cuartos_xagusd", "selection_profile": "GOLD", "label": "Plata Cuartos (XAGUSD)", "symbols": ["XAGUSD", "XAGUSDmicro"]})
+        if "ict_metals_xagusd" not in cat_keys:
+            catalog.append({"category": "ict_metals_xagusd", "selection_profile": "ICT", "label": "ICT Metales · Plata (XAGUSD)", "symbols": ["XAGUSD", "XAGUSDmicro"]})
+        if "ict_metals_xauusd" not in cat_keys:
+            catalog.append({"category": "ict_metals_xauusd", "selection_profile": "ICT", "label": "ICT Metales · Oro (XAUUSD)", "symbols": ["XAUUSD", "XAUUSDmicro"]})
+        if "ict_crypto_btcusd" not in cat_keys:
+            catalog.append({"category": "ict_crypto_btcusd", "selection_profile": "ICT", "label": "ICT Criptomonedas · Bitcoin (BTCUSD)", "symbols": ["BTCUSD", "BTCUSDmicro"]})
+        if "ict_indices" not in cat_keys:
+            catalog.append({"category": "ict_indices", "selection_profile": "ICT", "label": "ICT Índices Bursátiles", "symbols": ["Wall Street 30", "US Tech 100", "US SP 500"]})
+        self._state["instrument_catalog"] = catalog
         allowed = _catalog_symbols_by_profile(catalog)
         profiles = dict(self._state.get("selection_profiles") or {p: [] for p in _SELECTION_PROFILES})
         versions = dict(self._state.get("selection_profile_versions") or {})
@@ -3163,6 +3376,7 @@ class RealtimeDashboardService:
             state["multi_bot_mode"] = bool(visible_worker_states)
             state["daemon_version"] = DAEMONBLACKFX_VERSION
             state["confluence_matrix"] = _build_confluence_matrix(state)
+            state["daily_profit_target"] = self.get_daily_profit_target_payload()
             payload = _json_safe(state)
             self._dashboard_snapshot_cache = {
                 "at": time.monotonic(),
@@ -4412,6 +4626,150 @@ _HTML = r'''
       .chartSvg text {
         user-select: none;
       }
+      /* ========================================================
+         META DE GANANCIA DIARIA (DAILY PROFIT TARGET)
+         ======================================================== */
+      .dptCard {
+        background: linear-gradient(180deg, #10161a 0%, #0a0e10 100%);
+        border: 1px solid #765719;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      .dptHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid #23313a;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+      }
+      .dptTitle {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--gold2);
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dptSub {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin-top: 3px;
+      }
+      .dptControlBar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        background: #090e12;
+        border: 1px solid #1c2730;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-top: 10px;
+      }
+      .dptControlGroup {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dptInput {
+        background: #141c22;
+        border: 1px solid #d79b19;
+        color: #f4c84f;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        width: 75px;
+        text-align: right;
+        outline: none;
+      }
+      .dptBtn {
+        background: #1a252f;
+        border: 1px solid #d79b19;
+        color: #f4c84f;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .dptBtn:hover {
+        background: #d79b19;
+        color: #000;
+      }
+      .dptGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .dptKpi {
+        background: #0d1419;
+        border: 1px solid #1c2730;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .dptKpi .lab {
+        font-size: 11px;
+        color: #8fa2b3;
+      }
+      .dptKpi .val {
+        font-size: 17px;
+        font-weight: 800;
+        margin-top: 2px;
+      }
+      .dptKpi .sub {
+        font-size: 10.5px;
+        color: #64748b;
+        margin-top: 2px;
+      }
+      .dptProgressTrack {
+        width: 100%;
+        height: 8px;
+        background: #151e25;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .dptProgressBar {
+        height: 100%;
+        width: 0%;
+        background: #d79b19;
+        transition: width 0.3s ease;
+      }
+      .dptLockedBanner {
+        background: linear-gradient(135deg, rgba(215, 155, 25, 0.18), rgba(245, 189, 54, 0.06));
+        border: 1.5px solid #f5bd36;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 14px;
+        display: none;
+      }
+      .dptModalOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(5px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+      }
+      .dptModalBox {
+        background: #0e151b;
+        border: 2px solid #ef6a6a;
+        border-radius: 14px;
+        max-width: 550px;
+        width: 90%;
+        padding: 24px;
+        box-shadow: 0 10px 40px rgba(239, 106, 106, 0.3);
+      }
     </style>
   </head>
   <body>
@@ -4424,7 +4782,7 @@ _HTML = r'''
         </div>
         <nav class="sideNav">
           <a class="active" href="/">▦ Dashboard</a><a href="/instruments">▥ Instrumentos</a
-          ><a href="/account">▣ Cuenta en vivo</a><a href="/performance">📈 Rendimiento</a><a href="#openPositions">◈ Posiciones abiertas</a
+          ><a href="/account">▣ Cuenta en vivo</a><a href="/performance">📈 Rendimiento</a><a href="/strategy-bases">📚 Bases de Estrategias</a><a href="#openPositions">◈ Posiciones abiertas</a
           ><a href="#recentAnalysis">◷ Análisis recientes</a>
         </nav>
         <div class="sideStatus">
@@ -4439,7 +4797,7 @@ _HTML = r'''
             <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Dashboard en tiempo real</div>
           </div>
           <div class="actions">
-            <a class="btn" href="/account">Cuenta en vivo</a><a class="btn" href="/performance">Rendimiento</a><a class="btn" href="/instruments">Instrumentos</a>
+            <a class="btn" href="/account">Cuenta en vivo</a><a class="btn" href="/performance">Rendimiento</a><a class="btn" href="/strategy-bases">Bases de Estrategias</a><a class="btn" href="/instruments">Instrumentos</a>
             <div class="badge" id="status">Conectando…</div>
           </div>
         </div>
@@ -4485,6 +4843,96 @@ _HTML = r'''
             <div class="value" id="openCount">0</div>
             <div class="sub" id="healthSummary">Sin posiciones</div>
           </div>
+          <!-- META DE GANANCIA DIARIA (DAILY PROFIT TARGET) -->
+          <div class="card full dptCard" id="dailyProfitTargetCard">
+            <div class="dptHeader">
+              <div>
+                <div class="dptTitle">🎯 Meta de Ganancia Diaria (Daily Profit Target)</div>
+                <div class="dptSub">
+                  Fija un objetivo diario en % sobre el balance. Al cumplirse, se bloquean todas las nuevas entradas para proteger ganancias. Reactivación automática en la sesión de Asia (00:00 UTC).
+                </div>
+              </div>
+              <div id="dptStatusBadge" class="statusPill good">Cargando...</div>
+            </div>
+
+            <div class="dptControlBar">
+              <label class="dptControlGroup" style="cursor: pointer; user-select: none;">
+                <input type="checkbox" id="dptEnabledCheckbox" style="accent-color: #d79b19; width: 16px; height: 16px;" onchange="saveDailyTargetSettings()" checked />
+                <span style="font-weight: 700; font-size: 12.5px;">Habilitar meta diaria de beneficio</span>
+              </label>
+
+              <div class="dptControlGroup" style="margin-left: auto;">
+                <span style="font-size: 12px; color: #94a3b8;">Meta Diaria:</span>
+                <input type="number" id="dptTargetPercentInput" class="dptInput" step="0.1" min="0.1" max="100" value="2.0" onchange="saveDailyTargetSettings()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveDailyTargetSettings();}" />
+                <span style="font-weight: 700; color: #f4c84f;">%</span>
+                <button type="button" id="dptSaveSettingsBtn" class="dptBtn" onclick="saveDailyTargetSettings()">Guardar Meta</button>
+              </div>
+            </div>
+
+            <div class="dptGrid">
+              <div class="dptKpi">
+                <div class="lab">Retorno Diario Cerrado</div>
+                <div class="val" id="dptReturnDisplay">+0.00%</div>
+                <div class="sub" id="dptTodayPnlDisplay">+$0.00 hoy</div>
+              </div>
+              <div class="dptKpi">
+                <div class="lab">Meta Objetivo</div>
+                <div class="val" id="dptTargetDisplay" style="color: #f4c84f;">2.00%</div>
+                <div class="sub">Límite diario establecido</div>
+              </div>
+              <div class="dptKpi">
+                <div class="lab">Progreso Hacia la Meta</div>
+                <div class="dptProgressTrack"><div class="dptProgressBar" id="dptProgressBar"></div></div>
+                <div class="sub" id="dptTradesSummary">0 cerrados hoy</div>
+              </div>
+              <div class="dptKpi">
+                <div class="lab">Próxima Reactivación</div>
+                <div class="val" style="font-size: 14px; color: #60a5fa;">Sesión de Asia</div>
+                <div class="sub">00:00 UTC / 09:00 Tokio (Automática)</div>
+              </div>
+            </div>
+
+            <div class="dptLockedBanner" id="dptLockedBanner">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div id="dptBannerText" style="flex: 1 1 320px; line-height: 1.5;">
+                  <b>🎯 ¡META DIARIA CUMPLIDA!</b> Entradas bloqueadas para proteger tus ganancias.
+                </div>
+                <div>
+                  <button type="button" id="dptOverrideBtn" onclick="openDptOverrideModal()" style="background: linear-gradient(135deg, #d79b19, #f5bd36); color: #000; font-weight: 800; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 10px rgba(215, 155, 25, 0.4); font-size: 12.5px;">
+                    🚀 ¿Deseas ganar un poquito más?
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODAL DE ADVERTENCIA DE RIESGO DE OVERTRADING -->
+          <div class="dptModalOverlay" id="dptRiskModal">
+            <div class="dptModalBox">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                <span style="font-size: 24px;">⚠️</span>
+                <b style="font-size: 16px; color: #ff6b6b; letter-spacing: 0.03em;">ADVERTENCIA DE RIESGO: PELIGRO DE OVERTRADING</b>
+              </div>
+              <p style="font-size: 13px; line-height: 1.55; color: #e2e8f0; margin-bottom: 12px;">
+                ¡Felicidades! Has cumplido la meta de rentabilidad diaria prevista en tu plan de trading.
+              </p>
+              <div style="background: rgba(255, 69, 58, 0.12); border-left: 3px solid #ff453a; padding: 10px 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #fca5a5; margin-bottom: 16px;">
+                <b>ALERTA DE DISCIPLINA:</b> Continuar operando desafía las reglas de gestión de riesgo y expone tus ganancias a reversiones inesperadas del mercado, incremento de spreads y deslizamientos. <b>Corres el riesgo real de perder parte o la totalidad de los beneficios acumulados en la sesión.</b>
+              </div>
+              <p style="font-size: 12.5px; color: #cbd5e1; margin-bottom: 20px;">
+                ¿Deseas desbloquear temporalmente el escaneo de nuevas entradas para buscar un objetivo adicional (+1.0% de margen) asumiendo este riesgo?
+              </p>
+              <div style="display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                <button type="button" onclick="closeDptOverrideModal()" style="background: #1e293b; border: 1px solid #475569; color: #f1f5f9; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                  🛡️ Mantener Ganancias Protegidas (Recomendado)
+                </button>
+                <button type="button" id="dptConfirmOverrideBtn" onclick="confirmDptOverride()" style="background: #dc2626; border: 1px solid #ef4444; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer;">
+                  ⚠️ Asumo el Riesgo, Desbloquear (+1.0%)
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="card full" id="confluenceMatrixCard">
             <div class="selectorHead">
               <div>
@@ -6230,8 +6678,14 @@ _HTML = r'''
             const rows = visibleWorkers(s),
               grid = $('workerGrid');
             if (!grid) return;
-            const order = ['BOOM', 'CRASH', 'VOLATILITY', 'STEP', 'JUMP', 'GOLD', 'FOREX', 'ORB'];
-            const workerLabels = { IDX_OPEN: 'Apertura Bursátiles' };
+            const order = ['BOOM', 'CRASH', 'VOLATILITY', 'STEP', 'JUMP', 'GOLD', 'ORB', 'FOREX', 'MALAYSIAN_SNR', 'ICT'];
+            const workerLabels = {
+              IDX_OPEN: 'Apertura Bursátiles',
+              GOLD: 'Oro · Cuartos & Niveles Psicológicos (XAUUSD)',
+              ORB: 'ORB · Apertura New York (8:30-10:00 EST)',
+              MALAYSIAN_SNR: 'Malaysian SNR (M15 Fresh/Break)',
+              ICT: 'ICT Sabri Malle (FVG/OB/Liquidez)',
+            };
             const now = Date.now();
             const sorted = [...rows].sort((a, b) => {
               const ai = order.indexOf(String(a.bot_profile || '').toUpperCase()),
@@ -6241,6 +6695,9 @@ _HTML = r'''
             grid.innerHTML =
               sorted
                 .map((w) => {
+                  const prof = String(w.bot_profile || '').toUpperCase();
+                  const isGold = prof === 'GOLD';
+                  const isOrb = prof === 'ORB';
                   const total = Number(w.symbols_total || 0),
                     done = Number(w.symbols_processed || 0),
                     pctv = total ? Math.min(100, (done / total) * 100) : 0;
@@ -6257,25 +6714,47 @@ _HTML = r'''
                       : paused
                         ? w.status === 'SESSION_WARMUP'
                           ? 'PREPARANDO SESIÓN'
-                          : 'PAUSADO · SESIÓN / MERCADO'
+                          : isOrb
+                            ? 'ACTIVO · ESPERANDO SESIÓN NY (09:30 EST)'
+                            : 'PAUSADO · SESIÓN / MERCADO'
                         : stale
                           ? 'SIN ACTIVIDAD'
-                          : w.status || 'RUNNING';
+                          : isGold && (w.status === 'RUNNING' || !w.status)
+                            ? 'ACTIVO · ESTRATEGIA CUARTOS'
+                            : isOrb && w.status === 'RUNNING'
+                              ? 'ACTIVO · SESIÓN NY VIGENTE'
+                              : w.status || 'RUNNING';
                   const cls =
-                    paused || disabled
-                      ? ''
-                      : status === 'RUNNING'
-                        ? 'good'
-                        : status === 'STARTING'
-                          ? 'warn'
-                          : 'bad';
+                    disabled
+                      ? 'bad'
+                      : paused && !isOrb
+                        ? ''
+                        : (isOrb && paused) || status.startsWith('ACTIVO') || status === 'RUNNING'
+                          ? 'good'
+                          : status === 'STARTING'
+                            ? 'warn'
+                            : 'bad';
                   const displayName =
-                    workerLabels[String(w.bot_profile || '').toUpperCase()] ||
+                    workerLabels[prof] ||
                     w.bot_profile ||
                     'WORKER';
-                  return `<section class="workerCard ${paused || disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
+                  const stratLabel = isGold
+                    ? 'Cuartos ($25) · M5/H1'
+                    : isOrb
+                      ? 'ORB New York M5'
+                      : prof.includes('VOLATILITY')
+                        ? 'SMC + Shard Vol'
+                        : prof.includes('FOREX')
+                          ? 'SMC Forex Killzone'
+                          : prof === 'MALAYSIAN_SNR'
+                            ? 'Malaysian SNR M15'
+                            : prof === 'ICT'
+                              ? 'ICT Sabri Malle M5'
+                              : 'SMC Institucional';
+                  return `<section class="workerCard ${paused && !isOrb ? 'workerPaused' : disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
     <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
     <div class="workerMeta">
+      <div><span>Estrategia</span><b style="color:#d79b19;">${esc(stratLabel)}</b></div>
       <div><span>PID</span><b>${esc(w.pid || '—')}</b></div>
       <div><span>Magic</span><b>${esc(w.daemon_magic || '—')}</b></div>
       <div><span>Ciclo</span><b>${esc(w.cycle_number || 0)}</b></div>
@@ -6422,8 +6901,165 @@ _HTML = r'''
               </tr>
             `).join('');
           }
+
+          function showDptNotification(msg, isError) {
+            let toast = $('dptToast');
+            if (!toast) {
+              toast = document.createElement('div');
+              toast.id = 'dptToast';
+              toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-weight:700;font-size:13px;z-index:99999;box-shadow:0 6px 18px rgba(0,0,0,0.5);transition:all 0.3s ease;pointer-events:none;';
+              document.body.appendChild(toast);
+            }
+            toast.textContent = msg;
+            toast.style.background = isError ? '#ff453a' : '#00db79';
+            toast.style.color = '#000000';
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            setTimeout(() => {
+              if (toast) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+              }
+            }, 3500);
+          }
+
+          function renderDailyProfitTarget(s) {
+            const d = (s && s.daily_profit_target) ? s.daily_profit_target : (s || {});
+            const card = $('dailyProfitTargetCard');
+            if (!card) return;
+            const enabled = Boolean(d.enabled);
+            const isLocked = Boolean(d.is_locked);
+            const overrideUnlocked = Boolean(d.override_unlocked);
+            const targetPct = Number(d.target_percent != null ? d.target_percent : 2.0).toFixed(2);
+            const extraBuffer = Number(d.extra_target_buffer_percent != null ? d.extra_target_buffer_percent : 1.0).toFixed(2);
+            const effectiveTarget = Number(d.effective_target_percent != null ? d.effective_target_percent : targetPct).toFixed(2);
+            const dailyReturn = Number(d.daily_return_pct || 0.0);
+            const todayPnl = Number(d.today_net_pnl || 0.0);
+            const tradesCount = Number(d.today_trades_count || 0);
+            const wins = Number(d.today_winning_trades || 0);
+            const losses = Number(d.today_losing_trades || 0);
+
+            const badge = $('dptStatusBadge');
+            if (badge) {
+              if (!enabled) {
+                badge.className = 'statusPill neutral';
+                badge.textContent = '⚪ Desactivado';
+              } else if (isLocked) {
+                badge.className = 'statusPill bad';
+                badge.textContent = '🔒 Meta Alcanzada · Entradas Bloqueadas';
+              } else if (overrideUnlocked) {
+                badge.className = 'statusPill warn';
+                badge.textContent = `⚡ Desbloqueo Activo (+${extraBuffer}% extra)`;
+              } else {
+                badge.className = 'statusPill good';
+                badge.textContent = '🟢 Operando Normal';
+              }
+            }
+
+            const chk = $('dptEnabledCheckbox');
+            if (chk && document.activeElement !== chk) chk.checked = enabled;
+            const inp = $('dptTargetPercentInput');
+            if (inp && document.activeElement !== inp) inp.value = targetPct;
+
+            if ($('dptReturnDisplay')) {
+              $('dptReturnDisplay').textContent = (dailyReturn >= 0 ? '+' : '') + dailyReturn.toFixed(2) + '%';
+              $('dptReturnDisplay').style.color = dailyReturn > 0 ? '#00db79' : dailyReturn < 0 ? '#ff453a' : 'inherit';
+            }
+            if ($('dptTodayPnlDisplay')) {
+              $('dptTodayPnlDisplay').textContent = (todayPnl >= 0 ? '+$' : '-$') + Math.abs(todayPnl).toFixed(2) + ' hoy';
+              $('dptTodayPnlDisplay').style.color = todayPnl > 0 ? '#00db79' : todayPnl < 0 ? '#ff453a' : '#94a3b8';
+            }
+            if ($('dptTargetDisplay')) {
+              $('dptTargetDisplay').textContent = effectiveTarget + '%' + (overrideUnlocked ? ` (base ${targetPct}% + ${extraBuffer}% buffer)` : '');
+            }
+            if ($('dptTradesSummary')) {
+              $('dptTradesSummary').textContent = `${tradesCount} cerrados · ${wins} ganados / ${losses} perdidos`;
+            }
+
+            const prog = $('dptProgressBar');
+            if (prog) {
+              const eff = parseFloat(effectiveTarget) || 2.0;
+              const ratio = eff > 0 ? Math.min(100, Math.max(0, (dailyReturn / eff) * 100)) : 0;
+              prog.style.width = ratio.toFixed(1) + '%';
+              prog.style.background = isLocked ? '#00db79' : dailyReturn < 0 ? '#ff453a' : '#d79b19';
+            }
+
+            const banner = $('dptLockedBanner');
+            if (banner) {
+              banner.style.display = isLocked ? 'block' : 'none';
+              if (isLocked && $('dptBannerText')) {
+                $('dptBannerText').innerHTML = `<b>🎯 ¡META DIARIA CUMPLIDA!</b> Se ha alcanzado un retorno de <b>+${dailyReturn.toFixed(2)}%</b> (meta: ${effectiveTarget}%). Las nuevas entradas se encuentran bloqueadas en todos los workers para proteger tus ganancias.<br><span style="font-size:11px; color:#cbd5e1;">🛡️ Las posiciones abiertas continúan activas con gestión de riesgo (SL, TP, BE con protección de swap y spread).<br>🌏 Reactivación automática de todos los workers en la próxima <b>sesión de Asia (00:00 UTC / 09:00 JST)</b>.</span>`;
+              }
+            }
+          }
+
+          window.saveDailyTargetSettings = async function() {
+            const chk = $('dptEnabledCheckbox');
+            const inp = $('dptTargetPercentInput');
+            const btn = $('dptSaveSettingsBtn');
+            if (!inp) return;
+            const enabled = chk ? chk.checked : true;
+            const target_percent = parseFloat(inp.value) || 2.0;
+            if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+            try {
+              const res = await fetch('/api/daily-target/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled, target_percent })
+              });
+              const data = await res.json();
+              if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la meta');
+              if (data.daily_profit_target) {
+                renderDailyProfitTarget(data.daily_profit_target);
+              }
+              showDptNotification(`✓ Meta diaria (${enabled ? target_percent.toFixed(2) + '%' : 'Desactivada'}) guardada exitosamente y persistida.`);
+              if (typeof refresh === 'function') await refresh();
+              else if (typeof window.refresh === 'function') await window.refresh();
+            } catch (err) {
+              showDptNotification('❌ Error al guardar meta diaria: ' + err.message, true);
+            } finally {
+              if (btn) { btn.disabled = false; btn.textContent = 'Guardar Meta'; }
+            }
+          };
+
+          window.openDptOverrideModal = function() {
+            const modal = $('dptRiskModal');
+            if (modal) modal.style.display = 'flex';
+          };
+
+          window.closeDptOverrideModal = function() {
+            const modal = $('dptRiskModal');
+            if (modal) modal.style.display = 'none';
+          };
+
+          window.confirmDptOverride = async function() {
+            const btn = $('dptConfirmOverrideBtn');
+            if (btn) btn.disabled = true;
+            try {
+              const res = await fetch('/api/daily-target/override', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirm: true, extra_percent: 1.0 })
+              });
+              const data = await res.json();
+              if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo desbloquear');
+              closeDptOverrideModal();
+              if (data.daily_profit_target) {
+                renderDailyProfitTarget(data.daily_profit_target);
+              }
+              showDptNotification('⚡ Nuevas entradas desbloqueadas con buffer adicional asumido.');
+              if (typeof refresh === 'function') await refresh();
+              else if (typeof window.refresh === 'function') await window.refresh();
+            } catch (err) {
+              showDptNotification('❌ Error al desbloquear: ' + err.message, true);
+            } finally {
+              if (btn) btn.disabled = false;
+            }
+          };
+
           function render(s) {
             latestState = s;
+            renderDailyProfitTarget(s);
             renderConfluenceMatrix(s);
             renderDashboardNews(s);
             renderCatalog(s);
@@ -6548,6 +7184,7 @@ _HTML = r'''
               refreshBusy = false;
             }
           }
+          window.refresh = refresh;
           const selectAllBtn = $('selectAll'),
             clearAllBtn = $('clearAll'),
             saveSelectionBtn = $('saveSelection');
@@ -6853,6 +7490,7 @@ _INSTRUMENTS_HTML = r'''
           <a class="btn" href="/">← Volver al dashboard</a>
           <a class="btn" href="/account">Cuenta en vivo</a>
           <a class="btn" href="/performance">Rendimiento</a>
+          <a class="btn" href="/strategy-bases">Bases de Estrategias</a>
         </div>
       </div>
       <section class="card">
@@ -6862,7 +7500,9 @@ _INSTRUMENTS_HTML = r'''
               SINTÉTICOS</button
             ><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button
             ><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button
-            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">MALAYSIAN SNR</button>
+            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">MALAYSIAN SNR</button
+            ><button class="btn profileTab" data-profile="GOLD" type="button">CUARTOS (GOLD)</button
+            ><button class="btn profileTab" data-profile="ICT" type="button">ICT (METALES, CRIPTO & ÍNDICES)</button>
           </div>
           <div class="actions">
             <button class="btn" id="selectAll" type="button">Seleccionar todos</button
@@ -6899,7 +7539,7 @@ _INSTRUMENTS_HTML = r'''
           <div id="newsList" class="msg">Cargando noticias…</div>
         </section>
         <div class="note" id="profileNote">
-          <b>Persistencia independiente:</b> Sintéticos, Forex, ORB y Malaysian SNR se guardan por separado.
+          <b>Persistencia independiente:</b> Sintéticos, Forex, ORB, Malaysian SNR, Cuartos (Gold) e ICT (Metales & Cripto) se guardan por separado.
         </div>
         <div class="note">
           <b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el
@@ -6940,7 +7580,7 @@ _INSTRUMENTS_HTML = r'''
       }
       function selectionSummary(s) {
         return (
-          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR']
+          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR', 'GOLD', 'ICT']
             .map((p, i) => {
               const allowed = new Set(
                 visibleInstrumentGroups(s)
@@ -6948,7 +7588,7 @@ _INSTRUMENTS_HTML = r'''
                   .flatMap((g) => g.symbols),
               );
               return (
-                ['Sintéticos', 'Forex', 'ORB', 'Malaysian SNR'][i] +
+                ['Sintéticos', 'Forex', 'ORB', 'Malaysian SNR', 'Cuartos (Gold)', 'ICT (Metales, Cripto & Índices)'][i] +
                 ': ' +
                 ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
               );
@@ -6998,9 +7638,17 @@ _INSTRUMENTS_HTML = r'''
                     const isPrioritized = prioritized.has(sym);
                     const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
                     const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis de 2 años por baja expectativa matemática.' : '');
-                    const badge = isPruned
+                    let badge = isPruned
                       ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda)</span>`
                       : `<span class="activeBadge">✓ Priorizado</span>`;
+                    if (activeProfile === 'ICT' && !isPruned) {
+                      if (sym.includes('XAG')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 ICT (+38.1R)</span>`;
+                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #2 ICT (+28.1R)</span>`;
+                      else if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Priorizado (+6.0R)</span>`;
+                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Índices (+12.0R / 64.3% WR)</span>`;
+                      else if (sym.includes('Tech 100')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT Tech (+6.0R / 50.0% WR)</span>`;
+                      else if (sym.includes('SP 500')) badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ Priorizado (+1.0R)</span>`;
+                    }
                     return `<label class="item ${isPruned ? 'prunedItem' : ''}"><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked ? 'checked' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
                   }).join('')}</section>`
                 : '';

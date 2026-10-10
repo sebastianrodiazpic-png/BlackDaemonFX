@@ -181,7 +181,7 @@ LOADING_UI = r'''
       if (
         url.origin !== location.origin ||
         url.hash ||
-        !['/', '/index.html', '/instruments', '/account'].includes(
+        !['/', '/index.html', '/instruments', '/account', '/performance', '/strategy-bases', '/bases-estrategias'].includes(
           url.pathname.replace(/\/$/, '') || '/',
         )
       )

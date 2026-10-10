@@ -13,7 +13,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Directorios de datos
 HISTORICAL_DIRS = [
     Path("data/forex_historical"),
     Path("data/historical")
@@ -22,7 +21,6 @@ HISTORICAL_DIRS = [
 OUTPUT_DIR = Path("storage")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Spreads típicos calibrados para cálculo exacto de comisiones / BE
 SPREADS = {
     # Forex
     "AUDUSD": 0.00015,
@@ -111,70 +109,63 @@ def compute_atr(df: pd.DataFrame, period: int = 14) -> np.ndarray:
     return atr
 
 def build_h4_candles(df_h1: pd.DataFrame) -> pd.DataFrame:
-    """Reconstruye velas H4 agregadas a partir de H1."""
-    h4 = df_h1.set_index('time').resample('4h').agg({
+    """Reconstruye velas H4 agregadas a partir de H1 asegurando índice temporal UTC."""
+    df = df_h1.copy()
+    h4 = df.set_index('time').resample('4h').agg({
         'open': 'first',
         'high': 'max',
         'low': 'min',
         'close': 'last',
         'tick_volume': 'sum'
     }).dropna().reset_index()
+    h4['time'] = pd.to_datetime(h4['time'], utc=True)
     return h4
 
-def find_active_fvgs(h4_df: pd.DataFrame, current_time: pd.Timestamp, lookback_bars: int = 40) -> list[dict]:
-    """Detecta Fair Value Gaps activos en H4 hasta el momento actual."""
-    past_h4 = h4_df[h4_df['time'] <= current_time]
-    n = len(past_h4)
-    if n < 4:
+def find_active_fvgs_fast(h4_df: pd.DataFrame, h4_idx: int, lookback_bars: int = 40) -> list[dict]:
+    """Detecta Fair Value Gaps activos en H4 hasta el índice h4_idx."""
+    if h4_idx < 4:
         return []
 
-    start_idx = max(2, n - lookback_bars)
+    start_idx = max(2, h4_idx - lookback_bars)
     fvgs = []
-    highs = past_h4['high'].values
-    lows = past_h4['low'].values
-    closes = past_h4['close'].values
-    opens = past_h4['open'].values
+    highs = h4_df['high'].values
+    lows = h4_df['low'].values
+    closes = h4_df['close'].values
+    opens = h4_df['open'].values
 
-    for i in range(start_idx, n):
-        # Bearish FVG: Vela 1 (i-2), Vela 2 (i-1 expansión bajista), Vela 3 (i)
-        # Low de i-2 > High de i
+    for i in range(start_idx, h4_idx + 1):
+        # Bearish FVG: Low de i-2 > High de i
         if lows[i - 2] > highs[i] and closes[i - 1] < opens[i - 1]:
             gap_top = lows[i - 2]
             gap_bottom = highs[i]
-            # Verificar si no ha sido totalmente mitigado después de i
             mitigated = False
-            if i + 1 < n:
-                for k in range(i + 1, n):
-                    if highs[k] >= gap_top:
-                        mitigated = True
-                        break
+            for k in range(i + 1, h4_idx + 1):
+                if highs[k] >= gap_top:
+                    mitigated = True
+                    break
             if not mitigated:
                 fvgs.append({
                     'type': 'BEARISH',
                     'top': gap_top,
                     'bottom': gap_bottom,
                     'height': gap_top - gap_bottom,
-                    'bar_idx': i
                 })
 
-        # Bullish FVG: Vela 1 (i-2), Vela 2 (i-1 expansión alcista), Vela 3 (i)
-        # High de i-2 < Low de i
+        # Bullish FVG: High de i-2 < Low de i
         if highs[i - 2] < lows[i] and closes[i - 1] > opens[i - 1]:
             gap_top = lows[i]
             gap_bottom = highs[i - 2]
             mitigated = False
-            if i + 1 < n:
-                for k in range(i + 1, n):
-                    if lows[k] <= gap_bottom:
-                        mitigated = True
-                        break
+            for k in range(i + 1, h4_idx + 1):
+                if lows[k] <= gap_bottom:
+                    mitigated = True
+                    break
             if not mitigated:
                 fvgs.append({
                     'type': 'BULLISH',
                     'top': gap_top,
                     'bottom': gap_bottom,
                     'height': gap_top - gap_bottom,
-                    'bar_idx': i
                 })
     return fvgs
 
@@ -183,18 +174,16 @@ def detect_ict_sabri_malle_setups(
     df_h1: pd.DataFrame,
     df_h4: pd.DataFrame,
     spread: float,
-    range_lookback: int = 24, # 24 horas de acumulación
+    range_lookback: int = 24,
     min_rr_planned: float = 2.0
 ) -> list[dict]:
     """Escanea el historial de 2 años buscando setups estrictos de la estrategia ICT Sabri Malle."""
     setups = []
     atr_h1 = compute_atr(df_h1, period=14)
     
-    # Calcular EMAs en H4 para sesgo macro
-    h4_closes = df_h4['close'].ewm(span=50, adjust=False).mean()
-    h4_ema200 = df_h4['close'].ewm(span=200, adjust=False).mean()
-    df_h4['ema50'] = h4_closes
-    df_h4['ema200'] = h4_ema200
+    # Calcular EMAs en H4
+    df_h4['ema50'] = df_h4['close'].ewm(span=50, adjust=False).mean()
+    df_h4['ema200'] = df_h4['close'].ewm(span=200, adjust=False).mean()
     
     h1_times = df_h1['time'].values
     h1_highs = df_h1['high'].values
@@ -202,28 +191,35 @@ def detect_ict_sabri_malle_setups(
     h1_opens = df_h1['open'].values
     h1_closes = df_h1['close'].values
     
+    h4_times = df_h4['time'].values
+    h4_closes = df_h4['close'].values
+    h4_ema50 = df_h4['ema50'].values
+    h4_ema200 = df_h4['ema200'].values
+    
     n_h1 = len(df_h1)
     
-    # Recorrer velas H1 desde que haya suficiente historial acumulado
     i = max(range_lookback + 5, 200)
-    while i < n_h1 - 24: # Dejar margen para desarrollo
-        current_time = pd.Timestamp(h1_times[i])
+    while i < n_h1 - 24:
+        c_time = h1_times[i]
         
-        # 1. Filtro Macro: Sesgo en H4
-        h4_sub = df_h4[df_h4['time'] <= current_time]
-        if len(h4_sub) < 30:
+        # Búsqueda rápida de H4 correspondiente con np.searchsorted
+        h4_idx = np.searchsorted(h4_times, c_time, side='right') - 1
+        if h4_idx < 30:
             i += 1
             continue
             
-        last_h4 = h4_sub.iloc[-1]
-        bias_bearish = (last_h4['close'] < last_h4['ema50']) and (last_h4['ema50'] <= last_h4['ema200'])
-        bias_bullish = (last_h4['close'] > last_h4['ema50']) and (last_h4['ema50'] >= last_h4['ema200'])
+        c_h4_close = h4_closes[h4_idx]
+        c_h4_ema50 = h4_ema50[h4_idx]
+        c_h4_ema200 = h4_ema200[h4_idx]
+        
+        bias_bearish = (c_h4_close < c_h4_ema50) and (c_h4_ema50 <= c_h4_ema200)
+        bias_bullish = (c_h4_close > c_h4_ema50) and (c_h4_ema50 >= c_h4_ema200)
         
         if not (bias_bearish or bias_bullish):
             i += 1
             continue
             
-        # 2. Acumulación (A): Rango previo de consolidación de 24 velas
+        # 2. Acumulación (A): Rango previo de 24 velas
         r_slice_high = h1_highs[i - range_lookback : i]
         r_slice_low = h1_lows[i - range_lookback : i]
         range_high = float(np.max(r_slice_high))
@@ -231,19 +227,17 @@ def detect_ict_sabri_malle_setups(
         range_height = range_high - range_low
         curr_atr = float(atr_h1[i])
         
-        # El rango no debe estar ni muerto ni hiper-expandido
         if curr_atr <= 0 or range_height < (0.8 * curr_atr) or range_height > (6.0 * curr_atr):
             i += 1
             continue
             
-        # 3. Manipulación (M) / Judas Swing en las siguientes 1 a 6 velas
-        # Buscamos si en la ventana [i : i + 6] hubo un falso rompimiento que barrió BSL o SSL
+        # 3. Manipulación (M) / Judas Swing en [i : i + 6]
         manipulation_found = False
         direction = None
         sweep_peak = None
         sweep_idx = None
         
-        fvgs = find_active_fvgs(df_h4, current_time, lookback_bars=40)
+        fvgs = find_active_fvgs_fast(df_h4, h4_idx, lookback_bars=40)
         
         if bias_bearish:
             # Ventas: Barrido por encima de range_high (BSL)
@@ -254,21 +248,13 @@ def detect_ict_sabri_malle_setups(
                 c_high = h1_highs[cand_idx]
                 c_close = h1_closes[cand_idx]
                 
-                # Barrió el máximo del rango
                 if c_high > range_high:
-                    sweep_depth = c_high - range_high
-                    # Mitigación de FVG HTF (o nivel clave)
                     fvg_mitigated = False
-                    mitigated_fvg_size = 0.0
                     for fvg in fvgs:
                         if fvg['type'] == 'BEARISH':
-                            # El precio de barrido entró en la zona del FVG
                             if c_high >= fvg['bottom'] and c_high <= (fvg['top'] + (0.1 * fvg['height'])):
                                 fvg_mitigated = True
-                                mitigated_fvg_size = fvg['height']
                                 break
-                                
-                    # Si no hay FVG explícito, validar si reaccionó con fuerte mecha de absorción en resistencia
                     wick_ratio = (c_high - max(h1_opens[cand_idx], c_close)) / (c_high - h1_lows[cand_idx] + 1e-9)
                     if fvg_mitigated or (wick_ratio >= 0.40):
                         direction = "SELL"
@@ -288,12 +274,10 @@ def detect_ict_sabri_malle_setups(
                 
                 if c_low < range_low:
                     fvg_mitigated = False
-                    mitigated_fvg_size = 0.0
                     for fvg in fvgs:
                         if fvg['type'] == 'BULLISH':
                             if c_low <= fvg['top'] and c_low >= (fvg['bottom'] - (0.1 * fvg['height'])):
                                 fvg_mitigated = True
-                                mitigated_fvg_size = fvg['height']
                                 break
                     wick_ratio = (min(h1_opens[cand_idx], c_close) - c_low) / (h1_highs[cand_idx] - c_low + 1e-9)
                     if fvg_mitigated or (wick_ratio >= 0.40):
@@ -308,25 +292,20 @@ def detect_ict_sabri_malle_setups(
             continue
 
         # 4. Confirmación Estructural en LTF: Break & Retest (MSS)
-        # Tras la manipulación, el precio debe quebrar la estructura local y luego retestearla
         mss_confirmed = False
         retest_idx = None
         entry_price = None
         stop_loss = None
         
         if direction == "SELL":
-            # Soporte local previo al barrido (en las 3 velas antes del pico)
             local_support = min(h1_lows[sweep_idx - 3 : sweep_idx])
-            # Buscar vela de quiebre en las 1-5 velas posteriores al pico
             break_idx = None
             for b in range(sweep_idx + 1, min(n_h1, sweep_idx + 6)):
                 if h1_closes[b] < local_support:
                     break_idx = b
                     break
             if break_idx:
-                # Buscar retest a la zona rota (soporte pasado a resistencia)
                 for r in range(break_idx + 1, min(n_h1, break_idx + 6)):
-                    # Retest: vela sube hacia local_support
                     if h1_highs[r] >= (local_support - (0.2 * range_height)) and h1_closes[r] <= (local_support + (0.1 * range_height)):
                         retest_idx = r
                         entry_price = local_support
@@ -361,15 +340,11 @@ def detect_ict_sabri_malle_setups(
 
         # 5. Take Profit (TP1) & Validación Fibonacci (Zona Discount / Premium)
         if direction == "SELL":
-            # Target natural: Liquidez inferior del rango (range_low)
             planned_reward_to_range = entry_price - range_low
             rr_natural = planned_reward_to_range / risk
-            
-            # Fibonacci: Nivel 0.50 del impulso manipulación -> quiebre
             swing_low_impulse = min(h1_lows[sweep_idx : retest_idx + 1])
             fibo_50 = (sweep_peak + swing_low_impulse) / 2.0
             
-            # Validar que range_low esté en zona Discount (< 0.50) y RR >= 2.0
             if rr_natural >= min_rr_planned and range_low < fibo_50:
                 tp1_price = entry_price - (2.0 * risk)
                 tp2_price_1_3 = entry_price - (3.0 * risk)
@@ -392,11 +367,12 @@ def detect_ict_sabri_malle_setups(
                 i += 1
                 continue
 
-        # Guardar setup válido
+        entry_dt = pd.to_datetime(h1_times[retest_idx], utc=True)
+
         setups.append({
             "symbol": symbol,
             "asset_class": ASSET_CLASSES.get(symbol, "forex"),
-            "entry_time": pd.Timestamp(h1_times[retest_idx]),
+            "entry_time": entry_dt,
             "h1_index": retest_idx,
             "direction": direction,
             "entry_price": float(entry_price),
@@ -410,11 +386,10 @@ def detect_ict_sabri_malle_setups(
             "sweep_depth_ratio": float(abs(sweep_peak - (range_high if direction == "SELL" else range_low)) / range_height),
             "spread": float(spread),
             "spread_to_risk": float(spread / risk),
-            "hour_utc": int(pd.Timestamp(h1_times[retest_idx]).hour),
-            "day_of_week": int(pd.Timestamp(h1_times[retest_idx]).dayofweek),
+            "hour_utc": int(entry_dt.hour),
+            "day_of_week": int(entry_dt.dayofweek),
         })
 
-        # Avanzar el puntero para no sobre-solapar entradas consecutivas idénticas
         i = retest_idx + 12
 
     return setups
@@ -422,14 +397,14 @@ def detect_ict_sabri_malle_setups(
 def simulate_dual_position_trade(
     setup: dict,
     df_ltf: pd.DataFrame,
-    target_rr_2: float, # 3.0 o 4.0
+    target_rr_2: float,
     initial_balance: float = 10000.0,
     max_hold_bars: int = 400
 ) -> dict:
     """Simula la ejecución de 2 órdenes al 0.5% del capital (total 1% de riesgo):
     
     - Entrada 1 (0.5% riesgo = $50 USD): Cierra en TP1 (1:2 RR).
-    - Entrada 2 (0.5% riesgo = $50 USD): Al tocar TP1, su SL se mueve a Break Even (+ spread/swap buffer).
+    - Entrada 2 (0.5% riesgo = $50 USD): Al tocar TP1, su SL se mueve a Break Even (+ spread buffer).
       Luego busca TP2 (1:3 o 1:4).
     - Si toca SL antes de TP1: Ambas órdenes pierden 0.5% (Pérdida total = -1.0% = -1.0 R).
     """
@@ -444,10 +419,8 @@ def simulate_dual_position_trade(
     risk_points = setup["risk_points"]
     risk_usd_leg = initial_balance * 0.005 # 0.5% ($50)
     
-    # Nivel Break Even con protección de spread
     be_price = entry_price + spread if direction == "BUY" else entry_price - spread
     
-    # Velas posteriores a la entrada en LTF
     future_candles = df_ltf[df_ltf['time'] > entry_time].head(max_hold_bars)
     if future_candles.empty:
         return {
@@ -459,13 +432,13 @@ def simulate_dual_position_trade(
             "leg2_outcome": "TIMEOUT",
             "hit_tp1": False,
             "hit_tp2": False,
+            "hit_be": False,
         }
 
     highs = future_candles['high'].values
     lows = future_candles['low'].values
     opens = future_candles['open'].values
     closes = future_candles['close'].values
-    times = future_candles['time'].values
     n = len(future_candles)
 
     leg1_closed = False
@@ -488,14 +461,12 @@ def simulate_dual_position_trade(
             tp1_hit = (b_high >= tp1_price) if direction == "BUY" else (b_low <= tp1_price)
             
             if sl_hit and tp1_hit:
-                # Barra con ambos extremos: conservadurismo según dirección de apertura
                 if (direction == "BUY" and b_open < entry_price) or (direction == "SELL" and b_open > entry_price):
                     sl_hit, tp1_hit = True, False
                 else:
                     sl_hit, tp1_hit = False, True
 
             if sl_hit:
-                # Ambas órdenes tocan SL inicial
                 leg1_closed = True
                 leg1_outcome = "SL"
                 leg1_pnl = -risk_usd_leg
@@ -506,15 +477,12 @@ def simulate_dual_position_trade(
                 break
 
             elif tp1_hit:
-                # Leg 1 cierra con +2R (+$100 USD = +1.0% de cuenta)
                 leg1_closed = True
                 leg1_outcome = "TP1"
-                leg1_pnl = risk_usd_leg * 2.0 # 2R
-                
-                # Leg 2 pasa inmediatamente a Break Even protegido
+                leg1_pnl = risk_usd_leg * 2.0
                 leg2_in_be = True
 
-        # 2. Monitoreo de Leg 2 una vez que TP1 fue alcanzado
+        # 2. Monitoreo de Leg 2 tras TP1
         if leg1_closed and not leg2_closed:
             current_sl_leg2 = be_price if leg2_in_be else stop_loss
             be_sl_hit = (b_low <= current_sl_leg2) if direction == "BUY" else (b_high >= current_sl_leg2)
@@ -538,7 +506,6 @@ def simulate_dual_position_trade(
                 leg2_pnl = 0.0 if leg2_in_be else -risk_usd_leg
                 break
 
-    # Si se agotan las velas (tiempo límite)
     if not leg1_closed:
         leg1_outcome = "TIMEOUT"
         last_close = closes[-1]
@@ -554,7 +521,6 @@ def simulate_dual_position_trade(
 
     total_pnl_usd = leg1_pnl + leg2_pnl
     total_pnl_pct = (total_pnl_usd / initial_balance) * 100.0
-    # En términos de unidades R del trade total (donde 1R total = 100 USD = 1.0% cuenta):
     total_r = total_pnl_usd / (initial_balance * 0.01)
 
     return {
@@ -597,7 +563,6 @@ def run_full_replay():
             print(f"[!] {symbol}: 0 setups encontrados.")
             continue
             
-        # Simular cada setup bajo ambas variantes de TP2 (1:3 y 1:4)
         sym_pnl_rr3 = 0.0
         sym_pnl_rr4 = 0.0
         sym_r_rr3 = 0.0
@@ -612,7 +577,6 @@ def run_full_replay():
             res_rr3 = simulate_dual_position_trade(s, df_ltf, target_rr_2=3.0)
             res_rr4 = simulate_dual_position_trade(s, df_ltf, target_rr_2=4.0)
             
-            # Acumular
             sym_pnl_rr3 += res_rr3["total_pnl_usd"]
             sym_pnl_rr4 += res_rr4["total_pnl_usd"]
             sym_r_rr3 += res_rr3["total_r"]
@@ -629,7 +593,6 @@ def run_full_replay():
             if res_rr3["leg1_outcome"] == "SL":
                 sym_losses += 1
                 
-            # Registro enriquecido para Meta-Etiquetado
             record = {
                 "trade_id": f"{symbol}_{s['entry_time'].strftime('%Y%m%d_%H%M')}",
                 "symbol": symbol,
@@ -687,11 +650,9 @@ def run_full_replay():
         
         print(f"[+] {symbol:<20} | Setups: {n_setups:>3} | WR TP1: {winrate_tp1:>5.1f}% | WR TP2(1:3): {winrate_tp2_rr3:>5.1f}% | R Net (1:3): {sym_r_rr3:>+6.1f}R | R Net (1:4): {sym_r_rr4:>+6.1f}R ({elapsed:.1f}s)")
 
-    # Consolidar DataFrames
     df_trades = pd.DataFrame(all_trade_records)
     df_summary = pd.DataFrame(symbol_summaries)
     
-    # Guardar para Meta-Etiquetado
     trades_csv_path = OUTPUT_DIR / "meta_labeling_ict_sabri_malle_trades.csv"
     summary_csv_path = OUTPUT_DIR / "meta_labeling_ict_sabri_malle_summary.csv"
     
@@ -705,7 +666,6 @@ def run_full_replay():
     print(f"Dataset persistido para IA    : {trades_csv_path}")
     print(f"Resumen por activo persistido : {summary_csv_path}")
     
-    # Métricas Globales
     tot_r_3 = df_trades["r_net_rr3"].sum()
     tot_r_4 = df_trades["r_net_rr4"].sum()
     avg_r_3 = df_trades["r_net_rr3"].mean()

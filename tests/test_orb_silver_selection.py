@@ -85,7 +85,7 @@ def test_live_plan_caps_silver_operation_at_one_percent():
     repo=Repo();repo.trade_history_dataframe=lambda **kw:pd.DataFrame()
     e=LiveTradingEngine(provider=Provider(),repository=repo,executor=Executor(),
         config=LiveTradingConfig(orb_enabled=True,orb_risk_percent=2.,execution_enabled=False,
-            validate_order_in_dry_run=False,max_entry_drift_r=None))
+            validate_order_in_dry_run=False,max_entry_drift_r=None,meta_labeling_mode="SHADOW"))
     class Orb:
         config=SimpleNamespace(one_signal_per_session=True)
         def analyze_symbol(self,symbol):

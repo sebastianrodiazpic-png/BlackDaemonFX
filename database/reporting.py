@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import warnings
 import pandas as pd
 
 from database.repository import TradingRepository
@@ -39,7 +40,20 @@ def _write_sheet(writer, frame: pd.DataFrame, name: str):
     El ancho se mide sobre las primeras 1000 filas para no recorrer informes
     muy grandes por completo.
     """
-    frame.to_excel(writer, sheet_name=name, index=False)
+    clean_frame = frame.copy() if frame is not None and not frame.empty else frame
+    if clean_frame is not None and not clean_frame.empty:
+        for col in clean_frame.columns:
+            if pd.api.types.is_string_dtype(clean_frame[col]) or clean_frame[col].dtype == object or str(clean_frame[col].dtype).startswith("str"):
+                clean_frame[col] = clean_frame[col].map(
+                    lambda v: (
+                        f"{str(v)[:30000]}…[TRUNCADO_EXCEL]"
+                        if v is not None and len(str(v)) > 30000
+                        else v
+                    )
+                )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Cell contents too long.*", category=UserWarning)
+        clean_frame.to_excel(writer, sheet_name=name, index=False)
     ws = writer.book[name]
     ws.freeze_panes = "A2"
     if len(frame.columns):

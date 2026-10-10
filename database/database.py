@@ -393,7 +393,7 @@ def init_database(db_path: str | Path | None = None):
     Returns:
         El motor ya inicializado.
     """
-    from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot  # noqa: F401
+    from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot, DailyProfitTargetPreference  # noqa: F401
     engine = get_engine(db_path)
     Base.metadata.create_all(engine)
     _ensure_trade_columns(engine)

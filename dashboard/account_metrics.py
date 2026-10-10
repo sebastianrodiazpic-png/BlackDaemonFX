@@ -219,14 +219,6 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
         payload["error"] = str(exc)
         return payload
 
-    from dashboard.period_performance import build_period_performance
-    try:
-        payload['period_performance'] = build_period_performance(historical_records, _strategy_name, _metadata)
-    except TypeError:
-        payload['period_performance'] = build_period_performance(records, _strategy_name, _metadata)
-    except Exception as exc:
-        payload['period_performance'] = {'error': str(exc), 'years': [], 'operations': []}
-
     confirmation_audits = {}
     try:
         if hasattr(repository, "trade_visual_audit_entry_contexts"):
@@ -258,6 +250,25 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
                     summary["latest_snapshot"] = snap
     except Exception:
         audit_snapshot_summaries = {}
+
+    from dashboard.period_performance import build_period_performance, build_monthly_daily_performance
+    try:
+        balance_val = snapshot.get("balance") if isinstance(snapshot, dict) else None
+        payload['period_performance'] = build_period_performance(historical_records, _strategy_name, _metadata)
+        payload['monthly_daily_performance'] = build_monthly_daily_performance(
+            historical_records,
+            _strategy_name,
+            _metadata,
+            account_balance=balance_val,
+            confirmation_audits=confirmation_audits,
+            audit_snapshot_summaries=audit_snapshot_summaries,
+        )
+    except TypeError:
+        payload['period_performance'] = build_period_performance(records, _strategy_name, _metadata)
+        payload['monthly_daily_performance'] = build_monthly_daily_performance(records, _strategy_name, _metadata)
+    except Exception as exc:
+        payload['period_performance'] = {'error': str(exc), 'years': [], 'operations': []}
+        payload['monthly_daily_performance'] = {'error': str(exc), 'days': [], 'best_day': None, 'worst_day': None}
 
     stats["total"] = len(records)
     logical_groups = {}
@@ -494,18 +505,19 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
                 else:
                     entry = workers_map[w_name]
                     entry["trained"] = bool(entry.get("trained") or model_info.get("trained"))
-                    if not entry.get("model_strategy"):
+                    cur_samples = int(entry.get("model_samples") or 0)
+                    new_samples = int(model_info.get("samples") or 0)
+                    if new_samples > cur_samples or not entry.get("model_strategy"):
                         entry["model_strategy"] = model_info.get("strategy_name")
-                    if not entry.get("model_samples"):
-                        entry["model_samples"] = model_info.get("samples")
-                    if not entry.get("model_trained_at"):
-                        entry["model_trained_at"] = model_info.get("trained_at")
-                    if not entry.get("model_positive_rate"):
-                        entry["model_positive_rate"] = model_info.get("positive_rate")
-                    if not entry.get("model_win_rr"):
-                        entry["model_win_rr"] = model_info.get("average_win_rr")
-                    if not entry.get("model_loss_rr"):
-                        entry["model_loss_rr"] = model_info.get("average_loss_rr")
+                        entry["model_samples"] = new_samples
+                        if model_info.get("trained_at"):
+                            entry["model_trained_at"] = model_info.get("trained_at")
+                        if model_info.get("positive_rate"):
+                            entry["model_positive_rate"] = model_info.get("positive_rate")
+                        if model_info.get("average_win_rr"):
+                            entry["model_win_rr"] = model_info.get("average_win_rr")
+                        if model_info.get("average_loss_rr"):
+                            entry["model_loss_rr"] = model_info.get("average_loss_rr")
                     entry["family"] = model_info.get("family")
                     entry["in_disk"] = True
 
@@ -526,12 +538,26 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
     except Exception as exc:
         meta_labeling = {"error": str(exc)}
 
+    daily_profit_target = None
+    try:
+        repo_for_dpt = repository
+        if repo_for_dpt is None:
+            from database.repository import TradingRepository
+            repo_for_dpt = TradingRepository()
+        from strategy.execution.daily_profit_target import DailyProfitTargetManager
+        mgr = DailyProfitTargetManager(repository=repo_for_dpt, source=source)
+        daily_profit_target = mgr.get_status()
+    except Exception as exc:
+        daily_profit_target = {"error": str(exc), "enabled": False}
+
     return {
         "snapshot": snapshot,
         "stats": stats,
         "recent_trades": recent,
+        "daily_profit_target": daily_profit_target,
         "meta_labeling": meta_labeling,
         "period_performance": payload.get("period_performance"),
+        "monthly_daily_performance": payload.get("monthly_daily_performance"),
         "data_source": "SQLALCHEMY_LOCAL_ONLY",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "stats_reset": stats_reset,

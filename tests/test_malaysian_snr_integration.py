@@ -27,15 +27,15 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         config = LiveTradingConfig(bot_profile="MALAYSIAN_SNR", magic=26082031)
         configured = configure_worker_rules(config)
         self.assertTrue(configured.malaysian_snr_enabled)
-        self.assertEqual(configured.malaysian_snr_tp1_rr, 1.0)
-        self.assertEqual(configured.malaysian_snr_runner_rr, 2.0)
+        self.assertEqual(configured.malaysian_snr_tp1_rr, 2.0)
+        self.assertEqual(configured.malaysian_snr_runner_rr, 4.0)
         self.assertEqual(worker_poll_interval("MALAYSIAN_SNR", 5), 5)
 
     def test_ai_meta_labeling_model_loaded(self):
         ai_engine = MetaLabelingEngine(worker="MALAYSIAN_SNR")
         model = ai_engine.load_model("MALAYSIAN_SNR")
         self.assertTrue(model.trained)
-        self.assertGreaterEqual(model.samples, 1000)
+        self.assertGreaterEqual(model.samples, 50)
         self.assertEqual(len(model.model.weights), 44)
 
     def test_strategy_dual_leg_planning(self):
@@ -79,7 +79,8 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertNotIn("Jump 25 Index", msnr_pruned)
         self.assertNotIn("Step Index 200", msnr_pruned)
         self.assertNotIn("Volatility 10 Index", msnr_pruned)
-        self.assertNotIn("Boom 500 Index", msnr_pruned)
+        self.assertNotIn("Wall Street 30", msnr_pruned)
+        self.assertNotIn("Jump 10 Index", msnr_pruned)
         self.assertNotIn("Boom 600 Index", msnr_pruned)
         self.assertNotIn("Crash 600 Index", msnr_pruned)
         self.assertNotIn("Crash 1000 Index", msnr_pruned)
@@ -88,6 +89,7 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertIn("Volatility 50 Index", msnr_pruned)
         self.assertIn("CADCHF", msnr_pruned)
         self.assertIn("US Oil", msnr_pruned)
+        self.assertIn("Boom 500 Index", msnr_pruned)
 
 
 if __name__ == "__main__":

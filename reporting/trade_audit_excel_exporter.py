@@ -22,6 +22,7 @@ Vinculaciones:
 from __future__ import annotations
 
 import json
+import warnings
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -61,6 +62,23 @@ class TradeAuditExcelExporter:
         if len(value) > cls.SAFE_CELL_LIMIT:
             value = value[: cls.SAFE_CELL_LIMIT] + "…"
         return value
+
+    @classmethod
+    def _sanitize_for_excel(cls, dataframe: pd.DataFrame, max_chars: int = 30000) -> pd.DataFrame:
+        """Trunca celdas extensas para evitar UserWarning y cumplir el límite físico de 32.767 de Excel."""
+        if dataframe is None or dataframe.empty:
+            return dataframe
+        df = dataframe.copy()
+        for col in df.columns:
+            if pd.api.types.is_string_dtype(df[col]) or df[col].dtype == object or str(df[col].dtype).startswith("str"):
+                df[col] = df[col].map(
+                    lambda v: (
+                        f"{str(v)[:max_chars]}…[TRUNCADO_EXCEL]"
+                        if v is not None and len(str(v)) > max_chars
+                        else v
+                    )
+                )
+        return df
 
     @classmethod
     def _local_time(cls, value):
@@ -285,27 +303,39 @@ class TradeAuditExcelExporter:
             snap.get("id") for snap in snapshots
             if str(snap.get("instrument") or "") != expected_instrument
         ]
-        if not entry_view or mismatches:
+        if not entry_view:
+            entry_view = {
+                "decision": "HISTORICAL_ENTRY_CONTEXT_UNAVAILABLE",
+                "instrument": expected_instrument,
+                "direction": trade.get("direction"),
+                "entry_price": trade.get("entry_price"),
+                "stop_loss": trade.get("stop_loss"),
+                "take_profit": trade.get("take_profit"),
+                "setup_reason": trade.get("setup_reason") or "CONTEXTO_HISTORICO",
+            }
+        if mismatches:
             raise ValueError(
-                "AUDIT_INTEGRITY_ERROR: tesis ausente o instrumentos mezclados "
+                "AUDIT_INTEGRITY_ERROR: instrumentos mezclados en snapshots "
                 f"(snapshots={mismatches})"
             )
         latest = payload.get("latest") or (snapshots[-1] if snapshots else {}) or {}
         current_view = latest.get("current_view") or {}
         latest_market = latest.get("market") or {}
 
-        summary_df = self._summary_frame(payload)
-        entry_df = self._view_frame(entry_view, "Tesis de entrada")
-        current_df = self._view_frame(current_view, "Último estado")
-        market_df = self._view_frame(latest_market, "Mercado final")
-        timeline_df = self._timeline_frame(payload)
+        summary_df = self._sanitize_for_excel(self._summary_frame(payload))
+        entry_df = self._sanitize_for_excel(self._view_frame(entry_view, "Tesis de entrada"))
+        current_df = self._sanitize_for_excel(self._view_frame(current_view, "Último estado"))
+        market_df = self._sanitize_for_excel(self._view_frame(latest_market, "Mercado final"))
+        timeline_df = self._sanitize_for_excel(self._timeline_frame(payload))
 
-        with pd.ExcelWriter(self.output_path, engine="openpyxl") as writer:
-            summary_df.to_excel(writer, sheet_name="Resumen", index=False)
-            entry_df.to_excel(writer, sheet_name="Tesis Entrada", index=False)
-            current_df.to_excel(writer, sheet_name="Ultimo Estado", index=False)
-            market_df.to_excel(writer, sheet_name="Mercado Final", index=False)
-            timeline_df.to_excel(writer, sheet_name="Timeline Completo", index=False)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Cell contents too long.*", category=UserWarning)
+            with pd.ExcelWriter(self.output_path, engine="openpyxl") as writer:
+                summary_df.to_excel(writer, sheet_name="Resumen", index=False)
+                entry_df.to_excel(writer, sheet_name="Tesis Entrada", index=False)
+                current_df.to_excel(writer, sheet_name="Ultimo Estado", index=False)
+                market_df.to_excel(writer, sheet_name="Mercado Final", index=False)
+                timeline_df.to_excel(writer, sheet_name="Timeline Completo", index=False)
 
         self._format_workbook()
         return {

@@ -34,6 +34,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+import warnings
 
 from trade_outcome_policy import decisive_outcome, is_break_even_rr
 
@@ -102,6 +103,27 @@ class TradeReportExporter:
         if "limit" in inspect.signature(reader).parameters:
             return reader(source=source, limit=limit)
         return reader(source=source).tail(limit)
+
+    @classmethod
+    def _sanitize_for_excel(cls, dataframe: pd.DataFrame, max_chars: int = 30000) -> pd.DataFrame:
+        """Trunca cadenas que excedan el límite físico de celdas de Excel (32.767 caracteres).
+
+        Evita que openpyxl emita UserWarning: Cell contents too long y previene la corrupción
+        de celdas con JSON extensos (como details_json o snapshots de mercado).
+        """
+        if dataframe is None or dataframe.empty:
+            return dataframe
+        df = dataframe.copy()
+        for col in df.columns:
+            if pd.api.types.is_string_dtype(df[col]) or df[col].dtype == object or str(df[col].dtype).startswith("str"):
+                df[col] = df[col].map(
+                    lambda v: (
+                        f"{str(v)[:max_chars]}…[TRUNCADO_EXCEL]"
+                        if v is not None and len(str(v)) > max_chars
+                        else v
+                    )
+                )
+        return df
 
     def export(self, source="DEMO"):
         """Reconstruye el libro completo desde cero para un entorno dado.
@@ -182,20 +204,48 @@ class TradeReportExporter:
             }
         ])
 
+        trades_clean = self._sanitize_for_excel(trades)
+        open_positions_clean = self._sanitize_for_excel(open_positions)
+        summary_clean = self._sanitize_for_excel(summary_df)
+        instruments_clean = self._sanitize_for_excel(instruments_df)
+        account_clean = self._sanitize_for_excel(account_df)
+        audit_clean = self._sanitize_for_excel(audit_df)
+        entry_vs_now_clean = self._sanitize_for_excel(entry_vs_now_df)
+        metadata_clean = self._sanitize_for_excel(metadata_df)
+
         temporary = self.output_path.with_name(self.output_path.stem + "." + uuid.uuid4().hex + ".tmp.xlsx")
         try:
-            with pd.ExcelWriter(temporary, engine="openpyxl") as writer:
-                trades.to_excel(writer, sheet_name="Trades", index=False)
-                open_positions.to_excel(writer, sheet_name="Open Positions", index=False)
-                summary_df.to_excel(writer, sheet_name="Summary", index=False)
-                instruments_df.to_excel(writer, sheet_name="Instruments", index=False)
-                account_df.to_excel(writer, sheet_name="Account", index=False)
-                audit_df.to_excel(writer, sheet_name="Audit Log", index=False)
-                entry_vs_now_df.to_excel(writer, sheet_name="Entrada vs Ahora", index=False)
-                metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Cell contents too long.*", category=UserWarning)
+                with pd.ExcelWriter(temporary, engine="openpyxl") as writer:
+                    trades_clean.to_excel(writer, sheet_name="Trades", index=False)
+                    open_positions_clean.to_excel(writer, sheet_name="Open Positions", index=False)
+                    summary_clean.to_excel(writer, sheet_name="Summary", index=False)
+                    instruments_clean.to_excel(writer, sheet_name="Instruments", index=False)
+                    account_clean.to_excel(writer, sheet_name="Account", index=False)
+                    audit_clean.to_excel(writer, sheet_name="Audit Log", index=False)
+                    entry_vs_now_clean.to_excel(writer, sheet_name="Entrada vs Ahora", index=False)
+                    metadata_clean.to_excel(writer, sheet_name="Metadata", index=False)
 
             self._format_workbook(path=temporary)
-            os.replace(temporary, self.output_path)
+            try:
+                os.replace(temporary, self.output_path)
+            except PermissionError:
+                # Si el usuario tiene el libro abierto en Excel, Windows bloquea el reemplazo.
+                # Guardamos como archivo alternativo deriv_demo_trades_latest.xlsx para no perder la exportación.
+                backup_path = self.output_path.with_name(f"{self.output_path.stem}_latest{self.output_path.suffix}")
+                try:
+                    os.replace(temporary, backup_path)
+                    return {
+                        "path": str(backup_path.resolve()),
+                        "total_trades": len(trades),
+                        "open_positions": len(open_positions),
+                        "summary": summary,
+                        "entry_vs_now_snapshots": len(entry_vs_now_df),
+                        "warning": "EXCEL_FILE_LOCKED_USER_OPEN",
+                    }
+                except Exception:
+                    raise
         finally:
             temporary.unlink(missing_ok=True)
 
@@ -333,7 +383,7 @@ class TradeReportExporter:
         # Defensa adicional: ninguna celda textual debe acercarse al límite Excel.
         safe_limit = int(cls.AUDIT_EXCEL_SAFE_CELL_LIMIT)
         for column in df.columns:
-            if df[column].dtype == object:
+            if pd.api.types.is_string_dtype(df[column]) or df[column].dtype == object or str(df[column].dtype).startswith("str"):
                 df[column] = df[column].apply(
                     lambda value: (
                         value[:safe_limit] + "…"

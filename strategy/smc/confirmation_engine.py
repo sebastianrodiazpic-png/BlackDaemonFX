@@ -124,7 +124,7 @@ class M5ConfirmationConfig:
     # las confirmaciones evaluadas, siempre que todas las confirmaciones críticas
     # de estructura/contexto estén presentes.
     adaptive_confirmation_enabled: bool = True
-    minimum_confirmation_ratio: float = 0.70
+    minimum_confirmation_ratio: float = 0.80
     minimum_viable_trade_score: float = 65.0
     # Divergencia RSI como confluencia opcional de posible ruptura/cambio de estructura.
     divergence_enabled: bool = True
