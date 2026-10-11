@@ -5,3 +5,5 @@ python-dotenv
 SQLAlchemy
 openpyxl
 websocket-client>=1.8,<2
+pyzmq>=26.0
+numba>=0.60

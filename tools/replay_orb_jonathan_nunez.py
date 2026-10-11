@@ -1,6 +1,6 @@
-"""Replay Histórico Cuantitativo - Estrategia ORB Jonathan Núñez (2 Entradas / Gestión Asimétrica).
+"""Replay Histórico Cuantitativo - Estrategia ORB (2 Entradas / Gestión Asimétrica).
 
-Implementa la estrategia ORB de Jonathan Núñez:
+Implementa la estrategia ORB :
 1. Rango de apertura de Nueva York (09:30 - 09:45 NY, 15 minutos / 3 velas M5).
 2. Niveles clave: ORH, ORL y 50% Equilibrium (Midpoint).
 3. Stop Loss estructural al 50% del ORB.
@@ -132,7 +132,7 @@ def simulate_nunez_dual_trade(
     stop_loss: float,
     max_bars: int = 150,
 ) -> dict | None:
-    """Simula barra a barra el modelo exacto de Jonathan Núñez y benchmarks.
+    """Simula barra a barra el modelo exacto de benchmarks.
 
     Reglas Núñez 2-Leg:
     - Riesgo total: 1.0% (Pierna 1 = 0.5%, Pierna 2 = 0.5%).
@@ -326,13 +326,13 @@ def simulate_nunez_dual_trade(
 
 
 def run_comprehensive_nunez_replay(days: int = 730):
-    """Ejecuta el replay histórico completo de Jonathan Núñez."""
+    """Ejecuta el replay histórico completo de ORB"""
     if not mt5.initialize():
         print(f"Error inicializando MT5: {mt5.last_error()}")
         return None
 
     print("=" * 110)
-    print(" INICIANDO REPLAY HISTÓRICO: ESTRATEGIA ORB JONATHAN NÚÑEZ (MODELO 2 ENTRADAS AL 0.5%)")
+    print(" INICIANDO REPLAY HISTÓRICO: ESTRATEGIA ORB (MODELO 2 ENTRADAS AL 0.5%)")
     print(f" Periodo: Hasta {days} días (Máximo histórico M5 disponible en broker)")
     print(f" Instrumentos: {', '.join(SYMBOLS_TO_EVALUATE)}")
     print("=" * 110)

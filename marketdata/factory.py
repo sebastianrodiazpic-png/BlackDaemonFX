@@ -68,8 +68,11 @@ class ExternalMarketDataSettings:
 def build_market_data_provider(metadata_provider, *, settings=None):
     settings = settings or ExternalMarketDataSettings.from_environment()
     mode = str(settings.mode).casefold()
-    if mode not in {"external", "shadow", "mt5"}:
+    if mode not in {"external", "shadow", "mt5", "feeder", "zmq"}:
         raise MarketDataConfigurationError(f"DAEMON_MARKET_DATA_MODE inválido: {settings.mode}")
+    if mode in {"feeder", "zmq"}:
+        from .zmq_provider import ZMQMarketDataProvider
+        return ZMQMarketDataProvider(fallback_provider=metadata_provider)
     if mode == "mt5":
         return metadata_provider
     if str(settings.provider).casefold() != "deriv":

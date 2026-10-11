@@ -734,23 +734,31 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "US Tech 100",
     ],
     "MALAYSIAN_SNR": [
-        "Crash 500 Index",
-        "Step Index 500",
-        "Boom 1000 Index",
-        "Boom 300 Index",
-        "XAUUSD",
-        "Jump 10 Index",
-        "Jump 75 Index",
-        "Jump 25 Index",
-        "Wall Street 30",
-        "BTCUSD",
+        "Step Index 400",
+        "XAGUSD",
+        "AUDNZD",
         "Crash 1000 Index",
-        "Crash 600 Index",
-        "Boom 500 Index",
-        "Boom 600 Index",
+        "Jump 25 Index",
+        "GBPJPY",
+        "USDJPY",
+        "GBPUSD",
+        "Boom 300 Index",
+        "Volatility 250 (1s) Index",
+        "Step Index",
+        "Jump 10 Index",
+        "GBPAUD",
+        "Wall Street 30",
+        "EURUSD",
+        "Volatility 50 (1s) Index",
+        "Volatility 90 Index",
+        "Boom 1000 Index",
         "Step Index 200",
-        "Volatility 10 Index",
+        "EURCHF",
+        "EURGBP",
+        "XAUUSD",
+        "Crash 600 Index",
     ],
+
     "GOLD": [
         "XAUUSD",
         "XAUUSDmicro",
@@ -841,30 +849,55 @@ PRUNED_INSTRUMENTS_INFO = {
     "WTI": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
     "Brent": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
     "UK Brent Oil": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
-    # PLATA / SILVER (Poda confirmada según estrategia Jonathan Núñez)
-    "XAGUSD": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD. Se prioriza Oro y Euro.",
-    "XAGUSDmicro": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
-    "Silver": "Poda preventiva Jonathan Núñez: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
+    # PLATA / SILVER (Poda confirmada)
+    "XAGUSD": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD. Se prioriza Oro y Euro.",
+    "XAGUSDmicro": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
+    "Silver": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
 }
 
 MALAYSIAN_SNR_PRUNED_INFO = {
-    "US Oil": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 14.7%, -$11,760.19 USD. Deslizamiento severo, baja precisión en niveles Break y spread adverso.",
-    "USDCAD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 22.2%, -$6,223.64 USD. Falsos rompimientos continuos y falta de expansión hacia TP1.",
-    "XAGUSD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 23.4%, -$4,534.89 USD. Mechas erráticas en M15 que invalidan retesteos Fresh.",
-    "USDCHF": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 26.1%, -$4,913.53 USD. Compresión excesiva de rango y rechazos prematuros.",
-    "AUDUSD": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 27.3%, -$3,632.00 USD. Baja liquidez institucional en horario de entrada.",
-    "Boom 500 Index": "Poda confirmada en replay 2 años Malaysian SNR: Win Rate 28.0%, -$4,497.43 USD. Ruido de mechas y caídas continuas antes de retesteo.",
-    "Volatility 50 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,750.00 USD (Win Rate 0.1%). Falsas rupturas continuas y stops sistemáticos en M15.",
-    "Volatility 100 Index": "Poda confirmada en replay 2 años Malaysian SNR: -$463,598.25 USD (Win Rate 0.2%). Ruido estructural masivo y stops prematuros en niveles Break.",
-    "Volatility 250 (1s) Index": "Poda confirmada en replay 2 años Malaysian SNR: -$369,623.86 USD (Win Rate 6.1%). Oscilaciones erráticas incompatibles con el patrón Fresh.",
-    "CADCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$265,552.28 USD (Win Rate 5.4%). Rango errático sin continuación institucional.",
-    "EURGBP": "Poda confirmada en replay 2 años Malaysian SNR: -$258,323.47 USD (Win Rate 5.7%). Compresión excesiva de rango y bajo ratio de expansión.",
-    "AUDCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$244,057.47 USD (Win Rate 7.9%). Baja liquidez institucional y dispersión de spread.",
-    "EURCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$235,743.66 USD (Win Rate 8.3%). Falsos quiebres y falta de inercia direccional.",
-    "AUDNZD": "Poda confirmada en replay 2 años Malaysian SNR: -$230,755.61 USD (Win Rate 8.7%). Ruido lateral prolongado sin seguimiento.",
-    "GBPCHF": "Poda confirmada en replay 2 años Malaysian SNR: -$194,110.89 USD (Win Rate 13.0%). Poca reactividad en niveles Break.",
-    "AUDCAD": "Poda confirmada en replay 2 años Malaysian SNR: -$166,534.60 USD (Win Rate 15.7%). Barridos de liquidez adversos en retesteos.",
+    # Índices Sintéticos no aptos para reversión Malaysian SNR (Mejor desempeño en sus workers especializados)
+    "Crash 500 Index": "Poda en Malaysian SNR: 28.6% WR, -7.70R. Falsos retesteos; su terreno dominante es el worker SYNTHETICS.",
+    "Boom 500 Index": "Poda en Malaysian SNR: 17.6% WR, -7.95R. Ruido de mechas y caídas continuas antes de retesteo.",
+    "Boom 600 Index": "Poda en Malaysian SNR: 20.0% WR, -2.64R. Poca reacción en niveles Fresh.",
+    "Boom 900 Index": "Poda en Malaysian SNR: 25.0% WR, -1.30R. Ruido estructural en M15.",
+    "Crash 300 Index": "Poda en Malaysian SNR: 22.7% WR, -8.70R. Falsos quiebres de nivel.",
+    "Crash 900 Index": "Poda en Malaysian SNR: 13.3% WR, -8.76R. Caídas directas sin mitigación.",
+    "Step Index 500": "Poda en Malaysian SNR: 34.6% WR, -0.44R. Expectativa negativa residual.",
+    "Jump 50 Index": "Poda en Malaysian SNR: 33.3% WR, -0.51R. Expectativa negativa residual.",
+    "Jump 75 Index": "Poda en Malaysian SNR: 37.0% WR, -2.31R. Spreads y mechas adversas.",
+    "Jump 100 Index": "Poda en Malaysian SNR: 25.0% WR, -8.56R. Dispersión severa y falta de soporte.",
+    "Volatility 10 Index": "Poda en Malaysian SNR: 28.0% WR, -11.78R. Drift tendencial continuo que vulnera soportes A/V.",
+    "Volatility 25 Index": "Poda en Malaysian SNR: 27.6% WR, -6.79R. Ruido de oscilación lateral.",
+    "Volatility 50 Index": "Poda en Malaysian SNR: 8.0% WR, -17.85R. Falsas rupturas continuas y stops sistemáticos en M15.",
+    "Volatility 75 Index": "Poda en Malaysian SNR: 34.1% WR, -4.27R. Expansiones sin respeto a niveles de reversión.",
+    "Volatility 100 Index": "Poda en Malaysian SNR: 19.2% WR, -13.73R. Movimientos agresivos que rompen zonas A/V.",
+    "Volatility 15 Index": "Poda en Malaysian SNR: 11.1% WR, -5.75R. Compresión y stops adversos.",
+    "Volatility 75 (1s) Index": "Poda en Malaysian SNR: 26.7% WR, -8.36R. Micro-ticks erráticos sin absorción CRT.",
+    # Índices Americanos & Cripto (Incompatibles con reversión SNR; derivados a ORB NY e ICT)
+    "US Tech 100": "Poda en Malaysian SNR: 33.3% WR, -0.31R. Expansión direccional continua; derivado a ORB NY e ICT.",
+    "US SP 500": "Poda en Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas sin respeto de niveles Break; derivado a ORB New York.",
+    "BTCUSD": "Poda en Malaysian SNR: 31.6% WR, -3.56R. Derivado a ICT Sabri Malle (+28.1R) y ORB (+4.39R).",
+    # Forex y Commodities con expectativa negativa o spread adverso
+    "USDCAD": "Poda en Malaysian SNR: 42.9% WR, -0.21R. Derivado a ICT Forex (+12.0R) y FOREX.",
+    "AUDUSD": "Poda en Malaysian SNR: 23.1% WR, -5.14R. Rango lateral sin expansión hacia TP1 en M15.",
+    "USDCHF": "Poda en Malaysian SNR: 20.0% WR, -6.66R. Compresión de rango y rechazos prematuros.",
+    "US Oil": "Poda en Malaysian SNR: 12.5% WR, -6.51R. Deslizamiento severo y mechas erráticas en M15.",
+    "CADCHF": "Poda en Malaysian SNR: 16.7% WR, -2.00R. Rango errático sin continuación institucional.",
+    "AUDCAD": "Poda en Malaysian SNR: 22.2% WR, -2.35R. Barridos de liquidez adversos en retesteos.",
+    "AUDCHF": "Poda en Malaysian SNR: 22.2% WR, -4.22R. Baja liquidez institucional y dispersión de spread.",
+    "AUDJPY": "Poda en Malaysian SNR: 20.0% WR, -6.25R. Ruido estructural en sesiones asiáticas.",
+    "CADJPY": "Poda en Malaysian SNR: 18.2% WR, -5.00R. Ruido y falsos retrocesos en Killzones.",
+    "CHFJPY": "Poda en Malaysian SNR: 28.6% WR, -3.97R. Comportamiento errático en gaps y rollover.",
+    "EURAUD": "Poda en Malaysian SNR: 33.3% WR, -1.31R. Falsos chochs y deslizamiento adverso.",
+    "EURCAD": "Poda en Malaysian SNR: 40.0% WR, -1.74R. Expectativa matemática negativa.",
+    "EURJPY": "Poda en Malaysian SNR: 15.8% WR, -12.18R. Inconsistencia direccional y falsos quiebres.",
+    "EURNZD": "Poda en Malaysian SNR: 0.0% WR, -11.10R. Alta dispersión de volatilidad sin seguimiento.",
+    "GBPCAD": "Poda en Malaysian SNR: 40.0% WR, -1.18R. Ruido en Killzones.",
+    "GBPCHF": "Poda en Malaysian SNR: 18.2% WR, -6.11R. Poca reactividad en niveles Break.",
+    "GBPNZD": "Poda en Malaysian SNR: 14.3% WR, -3.50R. Ruido extendido sin seguimiento.",
 }
+
 
 ICT_PRUNED_INFO = {
     "Jump 50 Index": "Poda confirmada en replay 2 años ICT: -9.6R netos (Win Rate 15.0%). Inconsistencia estructural severa y fallas sistemáticas en manipulación.",
@@ -4980,7 +5013,7 @@ _HTML = r'''
             <div id="quarantinePanel">Cargando cuarentena…</div>
           </div>
           <div class="card full">
-            <div class="label">Procesos sintéticos por familia</div>
+            <div class="label">Procesos</div>
             <div class="sub">
               Cada tarjeta representa un worker independiente y su ciclo real persistido en
               SQLAlchemy.
@@ -6682,9 +6715,9 @@ _HTML = r'''
             const workerLabels = {
               IDX_OPEN: 'Apertura Bursátiles',
               GOLD: 'Oro · Cuartos & Niveles Psicológicos (XAUUSD)',
-              ORB: 'ORB · Apertura New York (8:30-10:00 EST)',
+              ORB: 'ORB · Apertura New York',
               MALAYSIAN_SNR: 'Malaysian SNR (M15 Fresh/Break)',
-              ICT: 'ICT Sabri Malle (FVG/OB/Liquidez)',
+              ICT: 'ICT',
             };
             const now = Date.now();
             const sorted = [...rows].sort((a, b) => {
@@ -6749,7 +6782,7 @@ _HTML = r'''
                           : prof === 'MALAYSIAN_SNR'
                             ? 'Malaysian SNR M15'
                             : prof === 'ICT'
-                              ? 'ICT Sabri Malle M5'
+                              ? 'ICT'
                               : 'SMC Institucional';
                   return `<section class="workerCard ${paused && !isOrb ? 'workerPaused' : disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
     <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>

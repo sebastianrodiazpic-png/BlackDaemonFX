@@ -1,0 +1,335 @@
+[
+  {
+    "symbol": "Volatility 50 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 25,
+    "win_rate": 8.0,
+    "sl_hits": 23,
+    "pnl": -1785.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 8.0% WR, -17.85R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY."
+  },
+  {
+    "symbol": "Volatility 100 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 26,
+    "win_rate": 19.2,
+    "sl_hits": 21,
+    "pnl": -1373.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 19.2% WR, -13.73R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY."
+  },
+  {
+    "symbol": "EURJPY",
+    "strategy": "Malaysian SNR",
+    "trades": 19,
+    "win_rate": 15.8,
+    "sl_hits": 16,
+    "pnl": -1218.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 15.8% WR, -12.18R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Volatility 10 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 50,
+    "win_rate": 28.0,
+    "sl_hits": 36,
+    "pnl": -1178.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 28.0% WR, -11.78R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY."
+  },
+  {
+    "symbol": "EURNZD",
+    "strategy": "Malaysian SNR",
+    "trades": 11,
+    "win_rate": 0.0,
+    "sl_hits": 11,
+    "pnl": -1110.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 0.0% WR, -11.10R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Crash 900 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 15,
+    "win_rate": 13.3,
+    "sl_hits": 13,
+    "pnl": -876.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 13.3% WR, -8.76R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Crash 300 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 22,
+    "win_rate": 22.7,
+    "sl_hits": 17,
+    "pnl": -870.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 22.7% WR, -8.70R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Jump 100 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 36,
+    "win_rate": 25.0,
+    "sl_hits": 27,
+    "pnl": -856.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -8.56R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "Volatility 75 (1s) Index",
+    "strategy": "Malaysian SNR",
+    "trades": 30,
+    "win_rate": 26.7,
+    "sl_hits": 22,
+    "pnl": -836.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 26.7% WR, -8.36R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Boom 500 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 17,
+    "win_rate": 17.6,
+    "sl_hits": 14,
+    "pnl": -795.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 17.6% WR, -7.95R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "Crash 500 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 14,
+    "win_rate": 28.6,
+    "sl_hits": 10,
+    "pnl": -770.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -7.70R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "Volatility 25 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 29,
+    "win_rate": 27.6,
+    "sl_hits": 21,
+    "pnl": -679.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 27.6% WR, -6.79R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY."
+  },
+  {
+    "symbol": "USDCHF",
+    "strategy": "Malaysian SNR",
+    "trades": 10,
+    "win_rate": 20.0,
+    "sl_hits": 8,
+    "pnl": -666.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.66R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "US Oil",
+    "strategy": "Malaysian SNR",
+    "trades": 8,
+    "win_rate": 12.5,
+    "sl_hits": 7,
+    "pnl": -651.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 12.5% WR, -6.51R. Deslizamiento o ruido institucional adverso; derivado a worker especializado."
+  },
+  {
+    "symbol": "AUDJPY",
+    "strategy": "Malaysian SNR",
+    "trades": 10,
+    "win_rate": 20.0,
+    "sl_hits": 8,
+    "pnl": -625.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.25R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "GBPCHF",
+    "strategy": "Malaysian SNR",
+    "trades": 11,
+    "win_rate": 18.2,
+    "sl_hits": 9,
+    "pnl": -611.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -6.11R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Volatility 15 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 9,
+    "win_rate": 11.1,
+    "sl_hits": 8,
+    "pnl": -575.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 11.1% WR, -5.75R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "AUDUSD",
+    "strategy": "Malaysian SNR",
+    "trades": 13,
+    "win_rate": 23.1,
+    "sl_hits": 10,
+    "pnl": -514.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 23.1% WR, -5.14R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "CADJPY",
+    "strategy": "Malaysian SNR",
+    "trades": 11,
+    "win_rate": 18.2,
+    "sl_hits": 9,
+    "pnl": -500.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -5.00R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Volatility 75 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 41,
+    "win_rate": 34.1,
+    "sl_hits": 27,
+    "pnl": -427.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 34.1% WR, -4.27R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY."
+  },
+  {
+    "symbol": "AUDCHF",
+    "strategy": "Malaysian SNR",
+    "trades": 9,
+    "win_rate": 22.2,
+    "sl_hits": 7,
+    "pnl": -422.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -4.22R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "CHFJPY",
+    "strategy": "Malaysian SNR",
+    "trades": 14,
+    "win_rate": 28.6,
+    "sl_hits": 10,
+    "pnl": -397.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -3.97R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "BTCUSD",
+    "strategy": "Malaysian SNR",
+    "trades": 19,
+    "win_rate": 31.6,
+    "sl_hits": 13,
+    "pnl": -356.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 31.6% WR, -3.56R. Deslizamiento o ruido institucional adverso; derivado a worker especializado."
+  },
+  {
+    "symbol": "GBPNZD",
+    "strategy": "Malaysian SNR",
+    "trades": 7,
+    "win_rate": 14.3,
+    "sl_hits": 6,
+    "pnl": -350.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 14.3% WR, -3.50R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Boom 600 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 10,
+    "win_rate": 20.0,
+    "sl_hits": 8,
+    "pnl": -264.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -2.64R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "US SP 500",
+    "strategy": "Malaysian SNR",
+    "trades": 17,
+    "win_rate": 29.4,
+    "sl_hits": 12,
+    "pnl": -241.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas por volumen de apertura; derivado a ORB NY e ICT."
+  },
+  {
+    "symbol": "AUDCAD",
+    "strategy": "Malaysian SNR",
+    "trades": 9,
+    "win_rate": 22.2,
+    "sl_hits": 7,
+    "pnl": -235.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -2.35R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Jump 75 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 27,
+    "win_rate": 37.0,
+    "sl_hits": 17,
+    "pnl": -231.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 37.0% WR, -2.31R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "CADCHF",
+    "strategy": "Malaysian SNR",
+    "trades": 6,
+    "win_rate": 16.7,
+    "sl_hits": 5,
+    "pnl": -200.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 16.7% WR, -2.00R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "EURCAD",
+    "strategy": "Malaysian SNR",
+    "trades": 5,
+    "win_rate": 40.0,
+    "sl_hits": 3,
+    "pnl": -174.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.74R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "EURAUD",
+    "strategy": "Malaysian SNR",
+    "trades": 9,
+    "win_rate": 33.3,
+    "sl_hits": 6,
+    "pnl": -131.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -1.31R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Boom 900 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 8,
+    "win_rate": 25.0,
+    "sl_hits": 6,
+    "pnl": -130.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -1.30R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "GBPCAD",
+    "strategy": "Malaysian SNR",
+    "trades": 5,
+    "win_rate": 40.0,
+    "sl_hits": 3,
+    "pnl": -118.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.18R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  },
+  {
+    "symbol": "Jump 50 Index",
+    "strategy": "Malaysian SNR",
+    "trades": 27,
+    "win_rate": 33.3,
+    "sl_hits": 18,
+    "pnl": -51.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.51R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "Step Index 500",
+    "strategy": "Malaysian SNR",
+    "trades": 26,
+    "win_rate": 34.6,
+    "sl_hits": 17,
+    "pnl": -44.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 34.6% WR, -0.44R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS."
+  },
+  {
+    "symbol": "US Tech 100",
+    "strategy": "Malaysian SNR",
+    "trades": 18,
+    "win_rate": 33.3,
+    "sl_hits": 12,
+    "pnl": -31.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.31R. Rupturas directas por volumen de apertura; derivado a ORB NY e ICT."
+  },
+  {
+    "symbol": "USDCAD",
+    "strategy": "Malaysian SNR",
+    "trades": 7,
+    "win_rate": 42.9,
+    "sl_hits": 4,
+    "pnl": -21.0,
+    "reason": "Poda confirmada en replay 2 años Malaysian SNR: 42.9% WR, -0.21R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1."
+  }
+]

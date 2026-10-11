@@ -125,7 +125,9 @@ def is_synthetic_asset(symbol: str) -> bool:
     sym_u = str(symbol or "").upper()
     keywords = (
         "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP", "1HZ",
-        "V10", "V25", "V50", "V75", "V100", "V150", "V250"
+        "V10", "V25", "V50", "V75", "V100", "V150", "V250",
+        "VOL ", "VOLSWITCH", "SKEW", "MULTI STEP", "SPOT UP", "DEX",
+        "DRIFT", "DAILY RESET", "HYBRID", "RANGE BREAK",
     )
     return any(k in sym_u for k in keywords)
 
@@ -169,7 +171,7 @@ class ICTSabriMalleStrategy:
 
         in_london_kz = (self.config.london_kz_start_ny <= ny_hour <= self.config.london_kz_end_ny)
         in_ny_kz = (self.config.ny_kz_start_ny <= ny_hour <= self.config.ny_kz_end_ny)
-        session_active = in_london_kz or in_ny_kz
+        session_active = in_london_kz or (in_ny_kz and self.config.ny_killzone_enabled)
 
         if not is_synthetic and self.config.killzone_filter_enabled:
             if not session_active:
@@ -400,7 +402,19 @@ class ICTSabriMalleStrategy:
             "risk_reward": self.config.runner_rr,
             "trade_score": 90.0,
             "confirmation_percentage": 95.0,
-            "adx": 25.0,
+            "adx": 28.0,
+            "price_action_confirmations": {
+                "rejection": True,
+                "micro_structure": True,
+                "displacement": True,
+                "strong_close": True,
+            },
+            "confirmations": {
+                "rejection": True,
+                "micro_structure": True,
+                "displacement": True,
+                "strong_close": True,
+            },
             "atr": round(range_height / 2.0, 5) if range_height > 0 else round(risk / self.config.runner_rr, 5),
             "structure_break": f"MSS_{intended_direction}",
             "entry_time": entry_time,

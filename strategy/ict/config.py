@@ -18,6 +18,9 @@ class ICTSabriMalleConfig:
     london_kz_end_ny: int = 5       # 05:00 NY
     ny_kz_start_ny: int = 7         # 07:00 NY
     ny_kz_end_ny: int = 11          # 11:00 NY
+    # Replay fiel (365d, sin lookahead): Londres +0.18R/trade (n=238), NY 07-11 -0.16R/trade (n=434).
+    # Por defecto solo se opera la Killzone de Londres en mercados reales (no sinteticos).
+    ny_killzone_enabled: bool = False
     
     # Detección Estructural y Manipulación (AMD / Judas Swing)
     range_lookback: int = 24

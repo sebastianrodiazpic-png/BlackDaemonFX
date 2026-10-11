@@ -78,14 +78,15 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         # Verify that Malaysian SNR profitable core assets are NOT pruned
         self.assertNotIn("Jump 25 Index", msnr_pruned)
         self.assertNotIn("Step Index 200", msnr_pruned)
-        self.assertNotIn("Volatility 10 Index", msnr_pruned)
+        self.assertNotIn("Step Index 400", msnr_pruned)
         self.assertNotIn("Wall Street 30", msnr_pruned)
         self.assertNotIn("Jump 10 Index", msnr_pruned)
-        self.assertNotIn("Boom 600 Index", msnr_pruned)
+        self.assertNotIn("Boom 300 Index", msnr_pruned)
         self.assertNotIn("Crash 600 Index", msnr_pruned)
         self.assertNotIn("Crash 1000 Index", msnr_pruned)
         
         # Verify that actual losing assets ARE pruned
+        self.assertIn("Volatility 10 Index", msnr_pruned)
         self.assertIn("Volatility 50 Index", msnr_pruned)
         self.assertIn("CADCHF", msnr_pruned)
         self.assertIn("US Oil", msnr_pruned)

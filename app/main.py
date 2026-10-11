@@ -1135,33 +1135,42 @@ BOT_PROFILES = {
         "magic": 26082031,
         "categories": [],
         "symbols": [
-            "Jump 25 Index",
-            "Jump 50 Index",
-            "Step Index 500",
-            "Jump 10 Index",
-            "Step Index 200",
-            "Step Index",
-            "Volatility 10 Index",
-            "Volatility 75 Index",
-            "Volatility 25 Index",
-            "BTCUSD",
-            "Boom 1000 Index",
-            "Boom 600 Index",
-            "Boom 500 Index",
+            # 23 Activos Rentables con Expectativa Positiva en Replay Causal de 2 Años (Augmented v2.0)
+            "Step Index 400",
+            "XAGUSD",
+            "AUDNZD",
             "Crash 1000 Index",
-            "Crash 600 Index",
-            "Crash 500 Index",
-            "US Tech 100",
-            "XAUUSD",
-            "US SP 500",
-            "Wall Street 30",
+            "Jump 25 Index",
+            "GBPJPY",
             "USDJPY",
-            "EURUSD",
             "GBPUSD",
+            "Boom 300 Index",
+            "Volatility 250 (1s) Index",
+            "Step Index",
+            "Jump 10 Index",
+            "GBPAUD",
+            "Wall Street 30",
+            "EURUSD",
+            "Volatility 50 (1s) Index",
+            "Volatility 90 Index",
+            "Boom 1000 Index",
+            "Step Index 200",
+            "EURCHF",
+            "EURGBP",
+            "XAUUSD",
+            "Crash 600 Index",
         ],
         "pruned_symbols": [
-            "CADCHF", "EURGBP", "AUDCHF", "EURCHF", "AUDNZD", "GBPCHF", "AUDCAD",
-            "US Oil", "Volatility 50 Index", "Volatility 100 Index", "Volatility 250 (1s) Index", "XAGUSD"
+            # 37 Activos con Expectativa Negativa / Podados en Replay 2 Años de Malaysian SNR
+            "USDCAD", "US Tech 100", "Step Index 500", "Jump 50 Index", "GBPCAD",
+            "Boom 900 Index", "EURAUD", "EURCAD", "CADCHF", "Jump 75 Index",
+            "AUDCAD", "US SP 500", "Boom 600 Index", "GBPNZD", "BTCUSD",
+            "CHFJPY", "AUDCHF", "Volatility 75 Index", "CADJPY", "AUDUSD",
+            "Volatility 15 Index", "GBPCHF", "AUDJPY", "US Oil", "USDCHF",
+            "Volatility 25 Index", "Crash 500 Index", "Boom 500 Index",
+            "Volatility 75 (1s) Index", "Jump 100 Index", "Crash 300 Index",
+            "Crash 900 Index", "EURNZD", "Volatility 10 Index", "EURJPY",
+            "Volatility 100 Index", "Volatility 50 Index"
         ],
     },
     "ICT": {
@@ -1174,6 +1183,7 @@ BOT_PROFILES = {
             "BTCUSD",
             "BTCUSDmicro",
             "XAUUSD",
+            "Wall Street 30",
             "XAUUSDmicro",
             "Wall Street 30",
             "US Tech 100",
@@ -3366,6 +3376,8 @@ def main():
             "unified-multibot-daemon",
             "report-daemon",
             "train-meta-labeling",
+            "auto-retrain-meta",
+            "market-data-feeder",
             "market-data-preflight",
         ],
         default="collect",
@@ -3380,11 +3392,11 @@ def main():
 
     parser.add_argument(
         "--market-data-mode",
-        choices=["external", "shadow", "mt5"],
+        choices=["external", "shadow", "mt5", "feeder", "zmq"],
         default=None,
         help=(
             "Fuente de análisis: external=Deriv, shadow=Deriv comparado con MT5, "
-            "mt5=legado. v113.1 usa shadow por defecto."
+            "feeder/zmq=Gateway central ZeroMQ, mt5=legado. v113.1 usa shadow por defecto."
         ),
     )
 
@@ -3662,6 +3674,24 @@ def main():
             profiles=args.meta_labeling_profiles,
             strategy_name=args.meta_labeling_strategy,
         )
+        return
+
+    if args.mode == "auto-retrain-meta":
+        from strategy.ai.auto_retrain import MetaModelAutoRetrainer
+        retrainer = MetaModelAutoRetrainer(workers=args.meta_labeling_profiles)
+        retrainer.run()
+        return
+
+    if args.mode == "market-data-feeder":
+        from marketdata.market_data_feeder import MarketDataFeederService
+        feeder = MarketDataFeederService()
+        if not feeder.start():
+            raise SystemExit(1)
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            feeder.stop()
         return
 
     if args.reset_account_stats or args.mode == "reset-account-stats":

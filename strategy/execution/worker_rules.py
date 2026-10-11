@@ -5,12 +5,13 @@ RULESET = 'ict-sabri-malle-v1'
 
 
 def configure_worker_rules(config):
+    profile = str(config.bot_profile).upper()
     config = replace(
         config,
         meta_labeling_enabled=True,
         meta_labeling_mode="FILTER",
+        orb_enabled=(profile == "ORB"),
     )
-    profile = str(config.bot_profile).upper()
     if profile == "MALAYSIAN_SNR":
         return replace(
             config,

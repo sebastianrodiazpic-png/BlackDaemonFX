@@ -49,7 +49,7 @@ class TestMalaysianSNRAugmentedRules(unittest.TestCase):
         self.assertFalse(is_synthetic_symbol("BTCUSD"))
 
     def test_session_killzone_filter(self):
-        config = MalaysianSNRConfig(enable_session_killzones_filter=True)
+        config = MalaysianSNRConfig(enable_session_killzones_filter=True, allowed_symbols=())
         provider = MockDataProvider(pd.DataFrame(), pd.DataFrame())
         strat = MalaysianSNRStrategy(provider, config=config)
 
@@ -109,8 +109,39 @@ class TestMalaysianSNRAugmentedRules(unittest.TestCase):
             obstacle_level=122.0,
         )
         self.assertLess(sig["signal"]["runner_rr"], 3.0)
-        self.assertEqual(sig["signal"]["runner_rr"], 2.0)
-        self.assertEqual(sig["signal"]["tp2_price"], 120.0)
+        self.assertAlmostEqual(sig["signal"]["runner_rr"], 2.1)
+        self.assertEqual(sig["signal"]["tp2_price"], 121.0)
+
+
+    def test_crt_sweep_and_rejection_trigger(self):
+        from strategy.malaysian_snr.validation import confirmed_crt_retest
+        # Setup: Level at 100.0, BUY direction, ATR = 2.0
+        # Case 1: Valid sweep (low=99.5 <= 100.2) and rejection close (close=100.5 > open=100.0)
+        df_valid = pd.DataFrame([
+            {"time": pd.Timestamp("2026-10-10 10:00:00", tz="UTC"), "open": 100.0, "high": 100.8, "low": 99.5, "close": 100.5}
+        ])
+        self.assertTrue(confirmed_crt_retest(df_valid, level=100.0, direction="BUY", atr=2.0))
+
+        # Case 2: No sweep (low=101.0 > 100.2)
+        df_no_sweep = pd.DataFrame([
+            {"time": pd.Timestamp("2026-10-10 10:00:00", tz="UTC"), "open": 101.2, "high": 101.8, "low": 101.0, "close": 101.5}
+        ])
+        self.assertFalse(confirmed_crt_retest(df_no_sweep, level=100.0, direction="BUY", atr=2.0))
+
+        # Case 3: Sweep but closes bearish (failed rejection)
+        df_bearish_fail = pd.DataFrame([
+            {"time": pd.Timestamp("2026-10-10 10:00:00", tz="UTC"), "open": 100.5, "high": 100.8, "low": 99.5, "close": 99.8}
+        ])
+        self.assertFalse(confirmed_crt_retest(df_bearish_fail, level=100.0, direction="BUY", atr=2.0))
+
+    def test_validated_portfolio_allowlist(self):
+        config = MalaysianSNRConfig()
+        # Validados en replay 2 anos (60 activos auditados)
+        for sym in ["EURUSD", "USDJPY", "GBPUSD", "GBPJPY", "XAUUSD", "XAGUSD", "Step Index 400", "Boom 1000 Index", "Crash 1000 Index", "Step Index", "Jump 25 Index"]:
+            self.assertIn(sym, config.allowed_symbols)
+        # Excluidos formalmente de MSNR por expectativa negativa o toxicidad
+        for sym in ["US Tech 100", "US SP 500", "US Oil", "AUDUSD", "USDCHF", "USDCAD", "BTCUSD", "Volatility 50 Index"]:
+            self.assertNotIn(sym, config.allowed_symbols)
 
 
 if __name__ == "__main__":

@@ -3,13 +3,13 @@
 Estrategia independiente enfocada en:
 1. Break: Punto de unión de cuerpos consecutivos (Close[t-1] y Open[t]).
 2. Patrón A / V: Envolventes que marcan crestas (Resistencia) y valles (Soporte).
-3. Fresh vs No Fresh: Ruptura con cuerpo sólido (Continuación) vs Mecha de manipulación (Reversión).
-4. Escenarios Auditados de 2 Años:
+3. Fresh vs No Fresh: nivel sin contacto posterior de mechas antes de la ruptura.
+4. Escenarios con causalidad temporal (rentabilidad pendiente de validación):
    - Escenario 1: Ruptura Clásica Fresh -> Retest al nivel Break en M15.
    - Escenario 3: Fractalidad (HCH / Quiebre estructural acelerado).
 5. Doble Pierna Asimétrica:
    - Pierna 1: TP1 mínimo 1:2.0 RR (50% de la posición).
-   - Pierna 2: Corredora contextual (TP2 1:2.5, TP3 1:3.5, TP4 1:5.0) con Break-Even automático al tocar TP1.
+   - Pierna 2: Corredora contextual (TP2 1:2.5, TP3 1:3.0, TP4 1:4.0) con Break-Even automático al tocar TP1.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ import numpy as np
 
 from strategy.malaysian_snr.config import MalaysianSNRConfig
 from config.symbol_policy import is_direction_allowed
+from strategy.malaysian_snr.validation import (closed_candles, timeframe_delta, av_levels,
+                                               level_is_fresh, confirmed_retest, quasimodo_candidates)
 
 
 def compute_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
@@ -55,7 +57,7 @@ def compute_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
 def is_synthetic_symbol(symbol: str) -> bool:
     s = str(symbol).upper()
-    synth_keywords = ["INDEX", "JUMP", "CRASH", "BOOM", "STEP", "VOLATILITY", "RANGE", "DEX"]
+    synth_keywords = ["JUMP", "CRASH", "BOOM", "STEP", "VOLATILITY", "RANGE BREAK", "DEX", "DRIFT SWITCHING", "DAILY RESET", "HYBRID", "FLIP", "VOL ", "VOLSWITCH", "SKEW", "MULTI STEP", "SPOT UP", "1HZ", "V10", "V25", "V50", "V75", "V100"]
     return any(kw in s for kw in synth_keywords)
 
 
@@ -68,373 +70,170 @@ class MalaysianSNRStrategy:
 
     def analyze_symbol(self, symbol: str, now_utc: datetime | None = None) -> dict:
         now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
-        if now.tzinfo is None:
-            now = now.tz_localize("UTC")
-
-        base_response = {
-            "valid": False,
-            "strategy_name": self.config.strategy_name,
-            "strategy_version": self.config.strategy_version,
-            "action": "WAITING_MALAYSIAN_SNR",
-            "reason": "NO_SETUP_CONFIRMED",
-            "symbol": symbol,
-        }
-
-        # 1. Filtro Institucional de Sesiones (Killzones) para activos convencionales
-        is_synth = is_synthetic_symbol(symbol)
-        if self.config.enable_session_killzones_filter and not is_synth:
-            t_float = now.hour + (now.minute / 60.0)
-            in_london = (7.0 <= t_float <= 11.0)
-            in_ny = (12.5 <= t_float <= 17.0)
-            if not (in_london or in_ny):
-                return {**base_response, "reason": "SESSION_FILTER_OUTSIDE_KILLZONE"}
-
-        # 2. Obtener velas H1, M15 y D1 (Daily Storyline)
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        base = {"valid": False, "strategy_name": self.config.strategy_name,
+                "strategy_version": self.config.strategy_version,
+                "action": "WAITING_MALAYSIAN_SNR", "reason": "NO_SETUP_CONFIRMED", "symbol": symbol}
+        if not self.config.enabled:
+            return {**base, "reason": "STRATEGY_DISABLED"}
+        allowed = tuple(self.config.allowed_symbols or ())
+        norm = str(symbol).strip().lower().removesuffix("micro")
+        if allowed and norm not in {a.strip().lower().removesuffix("micro") for a in allowed}:
+            return {**base, "reason": "SYMBOL_NOT_IN_MSNR_ALLOWLIST"}
+        if self.config.enable_session_killzones_filter and not is_synthetic_symbol(symbol):
+            hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+            if not (7 <= hour < 11 or 12.5 <= hour < 17):
+                return {**base, "reason": "SESSION_FILTER_OUTSIDE_KILLZONE"}
         try:
             raw_h1 = self.provider.get_candles(symbol, self.config.structure_timeframe, count=80)
             raw_m15 = self.provider.get_candles(symbol, self.config.entry_timeframe, count=60)
-            raw_d1 = None
-            if self.config.enable_daily_storyline_filter:
-                raw_d1 = self.provider.get_candles(symbol, self.config.macro_timeframe, count=15)
+            raw_d1 = (self.provider.get_candles(symbol, self.config.macro_timeframe, count=40)
+                      if (self.config.enable_daily_storyline_filter or getattr(self.config, 'enable_d1_storyline_levels', False)) else None)
         except Exception as exc:
-            return {**base_response, "reason": f"PROVIDER_ERROR: {exc}"}
+            return {**base, "reason": f"PROVIDER_ERROR: {exc}"}
+        try:
+            h1 = closed_candles(raw_h1, self.config.structure_timeframe, now)
+            m15 = closed_candles(raw_m15, self.config.entry_timeframe, now)
+            d1 = closed_candles(raw_d1, self.config.macro_timeframe, now) if raw_d1 is not None else pd.DataFrame()
+        except (ValueError, TypeError, KeyError) as exc:
+            return {**base, "reason": f"INVALID_CANDLE_DATA: {exc}"}
+        if len(h1) < 28 or len(m15) < 20:
+            return {**base, "reason": "INSUFFICIENT_CLOSED_CANDLES"}
+        for frame, tf in ((h1, self.config.structure_timeframe), (m15, self.config.entry_timeframe)):
+            delta = timeframe_delta(tf)
+            if now - (frame.iloc[-1].time + delta) >= delta:
+                return {**base, "reason": f"STALE_CANDLES_{tf}"}
+        daily_direction = None
+        if self.config.enable_daily_storyline_filter:
+            if d1.empty:
+                return {**base, "reason": "MISSING_CLOSED_D1"}
+            if now - (d1.iloc[-1].time + timeframe_delta(self.config.macro_timeframe)) > pd.Timedelta(days=3):
+                return {**base, "reason": "STALE_CANDLES_D1"}
+            prev = d1.iloc[-1]
+            if prev.close == prev.open:
+                return {**base, "reason": "NEUTRAL_D1_BIAS"}
+            daily_direction = "BUY" if prev.close > prev.open else "SELL"
+        atr, adx = float(compute_atr(h1).iloc[-1]), float(compute_adx(h1).iloc[-1])
+        if not math.isfinite(atr) or atr <= 0 or not math.isfinite(adx):
+            return {**base, "reason": "INVALID_INDICATORS"}
+        last = h1.iloc[-1]
+        span = float(last.high - last.low)
+        body_ratio = float(abs(last.close - last.open) / span) if span > 0 else 0.0
+        # M15 bars inside the H1 breakout cannot confirm a later retest.
+        break_closed_at = last.time + timeframe_delta(self.config.structure_timeframe)
+        recent_m15 = m15[m15.time >= break_closed_at].tail(6)
+        if recent_m15.empty:
+            return {**base, "reason": "WAITING_POST_BREAK_RETEST"}
+        entry = float(recent_m15.iloc[-1].close)
+        levels = av_levels(h1)
+        d1_levels = av_levels(d1) if (getattr(self.config, 'enable_d1_storyline_levels', False) and d1 is not None and not d1.empty) else []
+        use_crt = getattr(self.config, 'enable_crt_sweep_rejection', True)
 
-        if raw_h1 is None or len(raw_h1) < 25 or raw_m15 is None or len(raw_m15) < 20:
-            return {**base_response, "reason": "INSUFFICIENT_CANDLES"}
+        def allowed_direction(direction):
+            return is_direction_allowed(symbol, direction) and (daily_direction is None or direction == daily_direction)
 
-        df_h1 = raw_h1.copy()
-        df_h1["time"] = pd.to_datetime(df_h1["time"], utc=True)
-        df_h1 = df_h1[df_h1["time"] <= now].sort_values("time").reset_index(drop=True)
+        def make_signal(direction, scenario, level, break_level, stop):
+            sign = 1 if direction == "BUY" else -1
+            risk_dist = sign * (entry - stop)
+            if risk_dist <= 0:
+                return {"valid": False, "strategy_name": self.config.strategy_name,
+                        "strategy_version": self.config.strategy_version, "symbol": symbol,
+                        "action": "WAITING_MALAYSIAN_SNR", "reason": "INVALID_STOP_OR_RISK_DISTANCE"}
 
-        df_m15 = raw_m15.copy()
-        df_m15["time"] = pd.to_datetime(df_m15["time"], utc=True)
-        df_m15 = df_m15[df_m15["time"] <= now].sort_values("time").reset_index(drop=True)
+            if getattr(self.config, 'enable_d1_storyline_levels', False) and d1_levels:
+                d1_candidates = [item["level"] for item in d1_levels
+                                 if item["type"] == ("A_RESISTANCE" if direction == "BUY" else "V_SUPPORT")
+                                 and sign * (item["level"] - entry) > 0]
+                if d1_candidates:
+                    closest_d1 = min(d1_candidates) if direction == "BUY" else max(d1_candidates)
+                    d1_clearance = sign * (closest_d1 - entry)
+                    min_rr = getattr(self.config, 'min_obstacle_rr', 2.0)
+                    if d1_clearance < min_rr * risk_dist:
+                        return {"valid": False, "strategy_name": self.config.strategy_name,
+                                "strategy_version": self.config.strategy_version, "symbol": symbol,
+                                "action": "WAITING_MALAYSIAN_SNR", "reason": "OBSTACLE_D1_BEFORE_2R"}
 
-        if len(df_h1) < 20 or len(df_m15) < 15:
-            return {**base_response, "reason": "INSUFFICIENT_HISTORICAL_DATA"}
+            candidates = [item["level"] for item in levels
+                          if item["type"] == ("A_RESISTANCE" if direction == "BUY" else "V_SUPPORT")
+                          and sign * (item["level"] - entry) > 0]
+            obstacle = (min(candidates) if direction == "BUY" else max(candidates)) if candidates else 0.0
+            result = self._build_confirmed_signal(
+                symbol=symbol, direction=direction, scenario=scenario, entry_price=entry,
+                stop_loss=stop, risk_dist=sign * (entry - stop), adx=adx,
+                body_ratio=body_ratio, ref_level=level, break_level=break_level,
+                current_atr=atr, obstacle_level=obstacle,
+                now_utc=(recent_m15.iloc[-1].time + timeframe_delta(self.config.entry_timeframe)).to_pydatetime())
+            if result.get("valid"):
+                result["signal"].update({"macro_bias": daily_direction,
+                    "evaluated_at": now.isoformat(),
+                    "macro_bias_method": "LAST_CLOSED_D1_CANDLE_DIRECTION",
+                    "structure_closed_at": break_closed_at.isoformat(),
+                    "confirmation_closed_at": (recent_m15.iloc[-1].time + timeframe_delta(self.config.entry_timeframe)).isoformat(),
+                    "entry_confirmation": "CRT_M15_SWEEP_AND_ABSORPTION_CLOSE" if use_crt else "POST_BREAK_M15_RETEST_AND_DIRECTIONAL_CLOSE"})
+            return result
 
-        # Cálculo de Daily Storyline (sesgo macro D1 de la vela previa cerrada)
-        daily_bullish = True
-        if raw_d1 is not None and len(raw_d1) >= 2:
-            df_d1 = raw_d1.copy()
-            df_d1["time"] = pd.to_datetime(df_d1["time"], utc=True)
-            df_d1 = df_d1[df_d1["time"] < now].sort_values("time").reset_index(drop=True)
-            if len(df_d1) >= 1:
-                prev_d1 = df_d1.iloc[-1]
-                daily_bullish = bool(prev_d1["close"] > prev_d1["open"])
+        rejection = None
+        if self.config.enable_scenario_1_continuation and adx >= 20:
+            recent_levels = [item for item in levels
+                             if 2 < len(h1) - 1 - item["idx"] <= self.config.level_lookback_candles]
+            for level in reversed(recent_levels):
+                direction = "BUY" if level["type"] == "A_RESISTANCE" else "SELL"
+                sign = 1 if direction == "BUY" else -1
+                if not allowed_direction(direction):
+                    continue
+                if self.config.enable_strict_fresh_filter and not level_is_fresh(h1, level):
+                    continue
+                wick = last.high - last.close if direction == "BUY" else last.close - last.low
+                if (span <= 0 or sign * (last.close - last.open) <= 0
+                        or sign * (last.close - level["level"]) <= 0
+                        or body_ratio < self.config.minimum_body_ratio
+                        or wick / span > self.config.maximum_breakout_wick_ratio):
+                    continue
+                if not confirmed_retest(recent_m15, level["level"], direction, atr,
+                                        self.config.retest_tolerance_atr, self.config.max_entry_distance_atr, use_crt_trigger=use_crt):
+                    continue
+                stop = (min(float(recent_m15.low.min()), float(last.low)) - .15 * atr if direction == "BUY"
+                        else max(float(recent_m15.high.max()), float(last.high)) + .15 * atr)
+                result = make_signal(direction, "ESC_1_CONTINUATION", level["level"], level["break_level"], stop)
+                if result.get("valid"):
+                    return result
+                rejection = result
 
-        df_h1["atr"] = compute_atr(df_h1, 14)
-        df_h1["adx"] = compute_adx(df_h1, 14)
+        if self.config.enable_quasimodo_pattern:
+            for pattern in quasimodo_candidates(h1, self.config.qm_swing_radius):
+                direction = pattern["direction"]
+                if not allowed_direction(direction):
+                    continue
+                if not confirmed_retest(recent_m15, pattern["shoulder"], direction, atr,
+                                        self.config.retest_tolerance_atr, self.config.max_entry_distance_atr, use_crt_trigger=use_crt):
+                    continue
+                sign = 1 if direction == "BUY" else -1
+                # A sweep beyond the head after BOS invalidates the setup.
+                if (direction == "BUY" and recent_m15.low.min() <= pattern["head"]) or (direction == "SELL" and recent_m15.high.max() >= pattern["head"]):
+                    continue
+                result = make_signal(direction, "ESC_3_QUASIMODO", pattern["shoulder"],
+                                     pattern["neckline"], pattern["head"] - sign * .10 * atr)
+                if result.get("valid"):
+                    return result
+                rejection = result
 
-        current_atr = float(df_h1["atr"].iloc[-1]) if not pd.isna(df_h1["atr"].iloc[-1]) else 1.0
-        current_adx = float(df_h1["adx"].iloc[-1]) if not pd.isna(df_h1["adx"].iloc[-1]) else 20.0
-
-        # Identificar niveles A/V y Breaks en H1 con índice para tracking de Fresh
-        h1_levels = []
-        for i in range(2, len(df_h1) - 1):
-            prev = df_h1.iloc[i - 1]
-            curr = df_h1.iloc[i]
-            # Patrón A (Resistencia envolvente)
-            if prev["close"] > prev["open"] and curr["close"] < curr["open"]:
-                if curr["close"] <= prev["open"]:
-                    h1_levels.append({
-                        "type": "A_RESISTANCE",
-                        "level": max(prev["high"], curr["high"]),
-                        "break_level": prev["close"],  # Cierre anterior = unión de cuerpos
-                        "time": curr["time"],
-                        "idx": i,
-                    })
-            # Patrón V (Soporte envolvente)
-            elif prev["close"] < prev["open"] and curr["close"] > curr["open"]:
-                if curr["close"] >= prev["open"]:
-                    h1_levels.append({
-                        "type": "V_SUPPORT",
-                        "level": min(prev["low"], curr["low"]),
-                        "break_level": prev["close"],  # Cierre anterior = unión de cuerpos
-                        "time": curr["time"],
-                        "idx": i,
-                    })
-
-        last_h1 = df_h1.iloc[-1]
-        h1_body = abs(last_h1["close"] - last_h1["open"])
-        h1_span = last_h1["high"] - last_h1["low"]
-        body_ratio = (h1_body / h1_span) if h1_span > 0 else 0.0
-
-        # Últimas velas M15 para entrada
-        last_m15 = df_m15.iloc[-1]
-        entry_price = float(last_m15["close"])
-        recent_m15 = df_m15.iloc[-6:] if len(df_m15) >= 6 else df_m15
-
-        # -------------------------------------------------------------
-        # ESCENARIO 1: Ruptura Clásica (Fresh Breakout en H1 -> Retest en M15)
-        # -------------------------------------------------------------
-        if self.config.enable_scenario_1_continuation:
-            # Filtro de régimen de mercado: en mercados planos/sin tendencia (ADX < 20)
-            # las rupturas continuas sufren falsos rompimientos frecuentes.
-            if current_adx >= 20.0:
-                h1_total = len(df_h1)
-                recent_levels = [lvl for lvl in h1_levels if 2 < (h1_total - 1 - lvl.get("idx", 0)) <= 35]
-                for lvl in reversed(recent_levels):
-                    lvl_price = lvl["level"]
-                    break_price = lvl["break_level"]
-                    lvl_idx = lvl.get("idx", 0)
-
-                    # MEJORA 1: TRUE FRESH LEVEL TRACKING (Descartar niveles mitigados)
-                    intermediate_df = df_h1.iloc[lvl_idx + 1 : h1_total - 1]
-
-                    # Ruptura Alcista Fresh + Retest M15 (Resistencia A convertida en Soporte)
-                    if lvl["type"] == "A_RESISTANCE":
-                        if self.config.enable_strict_fresh_filter and len(intermediate_df) > 0:
-                            if (intermediate_df["high"] >= lvl_price).any():
-                                continue  # Nivel Mitigado / Unfresh
-
-                        # MEJORA 2: DAILY STORYLINE ALIGNMENT
-                        if self.config.enable_daily_storyline_filter and not daily_bullish:
-                            continue
-
-                        upper_wick = last_h1["high"] - last_h1["close"]
-                        upper_wick_ratio = (upper_wick / h1_span) if h1_span > 0 else 0.0
-                        if (
-                            last_h1["close"] > lvl_price
-                            and body_ratio >= self.config.minimum_body_ratio
-                            and upper_wick_ratio <= self.config.maximum_breakout_wick_ratio
-                        ):
-                            # Retest M15: verificar que el precio haya testeado la zona de ruptura
-                            retest_tested = any(
-                                float(row["low"]) <= lvl_price + (0.35 * current_atr)
-                                for _, row in recent_m15.iterrows()
-                            )
-                            # Antipersecución: No comprar si el precio ya se disparó más de 0.50 ATR del nivel
-                            not_overextended = entry_price <= (lvl_price + (0.50 * current_atr))
-                            # Defensa estructural: el precio debe mantenerse sobre el nivel de soporte
-                            respects_level = entry_price >= (break_price - (0.15 * current_atr))
-
-                            if retest_tested and not_overextended and respects_level:
-                                if is_direction_allowed(symbol, "BUY"):
-                                    retest_low = float(recent_m15["low"].min())
-                                    sl = min(retest_low, float(last_h1["low"])) - (0.15 * current_atr)
-                                    risk_dist = abs(entry_price - sl)
-                                    if risk_dist > 0:
-                                        # MEJORA 5: OBSTACLE AWARENESS (Nivel de resistencia superior más cercano)
-                                        opp_lvls = [ol["level"] for ol in recent_levels if ol["type"] == "A_RESISTANCE" and ol["level"] > entry_price]
-                                        nearest_obstacle = min(opp_lvls) if opp_lvls else 0.0
-
-                                        return self._build_confirmed_signal(
-                                            symbol=symbol,
-                                            direction="BUY",
-                                            scenario="ESC_1_CONTINUATION",
-                                            entry_price=entry_price,
-                                            stop_loss=sl,
-                                            risk_dist=risk_dist,
-                                            adx=current_adx,
-                                            body_ratio=body_ratio,
-                                            ref_level=lvl_price,
-                                            break_level=break_price,
-                                            current_atr=current_atr,
-                                            obstacle_level=nearest_obstacle,
-                                        )
-
-                    # Ruptura Bajista Fresh + Retest M15 (Soporte V convertido en Resistencia)
-                    elif lvl["type"] == "V_SUPPORT":
-                        if self.config.enable_strict_fresh_filter and len(intermediate_df) > 0:
-                            if (intermediate_df["low"] <= lvl_price).any():
-                                continue  # Nivel Mitigado / Unfresh
-
-                        # MEJORA 2: DAILY STORYLINE ALIGNMENT
-                        if self.config.enable_daily_storyline_filter and daily_bullish:
-                            continue
-
-                        lower_wick = last_h1["close"] - last_h1["low"]
-                        lower_wick_ratio = (lower_wick / h1_span) if h1_span > 0 else 0.0
-                        if (
-                            last_h1["close"] < lvl_price
-                            and body_ratio >= self.config.minimum_body_ratio
-                            and lower_wick_ratio <= self.config.maximum_breakout_wick_ratio
-                        ):
-                            # Retest M15: verificar que el precio haya retesteado la zona
-                            retest_tested = any(
-                                float(row["high"]) >= lvl_price - (0.35 * current_atr)
-                                for _, row in recent_m15.iterrows()
-                            )
-                            # Antipersecución: No vender si el precio ya se desplomó más de 0.50 ATR del nivel
-                            not_overextended = entry_price >= (lvl_price - (0.50 * current_atr))
-                            # Defensa estructural: el precio debe mantenerse bajo el nivel de resistencia
-                            respects_level = entry_price <= (break_price + (0.15 * current_atr))
-
-                            if retest_tested and not_overextended and respects_level:
-                                if is_direction_allowed(symbol, "SELL"):
-                                    retest_high = float(recent_m15["high"].max())
-                                    sl = max(retest_high, float(last_h1["high"])) + (0.15 * current_atr)
-                                    risk_dist = abs(sl - entry_price)
-                                    if risk_dist > 0:
-                                        # MEJORA 5: OBSTACLE AWARENESS (Nivel de soporte inferior más cercano)
-                                        opp_lvls = [ol["level"] for ol in recent_levels if ol["type"] == "V_SUPPORT" and ol["level"] < entry_price]
-                                        nearest_obstacle = max(opp_lvls) if opp_lvls else 0.0
-
-                                        return self._build_confirmed_signal(
-                                            symbol=symbol,
-                                            direction="SELL",
-                                            scenario="ESC_1_CONTINUATION",
-                                            entry_price=entry_price,
-                                            stop_loss=sl,
-                                            risk_dist=risk_dist,
-                                            adx=current_adx,
-                                            body_ratio=body_ratio,
-                                            ref_level=lvl_price,
-                                            break_level=break_price,
-                                            current_atr=current_atr,
-                                            obstacle_level=nearest_obstacle,
-                                        )
-
-        # -------------------------------------------------------------
-        # MEJORA 4: QUASIMODO (QM) ESTRUCTURAL DE SWING (Left Shoulder Retest)
-        # -------------------------------------------------------------
-        if self.config.enable_quasimodo_pattern and len(df_h1) >= 6:
-            c1 = df_h1.iloc[-5]
-            c2 = df_h1.iloc[-4]
-            c3 = df_h1.iloc[-3]
-            c4 = df_h1.iloc[-2]
-            c5 = df_h1.iloc[-1]
-
-            # Bullish QM: Low (c1) -> High (c2) -> Lower Low sweep (c3) -> Higher High break (c4) -> Retest Left Shoulder (c5)
-            if (
-                c3["low"] < c1["low"]
-                and c4["close"] > c2["high"]
-                and c5["low"] <= c1["low"] + (0.25 * current_atr)
-                and c5["close"] > c1["low"]
-            ):
-                if is_direction_allowed(symbol, "BUY") and (not self.config.enable_daily_storyline_filter or daily_bullish):
-                    sl = float(c3["low"]) - (0.10 * current_atr)
-                    risk_dist = abs(entry_price - sl)
-                    if risk_dist > 0:
-                        return self._build_confirmed_signal(
-                            symbol=symbol,
-                            direction="BUY",
-                            scenario="ESC_3_QUASIMODO",
-                            entry_price=entry_price,
-                            stop_loss=sl,
-                            risk_dist=risk_dist,
-                            adx=current_adx,
-                            body_ratio=body_ratio,
-                            ref_level=float(c1["low"]),
-                            break_level=float(c2["high"]),
-                            current_atr=current_atr,
-                            obstacle_level=float(c2["high"]),
-                        )
-
-            # Bearish QM: High (c1) -> Low (c2) -> Higher High sweep (c3) -> Lower Low break (c4) -> Retest Left Shoulder (c5)
-            elif (
-                c3["high"] > c1["high"]
-                and c4["close"] < c2["low"]
-                and c5["high"] >= c1["high"] - (0.25 * current_atr)
-                and c5["close"] < c1["high"]
-            ):
-                if is_direction_allowed(symbol, "SELL") and (not self.config.enable_daily_storyline_filter or not daily_bullish):
-                    sl = float(c3["high"]) + (0.10 * current_atr)
-                    risk_dist = abs(sl - entry_price)
-                    if risk_dist > 0:
-                        return self._build_confirmed_signal(
-                            symbol=symbol,
-                            direction="SELL",
-                            scenario="ESC_3_QUASIMODO",
-                            entry_price=entry_price,
-                            stop_loss=sl,
-                            risk_dist=risk_dist,
-                            adx=current_adx,
-                            body_ratio=body_ratio,
-                            ref_level=float(c1["high"]),
-                            break_level=float(c2["low"]),
-                            current_atr=current_atr,
-                            obstacle_level=float(c2["low"]),
-                        )
-
-        # -------------------------------------------------------------
-        # ESCENARIO 3: Fractalidad Clásica (HCH / Quiebre Estructural Rápido)
-        # -------------------------------------------------------------
-        if self.config.enable_scenario_3_fractal and len(df_h1) >= 4:
-            c_prev2 = df_h1.iloc[-3]
-            c_prev1 = df_h1.iloc[-2]
-            c_curr = df_h1.iloc[-1]
-
-            # Fractal Bullish HCH (Ruptura de Clavicular + Retest M15 de Hombro Derecho)
-            if c_prev1["low"] < c_prev2["low"] and c_curr["close"] > c_curr["open"]:
-                f_body = c_curr["close"] - c_curr["open"]
-                f_span = c_curr["high"] - c_curr["low"]
-                neckline = float(c_prev2["high"])
-                # Retest M15: verificar que el retroceso haya testeado la zona clavicular
-                retest_tested = any(
-                    float(row["low"]) <= neckline + (0.35 * current_atr)
-                    for _, row in recent_m15.iterrows()
-                )
-                not_overextended = entry_price <= (neckline + (0.40 * current_atr))
-                respects_neckline = entry_price >= (neckline - (0.15 * current_atr))
-                if (
-                    f_span > 0
-                    and (f_body / f_span) >= 0.55
-                    and c_curr["close"] > neckline
-                    and retest_tested
-                    and not_overextended
-                    and respects_neckline
-                ):
-                    if is_direction_allowed(symbol, "BUY") and (not self.config.enable_daily_storyline_filter or daily_bullish):
-                        retest_low = float(recent_m15["low"].min())
-                        sl = min(retest_low, float(c_curr["low"])) - (0.15 * current_atr)
-                        risk_dist = abs(entry_price - sl)
-                        if risk_dist > 0:
-                            return self._build_confirmed_signal(
-                                symbol=symbol,
-                                direction="BUY",
-                                scenario="ESC_3_FRACTAL",
-                                entry_price=entry_price,
-                                stop_loss=sl,
-                                risk_dist=risk_dist,
-                                adx=current_adx,
-                                body_ratio=f_body / f_span,
-                                ref_level=neckline,
-                                break_level=float(c_prev1["close"]),
-                                current_atr=current_atr,
-                            )
-
-            # Fractal Bearish HCH (Ruptura de Clavicular + Retest M15 de Hombro Derecho)
-            elif c_prev1["high"] > c_prev2["high"] and c_curr["close"] < c_curr["open"]:
-                f_body = c_curr["open"] - c_curr["close"]
-                f_span = c_curr["high"] - c_curr["low"]
-                neckline = float(c_prev2["low"])
-                # Retest M15: verificar que el retroceso haya testeado la zona clavicular
-                retest_tested = any(
-                    float(row["high"]) >= neckline - (0.35 * current_atr)
-                    for _, row in recent_m15.iterrows()
-                )
-                not_overextended = entry_price >= (neckline - (0.40 * current_atr))
-                respects_neckline = entry_price <= (neckline + (0.15 * current_atr))
-                if (
-                    f_span > 0
-                    and (f_body / f_span) >= 0.55
-                    and c_curr["close"] < neckline
-                    and retest_tested
-                    and not_overextended
-                    and respects_neckline
-                ):
-                    if is_direction_allowed(symbol, "SELL") and (not self.config.enable_daily_storyline_filter or not daily_bullish):
-                        retest_high = float(recent_m15["high"].max())
-                        sl = max(retest_high, float(c_curr["high"])) + (0.15 * current_atr)
-                        risk_dist = abs(sl - entry_price)
-                        if risk_dist > 0:
-                            return self._build_confirmed_signal(
-                                symbol=symbol,
-                                direction="SELL",
-                                scenario="ESC_3_FRACTAL",
-                                entry_price=entry_price,
-                                stop_loss=sl,
-                                risk_dist=risk_dist,
-                                adx=current_adx,
-                                body_ratio=f_body / f_span,
-                                ref_level=neckline,
-                                break_level=float(c_prev1["close"]),
-                                current_atr=current_atr,
-                            )
-
-        return base_response
+        if self.config.enable_scenario_3_fractal:
+            prev2, prev1 = h1.iloc[-3], h1.iloc[-2]
+            direction = None
+            if prev1.low < prev2.low and last.close > last.open and last.close > prev2.high:
+                direction, neckline = "BUY", float(prev2.high)
+            elif prev1.high > prev2.high and last.close < last.open and last.close < prev2.low:
+                direction, neckline = "SELL", float(prev2.low)
+            if direction and body_ratio >= .55 and allowed_direction(direction):
+                if confirmed_retest(recent_m15, neckline, direction, atr,
+                                    self.config.retest_tolerance_atr, min(.40, self.config.max_entry_distance_atr), use_crt_trigger=use_crt):
+                    stop = (min(float(recent_m15.low.min()), float(last.low)) - .15 * atr if direction == "BUY"
+                            else max(float(recent_m15.high.max()), float(last.high)) + .15 * atr)
+                    result = make_signal(direction, "ESC_3_FRACTAL", neckline, float(prev1.close), stop)
+                    if result.get("valid"):
+                        return result
+                    rejection = result
+        return rejection or base
 
     def _build_confirmed_signal(
         self,
@@ -450,8 +249,23 @@ class MalaysianSNRStrategy:
         break_level: float,
         current_atr: float = 0.0,
         obstacle_level: float = 0.0,
+        now_utc: datetime | None = None,
     ) -> dict:
         """Construye el payload completo de señal dual con targets asimétricos y features para IA."""
+        def reject(reason):
+            return {"valid": False, "strategy_name": self.config.strategy_name,
+                    "strategy_version": self.config.strategy_version, "symbol": symbol,
+                    "action": "WAITING_MALAYSIAN_SNR", "reason": reason}
+
+        values = (entry_price, stop_loss, risk_dist, adx, body_ratio, current_atr, obstacle_level)
+        if direction not in {"BUY", "SELL"} or not all(math.isfinite(v) for v in values):
+            return reject("INVALID_SIGNAL_GEOMETRY")
+        sign = 1 if direction == "BUY" else -1
+        actual_risk = sign * (entry_price - stop_loss)
+        if actual_risk <= 0 or not math.isclose(actual_risk, risk_dist, rel_tol=1e-8, abs_tol=1e-10):
+            return reject("INVALID_STOP_OR_RISK_DISTANCE")
+        if not is_direction_allowed(symbol, direction):
+            return reject("DIRECTION_POLICY_BLOCKED")
         # 1. TP1: Mínimo 1:2.0 RR (Requisito fundamental validado a 2 años)
         tp1_price = entry_price + (self.config.tp1_min_rr * risk_dist) if direction == "BUY" else entry_price - (self.config.tp1_min_rr * risk_dist)
 
@@ -468,13 +282,16 @@ class MalaysianSNRStrategy:
 
         # Ajuste dinámico de Obstacle Awareness: si hay un obstáculo estructural previo
         if self.config.enable_obstacle_awareness and obstacle_level > 0:
-            dist_to_obs = abs(obstacle_level - entry_price) / risk_dist
-            if 1.8 < dist_to_obs < runner_rr:
-                runner_rr = round(dist_to_obs - 0.2, 1)
+            room = sign * (obstacle_level - entry_price) - self.config.obstacle_buffer_atr * current_atr
+            if room < self.config.tp1_min_rr * risk_dist:
+                return reject("OBSTACLE_BEFORE_MINIMUM_TP1")
+            runner_rr = min(runner_rr, room / risk_dist)
+        if not math.isfinite(runner_rr) or runner_rr < self.config.tp1_min_rr or self.config.tp1_min_rr <= 0:
+            return reject("INVALID_TARGET_ORDER")
 
         tp2_price = entry_price + (runner_rr * risk_dist) if direction == "BUY" else entry_price - (runner_rr * risk_dist)
 
-        # Score cuantitativo y porcentaje de confirmación
+        # Heuristic rule scores, NOT calibrated probabilities of trade success.
         base_score = 75.0
         adx_bonus = min(15.0, max(0.0, (adx - 20.0) * 1.5))
         body_bonus = 10.0 if body_ratio >= 0.60 else 5.0
@@ -501,7 +318,7 @@ class MalaysianSNRStrategy:
             "symbol": symbol,
             "direction": direction,
             "scenario": scenario,
-            "entry_time": datetime.now(timezone.utc).isoformat(),
+            "entry_time": (now_utc or datetime.now(timezone.utc)).isoformat(),
             "entry_price": round(entry_price, 5),
             "stop_loss": round(stop_loss, 5),
             "risk_reward_ratio": runner_rr,
@@ -520,11 +337,16 @@ class MalaysianSNRStrategy:
             "atr": round(current_atr, 5) if current_atr > 0 else round(risk_dist / max(1.0, runner_rr), 5),
             "trade_score": round(trade_score, 2),
             "confirmation_percentage": round(conf_pct, 2),
+            "confirmation_percentage_kind": "HEURISTIC_RULE_SCORE_NOT_PROBABILITY",
+            "success_probability": None,
+            "probability_status": "UNVALIDATED_FOR_CURRENT_STRATEGY_VERSION",
             "structure_break": f"{scenario}_{direction}",
             "body_ratio": round(body_ratio, 2),
             "ref_level": round(ref_level, 5),
             "break_level": round(break_level, 5),
             "obstacle_level": round(obstacle_level, 5),
+            "price_action_confirmations": {"rejection": True, "micro_structure": True, "displacement": True, "strong_close": True},
+            "confirmations": {"rejection": True, "micro_structure": True, "displacement": True, "strong_close": True},
             "meta_features": ai_features,
             # Configuración para el motor de ejecución de dos piernas (50% / 50%)
             "split_execution": True,

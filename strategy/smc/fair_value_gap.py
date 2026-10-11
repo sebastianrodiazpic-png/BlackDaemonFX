@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 
@@ -126,6 +127,17 @@ def detect_fvg_confirmation(
     normalized_direction = "bullish" if str(direction).lower() in {"long", "buy", "bullish"} else "bearish"
     start = max(2, confirmation_index - max(1, int(config.lookback)))
 
+    from strategy.smc.vectorized_smc import fast_compute_rolling_atr14, _check_fvg_filled
+
+    highs_arr = data["high"].to_numpy(dtype=float) if "high" in data.columns else np.zeros(len(data))
+    lows_arr = data["low"].to_numpy(dtype=float) if "low" in data.columns else np.zeros(len(data))
+    closes_arr = data["close"].to_numpy(dtype=float) if "close" in data.columns else (highs_arr + lows_arr) / 2.0
+    opens_arr = data["open"].to_numpy(dtype=float) if "open" in data.columns else closes_arr
+    atr_arr = fast_compute_rolling_atr14(highs_arr, lows_arr, closes_arr, period=14) if "close" in data.columns else np.zeros(len(data))
+
+    vol_col = "volume" if "volume" in data.columns else ("tick_volume" if "tick_volume" in data.columns else None)
+    vols_arr = data[vol_col].to_numpy(dtype=float) if vol_col else None
+
     # Recorre de la vela más reciente hacia atrás para quedarse con el gap
     # más próximo a la confirmación (el más relevante para la entrada actual).
     for i in range(confirmation_index, start - 1, -1):
@@ -138,18 +150,19 @@ def detect_fvg_confirmation(
                 continue
         if i < 2 or i >= len(data):
             continue
-        left = data.iloc[i - 2]
-        current = data.iloc[i]
-        left_high, left_low = _float(left.get("high")), _float(left.get("low"))
-        cur_high, cur_low = _float(current.get("high")), _float(current.get("low"))
-        if None in (left_high, left_low, cur_high, cur_low):
+
+        left_high = highs_arr[i - 2]
+        left_low = lows_arr[i - 2]
+        cur_high = highs_arr[i]
+        cur_low = lows_arr[i]
+
+        if np.isnan(left_high) or np.isnan(left_low) or np.isnan(cur_high) or np.isnan(cur_low):
             continue
 
         # Normalización de mecha de spike para Crash Index (salto discreto de cotización)
         if config and config.is_crash:
-            left_close, left_open = _float(left.get("close")), _float(left.get("open"))
-            if left_close is not None and left_open is not None:
-                # La base real del cuerpo ignorando la mecha artificial del spike
+            left_close, left_open = closes_arr[i - 2], opens_arr[i - 2]
+            if not np.isnan(left_close) and not np.isnan(left_open):
                 left_low = max(left_low, min(left_open, left_close))
 
         gap_direction = None
@@ -164,27 +177,15 @@ def detect_fvg_confirmation(
             continue
 
         # Filtro de desplazamiento mínimo: la vela intermedia debe superar 1.5x ATR(14)
-        middle = data.iloc[i - 1]
-        mid_high = _float(middle.get("high"))
-        mid_low = _float(middle.get("low"))
-        mid_range = max(mid_high - mid_low, 0.0) if (mid_high is not None and mid_low is not None) else 0.0
+        mid_high = highs_arr[i - 1]
+        mid_low = lows_arr[i - 1]
+        mid_range = max(mid_high - mid_low, 0.0) if (not np.isnan(mid_high) and not np.isnan(mid_low)) else 0.0
 
         min_mult = float(getattr(config, "min_displacement_atr_multiplier", 1.5) or 0.0)
-        atr_14 = 0.0
-        if min_mult > 0.0 and len(data) >= 15 and i >= 2:
-            prior_slice = data.iloc[max(0, i - 16):i]
-            if len(prior_slice) >= 5:
-                prev_close = prior_slice["close"].shift(1)
-                tr = pd.concat([
-                    (prior_slice["high"] - prior_slice["low"]),
-                    (prior_slice["high"] - prev_close).abs(),
-                    (prior_slice["low"] - prev_close).abs(),
-                ], axis=1).max(axis=1)
-                atr_14 = float(tr.tail(14).mean()) if len(tr.dropna()) >= 1 else 0.0
+        atr_14 = float(atr_arr[i - 1]) if (i - 1 < len(atr_arr) and not np.isnan(atr_arr[i - 1])) else 0.0
 
         if min_mult > 0.0 and atr_14 > 1e-9:
             if mid_range < (min_mult * atr_14) - 1e-9:
-                # Descarta FVG de baja inercia o rango acumulativo
                 continue
 
         # Filtro de Imbalance Strength (LuxAlgo): FVG size >= 1.2 * ATR(14)
@@ -192,22 +193,19 @@ def detect_fvg_confirmation(
         min_fvg_mult = float(getattr(config, "min_fvg_atr_multiplier", 1.2) or 0.0)
         if min_fvg_mult > 0.0 and atr_14 > 1e-9:
             if gap_size < (min_fvg_mult * atr_14) - 1e-9:
-                # Descarta huecos minúsculos que no representan desbalance institucional
                 continue
 
         # Filtro de Volumen de Desplazamiento Institucional: Volumen de vela intermedia > 1.5 * Media(20)
-        vol_col = "volume" if "volume" in data.columns else ("tick_volume" if "tick_volume" in data.columns else None)
         min_vol_mult = float(getattr(config, "min_volume_multiplier", 1.5) or 0.0)
         vol_ratio = 1.0
-        if getattr(config, "require_volume_filter", True) and vol_col and min_vol_mult > 0.0 and len(data) >= 25 and i >= 2:
-            prior_vol = data[vol_col].iloc[max(0, i - 21):i - 1]
-            if len(prior_vol) >= 10 and float(prior_vol.std()) > 1e-6:
-                mean_vol_20 = float(prior_vol.tail(20).mean())
-                mid_vol = _float(middle.get(vol_col))
-                if mid_vol is not None and mean_vol_20 > 1e-9:
+        if getattr(config, "require_volume_filter", True) and vols_arr is not None and min_vol_mult > 0.0 and i >= 22:
+            prior_vol = vols_arr[max(0, i - 21):i - 1]
+            if len(prior_vol) >= 10 and float(np.std(prior_vol)) > 1e-6:
+                mean_vol_20 = float(np.mean(prior_vol[-20:]))
+                mid_vol = vols_arr[i - 1]
+                if not np.isnan(mid_vol) and mean_vol_20 > 1e-9:
                     vol_ratio = mid_vol / mean_vol_20
                     if mid_vol <= (min_vol_mult * mean_vol_20):
-                        # Descarta FVG formado sin volumen institucional anómalo
                         continue
 
         age_candles = confirmation_index - i
@@ -220,18 +218,8 @@ def detect_fvg_confirmation(
 
         # Un FVG ya completamente relleno antes de la vela de confirmación
         # perdió su función de imán de precio: no aporta como confluencia.
-        filled = False
-        future = data.iloc[i + 1:confirmation_index]
-        for _, row in future.iterrows():
-            row_low, row_high = _float(row.get("low")), _float(row.get("high"))
-            if row_low is None or row_high is None:
-                continue
-            if gap_direction == "bullish" and row_low <= gap_low:
-                filled = True
-                break
-            if gap_direction == "bearish" and row_high >= gap_high:
-                filled = True
-                break
+        is_bull = (gap_direction == "bullish")
+        filled = _check_fvg_filled(lows_arr, highs_arr, i + 1, confirmation_index, is_bull, gap_low, gap_high)
         if filled:
             continue
 

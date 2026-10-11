@@ -32,7 +32,7 @@ def run():
     asset_strat_matrix = defaultdict(dict)
     
     # -------------------------------------------------------------
-    # 1. ORB NEW YORK (Jonathan Núñez - 2 Años)
+    # 1. ORB NEW YORK
     # -------------------------------------------------------------
     orb_file = Path("storage/analysis/replay_orb_nunez_results.json")
     if orb_file.exists():
@@ -46,7 +46,7 @@ def run():
             r_mult = res.get("r_multiple", 0)
             status = "Rentable" if pnl > 0 else "Podado"
             asset_strat_matrix[clean]["ORB"] = {
-                "strategy_name": "ORB New York (Jonathan Núñez)",
+                "strategy_name": "ORB New York",
                 "trades": trades,
                 "win_rate": wr,
                 "pnl_usd": round(pnl, 2),

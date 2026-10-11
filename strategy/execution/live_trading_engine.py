@@ -905,8 +905,8 @@ class LiveTradingEngine:
                 enabled=bool(self.config.malaysian_snr_enabled or str(self.config.bot_profile).upper() == "MALAYSIAN_SNR"),
                 entry_timeframe="M15",
                 structure_timeframe="H1",
-                tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 1.0)),
-                tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.0)),
+                tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 2.0)),
+                tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.5)),
             ),
         )
 
@@ -6555,7 +6555,7 @@ class LiveTradingEngine:
 
         min_adx = float(getattr(self.config, "step_min_adx", 25.0))
         if is_step_worker:
-            if adx is None or float(adx) <= min_adx:
+            if adx is None or float(adx) < min_adx:
                 return {
                     "symbol": str(symbol),
                     "action": "STEP_ADX_LOW",
@@ -6563,7 +6563,7 @@ class LiveTradingEngine:
                     "adx": float(adx) if adx is not None else 0.0,
                     "min_adx": min_adx,
                 }
-        elif adx is not None and float(adx) <= min_adx:
+        elif adx is not None and float(adx) < min_adx:
             return {
                 "symbol": str(symbol),
                 "action": "STEP_ADX_LOW",
@@ -6733,28 +6733,30 @@ class LiveTradingEngine:
                 }
 
         direction = str(signal.get("direction") or "").upper()
-        try:
-            candles = self.provider.get_candles(symbol, "M5", count=4)
-            if candles is not None and not candles.empty and len(candles) >= 2:
-                last_two = candles.tail(2)
-                non_confirming = 0
-                for _, c in last_two.iterrows():
-                    o = float(c.get("open", 0.0))
-                    cl = float(c.get("close", 0.0))
-                    if direction == "BUY" and cl <= o:
-                        non_confirming += 1
-                    elif direction == "SELL" and cl >= o:
-                        non_confirming += 1
-                if non_confirming > 0:
-                    return {
-                        "symbol": str(symbol),
-                        "action": "JUMP_STRICT_FILTER_REJECTED",
-                        "reason": "JUMP_REQUIRES_TWO_CONSECUTIVE_CONFIRMING_CANDLES",
-                        "failures": ["JUMP_TWO_CONSECUTIVE_CONFIRMING_CANDLES_REQUIRED"],
-                        "direction": direction,
-                    }
-        except Exception:
-            pass
+        strat_name = str(signal.get("strategy_name") or "").upper()
+        if strat_name not in {"ICT_SABRI_MALLE", "MALAYSIAN_SNR"}:
+            try:
+                candles = self.provider.get_candles(symbol, "M5", count=4)
+                if candles is not None and not candles.empty and len(candles) >= 2:
+                    last_two = candles.tail(2)
+                    non_confirming = 0
+                    for _, c in last_two.iterrows():
+                        o = float(c.get("open", 0.0))
+                        cl = float(c.get("close", 0.0))
+                        if direction == "BUY" and cl <= o:
+                            non_confirming += 1
+                        elif direction == "SELL" and cl >= o:
+                            non_confirming += 1
+                    if non_confirming > 0:
+                        return {
+                            "symbol": str(symbol),
+                            "action": "JUMP_STRICT_FILTER_REJECTED",
+                            "reason": "JUMP_REQUIRES_TWO_CONSECUTIVE_CONFIRMING_CANDLES",
+                            "failures": ["JUMP_TWO_CONSECUTIVE_CONFIRMING_CANDLES_REQUIRED"],
+                            "direction": direction,
+                        }
+            except Exception:
+                pass
 
         if not bool(self.config.jump_strict_filter_enabled):
             return None
@@ -7194,7 +7196,7 @@ class LiveTradingEngine:
         is_vol_profile = str(self.config.bot_profile or "").upper().startswith("VOLATILITY")
         is_volatility = self._is_volatility_symbol(exact_symbol) if callable(getattr(self, "_is_volatility_symbol", None)) else False
         if bool(self.config.split_entries_enabled):
-            if is_forex_profile and is_forex_symbol:
+            if is_forex_profile and is_forex_symbol and strategy_name != "MALAYSIAN_SNR":
                 eff_first_rr = float(self.config.first_target_rr)
                 eff_second_rr = float(self.config.second_target_rr)
                 forex_runner_target = max(
@@ -7205,7 +7207,7 @@ class LiveTradingEngine:
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
                     ("RUNNER", risk_fraction, eff_second_rr, forex_runner_target),
                 ]
-            elif is_vol_profile and is_volatility:
+            elif is_vol_profile and is_volatility and strategy_name != "MALAYSIAN_SNR":
                 eff_first_rr = float(self.config.volatility_first_target_rr)
                 eff_second_rr = float(self.config.volatility_second_target_rr)
                 if bool(self.config.runner_extension_enabled):
@@ -7231,12 +7233,17 @@ class LiveTradingEngine:
             elif strategy_name == "MALAYSIAN_SNR":
                 msnr_tp1_rr = float(signal.get("tp1_rr") or getattr(self.config, "malaysian_snr_tp1_rr", self.config.first_target_rr))
                 msnr_runner_rr = float(signal.get("runner_rr") or getattr(self.config, "malaysian_snr_runner_rr", self.config.second_target_rr))
+                if signal.get("obstacle_level") and signal.get("tp2_price"):
+                    sign = 1 if direction == "BUY" else -1
+                    live_risk = sign * (float(entry) - float(sl))
+                    room = sign * (float(signal["tp2_price"]) - float(entry))
+                    if live_risk <= 0 or room < msnr_tp1_rr * live_risk:
+                        return None, {"code": "MSNR_OBSTACLE_BEFORE_MINIMUM_TP1"}, None, "SPLIT"
+                    msnr_runner_rr = min(msnr_runner_rr, room / live_risk)
                 eff_first_rr = msnr_tp1_rr
                 eff_second_rr = msnr_runner_rr
-                if bool(self.config.runner_extension_enabled):
-                    runner_target_rr = max(eff_second_rr, float(self.config.runner_extension_max_target_rr))
-                else:
-                    runner_target_rr = eff_second_rr
+                # Preserve the structural ceiling selected by MSNR obstacle awareness.
+                runner_target_rr = eff_second_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
                     ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),

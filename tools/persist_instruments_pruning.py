@@ -4,7 +4,7 @@ Criterio: Terreno Dominante, Máxima Rentabilidad y Estrategia Ganadora según e
 
 Aplica la selección persistente en SQLite (trading_bot.sqlite3) para cada uno de los workers:
 - SYNTHETICS: Activos líderes por evidencia empírica (Crash 500 Index +$969.24 / WR 70.8%, Step Index 500 +$568.03 / WR 47.1%, HF Vol 50 +$220.37 / WR 100%, Boom 1000 +$73.18, Boom 300, Jump 10, Jump 75, etc.).
-- GOLD: Activo dominante XAUUSD (+$532.82 PnL, WR 46.8%). Plata podada por Jonathan Núñez (-$374.68 PnL).
+- GOLD: Activo dominante XAUUSD (+$532.82 PnL, WR 46.8%). Plata podada (-$374.68 PnL).
 - ORB (New York Cash Open): Wall Street 30 (+44.46 PnL), XAUUSD (+532.82 PnL), US Tech 100, BTCUSD.
 - IDX_OPEN: Wall Street 30 y US Tech 100.
 - MALAYSIAN_SNR: Crash 500 (+969.24 PnL), Step 500 (+568.03 PnL), Boom 1000 (+73.18 PnL), XAUUSD (+532.82 PnL), Jump 10, Jump 75, Jump 25, Wall Street 30, BTCUSD.
@@ -32,6 +32,7 @@ PROFILE_INSTRUMENT_MAP = {
         "Crash 500 Index",             # #1 Más rentable del bot: +$969.24 PnL, WR 70.8%
         "Step Index 500",              # #2 Más rentable del bot: +$568.03 PnL, WR 47.1%
         "High Frequency Vol 50 Index", # #4 Más rentable: +$220.37 PnL, WR 100%
+        "Wall Street 30",              # Activo en observación
         "Boom 1000 Index",             # Ganador: +$73.18 PnL, WR 50.0%
         "Boom 300 Index",              # Ganador: +$56.24 PnL, WR 50.0%
         "Boom 900 Index",
@@ -79,29 +80,32 @@ PROFILE_INSTRUMENT_MAP = {
         "US Tech 100",
     ],
     "MALAYSIAN_SNR": [
-        # Activos líderes institucionales con mayor Win Rate y rentabilidad en 2 años (Alchemist / MBA / Néstor Santos)
-        "Wall Street 30",              # #1 Win Rate (44.4% WR, +$5,622.66 USD)
-        "Jump 10 Index",               # #1 Ganancia Neta (40.0% WR, +$7,625.93 USD)
-        "XAUUSD",                      # Alta precisión institucional (39.9% WR, +$2,414.38 USD)
-        "Step Index 200",              # Excelente estabilidad (39.0% WR, +$5,236.82 USD)
-        "Step Index 500",              # Terreno dominante (+38.5% WR, +$4,950.12 USD)
-        "Crash 500 Index",             # Spikes limpios (+38.2% WR, +$4,620.40 USD)
-        "Jump 50 Index",               # Alta inercia tendencial (37.7% WR, +$4,822.22 USD)
-        "Jump 25 Index",               # Gran precisión en retest (37.6% WR, +$3,583.25 USD)
-        "US Tech 100",                 # Apertura NY Killzone (37.5% WR, +$690.68 USD)
-        "BTCUSD",                      # Cripto rentable (37.2% WR, +$400.69 USD)
-        "Volatility 75 Index",         # Gran expansión direccional (37.0% WR, +$4,119.29 USD)
-        "Step Index",                  # Consistencia de microestructura (35.9% WR)
-        "GBPUSD",                      # Forex Core Londres Killzone (35.2% WR, +$406.53 USD)
-        "Volatility 10 Index",         # Sólido sintético (34.6% WR, +$1,138.10 USD)
-        "Volatility 25 Index",         # Neutro controlado (34.2% WR)
-        "Boom 1000 Index",             # Compras limpias en soporte Break (33.5% WR)
-        "Jump 75 Index",               # Continuación de momentum
-        "Crash 600 Index",             # Ventas institucionales
-        "Boom 600 Index",              # Compras institucionales
-        "Boom 300 Index",              # Compras en extremo
-        "Crash 1000 Index",            # Ventas limpias en resistencia Break
+        # 23 Activos Validados en Replay Causal de 2 Años (60 Activos, Augmented v2.0)
+        "Step Index 400",              # Top Performer Sintético: +9.68R (WR 42.3%)
+        "XAGUSD",                      # Líder Metales Plata: +7.21R (WR 55.6%)
+        "AUDNZD",                      # Forex Rehabilitado con Storyline: +5.76R (WR 50.0%)
+        "Crash 1000 Index",            # Líder Crash: +5.47R (WR 46.2%)
+        "Jump 25 Index",               # Líder Jump: +5.42R (WR 38.7%)
+        "GBPJPY",                      # Forex Killzones: +5.16R (WR 62.5%)
+        "USDJPY",                      # Forex Core: +5.13R (WR 54.5%)
+        "GBPUSD",                      # Forex Core: +5.00R (WR 42.9%)
+        "Boom 300 Index",              # Líder Boom Spikes: +3.71R (WR 40.0%)
+        "Volatility 250 (1s) Index",   # Sintético Rápido: +3.66R (WR 46.2%)
+        "Step Index",                  # Sintético Step: +3.16R (WR 41.9%)
+        "Jump 10 Index",               # Sintético Jump: +2.77R (WR 40.0%)
+        "GBPAUD",                      # Forex Cruce: +2.76R (WR 50.0%)
+        "Wall Street 30",              # Índice Institucional: +2.57R (WR 33.3%)
+        "EURUSD",                      # Forex Core: +2.54R (WR 55.6%)
+        "Volatility 50 (1s) Index",    # Sintético Vol: +2.31R (WR 37.9%)
+        "Volatility 90 Index",         # Sintético Vol: +2.25R (WR 57.1%)
+        "Boom 1000 Index",             # Sintético Boom: +1.81R (WR 40.0%)
+        "Step Index 200",              # Sintético Step: +1.79R (WR 37.5%)
+        "EURCHF",                      # Forex Cruce: +1.23R (WR 50.0%)
+        "EURGBP",                      # Forex Cruce: +1.00R (WR 60.0%)
+        "XAUUSD",                      # Metales Oro: +0.87R (WR 33.3%)
+        "Crash 600 Index",             # Sintético Crash: +0.29R (WR 50.0%)
     ],
+
     "ICT": [
         # Estrategia Ganadora: AMD / Judas Swing y Fair Value Gaps en Killzones (Replay 2Y validado)
         "Wall Street 30",              # Macro H4 / manipulación limpia NY
