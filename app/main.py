@@ -1348,7 +1348,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             if is_orb_index_symbol(symbol)
         })
     elif profile == "MALAYSIAN_SNR":
-        universe = sorted(spec.get("symbols", []))
+        universe = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
     elif profile == "ICT":
         candidates = [
             "XAGUSD", "XAGUSDmicro", "microXAGUSD",
@@ -1366,32 +1366,31 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
         universe = sorted(set(universe or ["XAGUSD", "BTCUSD", "XAUUSD", "Wall Street 30", "US Tech 100", "US SP 500"]))
     elif profile == "STEP":
         step_syms = manager.get_active_symbols(categories=["step"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index", "Step Index 500", "Step Index 400")))
-        universe = sorted({s for s in step_syms if s in allowed} or allowed)
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index", "Step Index 500", "Step Index 400", "Step Index 200", "Step Index 100")))
+        universe = sorted(step_syms or allowed)
     elif profile == "JUMP":
         jump_syms = manager.get_active_symbols(categories=["jump"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("JUMP", ("Jump 75 Index", "Jump 10 Index")))
-        universe = sorted({s for s in jump_syms if s in allowed} or allowed)
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("JUMP", ("Jump 75 Index", "Jump 10 Index", "Jump 25 Index")))
+        universe = sorted(jump_syms or allowed)
     elif profile.startswith("VOLATILITY"):
         vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
         allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 100 Index", "Volatility 75 Index")))
-        universe = sorted({s for s in vol_syms if s in allowed} or allowed)
+        universe = sorted(vol_syms or allowed)
     elif profile == "BOOM":
         boom_syms = manager.get_active_symbols(categories=["boom"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("BOOM", ("Boom 1000 Index", "Boom 900 Index", "Boom 300 Index")))
-        universe = sorted({s for s in boom_syms if s in allowed} or allowed)
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("BOOM", ("Boom 1000 Index", "Boom 900 Index", "Boom 600 Index", "Boom 500 Index", "Boom 300 Index")))
+        universe = sorted(boom_syms or allowed)
     elif profile == "CRASH":
         crash_syms = manager.get_active_symbols(categories=["crash"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("CRASH", ("Crash 1000 Index", "Crash 900 Index", "Crash 500 Index")))
-        universe = sorted({s for s in crash_syms if s in allowed} or allowed)
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("CRASH", ("Crash 1000 Index", "Crash 900 Index", "Crash 600 Index", "Crash 500 Index", "Crash 300 Index")))
+        universe = sorted(crash_syms or allowed)
     elif profile.startswith("FOREX"):
         try:
             forex_syms = list(manager.discovery.get_tradeable_forex())
         except Exception:
             forex_syms = list(manager.get_active_symbols(categories=["forex"]))
         allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX", ("USDCAD", "EURUSD", "USDCHF", "AUDUSD")))
-        filtered_forex = [s for s in forex_syms if s in allowed]
-        universe = sorted(filtered_forex or allowed)
+        universe = sorted(forex_syms or allowed)
     else:
         universe = []
         for category in spec.get("categories", []):
@@ -3273,6 +3272,22 @@ def run_market_data_preflight(args, symbols=None):
                 })
             except Exception as exc:
                 message = str(exc)
+                # Fallback graceful a MT5 si Deriv Charts falla o no reconoce el contrato
+                try:
+                    meta_frame = metadata.get_candles(symbol, timeframe="M5", count=40)
+                    meta_tick = metadata.get_current_tick(symbol)
+                    if not meta_frame.empty and meta_tick:
+                        results.append({
+                            "symbol": symbol,
+                            "ok": True,
+                            "native_symbol": symbol,
+                            "source": "MT5_FALLBACK",
+                            "relative_price_drift": 0.0,
+                            "timeframes": {"M5": {"rows": len(meta_frame)}},
+                        })
+                        continue
+                except Exception:
+                    pass
                 results.append({
                     "symbol": symbol,
                     "ok": False,

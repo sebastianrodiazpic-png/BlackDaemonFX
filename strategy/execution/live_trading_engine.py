@@ -7501,6 +7501,7 @@ class LiveTradingEngine:
         if not analysis.get("valid"):
             result = {
                 "symbol": exact_symbol,
+                "strategy_name": analysis.get("strategy_name") or ("ICT" if getattr(self.config, "ict_strategy_enabled", False) or str(self.config.bot_profile or "").upper() in {"ICT", "BOOM", "CRASH", "STEP", "JUMP", "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "SYNTHETICS", "FOREX"} else "SMC"),
                 "action": analysis.get("action", "NO_SIGNAL"),
                 "reason": analysis.get("reason"),
                 "analysis": analysis,
@@ -8851,7 +8852,7 @@ class LiveTradingEngine:
                     if strategy_name == "ORB_NEW_YORK"
                     else "GOLD quarters: level rejection + closed M5 confirmation + H1 location"
                     if strategy_name == "GOLD_QUARTERS"
-                    else "ICT Sabri Malle: H4 Macro Bias + H1 AMD Judas Swing + FVG Rejection + MSS Retest"
+                    else "Estrategia ICT: H4 Macro Bias + H1 AMD Judas Swing + FVG Rejection + MSS Retest"
                     if strategy_name in {"ICT", "ICT_SABRI_MALLE"}
                     else "H1 location,M15 SMC setup,M5 OB retest + harmonic confluence"
                 ),
@@ -9230,6 +9231,8 @@ class LiveTradingEngine:
                 ),
                 payload={
                     "schema_version": "strategy-evaluation-v1",
+                    "bot_profile": str(self.config.bot_profile).upper() if getattr(self, "config", None) else None,
+                    "daemon_magic": int(self.config.magic) if getattr(self, "config", None) else None,
                     "result": compact_result,
                     "exception_details": result.get("exception_details"),
                     "elapsed_seconds": elapsed_seconds,

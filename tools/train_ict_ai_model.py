@@ -34,45 +34,51 @@ from strategy.ai.meta_labeling import MetaLabelingEngine, MetaLabelingConfig
 
 
 def train_ict_model():
-    csv_path = PROJECT_ROOT / "storage" / "meta_labeling_ict_sabri_malle_trades.csv"
+    primary_csv = PROJECT_ROOT / "storage" / "analysis" / "replay_ict_60_assets_2y_trades.csv"
+    fallback_csv = PROJECT_ROOT / "storage" / "meta_labeling_ict_sabri_malle_trades.csv"
+    csv_path = primary_csv if primary_csv.exists() else fallback_csv
     if not csv_path.exists():
         print(f"Error: No se encontró el dataset en {csv_path}")
         return
 
     df = pd.read_csv(csv_path)
-    print(f"Cargadas {len(df)} operaciones totales del dataset ICT histórico.")
+    print(f"Cargadas {len(df)} operaciones totales del dataset ICT histórico desde {csv_path.name}.")
 
     records = []
     for idx, row in df.iterrows():
         symbol = str(row["symbol"])
         direction = str(row["direction"]).upper()
-        entry_time = str(row["entry_time"])
+        entry_time = str(row.get("time") or row.get("entry_time"))
         entry_price = float(row["entry_price"])
         stop_loss = float(row["stop_loss"])
         tp1_price = float(row["tp1_price"])
-        tp2_price = float(row.get("tp2_price_1_4") or row.get("tp2_price_1_3") or entry_price)
-        risk_dist = float(row.get("risk_points") or abs(entry_price - stop_loss))
+        tp2_price = float(row.get("tp2_price") or row.get("tp2_price_1_4") or row.get("tp2_price_1_3") or entry_price)
+        risk_dist = float(row.get("risk_pts") or row.get("risk_points") or abs(entry_price - stop_loss))
 
         # Outcome según TP1 y TP2 (Dual Leg)
-        outcome_tp1 = str(row.get("outcome_tp1") or "").upper()
-        outcome_tp2 = str(row.get("outcome_tp2_rr4") or row.get("outcome_tp2_rr3") or "").upper()
+        hit_tp2 = bool(row.get("hit_tp2")) or ("TP2" in str(row.get("outcome_tp2_rr4") or "")) or (row.get("outcome") == "TP_FULL")
+        hit_tp1 = bool(row.get("hit_tp1")) or ("TP1" in str(row.get("outcome_tp1") or "")) or ("TP1" in str(row.get("outcome") or ""))
         
-        if "TP2" in outcome_tp2:
+        if hit_tp2:
             realized_rr = 2.50 # Leg1=1.0R (TP1 1:2 * 0.5), Leg2=1.5R (TP2 1:3/4 * 0.5)
             exit_reason = "TAKE_PROFIT_TP2"
-        elif "TP1" in outcome_tp1:
+        elif hit_tp1:
             realized_rr = 1.00 # Leg1=1.0R, Leg2=BE (0.0R)
             exit_reason = "TAKE_PROFIT_TP1_BE"
         else:
             realized_rr = -1.00 # SL en ambas piernas (-0.5R + -0.5R)
             exit_reason = "STOP_LOSS"
 
-        hour_utc = int(row.get("hour_utc", 12))
+        try:
+            hour_utc = pd.to_datetime(entry_time).hour
+        except Exception:
+            hour_utc = int(row.get("hour_utc", 12))
+
         # Killzones: Londres (07:00-10:00 UTC) y Nueva York (12:00-16:00 UTC)
         in_killzone = hour_utc in (7, 8, 9, 10, 12, 13, 14, 15, 16)
-
         spread = float(row.get("spread", 0.00015 if "USD" in symbol else 0.50))
         range_atr_ratio = float(row.get("range_atr_ratio", 1.2))
+
 
         score = 90.0 if (in_killzone and realized_rr > 0) else (75.0 if in_killzone else 55.0)
 

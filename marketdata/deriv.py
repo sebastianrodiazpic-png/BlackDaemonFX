@@ -95,6 +95,11 @@ class DerivMarketDataProvider:
         "wallstreet30": {"wallstreet30", "us30", "dowjones", "dowjones30"},
         "ustech100": {"ustech100", "nasdaq", "nasdaq100", "us100"},
         "us500": {"us500", "ussp500", "sp500", "spx500", "sandp500"},
+        "stepindex": {"stepindex", "stepindex100", "stprng"},
+        "stepindex100": {"stepindex", "stepindex100", "stprng"},
+        "volatility901sindex": {"volatility901sindex", "volatility90index", "1hz90v"},
+        "volatility90index": {"volatility90index", "volatility901sindex", "1hz90v"},
+        "volatility2501sindex": {"volatility2501sindex", "volatility250index", "1hz250v"},
     }
 
     def __init__(self, *, endpoint=None, symbol_map=None, transport=None, rate_limiter=None):
@@ -106,6 +111,15 @@ class DerivMarketDataProvider:
             else InterprocessRequestRateLimiter()
         )
         self.symbol_map = {str(k).casefold(): str(v) for k, v in (symbol_map or {}).items()}
+        default_map = {
+            "step index": "stpRNG",
+            "step index 100": "stpRNG",
+            "volatility 250 (1s) index": "1HZ250V",
+            "volatility 90 (1s) index": "1HZ90V",
+            "volatility 90 index": "1HZ90V",
+        }
+        for k, v in default_map.items():
+            self.symbol_map.setdefault(k.casefold(), v)
         self._active_symbols = None
 
     def connect(self):

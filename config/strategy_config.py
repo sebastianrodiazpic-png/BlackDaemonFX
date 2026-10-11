@@ -87,9 +87,9 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    "STEP": ("Step Index", "Step Index 500", "Step Index 400"),
-    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 75 y Jump 10.
-    "JUMP": ("Jump 75 Index", "Jump 10 Index"),
+    "STEP": ("Step Index", "Step Index 500", "Step Index 400", "Step Index 200", "Step Index 100"),
+    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 75, Jump 25 y Jump 10.
+    "JUMP": ("Jump 75 Index", "Jump 10 Index", "Jump 25 Index"),
     "VOLATILITY": (
         "Volatility 100 Index",
         "Volatility 100 (1s) Index",
@@ -108,10 +108,11 @@ PRUNED_ASSET_UNIVERSE = {
         "Vol over Boom 550",
         "Volatility 90 (1s) Index",
         "Volatility 25 Index",
+        "Volatility 10 Index",
     ),
-    "BOOM": ("Boom 1000 Index", "Boom 900 Index", "Boom 300 Index"),
+    "BOOM": ("Boom 1000 Index", "Boom 900 Index", "Boom 600 Index", "Boom 500 Index", "Boom 300 Index"),
     # ACTIVACIÓN: Crash 1000 Index (+17.9 R en replay 2Y) se incorpora como líder.
-    "CRASH": ("Crash 1000 Index", "Crash 900 Index", "Crash 500 Index"),
+    "CRASH": ("Crash 1000 Index", "Crash 900 Index", "Crash 600 Index", "Crash 500 Index", "Crash 300 Index"),
     # PODA: Eliminados GBPUSD (-5.0R) y USDJPY (-7.0R). ACTIVADOS: USDCAD (+12.0R, 62.5% WR), EURUSD (+7.0R), USDCHF (+3.0R) y AUDUSD (+2.0R).
     "FOREX": (
         "USDCAD", "EURUSD", "USDCHF", "AUDUSD",

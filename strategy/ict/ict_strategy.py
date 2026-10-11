@@ -164,14 +164,34 @@ class ICTSabriMalleStrategy:
         if raw_h1 is None or len(raw_h1) < 30:
             return {**base_response, "reason": "INSUFFICIENT_H1_CANDLES"}
 
-        # 2. Filtro Horario y Killzones (New York Time) para Forex, Oro, Cripto e Índices
+        # 2. Filtro Horario, Cierres de Mercado y Killzones Institucionales (New York Time)
         is_synthetic = is_synthetic_asset(symbol)
         now_ny = now.tz_convert(NEW_YORK)
         ny_hour = now_ny.hour
+        weekday = now_ny.weekday()  # 0=Lunes, 4=Viernes, 5=Sábado, 6=Domingo
+
+        if not is_synthetic and getattr(self.config, "market_closure_filter_enabled", True):
+            # Cierre semanal Forex/Metales/Índices: Viernes tarde
+            if weekday == 4 and ny_hour >= getattr(self.config, "friday_close_cutoff_ny", 14):
+                return {**base_response, "reason": "MARKET_CLOSURE_FRIDAY_WEEKEND_GUARD"}
+            if weekday == 5:
+                return {**base_response, "reason": "MARKET_CLOSED_SATURDAY"}
+            if weekday == 6 and ny_hour < 17:
+                return {**base_response, "reason": "MARKET_CLOSED_SUNDAY_PRE_OPEN"}
+            # Guardia de Rollover diario (16:45 a 17:45 NY): Spreads se amplían drásticamente
+            if getattr(self.config, "rollover_guard_enabled", True):
+                if (ny_hour == getattr(self.config, "rollover_start_ny_hour", 16) and now_ny.minute >= getattr(self.config, "rollover_start_ny_minute", 45)) or \
+                   (ny_hour == getattr(self.config, "rollover_end_ny_hour", 17) and now_ny.minute <= getattr(self.config, "rollover_end_ny_minute", 45)):
+                    return {**base_response, "reason": "MARKET_ROLLOVER_SPREAD_GUARD"}
+
+        # Identificar si es par Forex para restringir a su Killzone de mayor probabilidad (Londres)
+        sym_u = symbol.upper()
+        is_forex = any(c in sym_u for c in ("EUR", "GBP", "USD", "AUD", "CAD", "CHF", "NZD", "JPY")) and not any(k in sym_u for k in ("XAU", "XAG", "BTC", "OIL", "SP", "TECH", "WALL"))
 
         in_london_kz = (self.config.london_kz_start_ny <= ny_hour <= self.config.london_kz_end_ny)
         in_ny_kz = (self.config.ny_kz_start_ny <= ny_hour <= self.config.ny_kz_end_ny)
-        session_active = in_london_kz or (in_ny_kz and self.config.ny_killzone_enabled)
+        # Forex opera Londres; Metales, Índices, Commodities y Cripto operan Londres y NY; Sintéticos operan 24/7
+        session_active = in_london_kz or (in_ny_kz and not is_forex and self.config.ny_killzone_enabled)
 
         if not is_synthetic and self.config.killzone_filter_enabled:
             if not session_active:
@@ -180,6 +200,7 @@ class ICTSabriMalleStrategy:
                     "reason": f"OUTSIDE_INSTITUTIONAL_KILLZONE (NY Hour: {ny_hour:02d}:00)",
                     "diagnostics": {"session_killzone_active": 0.0, "ny_hour": ny_hour}
                 }
+
 
         df_h1 = raw_h1.copy()
         df_h1["time"] = pd.to_datetime(df_h1["time"], utc=True)
@@ -231,22 +252,38 @@ class ICTSabriMalleStrategy:
         range_low = None
 
         if not is_synthetic:
-            # Buscar el bloque asiático en H1
             df_h1_ny = df_h1.copy()
             df_h1_ny["ny_hour"] = df_h1_ny["time"].dt.tz_convert(NEW_YORK).dt.hour
-            asian_bars = []
-            for look_back in range(1, min(24, len(df_h1_ny))):
-                chk_idx = len(df_h1_ny) - 1 - look_back
-                chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
-                if chk_h >= self.config.asian_range_start_ny or chk_h <= self.config.asian_range_end_ny:
-                    asian_bars.append(df_h1_ny.iloc[chk_idx])
-                elif len(asian_bars) > 0:
-                    break
+            
+            if 2 <= ny_hour <= 5:
+                # London KZ barre el Rango Asiático (20:00 a 00:00 NY)
+                asian_bars = []
+                for look_back in range(1, min(24, len(df_h1_ny))):
+                    chk_idx = len(df_h1_ny) - 1 - look_back
+                    chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
+                    if chk_h >= self.config.asian_range_start_ny or chk_h <= self.config.asian_range_end_ny:
+                        asian_bars.append(df_h1_ny.iloc[chk_idx])
+                    elif len(asian_bars) > 0:
+                        break
+                if len(asian_bars) >= 2:
+                    df_asia = pd.DataFrame(asian_bars)
+                    range_high = float(df_asia["high"].max())
+                    range_low = float(df_asia["low"].min())
+            elif 7 <= ny_hour <= 11:
+                # New York KZ barre el Rango de Londres (02:00 a 05:00 NY)
+                london_bars = []
+                for look_back in range(1, min(16, len(df_h1_ny))):
+                    chk_idx = len(df_h1_ny) - 1 - look_back
+                    chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
+                    if 2 <= chk_h <= 5:
+                        london_bars.append(df_h1_ny.iloc[chk_idx])
+                    elif len(london_bars) > 0:
+                        break
+                if len(london_bars) >= 2:
+                    df_london = pd.DataFrame(london_bars)
+                    range_high = float(df_london["high"].max())
+                    range_low = float(df_london["low"].min())
 
-            if len(asian_bars) >= 2:
-                df_asia = pd.DataFrame(asian_bars)
-                range_high = float(df_asia["high"].max())
-                range_low = float(df_asia["low"].min())
 
         if range_high is None or range_low is None:
             # Fallback a consolidación previa
@@ -349,7 +386,10 @@ class ICTSabriMalleStrategy:
             # Comprobar FVG Consequent Encroachment (50%)
             prev_high = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_high
             fvg_ce = (prev_high + curr_low) / 2.0
-            entry_price = curr_close
+            if getattr(self.config, "fvg_consequent_encroachment_entry", True):
+                entry_price = min(local_support, fvg_ce)
+            else:
+                entry_price = curr_close
             stop_loss = sweep_peak + spread
             fvg_aligned = True
 
@@ -363,9 +403,13 @@ class ICTSabriMalleStrategy:
 
             prev_low = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_low
             fvg_ce = (prev_low + curr_high) / 2.0
-            entry_price = curr_close
+            if getattr(self.config, "fvg_consequent_encroachment_entry", True):
+                entry_price = max(local_resistance, fvg_ce)
+            else:
+                entry_price = curr_close
             stop_loss = sweep_peak - spread
             fvg_aligned = True
+
 
         risk = abs(entry_price - stop_loss)
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):

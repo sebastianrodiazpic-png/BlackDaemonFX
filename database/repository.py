@@ -1702,13 +1702,26 @@ class TradingRepository:
         Returns:
             El perfil del worker deducido.
         """
-        profile = str((payload or {}).get("bot_profile") or "").upper()
+        profile = str(
+            (payload or {}).get("bot_profile")
+            or (result or {}).get("bot_profile")
+            or (result or {}).get("_bot_profile")
+            or ""
+        ).upper()
         if profile:
             return profile
 
-        magic = (payload or {}).get("daemon_magic")
+        magic = (
+            (payload or {}).get("daemon_magic")
+            or (result or {}).get("daemon_magic")
+            or (result or {}).get("magic")
+        )
         magic_map = {
             26082028: "ORB",
+            26082029: "GOLD",
+            26082030: "IDX_OPEN",
+            26082031: "MALAYSIAN_SNR",
+            26082032: "ICT",
             26082101: "BOOM",
             26082102: "CRASH",
             26082103: "VOLATILITY",
@@ -1730,7 +1743,26 @@ class TradingRepository:
         except Exception:
             pass
 
+        strat_name = str(
+            (result or {}).get("strategy_name")
+            or (result or {}).get("strategy")
+            or ""
+        ).upper()
+        if "MALAYSIAN" in strat_name:
+            return "MALAYSIAN_SNR"
+        if "ICT" in strat_name:
+            return "ICT"
+        if "GOLD" in strat_name or "QUARTER" in strat_name:
+            return "GOLD"
+        if "ORB" in strat_name:
+            return "ORB"
+
         action = str((result or {}).get("action") or "").upper()
+        if "MALAYSIAN" in action or action == "WAITING_MALAYSIAN_SNR":
+            return "MALAYSIAN_SNR"
+        if "ICT" in action or action == "WAITING_ICT":
+            return "ICT"
+
         symbol = str(instrument or (result or {}).get("symbol") or "").upper()
         if action.startswith("WAITING_NEW_YORK") or action.startswith("ORB_"):
             return "ORB"
@@ -1751,9 +1783,9 @@ class TradingRepository:
     def recent_symbol_process_results(
         self,
         source: str = "DEMO",
-        limit: int = 120,
-        per_profile: int = 12,
-        scan_limit: int = 2500,
+        limit: int = 250,
+        per_profile: int = 50,
+        scan_limit: int = 3500,
     ):
         """Panel equilibrado de análisis recientes de todos los workers.
 

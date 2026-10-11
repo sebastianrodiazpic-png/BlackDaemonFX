@@ -44,7 +44,12 @@ class DerivOnlyMarketDataRouter:
 
     def ensure_symbol(self, symbol):
         exact = self.metadata_provider.ensure_symbol(symbol) if self.metadata_provider else str(symbol)
-        self.deriv_provider.resolve_native_symbol(exact)
+        try:
+            self.deriv_provider.resolve_native_symbol(exact)
+        except Exception:
+            if self.metadata_provider:
+                return exact
+            raise
         return exact
 
     def prepare_symbols(self, symbols):
@@ -85,7 +90,14 @@ class DerivOnlyMarketDataRouter:
                 result.attrs["cache_hit"] = True
                 return result
             started = time.perf_counter()
-            frame = self.deriv_provider.get_candles(exact, timeframe=timeframe, count=wanted)
+            try:
+                frame = self.deriv_provider.get_candles(exact, timeframe=timeframe, count=wanted)
+            except Exception:
+                if self.metadata_provider is not None:
+                    frame = self.metadata_provider.get_candles(exact, timeframe=timeframe, count=wanted)
+                    frame.attrs["market_data_source"] = "MT5_FALLBACK"
+                else:
+                    raise
             frame.attrs.update({
                 "latency_ms": round((time.perf_counter() - started) * 1000, 3),
                 "cache_hit": False,
@@ -122,7 +134,13 @@ class DerivOnlyMarketDataRouter:
                 cached["cache_hit"] = True
                 return cached
             started = time.perf_counter()
-            tick = self.deriv_provider.get_current_tick(exact)
+            try:
+                tick = self.deriv_provider.get_current_tick(exact)
+            except Exception:
+                if self.metadata_provider is not None:
+                    tick = self.metadata_provider.get_current_tick(exact)
+                else:
+                    raise
             tick.update({
                 "latency_ms": round((time.perf_counter() - started) * 1000, 3),
                 "cache_hit": False,

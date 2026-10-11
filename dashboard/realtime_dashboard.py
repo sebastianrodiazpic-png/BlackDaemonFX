@@ -390,16 +390,26 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
             strat_label = "Gold Quarters"
             strat_badge = "strat-gold"
         elif (
-            "ICT" in strat_raw
-            or "ICT" in prof
+            item.get("strategy_name") == "SMC"
+            and not (
+                "ICT" in strat_raw
+                or "ICT" in prof
+                or "ICT" in action
+                or "JUDAS" in action
+                or "JUDAS" in reason
+                or "WAITING_ICT" in action
+                or "H4_BIAS" in reason
+            )
         ):
-            strat_key = "ICT"
-            strat_label = "ICT Sabri Malle"
-            strat_badge = "strat-cyan"
-        else:
             strat_key = "SMC"
             strat_label = "SMC"
             strat_badge = "strat-smc"
+        else:
+            # Todos los trabajadores sintéticos (BOOM, CRASH, STEP, JUMP, VOLATILITY), Forex e ICT
+            # operan unificados bajo la Estrategia ICT.
+            strat_key = "ICT"
+            strat_label = "Estrategia ICT"
+            strat_badge = "strat-cyan"
 
         dedupe_key = (sym, strat_key)
         if dedupe_key in seen_keys:
@@ -500,7 +510,89 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
             metrics = "SL Buffer 0.50 ATR"
             ai_score = "—"
             final_st = "🟢 SEÑAL LISTA" if action in ("ORDER_OPENED", "GOLD_CONFIRMED") else "⚪ EN ESPERA"
-            badge = "good" if action in ("ORDER_OPENED", "GOLD_CONFIRMED") else "neutral"
+        elif strat_key == "ICT":
+            strat_label = "Estrategia ICT"
+            strat_badge = "strat-cyan"
+            if is_active:
+                macro_ctx = "🔵 En Mercado"
+                struct_lvl = "🔵 Gestión TP/SL/BE"
+                trigger_conf = "🔵 Trade Abierto"
+                metrics = "Operación en curso"
+                ai_score = "100%"
+                final_st = "🔵 POSICION ACTIVA"
+                badge = "active"
+            elif "MARKET_CLOSED" in reason or "MARKET_CLOSURE" in reason:
+                macro_ctx = "⚪ Mercado Cerrado"
+                struct_lvl = "⚪ Fuera de Horario"
+                trigger_conf = "⚪ Cierre Fin de Semana"
+                metrics = "Filtro Cierre"
+                ai_score = "—"
+                final_st = "⚪ MERCADO CERRADO"
+                badge = "neutral"
+            elif "OUTSIDE_ICT_KILLZONE" in reason or "OUTSIDE_KILLZONE" in reason:
+                macro_ctx = "⚪ Fuera Killzone NY"
+                struct_lvl = "⚪ Esperando Killzone"
+                trigger_conf = "⚪ Ventana Institucional"
+                metrics = "08:30 / 10:30 NY"
+                ai_score = "—"
+                final_st = "⚪ ESPERANDO KILLZONE"
+                badge = "neutral"
+            elif action in ("ICT_SABRI_MALLE_CONFIRMED", "ORDER_OPENED"):
+                macro_ctx = "🗽 Killzone NY Activa"
+                struct_lvl = "🟢 MSS + FVG Mitigado"
+                trigger_conf = "🟢 Judas Swing + CE"
+                metrics = "Displacement OK"
+                ai_score = "🟢 Aprobado"
+                final_st = "🟢 SEÑAL LISTA"
+                badge = "good"
+            elif "NO_FVG" in reason:
+                macro_ctx = "🗽 Killzone NY Activa"
+                struct_lvl = "🟡 MSS Confirmado (Falta FVG)"
+                trigger_conf = "🟡 Esperando Imbalance"
+                metrics = "M5 Imbalance"
+                ai_score = "50%"
+                final_st = "🟡 MONITOREANDO"
+                badge = "warn"
+            elif "NO_MACRO_H4" in reason or "NO_H4" in reason:
+                macro_ctx = "⚪ Macro H4 Sin Tendencia"
+                struct_lvl = "⚪ Esperando EMA 50/200"
+                trigger_conf = "⚪ Sin Sesgo H4"
+                metrics = "Macro Bias H4"
+                ai_score = "—"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
+            elif "JUDAS" in reason or "NO_JUDAS" in reason:
+                macro_ctx = "🟢 Rango Activo 24/7" if any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Macro H4 Definido"
+                struct_lvl = "🟡 Rango Acumulación H1"
+                trigger_conf = "⚪ Esperando Judas Swing"
+                metrics = "Barrido Mecha ≥35%"
+                ai_score = "—"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
+            elif "NO_FVG" in reason:
+                macro_ctx = "🗽 Killzone NY Activa" if not any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Rango Activo 24/7"
+                struct_lvl = "🟡 MSS Confirmado (Falta FVG)"
+                trigger_conf = "🟡 Esperando Imbalance"
+                metrics = "M5 Imbalance"
+                ai_score = "50%"
+                final_st = "🟡 MONITOREANDO"
+                badge = "warn"
+            elif "NO_MSS" in reason:
+                macro_ctx = "🗽 Killzone NY Activa" if not any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Rango Activo 24/7"
+                struct_lvl = "🟡 Evaluando Liquidez"
+                trigger_conf = "⚪ Sin MSS M5"
+                metrics = "AMD / Sweep"
+                ai_score = "—"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
+            else:
+                macro_ctx = "🗽 Killzone NY / Macro H1" if not any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Rango Dinámico 24/7"
+                struct_lvl = "🟡 Escaneando Liquidez / FVG"
+                trigger_conf = "⚪ Sin Gatillo"
+                metrics = "AMD / Judas Swing M5"
+                ai_score = "—"
+                final_st = "⚪ EN ESPERA"
+                badge = "neutral"
         else:
             # SMC
             h1_dict = item.get("h1_context") or details.get("h1_context") or {}
@@ -679,20 +771,134 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
             },
         ]
 
-    return matrix[:40]
+    strat_defaults = {
+        "MALAYSIAN_SNR": {
+            "label": "Malaysian SNR",
+            "badge": "strat-snr",
+            "macro_context": "⚪ Rango / Neutral",
+            "structure_level": "🟡 Escaneando M15 A/V",
+            "trigger_confirmation": "⚪ Sin Gatillo",
+            "metrics": "Doble Pierna 50/50",
+            "ai_score": "—",
+            "final_state": "⚪ EN ESPERA",
+            "badge_class": "neutral",
+        },
+        "ORB": {
+            "label": "ORB NY",
+            "badge": "strat-orb",
+            "macro_context": "⚪ Fuera de Sesión NY",
+            "structure_level": "⚪ Esperando Apertura",
+            "trigger_confirmation": "⚪ Campana 09:30 NY",
+            "metrics": "Volumen / ATR NY",
+            "ai_score": "—",
+            "final_state": "⚪ ESPERANDO NY",
+            "badge_class": "neutral",
+        },
+        "GOLD_QUARTERS": {
+            "label": "Gold Quarters",
+            "badge": "strat-gold",
+            "macro_context": "🟡 Nivel Cuarto ($25)",
+            "structure_level": "🟢 Rechazo Nivel Mayor",
+            "trigger_confirmation": "🟡 Esperando Vela",
+            "metrics": "SL Buffer 0.50 ATR",
+            "ai_score": "—",
+            "final_state": "⚪ EN ESPERA",
+            "badge_class": "neutral",
+        },
+        "ICT": {
+            "label": "Estrategia ICT",
+            "badge": "strat-cyan",
+            "macro_context": "⚪ Estructura 24/7 / Killzone NY",
+            "structure_level": "🟡 Escaneando FVG / Liquidez",
+            "trigger_confirmation": "⚪ Sin Gatillo",
+            "metrics": "BPR / MSS",
+            "ai_score": "—",
+            "final_state": "⚪ EN ESPERA",
+            "badge_class": "neutral",
+        },
+    }
+
+    profile_strat_map = {
+        "MALAYSIAN_SNR": "MALAYSIAN_SNR",
+        "ORB": "ORB",
+        "GOLD": "GOLD_QUARTERS",
+        "ICT": "ICT",
+        "SYNTHETICS": "ICT",
+        "FOREX": "ICT",
+    }
+
+    selection_profiles = state.get("selection_profiles")
+    if selection_profiles is not None:
+        for prof, strat_key in profile_strat_map.items():
+            active_symbols = selection_profiles.get(prof)
+            if active_symbols is None:
+                active_symbols = DEFAULT_PRIORITIZED_SYMBOLS.get(prof, [])
+            cfg = strat_defaults.get(strat_key, {})
+            for sym in (active_symbols or []):
+                dedupe_key = (sym, strat_key)
+                if dedupe_key in seen_keys:
+                    continue
+                seen_keys.add(dedupe_key)
+                matrix.append({
+                    "symbol": sym,
+                    "strategy": cfg.get("label", strat_key),
+                    "strategy_key": strat_key,
+                    "strat_badge": cfg.get("badge", "strat-cyan"),
+                    "macro_context": cfg.get("macro_context", "⚪ Rango / Neutral"),
+                    "structure_level": cfg.get("structure_level", "🟡 Escaneando M15 A/V"),
+                    "trigger_confirmation": cfg.get("trigger_confirmation", "⚪ Sin Gatillo"),
+                    "metrics_freshness": cfg.get("metrics", "—"),
+                    "ai_score": cfg.get("ai_score", "—"),
+                    "final_state": cfg.get("final_state", "⚪ EN ESPERA"),
+                    "badge_class": cfg.get("badge_class", "neutral"),
+                    "h1_context": cfg.get("macro_context", "⚪ Rango / Neutral"),
+                    "m15_structure": cfg.get("structure_level", "🟡 Escaneando M15 A/V"),
+                    "m5_confirmation": cfg.get("trigger_confirmation", "⚪ Sin Gatillo"),
+                    "m5_freshness": cfg.get("metrics", "—"),
+                })
+
+    # Filtrar sólo los que están actualmente seleccionados si el perfil tiene selecciones explícitas
+    if isinstance(selection_profiles, dict):
+        filtered_matrix = []
+        for row in matrix:
+            sk = row.get("strategy_key")
+            s_sym = row.get("symbol")
+            if sk == "MALAYSIAN_SNR":
+                allowed_p = selection_profiles.get("MALAYSIAN_SNR")
+                if allowed_p and s_sym not in allowed_p:
+                    continue
+            elif sk == "ORB":
+                allowed_p = selection_profiles.get("ORB")
+                if allowed_p and s_sym not in allowed_p:
+                    continue
+            elif sk == "GOLD_QUARTERS":
+                allowed_p = selection_profiles.get("GOLD")
+                if allowed_p and s_sym not in allowed_p:
+                    continue
+            elif sk == "ICT":
+                allowed_ict = set(selection_profiles.get("ICT") or [])
+                allowed_ict.update(selection_profiles.get("SYNTHETICS") or [])
+                allowed_ict.update(selection_profiles.get("FOREX") or [])
+                if allowed_ict and s_sym not in allowed_ict:
+                    continue
+            filtered_matrix.append(row)
+        matrix = filtered_matrix
+
+    return matrix[:250]
 
 
 DEFAULT_PRIORITIZED_SYMBOLS = {
     "SYNTHETICS": [
-        "Boom 1000 Index",
         "Boom 300 Index",
+        "Boom 500 Index",
+        "Boom 600 Index",
         "Boom 900 Index",
-        "Crash 1000 Index",
         "Crash 500 Index",
-        "Crash 900 Index",
+        "Crash 600 Index",
         "High Frequency Vol 100 Index",
         "High Frequency Vol 50 Index",
         "Jump 10 Index",
+        "Jump 25 Index",
         "Jump 75 Index",
         "Step Index",
         "Step Index 400",
@@ -700,8 +906,8 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "Vol over Boom 550",
         "Vol over Crash 550",
         "VolSwitch High Vol Index",
+        "Volatility 10 Index",
         "Volatility 100 (1s) Index",
-        "Volatility 100 Index",
         "Volatility 15 Index",
         "Volatility 150 (1s) Index",
         "Volatility 25 Index",
@@ -714,12 +920,20 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "Volatility 90 Index",
     ],
     "FOREX": [
+        "AUDJPY",
+        "AUDNZD",
         "AUDUSD",
         "AUDUSDmicro",
+        "CADCHF",
+        "CHFJPY",
+        "EURCHF",
+        "EURUSD",
+        "EURUSDmicro",
+        "GBPCAD",
+        "GBPUSD",
+        "GBPUSDmicro",
         "USDCAD",
         "USDCADmicro",
-        "USDCHF",
-        "USDCHFmicro",
     ],
     "ORB": [
         "Wall Street 30",
@@ -765,82 +979,110 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "microXAUUSD",
     ],
     "ICT": [
-        "Wall Street 30",
+        "Volatility 10 Index",
+        "Jump 25 Index",
+        "Step Index 400",
+        "Volatility 50 (1s) Index",
+        "Jump 75 Index",
+        "Step Index 500",
+        "Volatility 25 Index",
+        "Step Index",
+        "Crash 600 Index",
         "XAUUSD",
         "XAUUSDmicro",
         "microXAUUSD",
+        "GBPUSD",
+        "GBPUSDmicro",
+        "Wall Street 30",
+        "AUDJPY",
+        "Volatility 15 Index",
+        "Volatility 75 (1s) Index",
+        "Boom 500 Index",
+        "Jump 10 Index",
         "BTCUSD",
         "BTCUSDmicro",
         "microBTCUSD",
         "US Tech 100",
+        "AUDNZD",
+        "Boom 300 Index",
+        "Volatility 75 Index",
+        "GBPCAD",
+        "EURCHF",
+        "Crash 500 Index",
+        "CADCHF",
+        "EURUSD",
+        "EURUSDmicro",
+        "Volatility 90 Index",
+        "Volatility 250 (1s) Index",
+        "Boom 900 Index",
+        "USDCAD",
+        "USDCADmicro",
+        "US Oil",
+        "AUDUSD",
+        "AUDUSDmicro",
+        "CHFJPY",
+        "Boom 600 Index",
     ],
 }
 
 PRUNED_INSTRUMENTS_INFO = {
-    # FOREX (Poda confirmada por estrategia ICT Sabri Malle 2 años y análisis cuantitativo)
-    "USDJPY": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -7.0R netos (Win Rate 18.2%). Falsos rompimientos de estructura y dispersión de spread desfavorable.",
-    "USDJPYmicro": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -7.0R netos (Win Rate 18.2%).",
-    "GBPUSD": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -5.0R netos (Win Rate 20.0%). Trampas de liquidez recurrentes y reversiones prematuras en Killzone de Londres.",
-    "GBPUSDmicro": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -5.0R netos (Win Rate 20.0%).",
-    "GBPJPY": "Poda preventiva: -8.0R en replay 180d. Alta dispersión de spread y ruido excesivo en aperturas.",
-    "EURJPY": "Poda preventiva: -5.0R en replay 180d. Inconsistencia direccional y falsos quiebres de estructura.",
-    "AUDCAD": "Poda preventiva: Historial inconsistente en Killzones SMC y expectativa matemática desfavorable.",
-    "AUDCHF": "Poda preventiva: Baja liquidez relativa y dispersión de spread.",
-    "AUDJPY": "Poda preventiva: Ruido estructural en sesiones asiáticas.",
-    "AUDNZD": "Poda preventiva: Rango lateral extendido sin desplazamiento institucional claro.",
-    "CADCHF": "Poda preventiva: Bajo volumen negociado y spreads desfavorables.",
-    "CADJPY": "Poda preventiva: Ruido y falsos retrocesos en Killzones.",
-    "CHFJPY": "Poda preventiva: Comportamiento errático en gaps y rollover.",
-    "EURAUD": "Poda preventiva: Falsos chochs y deslizamiento adverso en aperturas.",
-    "EURCAD": "Poda preventiva: Expectativa matemática negativa en SMC M15.",
-    "EURCHF": "Poda preventiva: Intervención y compresión excesiva de rango.",
-    "EURGBP": "Poda preventiva: Rango lento y baja relación beneficio/riesgo.",
-    "EURNZD": "Poda preventiva: Alta dispersión de volatilidad sin seguimiento.",
-    "GBPAUD": "Poda preventiva: Spreads elevados durante Killzone de Londres.",
-    "GBPCAD": "Poda preventiva: Sensibilidad a eventos de petróleo y bajo Win Rate.",
-    "GBPCHF": "Poda preventiva: Poca inercia direccional en retesteos M5.",
-    "GBPNZD": "Poda preventiva: Movimientos de barrido de liquidez adversos.",
+    # FOREX (Poda confirmada por análisis cuantitativo de 2 años en activos con expectativa negativa)
+    "EURCAD": "Poda confirmada en replay 2 años: -23.75R netos (Win Rate 25.4%). Cruce con spreads adversos y falta de liquidez en Killzones.",
+    "GBPCHF": "Poda confirmada en replay 2 años: -17.75R netos (Win Rate 26.6%). Rango errático sin continuación institucional.",
+    "GBPAUD": "Poda confirmada en replay 2 años: -17.25R netos (Win Rate 19.0%). Baja tasa de TP1 y fuerte correlación de noticias asiáticas.",
+    "AUDCHF": "Poda confirmada en replay 2 años: -14.25R netos (Win Rate 24.4%). Deslizamiento continuo y compresión en sesión asiática.",
+    "EURNZD": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 22.6%). Desalineación con Killzones y spreads nocturnos desfavorables.",
+    "CADJPY": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 27.0%). Rupturas sin mitigación en horario Londres.",
+    "EURAUD": "Poda confirmada en replay 2 años: -9.75R netos (Win Rate 23.8%). Solapamiento de rangos asiático y europeo sin expansión limpia.",
+    "USDJPY": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%). Ausencia de volumen en Killzones y retrocesos tardíos.",
+    "USDJPYmicro": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%).",
+    "EURGBP": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 31.1%). Rango sumamente comprimido y bajo desplazamiento medio.",
+    "GBPJPY": "Poda confirmada en replay 2 años: -5.50R netos (Win Rate 33.3%). Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR.",
+    "AUDCAD": "Poda confirmada en replay 2 años: -5.00R netos (Win Rate 32.4%). Falta de liquidez institucional en Killzones Londres/NY.",
+    "USDCHF": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%). Estructura divergente frente al EURUSD durante la Killzone.",
+    "USDCHFmicro": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%).",
+    "EURJPY": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 35.3%). Intervenciones y tendencias unidireccionales sin pullback a FVG.",
+    "GBPNZD": "Poda confirmada en replay 2 años: -3.50R netos (Win Rate 30.6%). Rangos amplios con mechas falsas en cambio de sesión.",
     "NZDCAD": "Poda preventiva: Baja liquidez institucional en broker.",
     "NZDCHF": "Poda preventiva: Spreading costoso y baja frecuencia de setups limpios.",
     "NZDJPY": "Poda preventiva: Ruido recurrente en sesión asiática.",
     "NZDUSD": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
-    # BOOM (Replay histórico 180 días)
-    "Boom 500 Index": "Poda preventiva: -7.0R en replay 180d. Racha de pérdidas severas en contratendencia.",
-    "Boom 600 Index": "Poda preventiva: -3.0R en replay 180d. Baja reactividad estructural y quiebres sin seguimiento.",
+    # BOOM (Replay histórico)
+    "Boom 1000 Index": "Poda en replay 2 años: -2.25R netos (Win Rate 34.6%). Menor consistencia de pullback que Boom 500 y Boom 300.",
     "Boom 50 Index": "Poda preventiva: Baja inercia en zonas de demanda institucional.",
     "Boom 100 Index": "Poda preventiva: Ruido aleatorio y bajo ratio de confirmación.",
     "Boom 150 Index": "Poda preventiva: Spikes desalineados con zonas SMC M15.",
     "Boom 200 Index": "Poda preventiva: Expectativa matemática subóptima.",
     "Boom 99 Index": "Poda preventiva: Poca profundidad de mercado sintético.",
-    # CRASH (Replay histórico 180 días)
-    "Crash 300 Index": "Poda preventiva: -7.0R en replay 180d. Alta frecuencia de falsos CHoCHs y deslizamiento adverso.",
-    "Crash 600 Index": "Poda preventiva: -4.0R en replay 180d. Baja inercia en zonas de oferta.",
+    # CRASH (Replay histórico)
+    "Crash 900 Index": "Poda confirmada en replay 2 años: -13.50R netos (Win Rate 29.3%). Spikes intempestivos rompen estructuras FVG.",
+    "Crash 300 Index": "Poda confirmada en replay 2 años: -11.50R netos (Win Rate 32.2%). Caídas rápidas invalidan niveles de soporte.",
+    "Crash 1000 Index": "Poda confirmada en replay 2 años: -3.25R netos (Win Rate 32.9%). Ratios desfavorables frente a Crash 600 y Crash 500.",
     "Crash 50 Index": "Poda preventiva: Ruido y falsos rebotes en soportes.",
     "Crash 100 Index": "Poda preventiva: Spikes contratendenciales prematuros.",
     "Crash 150 Index": "Poda preventiva: Baja reactividad en bloques de órdenes M15.",
     "Crash 200 Index": "Poda preventiva: Falsas confirmaciones de quiebre estructural.",
     "Crash 99 Index": "Poda preventiva: Falta de tracción institucional simulada.",
     # STEP (Replay histórico)
-    "Step Index 200": "Poda preventiva: Replay descartó activos de ruido en ticks. Se priorizan Step 500, Step Index y Step 400.",
+    "Step Index 200": "Poda confirmada en replay 2 años: 0.00R netos (Win Rate 34.5%). Rendimiento neutral sin ventaja matemática; focalizado en Step 400 y Step 500.",
     "Step Index 300": "Poda preventiva: Replay descartó activos de ruido en ticks. Se priorizan Step 500, Step Index y Step 400.",
     "Multi Step 2 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 3 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 4 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     # JUMP (Replay histórico 2 años)
-    "Jump 50 Index": "Poda confirmada por estrategia ICT Sabri Malle (2 años): -9.6R netos (Win Rate 15.0%). Inconsistencia estructural severa y fallas sistemáticas en manipulación.",
-    "Jump 25 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75 y Jump 10.",
-    "Jump 100 Index": "Poda preventiva: Replay evidenció saltos erráticos desalineados. Se priorizan Jump 75 y Jump 10.",
+    "Jump 50 Index": "Poda confirmada en replay 2 años: -7.50R netos (Win Rate 33.7%). Saltos estocásticos de precio atraviesan zonas de descuento.",
+    "Jump 100 Index": "Poda confirmada en replay 2 años: -3.25R netos (Win Rate 35.6%). Saltos erráticos desalineados con zonas SMC M15.",
     # VOLATILITY (Poda confirmada por análisis cuantitativo de 2 años)
+    "Volatility 50 Index": "Poda confirmada en replay 2 años: -40.00R netos (Win Rate 27.1%). Falsas rupturas continuas y stops sistemáticos en M15.",
+    "Volatility 100 Index": "Poda confirmada en replay 2 años: -30.00R netos (Win Rate 32.0%). Ruido de alta volatilidad sin respeto al pullback.",
     "Vol over Crash 400": "Poda confirmada: -24.0% PnL en replay 2 años (Win Rate 15.4%). Falsas roturas de estructura recurrentes.",
     "Vol over Boom 750": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 21.1%). Inconsistencia en zonas de oferta.",
     "Spot Up - Volatility Up Index": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 26.1%). Dispersión de colas.",
     "Volatility 30 (1s) Index": "Poda confirmada: -9.5% PnL en replay 2 años. Ruido recurrente en oscilación rápida.",
     "Volatility Crash 750 Index": "Poda confirmada: -9.0% PnL en replay 2 años (Win Rate 26.7%).",
-    "Volatility 50 Index": "Poda preventiva: Replay 2 años demostró rendimiento y estabilidad superior en Volatility 50 (1s) Index (+26.0% PnL).",
     "Vol over Crash 750": "Poda confirmada: -8.0% PnL en replay 2 años.",
     "High Frequency Vol 75 Index": "Poda confirmada: -8.0% PnL en replay 2 años (Win Rate 25.0%).",
     "High Frequency Vol 25 Index": "Poda confirmada: -7.5% PnL en replay 2 años (Win Rate 22.7%).",
-    "Volatility 10 Index": "Poda preventiva: Ruido en ticks M15 y baja reactividad frente a activos líderes.",
     "Volatility 30 Index": "Poda preventiva: Baja efectividad en retesteos de bloques de órdenes.",
     # COMMODITIES & PETRÓLEO (Poda confirmada por análisis histórico 2 años)
     "US Oil": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural de la sesión cash NY frente a metales e índices.",
@@ -853,6 +1095,26 @@ PRUNED_INSTRUMENTS_INFO = {
     "XAGUSD": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD. Se prioriza Oro y Euro.",
     "XAGUSDmicro": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
     "Silver": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
+}
+
+FOREX_PRUNED_INFO = {
+    # 14 Pares Forex con expectativa negativa en replay de 2 años
+    "EURCAD": "Poda confirmada en replay 2 años: -23.75R netos (Win Rate 25.4%). Cruce con spreads adversos y falta de liquidez en Killzones.",
+    "GBPCHF": "Poda confirmada en replay 2 años: -17.75R netos (Win Rate 26.6%). Rango errático sin continuación institucional.",
+    "GBPAUD": "Poda confirmada en replay 2 años: -17.25R netos (Win Rate 19.0%). Baja tasa de TP1 y fuerte correlación de noticias asiáticas.",
+    "AUDCHF": "Poda confirmada en replay 2 años: -14.25R netos (Win Rate 24.4%). Deslizamiento continuo y compresión en sesión asiática.",
+    "EURNZD": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 22.6%). Desalineación con Killzones y spreads nocturnos desfavorables.",
+    "CADJPY": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 27.0%). Rupturas sin mitigación en horario Londres.",
+    "EURAUD": "Poda confirmada en replay 2 años: -9.75R netos (Win Rate 23.8%). Solapamiento de rangos asiático y europeo sin expansión limpia.",
+    "USDJPY": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%). Ausencia de volumen en Killzones y retrocesos tardíos.",
+    "USDJPYmicro": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%).",
+    "EURGBP": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 31.1%). Rango sumamente comprimido y bajo desplazamiento medio.",
+    "GBPJPY": "Poda confirmada en replay 2 años: -5.50R netos (Win Rate 33.3%). Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR.",
+    "AUDCAD": "Poda confirmada en replay 2 años: -5.00R netos (Win Rate 32.4%). Falta de liquidez institucional en Killzones Londres/NY.",
+    "USDCHF": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%). Estructura divergente frente al EURUSD durante la Killzone.",
+    "USDCHFmicro": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%).",
+    "EURJPY": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 35.3%). Intervenciones y tendencias unidireccionales sin pullback a FVG.",
+    "GBPNZD": "Poda confirmada en replay 2 años: -3.50R netos (Win Rate 30.6%). Rangos amplios con mechas falsas en cambio de sesión.",
 }
 
 MALAYSIAN_SNR_PRUNED_INFO = {
@@ -877,7 +1139,7 @@ MALAYSIAN_SNR_PRUNED_INFO = {
     # Índices Americanos & Cripto (Incompatibles con reversión SNR; derivados a ORB NY e ICT)
     "US Tech 100": "Poda en Malaysian SNR: 33.3% WR, -0.31R. Expansión direccional continua; derivado a ORB NY e ICT.",
     "US SP 500": "Poda en Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas sin respeto de niveles Break; derivado a ORB New York.",
-    "BTCUSD": "Poda en Malaysian SNR: 31.6% WR, -3.56R. Derivado a ICT Sabri Malle (+28.1R) y ORB (+4.39R).",
+    "BTCUSD": "Poda en Malaysian SNR: 31.6% WR, -3.56R. Derivado a Estrategia ICT (+28.1R) y ORB (+4.39R).",
     # Forex y Commodities con expectativa negativa o spread adverso
     "USDCAD": "Poda en Malaysian SNR: 42.9% WR, -0.21R. Derivado a ICT Forex (+12.0R) y FOREX.",
     "AUDUSD": "Poda en Malaysian SNR: 23.1% WR, -5.14R. Rango lateral sin expansión hacia TP1 en M15.",
@@ -900,8 +1162,34 @@ MALAYSIAN_SNR_PRUNED_INFO = {
 
 
 ICT_PRUNED_INFO = {
-    "Jump 50 Index": "Poda confirmada en replay 2 años ICT: -9.6R netos (Win Rate 15.0%). Inconsistencia estructural severa y fallas sistemáticas en manipulación.",
-    "USDJPY": "Poda confirmada en replay 2 años ICT: -7.0R netos (Win Rate 18.2%). Ausencia de expansión a TP2 y dispersión de spread.",
+    # 25 Activos Podados en Replay 2 Años Estrategia ICT (Expectativa Matemática Negativa o Neutral)
+    "Volatility 50 Index": "Poda confirmada en replay 2 años ICT: 27.1% WR, -40.00R. Falsos desplazamientos FVG y rachas bajistas prolongadas; derivado a worker VOLATILITY.",
+    "Volatility 100 Index": "Poda confirmada en replay 2 años ICT: 32.0% WR, -30.00R. Ruido de alta volatilidad sin respeto al Consequent Encroachment FVG.",
+    "EURCAD": "Poda confirmada en replay 2 años ICT: 25.4% WR, -23.75R. Cruce con spreads adversos y falta de liquidez en Killzones.",
+    "US SP 500": "Poda confirmada en replay 2 años ICT: 30.4% WR, -17.75R. Volatilidad excesiva en apertura NY y sweeps no respetados; mejor en ORB.",
+    "GBPCHF": "Poda confirmada en replay 2 años ICT: 26.6% WR, -17.75R. Rango errático sin continuación institucional.",
+    "GBPAUD": "Poda confirmada en replay 2 años ICT: 19.0% WR, -17.25R. Baja tasa de TP1 y fuerte correlación de noticias asiáticas.",
+    "AUDCHF": "Poda confirmada en replay 2 años ICT: 24.4% WR, -14.25R. Deslizamiento continuo y compresión en sesión asiática.",
+    "Crash 900 Index": "Poda confirmada en replay 2 años ICT: 29.3% WR, -13.50R. Spikes intempestivos rompen estructuras FVG; operado en worker CRASH.",
+    "EURNZD": "Poda confirmada en replay 2 años ICT: 22.6% WR, -11.75R. Desalineación con Killzones y spreads nocturnos desfavorables.",
+    "CADJPY": "Poda confirmada en replay 2 años ICT: 27.0% WR, -11.75R. Rupturas sin mitigación en horario Londres.",
+    "Crash 300 Index": "Poda confirmada en replay 2 años ICT: 32.2% WR, -11.50R. Caídas rápidas invalidan niveles FVG CE.",
+    "EURAUD": "Poda confirmada en replay 2 años ICT: 23.8% WR, -9.75R. Solapamiento de rangos asiático y europeo sin expansión limpia.",
+    "Jump 50 Index": "Poda confirmada en replay 2 años ICT: 33.7% WR, -7.50R. Saltos estocásticos de precio atraviesan zonas de descuento.",
+    "USDJPY": "Poda confirmada en replay 2 años ICT: 35.5% WR, -7.25R. Ausencia de volumen en Killzones y retrocesos tardíos.",
+    "USDJPYmicro": "Poda confirmada en replay 2 años ICT: 35.5% WR, -7.25R.",
+    "EURGBP": "Poda confirmada en replay 2 años ICT: 31.1% WR, -7.25R. Rango sumamente comprimido y bajo desplazamiento medio.",
+    "GBPJPY": "Poda confirmada en replay 2 años ICT: 33.3% WR, -5.50R. Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR.",
+    "AUDCAD": "Poda confirmada en replay 2 años ICT: 32.4% WR, -5.00R. Falta de liquidez institucional en Killzones Londres/NY.",
+    "USDCHF": "Poda confirmada en replay 2 años ICT: 33.8% WR, -4.75R. Estructura divergente frente al EURUSD durante la Killzone.",
+    "USDCHFmicro": "Poda confirmada en replay 2 años ICT: 33.8% WR, -4.75R.",
+    "EURJPY": "Poda confirmada en replay 2 años ICT: 35.3% WR, -4.75R. Intervenciones y tendencias unidireccionales sin pullback a FVG.",
+    "GBPNZD": "Poda confirmada en replay 2 años ICT: 30.6% WR, -3.50R. Rangos amplios con mechas falsas en cambio de sesión.",
+    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: 35.6% WR, -3.25R. Saltos que saltan el FVG y disparan el Stop Loss.",
+    "Crash 1000 Index": "Poda confirmada en replay 2 años ICT: 32.9% WR, -3.25R. Ratios desfavorables frente a Crash 600 y Crash 500.",
+    "Boom 1000 Index": "Poda confirmada en replay 2 años ICT: 34.6% WR, -2.25R. Menor consistencia de pullback que Boom 500 y Boom 300.",
+    "XAGUSD": "Poda confirmada en replay 2 años ICT: 33.3% WR, -1.50R. Deslizamiento y dilatación en horario NY; mejor rendimiento en Malaysian SNR y ORB.",
+    "Step Index 200": "Poda confirmada en replay 2 años ICT: 34.5% WR, 0.00R. Rendimiento neutral sin ventaja matemática; focalizado en Step 400 y Step 500.",
 }
 
 def _selection_profile_for_category(category: str) -> str:
@@ -1846,7 +2134,7 @@ class RealtimeDashboardService:
                 "pruned_instruments": dict(PRUNED_INSTRUMENTS_INFO),
                 "pruned_instruments_by_profile": {
                     "SYNTHETICS": dict(PRUNED_INSTRUMENTS_INFO),
-                    "FOREX": dict(PRUNED_INSTRUMENTS_INFO),
+                    "FOREX": dict(FOREX_PRUNED_INFO),
                     "ORB": dict(PRUNED_INSTRUMENTS_INFO),
                     "IDX_OPEN": dict(PRUNED_INSTRUMENTS_INFO),
                     "MALAYSIAN_SNR": dict(MALAYSIAN_SNR_PRUNED_INFO),
@@ -3352,7 +3640,7 @@ class RealtimeDashboardService:
                 if self.repository is not None and hasattr(self.repository, "recent_symbol_process_results"):
                     try:
                         persisted_recent = self.repository.recent_symbol_process_results(
-                            source="DEMO", limit=120, per_profile=12, scan_limit=2500,
+                            source="DEMO", limit=250, per_profile=50, scan_limit=3500,
                         )
                     except Exception:
                         persisted_recent = []
@@ -3676,6 +3964,11 @@ _HTML = r'''
         background: rgba(250, 204, 21, 0.15);
         color: #facc15;
         border: 1px solid rgba(250, 204, 21, 0.35);
+      }
+      .stratBadge.strat-cyan {
+        background: rgba(56, 189, 248, 0.15);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.35);
       }
       .matrixTabBtn {
         background: var(--panel2);
@@ -4969,9 +5262,9 @@ _HTML = r'''
           <div class="card full" id="confluenceMatrixCard">
             <div class="selectorHead">
               <div>
-                <div class="label" style="color: var(--gold2); font-weight: 800; font-size: 13px;">Matriz Centinela Multiestrategia (SMC · Malaysian SNR · ORB · Gold Quarters)</div>
+                <div class="label" style="color: var(--gold2); font-weight: 800; font-size: 13px;">Matriz Centinela Multiestrategia (ICT · Malaysian SNR · ORB · Gold Quarters)</div>
                 <div class="sub">
-                  Monitoreo centinela unificado en tiempo real: SMC (H1/M15/M5) · Malaysian SNR (Break/Retest/ADX) · ORB (Apertura NY) · Gold Quarters
+                  Monitoreo centinela unificado en tiempo real: Estrategia ICT · Malaysian SNR (Break/Retest/ADX) · ORB (Apertura NY) · Gold Quarters
                 </div>
               </div>
               <div id="confluenceSummaryChips" style="display: flex; gap: 8px; align-items: center; font-size: 11px; flex-wrap: wrap;"></div>
@@ -4979,7 +5272,7 @@ _HTML = r'''
             <!-- Filtros interactivos por estrategia -->
             <div id="confluenceFilters" style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
               <button class="matrixTabBtn active" data-filter="ALL" onclick="setMatrixFilter('ALL')">TODAS</button>
-              <button class="matrixTabBtn" data-filter="SMC" onclick="setMatrixFilter('SMC')">SMC</button>
+              <button class="matrixTabBtn" data-filter="ICT" onclick="setMatrixFilter('ICT')" style="color: #38bdf8; font-weight: bold;">ESTRATEGIA ICT</button>
               <button class="matrixTabBtn" data-filter="MALAYSIAN_SNR" onclick="setMatrixFilter('MALAYSIAN_SNR')">MALAYSIAN SNR</button>
               <button class="matrixTabBtn" data-filter="ORB" onclick="setMatrixFilter('ORB')">ORB NY</button>
               <button class="matrixTabBtn" data-filter="GOLD_QUARTERS" onclick="setMatrixFilter('GOLD_QUARTERS')">GOLD QUARTERS</button>
@@ -6775,15 +7068,9 @@ _HTML = r'''
                     ? 'Cuartos ($25) · M5/H1'
                     : isOrb
                       ? 'ORB New York M5'
-                      : prof.includes('VOLATILITY')
-                        ? 'SMC + Shard Vol'
-                        : prof.includes('FOREX')
-                          ? 'SMC Forex Killzone'
-                          : prof === 'MALAYSIAN_SNR'
-                            ? 'Malaysian SNR M15'
-                            : prof === 'ICT'
-                              ? 'ICT'
-                              : 'SMC Institucional';
+                      : prof === 'MALAYSIAN_SNR'
+                        ? 'Malaysian SNR M15'
+                        : 'Estrategia ICT';
                   return `<section class="workerCard ${paused && !isOrb ? 'workerPaused' : disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
     <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
     <div class="workerMeta">
@@ -7675,12 +7962,26 @@ _INSTRUMENTS_HTML = r'''
                       ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda)</span>`
                       : `<span class="activeBadge">✓ Priorizado</span>`;
                     if (activeProfile === 'ICT' && !isPruned) {
-                      if (sym.includes('XAG')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 ICT (+38.1R)</span>`;
-                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #2 ICT (+28.1R)</span>`;
-                      else if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Priorizado (+6.0R)</span>`;
-                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Índices (+12.0R / 64.3% WR)</span>`;
-                      else if (sym.includes('Tech 100')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT Tech (+6.0R / 50.0% WR)</span>`;
-                      else if (sym.includes('SP 500')) badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ Priorizado (+1.0R)</span>`;
+                      if (sym.includes('Volatility 10 Index')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Líder Vol (+61.25R)</span>`;
+                      else if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 Líder Jump (+54.75R)</span>`;
+                      else if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #1 Líder Step (+44.50R)</span>`;
+                      else if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Líder Metales (+17.25R)</span>`;
+                      else if (sym.includes('GBPUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ Líder Forex (+16.50R)</span>`;
+                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Líder Índices (+15.25R)</span>`;
+                      else if (sym.includes('AUDJPY')) badge = `<span class="activeBadge" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.4);">✓ Alta Efectividad (54.1% WR)</span>`;
+                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Cripto ICT (+10.25R)</span>`;
+                      else if (sym.includes('Tech 100')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Nasdaq ICT (+10.25R)</span>`;
+                    } else if (activeProfile === 'FOREX' && !isPruned) {
+                      if (sym.includes('GBPUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Líder Forex (+16.50R)</span>`;
+                      else if (sym.includes('AUDJPY')) badge = `<span class="activeBadge" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.4);">✓ Alta Efectividad (54.1% WR)</span>`;
+                      else if (sym.includes('AUDNZD')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ Validado (+10.25R)</span>`;
+                      else if (sym.includes('EURUSD')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Forex Core</span>`;
+                    } else if (activeProfile === 'SYNTHETICS' && !isPruned) {
+                      if (sym.includes('Volatility 10 Index')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Líder Vol (+61.25R)</span>`;
+                      else if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 Líder Jump (+54.75R)</span>`;
+                      else if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #1 Líder Step (+44.50R)</span>`;
+                      else if (sym.includes('Crash 600')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Líder Crash (+17.25R)</span>`;
+                      else if (sym.includes('Boom 500')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Líder Boom (+13.00R)</span>`;
                     }
                     return `<label class="item ${isPruned ? 'prunedItem' : ''}"><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked ? 'checked' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
                   }).join('')}</section>`
