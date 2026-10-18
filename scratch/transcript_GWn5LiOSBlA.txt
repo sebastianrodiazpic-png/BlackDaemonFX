@@ -1,0 +1,437 @@
+TITLE: Alex Ruiz - Compruebo Si La Mejor Estrategia De Trading De ICT Funciona
+URL: https://www.youtube.com/watch?v=GWn5LiOSBlA
+
+[00:00] Hace unos días subí un vídeo en el que
+[00:01] explicaba cómo funciona paso a paso una
+[00:04] de las mejores estrategias de trading de
+[00:06] ict y en el vídeo de hoy vengo a
+[00:09] comprobar si es una estrategia de
+[00:10] trading rentable ya que he hecho un Back
+[00:13] testing completo para ver cuánto dinero
+[00:15] podría haber ganado con esa estrategia
+[00:17] de trading se trata de una estrategia a
+[00:20] través de la cual él mismo asegura que
+[00:22] puedes dejar tu trabajo en tan solo 90
+[00:24] días y la realidad es que es muy fácil
+[00:27] de aplicar perfecta tanto para traders
+[00:30] principiantes como para traders
+[00:31] avanzados ocupa una hora y media al día
+[00:35] y consta de solo cinco pasos muy claros
+[00:39] y te recomiendo que después de ver este
+[00:40] vídeo vayas abajo al primer comentario
+[00:42] fijado o descripción para visualizar el
+[00:46] vídeo en el que desarrollo la estrategia
+[00:48] de forma detallada y que además te
+[00:50] quedes hasta el final de este vídeo ya
+[00:53] que quiero saber tu opinión sobre un
+[00:55] tema que marcará el futuro de esta
+[00:57] estrategia de trading
+[01:04] primero de todo quiero explicar
+[01:06] exactamente qué es el Back testing Y es
+[01:09] que pese a que muchas personas no saben
+[01:11] qué es o no le dan demasiada importancia
+[01:15] se trata de una de las herramientas más
+[01:17] importantes a la hora de poder ser
+[01:19] rentable haciendo trading el trading se
+[01:21] basa en detectar un patrón que se repite
+[01:24] en el tiempo y ejecutarlo todo el rato
+[01:27] prácticamente sin pensar un patrón puede
+[01:30] ser un cruce de medias móviles
+[01:32] utilizando indicadores un patrón puede
+[01:34] ser una figura de doble techo de doble
+[01:37] suelo de hombro cabeza a hombro o
+[01:39] cualquier otro patrón técnico un patrón
+[01:42] puede ser una Pauta de impulso pullback
+[01:45] y continuación de ruptura de soporte de
+[01:48] ruptura de resistencia de toma de
+[01:49] liquidez Hay muchas formas y tipologías
+[01:52] de patrones que se repiten
+[01:54] constantemente tú únicamente tienes que
+[01:56] detectar uno de ellos y ejecutarlo todo
+[01:59] el rato y claro Pese a que resultados
+[02:02] pasados no garantizan resultados futuros
+[02:05] Cómo podemos saber si un patrón es
+[02:07] válido o no Cómo podemos saber si eso
+[02:10] que yo creo que se repite en el tiempo
+[02:12] es suficiente como para que yo sea
+[02:14] rentable haciendo trading o no pues la
+[02:16] forma más rápida de saber si un patrón
+[02:19] puede convertirse en una estrategia de
+[02:21] trading rentable es B testeo de hecho ya
+[02:25] subí un vídeo en el que explicaba Cómo
+[02:27] saber si una estrategia de trading
+[02:29] funciona o no en cuestión de segundos
+[02:32] pues para poder comprobar si esta
+[02:33] estrategia de trading de ict es rentable
+[02:37] o no es rentable le he aplicado un Back
+[02:40] testing desde el año 2018 hasta el año
+[02:43] 2024 Pero antes de enseñarte ese Back
+[02:46] testing y los resultados del mismo Para
+[02:48] ver cuánto dinero se habría ganado o
+[02:51] cuánto dinero se habría perdido Vamos a
+[02:53] repasar muy rápidamente los datos o las
+[02:56] normas de esa estrategia de trading lo
+[02:59] Prim primero de todo es que tenemos que
+[03:01] vigilar el horario solo Vamos a ejecutar
+[03:04] una posición entre las 99:30 y las
+[03:08] 1100 horario de Nueva York para esto te
+[03:11] recomiendo que vayas a trading View y
+[03:13] dejes estipulado el indicador Time zone
+[03:17] aquí lo tenemos como ves el horario es
+[03:19] el de Nueva York escribes 99:30 hasta
+[03:22] 1100 y automáticamente lo que va a hacer
+[03:25] este indicador es marcarte en el gráfico
+[03:29] y con tu uso
+[03:30] horario cuál es esa hora por ejemplo
+[03:33] para el uso horario de España las 99:30
+[03:38] hasta las 11 de la mañana en Nueva York
+[03:40] es de 3:30 a 5 de la tarde en España
+[03:44] Entonces esto es lo primero que vamos a
+[03:46] tener que tener en cuenta y lo segundo
+[03:48] es que vamos a operar solo el futuro del
+[03:51] nasdaq Así que vamos ya directamente con
+[03:54] los pasos exactos Y es que lo primero
+[03:56] que tenemos que hacer es Buscar zonas de
+[03:58] liquidez así y antes de la sesión vamos
+[04:01] a Identificar y destacar en este gráfico
+[04:03] de 5 minutos el último swing alcista o
+[04:06] el último swing bajista ahora ya parece
+[04:08] que los tenemos claros y lo que voy a
+[04:10] hacer es marcar el último movimiento o
+[04:13] el último máximo de todo este swing y
+[04:16] marcar también el último mínimo de todo
+[04:19] este swing así Ahora ya tenemos dos
+[04:22] zonas de liquidez por encima del máximo
+[04:25] del último swing y por debajo del mínimo
+[04:28] del último swing a continuación lo que
+[04:30] tenemos que hacer es esperar a que el
+[04:34] precio rompa uno de los dos puntos o el
+[04:37] máximo o el mínimo por qué Porque es muy
+[04:40] habitual que en este tipo de sesiones lo
+[04:43] que ocurra es que el precio vaya a
+[04:45] buscar una zona de liquidez la barra
+[04:48] hablando mal y ataque la inferior o vaya
+[04:51] a buscar una zona de liquidez la barra y
+[04:55] vaya a atacar luego la superior así que
+[04:58] tenemos que esperar a que se forme esa
+[05:00] ruptura que parece ser que puede
+[05:02] formarse desde la parte superior
+[05:04] justamente Aquí está rompiendo y en el
+[05:07] momento en el que se forme esta ruptura
+[05:10] y el precio vuelva a la parte interior
+[05:13] vamos a bajar a temporalidad de un
+[05:16] minuto qué es lo que vamos a hacer en
+[05:18] esta temporalidad de un minuto pues
+[05:20] esperar a que el precio rompa el último
+[05:23] mínimo en este caso porque es un
+[05:25] movimiento alcista del swing aquí lo
+[05:28] tenemos el último swing de un minuto es
+[05:30] este de aquí porque el precio viene para
+[05:33] aquí y se levanta pues lo que buscamos
+[05:35] es que en un minuto se rompa este swing
+[05:38] dando paso a un cambio de tendencia con
+[05:40] lo que tendremos una toma de liquidez en
+[05:43] 5 minutos por encima del máximo anterior
+[05:46] y un cambio de tendencia a corto plazo o
+[05:49] mejor dicho más a corto plazo en gráfico
+[05:51] de un minuto con lo que en momento en el
+[05:54] que el precio ya estamos como puedes
+[05:56] comprobar dentro de esta sesión de 3 y3
+[05:58] a 5 hora España en el momento en el que
+[06:01] el precio ahora ya ha roto esta zona de
+[06:04] aquí lo que tenemos que buscar es un
+[06:06] fire value Gap es decir un vacío de
+[06:08] liquidez un vacío de liquidez es
+[06:10] simplemente el espacio que se deja entre
+[06:13] tres velas Si vemos por ejemplo aquí
+[06:15] tenemos el mínimo de esta vela de aquí
+[06:18] que es este nivel horizontal y el máximo
+[06:21] de la siguiente vela no esta es la del
+[06:23] medio la otra es este punto de aquí pues
+[06:26] justamente esta zona entre el mínimo de
+[06:29] una
+[06:30] y el máximo de otra es un vacío de
+[06:32] liquidez lo vamos a marcar lo voy a
+[06:35] poner de color sombreado y lo voy a
+[06:37] poner de un color un poquito más blanco
+[06:39] para que lo veamos más claro fondo de
+[06:42] color blanco y voy a eliminar estas dos
+[06:44] líneas por qué Porque lo que buscamos es
+[06:47] que dentro de este cambio de tendencia
+[06:49] en un minuto que ya se ha formado el
+[06:51] precio venga a buscar esta zona anterior
+[06:55] de vacío de liquidez para confirmar una
+[06:58] tendencia ya a la baja hasta ahora qué
+[07:01] es lo que estábamos haciendo pues aquí
+[07:03] tenemos un swing aquí tenemos otro swing
+[07:06] aquí tenemos otro swing Pues ahora
+[07:08] después de tomar la liquidez de la parte
+[07:10] superior queremos ver Lo mismo un swing
+[07:13] otro swing Y así
+[07:15] sucesivamente Por qué marcamos este
+[07:17] vacío de liquidez porque va a ser el
+[07:19] punto en el que nosotros vamos a
+[07:21] ejecutar la posición en el momento en el
+[07:24] que vemos que el precio Ya se está
+[07:25] levantando lo que vamos a hacer es dejar
+[07:27] puesta una orden limit de venta en este
+[07:30] caso justamente en la parte del vacío de
+[07:34] liquidez y un stop loss por encima de
+[07:38] ese vacío de liquidez simplemente para
+[07:40] proteger esta zona y un Take profit
+[07:43] dónde en la parte
+[07:45] opuesta la estrategia va a buscar la
+[07:48] parte opuesta de la toma inicial de
+[07:51] liquidez como he comentado Así que en
+[07:53] este punto simplemente queda esperar
+[07:55] aquí vemos como ya se ejecuta nuestra
+[07:57] posición y ahora lo que tenemos que es a
+[08:00] que se forme el movimiento opuesto y es
+[08:02] literalmente lo que se ha formado
+[08:04] primero en 5 minutos marcamos la parte
+[08:07] superior y la parte inferior del último
+[08:09] swing esperamos a que se barra y se tome
+[08:12] la liquidez de uno de los dos extremos
+[08:14] bajamos de temporalidad y en un minuto
+[08:16] Buscamos un fire value Gap para ejecutar
+[08:19] esa posición en este caso en corto pero
+[08:21] también puede ser en largo y atacar la
+[08:24] toma de liquidez opuesta de todos modos
+[08:27] Recuerda que abajo en el primer
+[08:28] comentario fijado y en la descripción
+[08:30] vas a poder encontrar el enlace al vídeo
+[08:32] donde desarrollo de forma detallada esta
+[08:35] estrategia de trading te recomiendo que
+[08:37] vayas a verlo una vez finalizado este
+[08:40] mismo vídeo lo que vamos a hacer a
+[08:42] continuación es describir los puntos más
+[08:44] importantes del código que se ha
+[08:46] programado para poder ejecutar de forma
+[08:50] automática el Back testing de esta
+[08:52] estrategia de trading lo que estás
+[08:53] viendo en pantalla es el código que se
+[08:56] ha programado como digo para hacer el
+[08:58] Back testing automático de la estrategia
+[09:00] en las primeras líneas encontramos la
+[09:02] librería a través de la cual importar
+[09:04] remos todos los datos En las siguientes
+[09:06] líneas llevamos a cabo la carga de esos
+[09:09] datos ya que para poder hacer un Back
+[09:11] testing Pues necesitas saber cuándo Abre
+[09:14] una vela Cuándo cierra qué hora es Qué
+[09:17] día es etcétera etcétera etcétera las
+[09:20] siguientes líneas marcan las variables
+[09:22] que tenemos que analizar para ejecutar
+[09:23] la estrategia como ves hablamos de stop
+[09:26] loss de Take profit de operaciones
+[09:29] etcétera etcétera A partir de aquí ya
+[09:31] empezamos con las normas Ya que en las
+[09:33] siguientes líneas hablaremos de la
+[09:34] franja horaria en la que vamos a operar
+[09:37] la siguiente se usa para marcar esos
+[09:39] máximos y mínimos anteriores a la sesión
+[09:42] los cuales necesitamos para las tomas de
+[09:44] liquidez y ya pues en las definiciones
+[09:47] de los apartados puedes ver que estamos
+[09:49] sete los parámetros para que el Bot
+[09:51] entienda exactamente las demás reglas de
+[09:54] la estrategia y las ejecute
+[09:56] automáticamente cuando se den esas iones
+[10:00] finalmente estas últimas líneas son para
+[10:02] calcular ganancias pérdidas drawdown
+[10:05] rentabilidad final y demás para imprimir
+[10:07] también todo esto en un archivo aparte y
+[10:09] para crear un gráfico que refleje todas
+[10:13] las operaciones lo que analizaremos en
+[10:15] la parte final del vídeo ahora que ya
+[10:17] hemos repasado las normas de la
+[10:19] estrategia que ya hemos comentado las
+[10:21] partes más importantes del código es
+[10:23] momento de ejecutar ese Back testing
+[10:25] para que lleve a cabo de forma
+[10:27] automática las operaciones pertinentes
+[10:29] desde el año 2018 hasta la actualidad
+[10:33] sin embargo no quiero que te quedes
+[10:35] Únicamente con un número con una
+[10:36] rentabilidad quiero que te quedes hasta
+[10:38] la parte final del vídeo por dos motivos
+[10:41] el primero es que hablaremos de unas
+[10:42] conclusiones sobre este tipo de
+[10:44] estrategias y este tipo de análisis que
+[10:47] necesitas escuchar el segundo motivo es
+[10:50] que lo que voy a hacer es pedirte la
+[10:52] opinión sobre un tema que como te he
+[10:55] comentado en la introducción marcará el
+[10:57] futuro de esta estrategia de trading lo
+[10:59] que también marcará el futuro pero de
+[11:01] este canal Es si le das Like si te está
+[11:02] gustando el vídeo si te suscribes si es
+[11:04] que no estás suscrito Y si dejas un
+[11:06] comentario diciendo qué te está
+[11:08] apareciendo Y qué tipo de contenido te
+[11:10] gustaría que subiera de Cara a los
+[11:12] próximos vídeos dicho esto para ejecutar
+[11:14] el código Solo tengo que ir a la parte
+[11:16] superior derecha donde sale este símbolo
+[11:19] como de Play lo clico y automáticamente
+[11:23] se ejecuta todo si te fijas en la parte
+[11:26] inferior en cuestión de segundos podemos
+[11:28] ver que el el drawdown máximo es del
+[11:31] 61,6 1% es decir llegas a perder un 61,6
+[11:36] 1% del capital total de la cuenta y que
+[11:39] la rentabilidad final es del
+[11:43] 89,23 por. pero no nos vamos a quedar
+[11:46] aquí ya que además de la conclusión
+[11:48] final que trataremos en la última parte
+[11:49] del vídeo vamos a analizar porque es muy
+[11:52] importante la Gráfica de rentabilidad en
+[11:55] términos generales para comprobar Cuál
+[11:58] ha sido el comportamiento de esta
+[11:59] estrategia de trading a lo largo del
+[12:01] tiempo Entonces si venimos directamente
+[12:04] a este gráfico que automáticamente hemos
+[12:07] seteado para que nos lo genere la propia
+[12:10] aplicación podemos ver que Durante los
+[12:13] primeros años durante el año 2018 2019 y
+[12:16] parte del año 2020 la estrategia estaba
+[12:19] dentro de una especie de drawdown
+[12:21] drawdown es el periodo máximo de
+[12:23] pérdidas de una estrategia concreta y
+[12:26] como puedes comprobar aparte de pequeñas
+[12:29] subidas y grandes caídas pequeñas
+[12:31] subidas y grandes caídas a principios
+[12:35] del año 2020 estaba literalmente en el
+[12:37] mismo Punto de partida que en el año
+[12:39] 2018 con lo cual hubiéramos estado un
+[12:41] par de años y poco sin ganar nada porque
+[12:44] lo que ganas luego lo pierdes y lo que
+[12:46] pierdes luego lo ganas en ese preciso
+[12:48] instante se inicia un gran movimiento
+[12:51] alcista donde la estrategia genera una
+[12:53] rentabilidad increíble durante gran
+[12:55] parte del año 2020 durante todo el año
+[12:58] 2021 y Durante los principios del año
+[13:02] 2022 momento en el que se inicia un
+[13:05] increíble drawdown que se come gran
+[13:08] parte de la rentabilidad de esa
+[13:09] estrategia y que a día de hoy también
+[13:12] sigue porque no hemos superado esa
+[13:14] pérdida aquí tenemos el punto máximo
+[13:17] aquí tenemos una pérdida que
+[13:18] evidentemente supera con creces estas
+[13:20] pérdidas iniciales pero es que hasta que
+[13:22] no superemos esta rentabilidad máxima
+[13:25] que alcanzamos no habremos salido de esa
+[13:28] especie de drawdown en el que nos
+[13:30] encontramos con lo que la realidad es
+[13:32] que la pérdida del 61 por o 61,6 1% es
+[13:37] literalmente este movimiento en el que
+[13:39] se encuentra ahora mismo la estrategia
+[13:41] con lo que no se trata de una estrategia
+[13:43] de trading que evidentemente no podemos
+[13:45] pretender que ninguna estrategia de
+[13:47] trading nos dé resultados de forma
+[13:49] diaria ni tan siquiera semanal ni tan
+[13:51] siquiera mensual y muchas veces tampoco
+[13:54] trimestral pero es que se trata de una
+[13:56] estrategia donde hay años increíblemente
+[13:59] buenos y hay años realmente negativos y
+[14:02] esto no son las bases de una estrategia
+[14:05] O al menos no son las bases de la
+[14:07] estrategia que a mí me gustaría llevar a
+[14:09] cabo para esto ya hago inversiones a
+[14:11] largo plazo donde hay años mejores y hay
+[14:13] años peores a modo de conclusión y antes
+[14:16] de pedirte tu opinión como te he
+[14:18] prometido al principio del vídeo quiero
+[14:21] destacar que yo personalmente no soy muy
+[14:24] fan y muy partidario de este tipo de
+[14:26] prácticas evidentemente el backtesting
+[14:28] est totalmente obligatorio pero el Back
+[14:31] testing que yo defiendo el que yo
+[14:34] imparto y el que yo llevo haciendo desde
+[14:36] hace prácticamente 10 años Es muy
+[14:39] diferente a este Back testing ya que
+[14:41] este tipo de Back testing lo que están
+[14:43] intentando hacer es matematizar el
+[14:46] mercado pero sin embargo si vamos un
+[14:49] poco a la definición de Mercado qué es
+[14:52] lo que mueve el mercado el ser humano y
+[14:55] por qué se mueve el ser humano por las
+[14:57] emociones
+[14:59] entonces
+[15:00] intentando llevar a cabo este tipo de
+[15:02] prácticas lo que estás intentando hacer
+[15:05] es matematizar la emoción humana Es
+[15:07] verdad que hay estrategias de trading
+[15:09] que son mucho más matematiza bles si es
+[15:11] que esa palabra existe pero bueno como
+[15:13] es mi canal me la Vais a permitir
+[15:15] Supongo pero otras como esta que estamos
+[15:18] viendo y Como tantas otras son mucho más
+[15:20] difíciles de matematizar si tú quieres
+[15:23] ejecutar una posición en el cruce de dos
+[15:25] medias móviles es más fácil de
+[15:27] matematizar que un pulso y un pullback
+[15:30] algo que puede llegar a ser Incluso en
+[15:31] muchos momentos subjetivo si tú quieres
+[15:34] matematizar que una estrategia de
+[15:36] trading compre en la apertura después de
+[15:38] un Gap lo puedes hacer porque son
+[15:41] números si quieres hacer que venda
+[15:43] cuando ha subido un XP también lo puedes
+[15:46] hacer porque son números Pero esto más
+[15:48] que el trading a través del Análisis
+[15:50] técnico como lo conocemos a día de hoy
+[15:52] Sería más trading cuantitativo es decir
+[15:55] tener en cuenta datos y a través de esos
+[15:58] datos crear estrategias de trading el
+[16:00] tema Es que hoy en día hay una corriente
+[16:02] extremadamente fuerte de personas
+[16:05] matemáticos programadores etcétera
+[16:07] etcétera que intentan quitarle
+[16:10] meritocracia a las personas que hacemos
+[16:12] trading a través del Análisis técnico y
+[16:14] a través de estrategias que no son
+[16:16] matematiza bles Simplemente porque la
+[16:19] realidad es que no podemos cuantificar
+[16:21] de forma numérica y exacta la emoción
+[16:24] que puede sentir una persona o un grupo
+[16:27] de personas para mover el mercado hacia
+[16:28] ha una dirección o hacia otra dirección
+[16:30] pero que no puedan justificarse en base
+[16:33] a matemáticas o a números no significa
+[16:36] que no sean estrategias de trading
+[16:38] rentables finalmente te quería pedir
+[16:41] opinión Quiero saber si te interesa que
+[16:43] suba un vídeo en el que programo un Bot
+[16:46] de trading con las normas de esta
+[16:48] estrategia para ver si en 90 días
+[16:51] generamos la rentabilidad suficiente
+[16:53] como para poder dejar el trabajo o no
+[16:56] poder dejarlo a grandes rasgos ya hemos
+[16:59] visto Cuáles son los puntos fuertes y
+[17:01] los puntos débiles de esta estrategia de
+[17:03] trading hemos visto una rentabilidad un
+[17:05] drawdown etcétera etcétera por eso
+[17:07] precisamente Quiero saber si crees que
+[17:09] merece la pena que programe un Bot Eso
+[17:12] sí enseñando Cómo se programa El Bot
+[17:15] para utilizar Este ejemplo de código o
+[17:17] si no te interesa ese tipo de contenido
+[17:20] recuerda también que abajo en el primer
+[17:21] comentario fijado y en la descripción de
+[17:23] este mismo vídeo vas a encontrar
+[17:25] múltiples enlaces de interés guías
+[17:27] formaciones tutoriales estrategias de
+[17:30] trading rentables más contenido
+[17:33] relacionado con ict todo contenido 100%
+[17:35] gratuito para que sigas formándote como
+[17:37] Trader sin necesidad de invertir tu
+[17:39] dinero Este vídeo lo voy a dejar por
+[17:41] aquí Espero que te haya gustado que te
+[17:43] haya servido que es lo importante si es
+[17:45] así Dale me gusta suscríbete compártelo
+[17:47] con amigos con la familia y nos vemos en
+[17:49] el próximo vídeo adiós
+[17:54] [Música]

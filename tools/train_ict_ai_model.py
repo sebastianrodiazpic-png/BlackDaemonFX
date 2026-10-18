@@ -142,6 +142,7 @@ def train_ict_model():
             enabled=True,
             model_directory=str(models_dir),
             min_training_samples=15,
+            model_type="LIGHTGBM",
         ),
         worker="ICT",
     )
@@ -153,31 +154,39 @@ def train_ict_model():
     win_rate = (wins / total_samples) * 100 if total_samples else 0.0
     print(f"\nDataset ICT calibrado: {total_samples} muestras | Ganadoras: {wins} ({win_rate:.1f}%) | Perdedoras: {losses}")
 
-    # Guardar modelo general ICT ALL
+    # Guardar modelo general ICT ALL (GBDT)
     model = train_worker_model(
         records,
         worker="ICT",
         strategy_name="ALL",
         min_samples=15,
         allow_global_pooling=False,
+        model_type="LIGHTGBM",
     )
     model.worker = "ICT"
     model.strategy_name = "ALL"
     saved_path = engine.save_model(model)
-    print(f"[OK] Modelo Meta-Labeling ICT ALL guardado en: {saved_path}")
+    print(f"[OK] Modelo Meta-Labeling ICT ALL (GBDT LightGBM) guardado en: {saved_path}")
 
-    # Guardar modelo específico ICT_SABRI_MALLE
+    # Guardar modelo específico ICT_SABRI_MALLE (GBDT)
     model_ict = train_worker_model(
         records,
         worker="ICT",
         strategy_name="ICT_SABRI_MALLE",
         min_samples=15,
         allow_global_pooling=False,
+        model_type="LIGHTGBM",
     )
     model_ict.worker = "ICT"
     model_ict.strategy_name = "ICT_SABRI_MALLE"
     saved_path_ict = engine.save_model(model_ict)
-    print(f"[OK] Modelo Meta-Labeling ICT_SABRI_MALLE guardado en: {saved_path_ict}")
+    print(f"[OK] Modelo Meta-Labeling ICT_SABRI_MALLE (GBDT LightGBM) guardado en: {saved_path_ict}")
+
+    if hasattr(model, "feature_importances") and model.feature_importances:
+        print("\nTop 5 Características Predictivas GBDT para ICT:")
+        top_feats = sorted(model.feature_importances.items(), key=lambda x: x[1], reverse=True)[:5]
+        for name, imp in top_feats:
+            print(f"  • {name:<28}: {imp * 100:.2f}%")
 
     # Validación temporal walk-forward
     val = temporal_validation(records, worker="ICT")

@@ -1,33 +1,25 @@
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sqlite3
+import json
 
-from collections import Counter
-import MetaTrader5 as mt5
-import pandas as pd
-from strategy.execution.trade_pipeline import run_trade_pipeline, PipelineConfig
+DB_PATH = r'C:\Users\sebas\AppData\Local\BlackDaemonFx\trading_bot.sqlite3'
+conn = sqlite3.connect(DB_PATH)
+max_id = conn.execute('SELECT max(id) FROM daemon_audit_events').fetchone()[0]
 
-if not mt5.initialize():
-    print("MT5 failed")
-    exit(1)
+print('=== SAMPLE META_LABEL_FILTER_REJECTED (LAST 5) ===')
+for r in conn.execute(f"SELECT id, event_type, created_at, payload_json FROM daemon_audit_events WHERE event_type='META_LABEL_SIGNAL_SCORED' AND id >= {max_id - 10000} ORDER BY id DESC LIMIT 5").fetchall():
+    print(f"[{r[2]}] ID={r[0]}")
+    p = json.loads(r[3])
+    print(f"  Symbol: {p.get('symbol')}, Prob: {p.get('meta_label', {}).get('probability')}, Threshold: {p.get('meta_label', {}).get('threshold')}, Reason: {p.get('meta_label', {}).get('reason')}")
 
-rates = mt5.copy_rates_from_pos("Volatility 75 Index", mt5.TIMEFRAME_M15, 0, 4000)
-mt5.shutdown()
+print('\n=== SAMPLE MARKET_REGIME_BLOCKED (LAST 5) ===')
+for r in conn.execute(f"SELECT id, event_type, created_at, payload_json FROM daemon_audit_events WHERE event_type='MARKET_REGIME_BLOCKED' AND id >= {max_id - 10000} ORDER BY id DESC LIMIT 5").fetchall():
+    print(f"[{r[2]}] ID={r[0]}")
+    p = json.loads(r[3])
+    reg = p.get('regime', {})
+    print(f"  Symbol: {reg.get('symbol')}, Regime: {reg.get('regime')}, Reason: {reg.get('reason')}, Mode: {reg.get('mode')}")
 
-df = pd.DataFrame(rates)
-df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
-cfg = PipelineConfig(risk_reward_ratio=2.0)
-res = run_trade_pipeline(df, config=cfg, symbol="Volatility 75 Index")
-
-confirmations = res["confirmations"]
-rejected = confirmations.attrs.get("rejected_candidates", [])
-print(f"Setups: {len(res['setups'])}, Confirmations: {len(confirmations)}, Rejected: {len(rejected)}")
-
-reasons = Counter()
-for r in rejected:
-    for reason in r.get("rejection_reasons", []):
-        reasons[reason] += 1
-
-print("\nTop Rejection Reasons:")
-for reason, count in reasons.most_common(10):
-    print(f"  {reason}: {count}")
+print('\n=== SAMPLE DAILY STRIKES BLOCKED (LAST 5) ===')
+for r in conn.execute(f"SELECT id, event_type, created_at, payload_json FROM daemon_audit_events WHERE event_type='SYMBOL_DAILY_STRIKES_BLOCKED' AND id >= {max_id - 10000} ORDER BY id DESC LIMIT 5").fetchall():
+    print(f"[{r[2]}] ID={r[0]}")
+    p = json.loads(r[3])
+    print(f"  Symbol: {p.get('symbol')}, Strikes: {p.get('strikes')}, Max: {p.get('max_strikes')}")

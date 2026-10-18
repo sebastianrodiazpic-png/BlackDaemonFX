@@ -45,6 +45,8 @@ from database.database import (
 )
 from database.models import Trade, Signal, AccountSnapshot, TradeJournal, AccountStatsReset, InstrumentSelectionPreference, InstrumentSelectionProfilePreference, DaemonAuditEvent, WorkerRuntimeState, PositionVisualAudit, TradeVisualAudit, TradeAuditSnapshot, DailyProfitTargetPreference
 from trade_outcome_policy import BREAK_EVEN_RR_TOLERANCE, decisive_outcome, is_break_even_rr
+from database.strategy_preferences import StrategyRuntimePreference
+from strategy.malaysian_snr.runtime_settings import normalize_msnr_settings, validate_msnr_patch
 
 
 class TradingRepository:
@@ -2120,6 +2122,82 @@ class TradingRepository:
     # INSTRUMENT SELECTION PREFERENCES
     # ============================================================
 
+    def save_msnr_candidate(self, **data):
+        from database.msnr_audit import save_candidate
+        return save_candidate(self, **data)
+
+    def msnr_candidates(self, **filters):
+        from database.msnr_audit import candidates
+        return candidates(self, **filters)
+
+    def save_msnr_candidate_outcome(self, candidate_key, result):
+        from database.msnr_audit import save_outcome
+        return save_outcome(self, candidate_key, result)
+
+    def msnr_closed_execution_result(self, parent_key, source='DEMO'):
+        from database.msnr_audit import closed_execution_result
+        return closed_execution_result(self, parent_key, source)
+
+    def msnr_candidate_funnel(self, source='DEMO'):
+        from database.msnr_audit import funnel
+        return funnel(self, source)
+
+    def register_msnr_model(self, path, payload):
+        from database.msnr_audit import register_model
+        return register_model(self, path, payload)
+
+    def _ensure_strategy_preferences_table(self):
+        # Supports an already-running repository when the dashboard reloads code.
+        if not getattr(self, '_strategy_preferences_ready', False):
+            with self.Session() as session:
+                StrategyRuntimePreference.__table__.create(session.get_bind(), checkfirst=True)
+            self._strategy_preferences_ready = True
+
+    def latest_msnr_runtime_settings(self, source: str = 'DEMO') -> dict:
+        self._ensure_strategy_preferences_table()
+        with self.Session() as session:
+            row = session.execute(select(StrategyRuntimePreference).where(
+                StrategyRuntimePreference.source == str(source or 'DEMO').upper(),
+                StrategyRuntimePreference.strategy_name == 'MALAYSIAN_SNR',
+            ).order_by(StrategyRuntimePreference.id.desc()).limit(1)).scalar_one_or_none()
+            if row is None:
+                return {**normalize_msnr_settings({'enable_synthetic_daily_storyline_filter': False}),
+                        'version': 0, 'updated_at': None}
+            settings = normalize_msnr_settings(json.loads(row.settings_json))
+            return {**settings,
+                    'version': row.id, 'updated_at': row.updated_at.isoformat()}
+
+    def save_msnr_runtime_settings(self, enable_synthetic_daily_storyline_filter: bool | None = None,
+                                   source: str = 'DEMO', *, fractal_min_body_ratio: float | None = None,
+                                   fractal_max_entry_distance_atr: float | None = None, **runtime_parameters) -> dict:
+        changes = dict(runtime_parameters)
+        for key, value in (
+            ('enable_synthetic_daily_storyline_filter', enable_synthetic_daily_storyline_filter),
+            ('fractal_min_body_ratio', fractal_min_body_ratio),
+            ('fractal_max_entry_distance_atr', fractal_max_entry_distance_atr)):
+            if value is not None:
+                changes[key] = value
+        changes = validate_msnr_patch(changes)
+        self._ensure_strategy_preferences_table()
+        with self.Session() as session:
+            previous = session.execute(select(StrategyRuntimePreference).where(
+                StrategyRuntimePreference.source == str(source or 'DEMO').upper(),
+                StrategyRuntimePreference.strategy_name == 'MALAYSIAN_SNR',
+            ).order_by(StrategyRuntimePreference.id.desc()).limit(1)).scalar_one_or_none()
+            settings = normalize_msnr_settings(json.loads(previous.settings_json) if previous else
+                                              {'enable_synthetic_daily_storyline_filter': False})
+            settings.update(changes)
+            row = StrategyRuntimePreference(
+                source=str(source or 'DEMO').upper(), strategy_name='MALAYSIAN_SNR',
+                settings_json=json.dumps(settings),
+                updated_at=datetime.now(timezone.utc),
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return {**settings,
+                    'version': row.id, 'updated_at': row.updated_at.isoformat()}
+
     def save_instrument_selection(self, selected_symbols, source: str = "DEMO"):
         """Persiste la selección completa de instrumentos como preferencia de usuario."""
         source = str(source or "DEMO").upper()
@@ -2526,6 +2604,98 @@ class TradingRepository:
             "current_balance": round(current_balance, 2),
             "current_equity": round(current_equity, 2),
             "daily_return_pct": round(daily_return_pct, 4),
+        }
+
+    def get_symbol_loss_status(
+        self,
+        symbol: str,
+        source: str = "DEMO",
+        cooldown_minutes: float = 60.0,
+        max_daily_losses: int = 0,
+        now_utc: datetime | None = None,
+    ) -> dict:
+        """Audita el historial de pérdidas recientes de un instrumento.
+
+        Previene el overtrading en rangos erráticos comprobando:
+        1. Si el activo está bajo enfriamiento anti-whipsaw post-SL (por defecto 60 min).
+        2. Si el activo superó el cupo máximo de pérdidas del día UTC (por defecto máx 2 strikes).
+        """
+        source = str(source or "DEMO").upper()
+        if now_utc is None:
+            now_utc = datetime.now(timezone.utc)
+        elif now_utc.tzinfo is None:
+            now_utc = now_utc.replace(tzinfo=timezone.utc)
+
+        start_of_day = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+        norm_symbol = str(symbol or "").strip()
+
+        with self.Session() as session:
+            stmt = (
+                select(Trade)
+                .where(
+                    Trade.source == source,
+                    Trade.status == "CLOSED",
+                    Trade.instrument == norm_symbol,
+                )
+                .order_by(Trade.id.desc())
+            )
+            trades = session.execute(stmt).scalars().all()
+
+        losses = []
+        for t in trades:
+            ext = t.exit_time
+            if ext is None:
+                continue
+            if isinstance(ext, str):
+                try:
+                    ext = datetime.fromisoformat(ext.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+            if ext.tzinfo is None:
+                ext = ext.replace(tzinfo=timezone.utc)
+            if ext > now_utc:
+                continue
+
+            net_pnl = float(t.net_pnl or 0.0)
+            res_str = str(t.result or "").upper()
+            exit_reason_str = str(t.exit_reason or "").lower()
+
+            is_loss = (net_pnl < -0.01) or (res_str == "LOSS") or ("sl" in exit_reason_str)
+            if is_loss:
+                losses.append({
+                    "id": t.id,
+                    "exit_time": ext,
+                    "exit_reason": t.exit_reason,
+                    "net_pnl": net_pnl,
+                })
+
+        cooldown_active = False
+        cooldown_remaining_sec = 0.0
+        cooldown_until = None
+        last_loss = losses[0] if losses else None
+
+        if last_loss:
+            elapsed_sec = (now_utc - last_loss["exit_time"]).total_seconds()
+            cooldown_sec = max(1.0, float(cooldown_minutes)) * 60.0
+            if 0.0 <= elapsed_sec < cooldown_sec:
+                cooldown_active = True
+                cooldown_remaining_sec = cooldown_sec - elapsed_sec
+                cooldown_until = last_loss["exit_time"] + timedelta(seconds=cooldown_sec)
+
+        today_losses = [l for l in losses if l["exit_time"] >= start_of_day]
+        daily_losses_count = len(today_losses)
+        daily_strikes_exceeded = False
+
+        return {
+            "symbol": norm_symbol,
+            "cooldown_active": cooldown_active,
+            "cooldown_remaining_minutes": round(cooldown_remaining_sec / 60.0, 1),
+            "cooldown_until": cooldown_until.isoformat() if cooldown_until else None,
+            "last_loss_exit_time": last_loss["exit_time"].isoformat() if last_loss else None,
+            "last_loss_pnl": last_loss["net_pnl"] if last_loss else None,
+            "daily_losses_count": daily_losses_count,
+            "daily_strikes_exceeded": daily_strikes_exceeded,
+            "max_daily_losses": max_daily_losses,
         }
 
     # ============================================================

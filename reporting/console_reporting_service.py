@@ -533,12 +533,14 @@ class ConsoleReportingService:
             return
         actions = [str(row.get("action") or "UNKNOWN") for row in results]
         no_signal = sum(action == "NO_SIGNAL" for action in actions)
-        errors = sum(action == "ERROR" for action in actions)
+        errors = sum(action == "ERROR" or bool(row.get('returned_data_error'))
+                     or str(row.get('reason') or '').startswith(('PROVIDER_ERROR', 'INVALID_CANDLE_DATA'))
+                     for action,row in zip(actions,results))
         opened = sum(action in {"ORDER_OPENED", "SPLIT_ORDER_OPENED"} for action in actions)
         validated = sum(action == "DRY_RUN_VALIDATED" for action in actions)
         rejected = sum(
             action.startswith("REJECTED")
-            or action in {"RR_TOO_LOW", "DIRECTION_POLICY_BLOCKED", "MARKET_INVALIDATED_SIGNAL", "ENTRY_PRICE_DRIFT_TOO_LARGE", "EXECUTION_REJECTED", "OPERACION_RECHAZADA_POR_RIESGO"}
+            or action in {"META_LABEL_FILTER_REJECTED", "RR_TOO_LOW", "DIRECTION_POLICY_BLOCKED", "MARKET_INVALIDATED_SIGNAL", "ENTRY_PRICE_DRIFT_TOO_LARGE", "EXECUTION_REJECTED", "OPERACION_RECHAZADA_POR_RIESGO"}
             for action in actions
         )
         blocked = sum(action in {"ALREADY_EXECUTED", "POSITION_ALREADY_OPEN_FOR_SYMBOL", "MAX_TOTAL_OPEN_POSITIONS"} for action in actions)

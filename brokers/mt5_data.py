@@ -333,6 +333,7 @@ class MT5DataProvider:
             "visible": symbol_info.visible,
             "select": symbol_info.select,
             "point": symbol_info.point,
+            "trade_tick_size": float(getattr(symbol_info, 'trade_tick_size', 0.) or symbol_info.point),
             "digits": symbol_info.digits,
             "trade_mode": symbol_info.trade_mode
         }

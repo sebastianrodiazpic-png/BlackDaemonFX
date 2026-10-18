@@ -363,8 +363,18 @@ def train_worker_model(
     calibrate: bool = True,
     min_samples: int = MIN_TRAINING_SAMPLES,
     allow_global_pooling: bool = True,
-) -> CalibratedLogisticModel:
+    model_type: str = "LOGISTIC",
+) -> Any:
     """Entrena el modelo de un worker con su propio historial o mediante pooling jerárquico."""
+    if str(model_type).upper() == "LIGHTGBM":
+        return train_worker_gbdt_model(
+            trades,
+            worker=worker,
+            strategy_name=strategy_name,
+            calibrate=calibrate,
+            min_samples=min_samples,
+            allow_global_pooling=allow_global_pooling,
+        )
     dataset = build_training_dataset(trades, worker=worker, strategy_name=strategy_name)
     model = CalibratedLogisticModel(
         worker=str(worker or "DEFAULT"),
@@ -398,6 +408,66 @@ def train_worker_model(
     model.model = LogisticRegressionModel().fit(features, target)
     model.average_win_rr, model.average_loss_rr = _average_outcomes(labels, dataset["rr"])
     model.trained_at = datetime.now(timezone.utc).isoformat()
+    return model
+
+
+def train_worker_gbdt_model(
+    trades,
+    *,
+    worker: str = "DEFAULT",
+    strategy_name: str | None = None,
+    calibrate: bool = True,
+    min_samples: int = MIN_TRAINING_SAMPLES,
+    allow_global_pooling: bool = True,
+    n_estimators: int = 80,
+    max_depth: int = 4,
+    learning_rate: float = 0.03,
+) -> Any:
+    """Entrena un modelo GBDT (LightGBM) calibrado con el historial del worker."""
+    from strategy.ai.gbdt_model import CalibratedGBDTModel, LIGHTGBM_AVAILABLE
+
+    if isinstance(trades, dict) and "features" in trades and "labels" in trades:
+        dataset = trades
+    else:
+        dataset = build_training_dataset(trades, worker=worker, strategy_name=strategy_name)
+    model = CalibratedGBDTModel(
+        worker=str(worker or "DEFAULT"),
+        strategy_name=str(strategy_name or "ALL"),
+    )
+    if not LIGHTGBM_AVAILABLE:
+        return model
+
+    labels = dataset["labels"]
+    if dataset["rows"] < max(2, int(min_samples)) or len(set(labels)) < 2:
+        if allow_global_pooling and str(worker or "").upper() not in ("GLOBAL", "ALL"):
+            global_dataset = build_training_dataset(trades, worker="GLOBAL", strategy_name=strategy_name)
+            if global_dataset["rows"] >= max(2, int(min_samples)) and len(set(global_dataset["labels"])) >= 2:
+                dataset = global_dataset
+                labels = dataset["labels"]
+            else:
+                return model
+        else:
+            return model
+
+    features = np.asarray(dataset["features"], dtype=float)
+    target = np.asarray(labels, dtype=int)
+
+    split = int(len(target) * 0.70)
+    split = max(1, min(split, len(target) - 1))
+
+    X_val = features[split:] if calibrate and len(set(target[split:].tolist())) >= 1 else None
+    y_val = target[split:] if calibrate and len(set(target[split:].tolist())) >= 1 else None
+
+    model.fit(
+        X_train=features[:split],
+        y_train=target[:split],
+        X_val=X_val,
+        y_val=y_val,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        learning_rate=learning_rate,
+    )
+    model.average_win_rr, model.average_loss_rr = _average_outcomes(labels, dataset["rr"])
     return model
 
 

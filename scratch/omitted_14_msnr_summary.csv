@@ -1,0 +1,15 @@
+symbol,trades,win_rate_pct,net_r,elapsed_s,status
+Jump 10 Index,38,60.5,4.9,442.2,OK
+Volatility 90 Index,35,48.6,-0.37,442.9,OK
+Volatility 50 (1s) Index,32,50.0,2.4,448.6,OK
+Step Index 200,25,56.0,3.08,449.3,OK
+Step Index 400,24,41.7,-4.09,453.5,OK
+Volatility 250 (1s) Index,15,0.0,-13037.99,465.8,OK
+Boom 300 Index,11,36.4,-3.04,475.4,OK
+Crash 600 Index,10,40.0,-0.55,476.5,OK
+GBPJPY,7,57.1,0.52,132.1,OK
+AUDNZD,6,50.0,-1.5,130.9,OK
+GBPAUD,6,0.0,-6.2,133.2,OK
+GBPUSD,2,50.0,0.02,135.1,OK
+EURGBP,2,100.0,1.0,131.8,OK
+EURCHF,2,0.0,-2.0,135.2,OK

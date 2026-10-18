@@ -1,0 +1,1114 @@
+TITLE: Fede Esses - La GUIA DEFINITIVA de ICT en Espanol | Explicado Simple
+URL: https://www.youtube.com/watch?v=QFvkAZjUnUE
+
+[00:00] Probablemente si hiciste click en este
+[00:01] video es porque alguna vez hayas
+[00:02] escuchado las siglas ICT. Y si no lo
+[00:05] hiciste, esta persona es un mentor
+[00:06] estadounidense que nos permitió a un
+[00:08] montón de traders aprender conceptos con
+[00:11] los cuales podemos de alguna manera
+[00:12] movernos con las grandes instituciones o
+[00:15] aunque sean tender las huellas que ellos
+[00:17] nos van dejando para poder hacer un
+[00:19] trading un poco más institucional y no
+[00:21] tanto de patrones como pueden ser
+[00:23] máximos iguales o soportes y
+[00:26] resistencias que muchos de ustedes
+[00:27] seguro ya lo escucharon. Cuando yo
+[00:29] arranqué aprender esta metodología más o
+[00:31] menos en 2021, me permitió entender
+[00:33] realmente por qué se estaba moviendo el
+[00:35] precio. Yo ya no estaba operando en base
+[00:36] a patrones que había leído en un libro,
+[00:38] sino que estaba operando de manera
+[00:40] consciente, por qué el mercado está
+[00:42] yendo para acá, por qué ahora va a
+[00:44] bajar, por qué va a subir. Entonces, en
+[00:46] este video hice un resumen de mis 3 cu
+[00:48] años de todo lo que aprendí con lo más
+[00:50] importante y una guía completa para
+[00:52] principiantes con todos los conceptos
+[00:54] que necesitan aprender de esta persona
+[00:56] ICT para poder hacer trading. Realmente
+[00:59] les digo que con este video van a tener
+[01:01] suficiente. Después capaz les voy a
+[01:02] recomendar un video en donde explico
+[01:04] [música] mi estrategia, que ahí sí si
+[01:06] logran mezclar este video en donde
+[01:07] explico todos los conceptos y después un
+[01:09] video de mi estrategia, ahí lo van a
+[01:10] poder llevar a cabo. Pero realmente les
+[01:12] voy a explicar todos los conceptos y
+[01:14] todo lo necesario de esta persona ICT
+[01:16] explicado obviamente al español. Y ahora
+[01:18] sí, sin dar más vueltas, les voy a
+[01:20] explicar concepto, después cómo
+[01:21] utilizarlo, concepto, cómo utilizarlo y
+[01:23] voy a ir mezclando entre un PDF y los
+[01:25] gráficos. Así que espero que les guste
+[01:27] mucho este video y sin dar más vueltas
+[01:28] vamos al PDF. Ahora sí, gente, estamos
+[01:30] en los gráficos. Esperen que voy a
+[01:31] limpiar un poco lo que fue la sesión del
+[01:33] día de hoy. Ahí estaba el trade que
+[01:35] había tomado. Principalmente antes de
+[01:38] arrancar a hablar acerca de cualquier
+[01:39] concepto, tienen que entender unas cosas
+[01:42] bastante simples que lo voy a explicar.
+[01:43] Esto que tenemos acá es una vela. Bien,
+[01:46] voy a resumir primero algo para
+[01:48] principiantes antes de arrancar a hablar
+[01:50] acerca de algunos conceptos que capaz ya
+[01:51] escucharon, capaz alguno escuchó alguna
+[01:53] vez fair value app o vacío,
+[01:55] ineficiencia. Bueno, todas estas
+[01:57] palabras son lo que voy a estar
+[01:59] explicando en el día de hoy, algunas en
+[02:01] inglés y les voy a dar de todas también
+[02:02] la traducción al español como sería.
+[02:05] Pero básicamente antes de estudiar y
+[02:08] entender cualquier concepto tenemos que
+[02:10] comprender dos cosas. Uno, lo que son
+[02:12] las velas, que como ven, cada uno de
+[02:14] estos rectángulos de acá es una vela. Y
+[02:17] después acá arriba a la izquierda
+[02:19] tenemos lo que sería las temporalidades,
+[02:21] o sea, D. Si vamos a D, nos vamos a dar
+[02:24] cuenta que es un día. Entonces, cada
+[02:26] vela representa un día. Después vamos a
+[02:28] ir a 4 horas. Bueno, cada vela
+[02:30] representa 4 horas y lo mismo así con
+[02:33] una hora, 30 minutos, etcétera. ¿De qué
+[02:36] nos sirve entender esto? Bueno, nosotros
+[02:38] como traders por lo general, hablo por
+[02:40] mí y hablo por la gran mayoría de las
+[02:41] personas que está viendo este video,
+[02:42] pero somos traders intradía, ¿no? Esto
+[02:45] de todas formas puede servir para
+[02:46] scalpers, eh day traders, swing traders,
+[02:49] realmente da un poco igual, pero el
+[02:52] objetivo es que hagamos un análisis en
+[02:54] un conjunto de temporalidades para
+[02:56] llegar a la claridad de lo que quiera
+[02:58] hacer el precio, capaz de acá a 5, 15
+[03:01] minutos, 30 minutos. los traders. Ahora
+[03:04] más adelante lo voy a explicar, pero
+[03:06] tenemos que tener en cuenta de que no
+[03:07] vamos a estar operando las 24 horas del
+[03:09] día, sino que vamos a estar operando por
+[03:11] sesiones. Así que antes de arrancar
+[03:14] hablar de conceptos, algo muy importante
+[03:16] que entendí a través de operar con ICT
+[03:19] es, bueno, y lo recomiendo, acá son las
+[03:21] sesiones, hay un indicador que está muy
+[03:23] bueno que se llama ICT Kilson and
+[03:25] Pivots. ¿Okay? Así que antes de hablar
+[03:27] de conceptos, como les digo, vamos a
+[03:29] hablar de este punto. Como ven, tenemos
+[03:32] cuatro sesiones. Tenemos la sesión de
+[03:34] Asia, que dura de 20 a 00, o sea, a 12
+[03:37] de la noche. La sesión de Londres que
+[03:39] dura de 2 de la mañana a 5 de la mañana.
+[03:42] Tenemos la sesión de New York AM que
+[03:44] dura de 9:30 a 11 y la sesión de New
+[03:46] York PM. Bueno, la sesión New York Lunch
+[03:48] no la contamos como una sesión porque
+[03:50] básicamente es lo que está entre la M y
+[03:52] entre la PM y la PM que dura de 1330 a
+[03:56] 16 horas como eh les estaba mencionando
+[03:59] antes. Entonces, primero que nada,
+[04:01] tenemos que elegir una sesión. Fede,
+[04:03] ¿cómo voy a elegir una sesión si no sé
+[04:06] ni qué voy a estar operando? Por eso les
+[04:08] digo que antes de arrancar hablar de
+[04:10] cualquier cosa, de cualquier F value
+[04:12] app, tienen que tener en claro qué
+[04:14] activo van a estar operando, después qué
+[04:16] sesión van a estar operando. Yo lo que
+[04:18] recomiendo para la gran mayoría es la
+[04:20] sesior de New York AM. Bien, la sesión
+[04:21] de New York AM es de 9:30 a 11. Y
+[04:24] también recomiendo que operen en Nasdaq
+[04:27] porque realmente es lo que mejor se
+[04:28] mueve. Yo ya vengo haciendo trading hace
+[04:30] más de 3 años. He probado un montón de
+[04:33] activos y esto pertenece al mercado de
+[04:36] futuros. O sea, pueden operar en Nasdaq
+[04:38] como CFD y que cuente en el mercado de
+[04:40] Forex. O sea, hay un CFD que básicamente
+[04:43] lo pueden buscar acá, que si no me
+[04:45] equivoco se llama US1 esto de acá. Y
+[04:48] esto lo pueden llegar a operar acá como
+[04:50] en un índice en empresas de fondeo de
+[04:52] Forex o lo pueden abrir en caso de que
+[04:54] tengan su capital propio con una cuenta
+[04:57] de Forex o lo que sea, pueden operar
+[04:58] ahí. Ahora, si operan en empresas de
+[05:01] fondeo de futuros como yo, lo van a
+[05:03] encontrar como NQZ 2025, depende en el
+[05:06] momento en el que lo estén viendo. Pero
+[05:08] una vez que ya tenemos todo eso claro,
+[05:10] podemos ahí sí arrancar hablar de
+[05:13] conceptos, ¿okay? Pero era
+[05:14] importantísimo que entiendan que van a
+[05:16] tener que estar operando una sesión.
+[05:18] Esto también lo menciona ICT, por eso es
+[05:20] que se llama ICT Kilson and Pivots.
+[05:23] Bien, porque como saben, el mercado está
+[05:24] abierto a las 24 horas del día y no es
+[05:27] que las sesiones, por ejemplo, la M
+[05:29] únicamente dura de 9:30 a 11, sino que
+[05:32] esto es algo que ICT fue encontrando,
+[05:34] fue encontrando estos patrones. En
+[05:36] realidad la sesión La bolsa de Nueva
+[05:37] York abre 8:30 de la mañana, pero
+[05:41] nosotros nos vamos a quedar con este
+[05:42] horario, 9:30 a 11. Como les decía, el
+[05:44] mercado está abierto a las 24 horas del
+[05:46] día, entonces nosotros no queremos estar
+[05:48] pegado a los gráficos las 24 horas, sino
+[05:50] que lo que queremos hacer es elegir una
+[05:52] sesión y apegarnos a esa sesión. No
+[05:55] operar más de una sesión al día es lo
+[05:56] que yo recomiendo. Por eso les digo, la
+[05:58] sesión de Nueva York, la ICT Kilson New
+[06:02] York AM dura de 9:30 a 11. todo esto en
+[06:05] horario eh UTC -4, que es el horario de
+[06:08] Nueva York. Entonces, ahora sí, ya
+[06:10] habiendo aclarado eso, vamos a los
+[06:11] gráficos y a explicar conceptos. Bueno,
+[06:13] esto es un libro que tengo escrito, que
+[06:15] todavía no lo lancé. Coméntenme si les
+[06:17] gustaría que que lo lance. está mejor
+[06:19] filtrado en un bootcam que dice que son
+[06:21] 50 videos explicando trail desde cero.
+[06:23] Está en mi canal es totalmente gratis,
+[06:25] eh, pero hay un montón de cosas y un
+[06:27] montón de data que está muy buena. Así
+[06:29] que me voy a apoyar de esto un poquito
+[06:31] antes de de ir a los gráficos y después
+[06:34] mostrarles cada una de las cosas. Lo
+[06:36] primero que tenemos que entender es la
+[06:38] estructura del mercado, o sea, el
+[06:40] mercado no se mueve todo para arriba y
+[06:42] todo para abajo, sino que se mueve por
+[06:44] tendencias. La tendencia tiene un
+[06:46] impulso y un retroceso. Un impulso y un
+[06:49] retroceso. Estas cosas las voy a hacer
+[06:51] un poco más breves porque me imagino que
+[06:53] la gran mayoría de ustedes ya lo sabe.
+[06:55] Si no lo sabe, les recomiendo que vaya a
+[06:57] ver el bootcam, pero creo que con este
+[06:59] video van a poder entender bastante. Y
+[07:00] por otro lado, tenemos la tendencia
+[07:01] bajista, que tiene lo mismo, ¿no? La
+[07:03] tendencia alcista tiene pulso alcista,
+[07:05] retroceso baj, eh, o sea, retroceso a la
+[07:07] baja y la tendencia bajista tiene un
+[07:09] impulso a la baja y un retroceso al
+[07:12] alza. Si vamos al gráfico, vamos al
+[07:14] tavier un segundo, se van a dar cuenta
+[07:15] que, bueno, justo ahora estamos en una
+[07:18] tendencia que es demasiado demasiado
+[07:21] alcista, pero como les digo, lo
+[07:24] importante que tienen que entender es
+[07:25] que el mercado es fractal. Esta es una
+[07:27] palabra clave para eh cualquier concepto
+[07:30] de lo que voy a enseñar. El mercado
+[07:31] fractal, por lo tanto, todo funciona en
+[07:34] cualquier temporalidad. Si vos vas a, no
+[07:37] sé, más adelante les voy a explicar un
+[07:38] concepto como el fair value app.
+[07:40] Fabilidad lo van a encontrar en un
+[07:41] minuto como en 30 segundos como en un
+[07:43] día. Y lo mismo como los impulsos y los
+[07:46] retrocesos y las tendencias. Esto lo van
+[07:48] a ver claro de repente en 15 minutos y
+[07:50] si no se agarro la herramienta de
+[07:52] reproducción y me voy acá a un minuto,
+[07:55] también van a ver que el mercado se
+[07:56] mueve mediante impulsos y retrocesos.
+[07:58] Fíjense que el retroceso que después
+[08:01] tiene, después vuelve a tener otro
+[08:03] impulso y vuelve a tener un retroceso,
+[08:06] eh, etcétera. Entonces, lo más
+[08:09] importante es que entiendan, si el
+[08:11] precio ya es un máximo más alto que el
+[08:12] anterior y un bajo más alto que el
+[08:15] anterior y después hace un alto más alto
+[08:17] que el anterior y un bajo más alto que
+[08:18] el anterior, está en una tendencia
+[08:20] alcista. Y si esto es al revés, quiere
+[08:22] decir que está en una tendencia bajista.
+[08:24] Le voy a explicar relativamente
+[08:27] rápido, como les digo, para no irme por
+[08:29] las ramas por este tema, que sé que la
+[08:31] gran mayoría de ustedes lo sabe, pero
+[08:34] esto se compone de manera muy simple.
+[08:36] Bien, lo tenemos así.
+[08:38] Acá tenemos un higher high, un máximo
+[08:41] más alto que el anterior y un higher
+[08:43] low. Higher high, higher low. Okay,
+[08:46] vendría a ser máximo más máximo, perdón,
+[08:49] máximo más alto, eh, higher high. Y acá
+[08:52] tenemos el high low, máximo más alto y
+[08:56] eh mínimo más alto. Esa es la manera de
+[08:59] verlo. Higher high higher low. Esto es
+[09:01] en inglés. En español alto más alto y un
+[09:04] bajo más alto. Y al revés sería lower
+[09:08] low y higher low. Okay. Son conceptos
+[09:11] que seguramente lo van a escuchar alguna
+[09:13] vez, así que por eso se los menciono en
+[09:15] inglés, porque la gran mayoría de gente
+[09:17] lo menciona en inglés, pero ustedes lo
+[09:19] pueden poner en español si tienen ganas.
+[09:21] lower low y eh lower high. Fíjense como
+[09:24] acá constantemente creamos mínimo más
+[09:27] bajo que los anteriores y después el
+[09:30] retroceso altos más bajos que los
+[09:32] anteriores también. Entonces así se
+[09:34] compone una tendencia. Ahora, Fede, ¿por
+[09:36] qué me explicas esta tendencia o qué
+[09:38] tiene que ver con ACT? Bueno, esto es el
+[09:40] primer eh concepto clave que son los
+[09:43] quiebres de estructura. Fíjense, tenemos
+[09:45] dos tipos de quiebres de estructura.
+[09:47] Tenemos el BOS, break of structure y
+[09:50] después tenemos el market structure
+[09:52] shift. El BOS es cada vez que el precio
+[09:55] crea un bajo, más bajo que el anterior y
+[09:57] logra desplazarse. ¿Okay? Es muy
+[10:00] importante esto. Desplazamiento.
+[10:02] Desplazamiento quiere decir que la vela
+[10:04] cierre por debajo de este mínimo. ¿Queda
+[10:06] claro? Si la vela no sé, cierra acá, ya
+[10:10] no estamos hablando de un
+[10:10] desplazamiento, estamos hablando de una
+[10:12] toma de liquidez, concepto que voy a
+[10:13] hablar un poquito más adelante.
+[10:15] Entonces, esto Bos, BOS. Ahora, ¿cuándo
+[10:19] se da el otro concepto? Bien, ¿esto qué
+[10:22] es? Un BOS. Esto, ¿qué es? Un BOS.
+[10:25] Ahora, cuando el precio logra un
+[10:26] desplazamiento
+[10:28] por encima de este punto, ya no estamos
+[10:31] hablando de un BOS, sino que estamos
+[10:33] hablando de un market structure shift,
+[10:38] cambio de estructura, ¿okay? Un quiebre
+[10:41] en la tendencia. Ya no estamos generando
+[10:43] lower lows y lower highs, ahora estamos
+[10:45] generando higher highs y higher lows. O
+[10:48] sea, no estamos generando bajos más
+[10:49] bajos que los anteriores, ahora estamos
+[10:51] generando altos más altos que los
+[10:53] anteriores. Entonces, este es el primer
+[10:56] concepto clave a entender. Market shift,
+[10:58] quiebre de estructura, pero es un cambio
+[11:01] tendencial, ¿okay? O sea, es un cambio
+[11:04] en la estructura del precio, un cambio
+[11:06] en la entrega. Entonces, ahora lo que
+[11:08] esperamos es que el precio arranque a
+[11:11] ser eh altos más altos que los
+[11:12] anteriores y bajos más altos que los
+[11:15] anteriores. Una vez que entienden esto,
+[11:18] fe, ¿de qué me sirve esto? Y bueno, si
+[11:20] usamos un poco la lógica, nos vamos a
+[11:23] poder sumar, por ejemplo, en este
+[11:25] movimiento.
+[11:26] Listo, el precio generó un alto más alto
+[11:28] que el anterior, el bajo más eh, o sea,
+[11:31] el bajo más alto, el último punto de
+[11:33] retrocedo, estaba acá. Entonces, lo que
+[11:35] vamos a hacer es intentar sumarnos a
+[11:37] esta tendencia mediante una compra
+[11:41] en algún punto de interés de los que les
+[11:43] voy a enseñar más adelante. Entonces,
+[11:47] esto es fenomenal porque les estoy
+[11:48] explicando que obviamente siempre
+[11:51] queremos seguir la tendencia. Esto es un
+[11:53] punto clave que se los menciono ahora
+[11:55] para que lo anoten y se lo peguen en su
+[11:58] trading, en la pantalla, en su trading
+[12:00] plan, lo que quieran. Siempre queremos
+[12:02] operar a favor de la tendencia.
+[12:04] Entonces, lo primero que tienen que que
+[12:06] entender
+[12:08] es que siempre queremos estar haciendo
+[12:10] esto. ¿Okay? Después capaz que qué sé
+[12:13] yo, no sé, les voy a atrasar algo para
+[12:15] que simplemente lo entiendan. Así, no
+[12:18] sé, se puede estar viendo eh 15 minutos.
+[12:21] Okay, puede ser que quiero trazar una
+[12:23] flecha. Déjenme ver. Ah, vea, así puede
+[12:27] ser que se vea 15 minutos, pero de
+[12:28] repente capaz que van a, no sé, eh, un
+[12:31] minuto y un minuto se ve así y ya tienen
+[12:34] una entrada muy buena con algún concepto
+[12:36] que les voy a estar explicando.
+[12:37] Entonces, por eso les digo, el mercado
+[12:39] fractal hay que hacer, por ahora quiero
+[12:41] que se queden con esto.
+[12:43] El mercado fractal tenemos que unir
+[12:46] todas las temporalidades, o sea, tenemos
+[12:47] que hacer un análisis en un conjunto de
+[12:49] temporalidades para llegar a la claridad
+[12:51] del mercado y a la tendencia. Eso como
+[12:54] punto número uno. Ahora les voy a
+[12:55] explicar también cuáles son las que uso
+[12:56] yo. Punto número dos, tenemos los
+[12:59] quiebres de estructura, los BOS.
+[13:01] Mientras que el precio siga siendo,
+[13:03] básicamente es mientras que el precio
+[13:05] siga su tendencia, tenemos un BOS. En el
+[13:08] momento en el que esa tendencia cambia,
+[13:11] ese primer quiebre se le llama market su
+[13:12] to shift y después cada uno de estos
+[13:14] quiebres, obviamente se vuelve a llamar
+[13:16] BOS, porque ahora estos son quiebres que
+[13:19] están continuando con una tendencia.
+[13:21] Entonces, esto es el primer punto que
+[13:24] quiero que tengan en cuenta y ahora voy
+[13:26] a hablar de uno de mis conceptos
+[13:28] preferidos. Bueno, nos encontramos de
+[13:30] vuelta acá en el PDF para explicar,
+[13:32] justamente acá dice, número dos, eh,
+[13:35] algo importantísimo. ¿Qué es la
+[13:37] liquidez, Fede? ¿Qué es la liquidez?
+[13:39] Porque escuché un montón de veces capaz
+[13:41] la palabra toma de liquidez o liquidez y
+[13:43] no sé qué es. ¿Me lo puedes explicar?
+[13:45] Sí, estoy acá para aplicarlo.
+[13:47] Básicamente son las órdenes de reposo.
+[13:49] Bien, si estamos haciendo un trading
+[13:51] institucional, ¿okay? Eh, lo que tenemos
+[13:54] que pensar es qué están buscando las
+[13:57] instituciones. Las instituciones lo que
+[13:59] quieren es llevarse el dinero de los
+[14:01] traders novatos, o sea, de los retail
+[14:03] traders. Vieron que de repente hay un
+[14:04] montón de traders que compran en
+[14:06] cualquier lugar. Los retail traders
+[14:08] sobre todo compran emocionalmente
+[14:10] también o compran por patrones de
+[14:14] máximos, ¿cómo le digo, no sé, cabeza
+[14:16] hombro, máximos iguales, eh doble piso.
+[14:21] Bueno, esos patrones se ve muchísimo y
+[14:24] realmente aunque no lo crean, muchas
+[14:25] instituciones detectan estos patrones.
+[14:28] Entonces, lo que van a hacer es hacerles
+[14:30] creer a estas personas que el mercado va
+[14:31] a ir en su dirección, sacarlos y después
+[14:35] salir disparados. Vamos a buscar un
+[14:36] ejemplo rápido antes de explicar todo
+[14:39] esto. Bien, simplemente para que lo vean
+[14:42] en un ejemplo. ¿Ven? Acá como el mercado
+[14:46] hace un movimiento, pumba, voy a ir en
+[14:48] tu dirección, baja, lo saca y ahí, ¿qué
+[14:52] pasa? Ahí salen disparados. Se puede ver
+[14:55] claramente eso. Bien, ahora les voy a
+[14:57] explicar cómo se llama este concepto.
+[14:58] Simplemente quería que lo vean para que
+[15:00] reconozcan cómo se ve cuando el mercado
+[15:03] saca liquidez. ¿Okay? Saca liquidez.
+[15:05] Pumba, dirección contraria. Eh, bien.
+[15:09] Entonces, la liquidez son las órdenes en
+[15:12] reposo. Órdenes en reposo, sobre todo
+[15:15] dónde están ubicados estos stoplos de
+[15:17] los retail traders. Seguramente en algún
+[15:19] momento ya van a arrancar a entender o a
+[15:22] pensar como las instituciones. Yo
+[15:24] básicamente cuando hago trading pienso
+[15:26] como una institución, digo, "Okay,
+[15:27] ¿dónde estaría dejando el stop loss un
+[15:29] retail trader?" Entonces voy a esperar
+[15:30] un poco más a que se saque este mínimo y
+[15:33] después que el precio salga disparado.
+[15:35] La liquidez se puede encontrar en
+[15:36] máximos o en mínimos, sobre todo en
+[15:38] estos puntos que me olvidé decirles cómo
+[15:40] se llaman. Bueno, ya les dije que se
+[15:43] llamaban lower low, etcétera, pero
+[15:45] cuando tenemos una mecha así que es un
+[15:49] patrón de tres velas que entre la vela
+[15:51] anterior y la vela siguiente nos dejan
+[15:54] un mínimo, a eso se le llama un swing
+[15:57] point. Puede ser un swing high en caso
+[15:59] de que sea una vela alcista. Como ven,
+[16:00] esto es un swing high y esto es un swing
+[16:03] low. Tanto esta zona, cualquiera de
+[16:05] estas zonas es un swing point, puede ser
+[16:07] un swing low si es un bajo, o puede ser
+[16:10] un swing high si es un máximo. Entonces
+[16:12] la liquidez se encuentra en los swing
+[16:14] points, en los mínimos y en los máximos.
+[16:17] ¿Listo? Entonces entendemos que acá el
+[16:19] mercado sacó liquidez bajista y se fue
+[16:23] hacia la liquidez alcista. ¿Okay? que
+[16:24] eso seguramente lo han escuchado mucho.
+[16:27] Ahora, hay un montón de zonas en las que
+[16:30] hay liquidez, como les digo, sobre todo
+[16:32] la manera la que quiero que ustedes lo
+[16:34] piensen es que el mercado saca un mínimo
+[16:38] o saca un máximo. Ahí es donde las
+[16:40] instituciones van a querer meter toda la
+[16:42] plata, porque imagínense que ellos están
+[16:43] insertando trillones de dólares al día.
+[16:45] Lo que van a querer es que un montón de
+[16:48] traders pierdan plata para así poder
+[16:50] llevar el mercado en dirección
+[16:52] contraria. piensen que ellos no pueden
+[16:53] inyectar de la nada de órdenes porque el
+[16:57] mercado es de suma cero, o sea, si
+[16:59] alguien compra, alguien tiene que estar
+[17:01] vendiendo. Entonces, lo que quieren las
+[17:03] instituciones es hacerle creer a un
+[17:05] montón de traders que el mercado quiere
+[17:07] subir para ellos hacer que el mercado
+[17:10] baje y ahí sí que se dé esa suba.
+[17:14] Entonces, una vez que entienden eso, ya
+[17:16] arrancan a ver el mercado de manera
+[17:18] distinta. A esto se le llama una
+[17:20] manipulación, una toma de liquidez, que
+[17:22] ya lo vamos a hablar más adelante.
+[17:24] Entonces, la liquidez se encuentra en
+[17:26] swing points, puntos de retroceso,
+[17:29] mínimos iguales o máximos iguales, que a
+[17:31] esto se le llama equal lows o equal
+[17:32] highs. Eh, después en zonas de rango,
+[17:36] cuando ven que el mercado está muy
+[17:37] acumulativo, quiere decir que estamos
+[17:39] generando liquidez y también en una
+[17:41] línea de tendencia. ¿Queda claro esto?
+[17:44] Algo también que me faltó mencionar, que
+[17:46] acá tengo escrito, que me parece
+[17:47] fantástico que ustedes entiendan, es que
+[17:49] al esperar una manipulación también
+[17:52] están entrando en el principio del
+[17:54] movimiento, o sea, están entrando en el
+[17:56] pico de ese retroceso para después
+[17:58] agarrar todo el impulso. Entonces, esto
+[18:00] es fantástico. Ahora, una vez que
+[18:02] entienden este concepto de la liquidez,
+[18:04] que por ahora quiero que lo entiendan
+[18:07] como, okay, la liquidez se encuentra en
+[18:08] los swing points, o sea, los máximos y
+[18:11] en los mínimos, fe, pero los máximos y
+[18:12] en los mínimos de un minuto, obviamente,
+[18:14] no. Lo que yo le voy a decir es lo
+[18:17] siguiente. Los máximos y los mínimos de
+[18:19] temporalidades relevantes. Mientras más
+[18:22] alta sea la temporalidad, más relevante
+[18:24] es esa toma de liquidez. Por ejemplo,
+[18:26] vamos a ir, no sé, a 30 minutos. Okay,
+[18:29] 30 minutos tiene un mínimo acá. Entonces
+[18:32] esta zona es relevante. Después 30
+[18:34] minutos tiene otro mínimo acá. Entonces
+[18:37] esta zona también es relevante. Y
+[18:40] después 30 minutos tiene un máximo acá.
+[18:41] Entonces esta zona también es relevante.
+[18:43] Esto nos va a servir para de alguna
+[18:44] manera esperar de qué zonas puede
+[18:46] reaccionar el precio y también a qué
+[18:48] zonas podemos apuntar. En este caso,
+[18:50] nosotros esperaríamos que se saque la
+[18:52] liquide de ventas para tomar la liquide
+[18:54] de compras y usar de target esto, o sea,
+[18:56] mi take profit en ese punto. Pero, ¿cómo
+[18:59] busco mi entrada? Ya vamos a llegar.
+[19:00] Paciencia. Bueno, ahora llegamos al
+[19:02] concepto más importante de todos, que es
+[19:04] el liquidity sweep, ¿bien? O toma de
+[19:07] liquidez. Esto está en el libro, pero
+[19:09] creo que va a quedar mejor explicado con
+[19:10] mis palabras. Vamos a sacar igual el
+[19:13] indicador este por ahora. El liquidity
+[19:16] Swift consiste en, bueno, se acuerdan
+[19:19] como les dije que el mercado, no sé qué
+[19:21] hubiese pasado si el precio cerraba por
+[19:23] debajo de este mínimo. Probablemente nos
+[19:25] íbamos hacia dónde? hacia el próximo
+[19:27] mínimo.
+[19:29] Ahora, ¿qué sucedió?
+[19:31] Si prestaron atención a este video, van
+[19:33] a haber escuchado eh que yo dije,
+[19:36] necesitamos un desplazamiento.
+[19:38] Desplazamiento hubiese sido que el
+[19:40] mercado cierre. Por ejemplo, acá tenemos
+[19:43] un desplazamiento al alza, ¿ven? Como
+[19:45] esta vela sí cierra por encima de este
+[19:48] high. Okay, eso es un desplazamiento.
+[19:50] Ahora, esto es una falla en el
+[19:53] desplazamiento. Eso es una diferencia
+[19:56] importantísima. Desplazamiento, falla en
+[19:59] el desplazamiento. A esta falla en el
+[20:01] desplazamiento, bueno, le ponemos un
+[20:03] nombre que es liquidity swip o toma de
+[20:06] liquidez. Bien, si entendemos un poco
+[20:08] las palabras, ¿okay? En los mínimos y en
+[20:10] los máximos se encuentra la liquidez. Si
+[20:13] el precio se desplaza por encima de un
+[20:15] máximo, quiere decir que está sacando
+[20:17] liquidez, sí, pero que probablemente va
+[20:19] a seguir generando más máximos, porque
+[20:21] obviamente acá ya arrancamos a unir
+[20:23] algunas cosas. ¿Se acuerdan que yo hablé
+[20:26] de tendencias? Estamos en una tendencia
+[20:27] alcista. En una tendencia alcista
+[20:29] siempre vamos a querer encontrar
+[20:31] liquidity swips o tomas de liquidez
+[20:33] debajos para continuar en esa tendencia.
+[20:35] O sea, para sumarnos en esa subida,
+[20:38] queremos encontrar una toma liquidez de
+[20:40] bajos y desplazamientos por encima de
+[20:43] altos, pero apuntar a máximos y toma
+[20:45] liquidez de mínimos. Pero quiero que
+[20:47] vean cómo cierra el precio acá. Entonces
+[20:51] así logramos entender que cuando tenemos
+[20:53] una mecha que cierra así, o sea, que
+[20:57] cierra por debajo un mínimo, que
+[20:58] básicamente alcanza este mínimo y en vez
+[21:00] de desplazarse, en vez de generar una
+[21:03] estructura bajista, luego que hace,
+[21:05] sube. Simplemente con este cierre vela
+[21:08] nosotros ya podemos entender que el
+[21:10] mercado va a ir va a ir a buscar este
+[21:12] punto. ¿Por qué? Porque falló en el
+[21:14] desplazamiento. Vamos a ver dónde
+[21:15] tenemos otro ejemplo. Acá tenemos un
+[21:17] mínimo. ¿Qué podemos esperar? Con este
+[21:20] cierre de vela. Vamos a ir acá. ¿Qué
+[21:22] podemos esperar con este cierre de vela?
+[21:24] Que el mercado vaya a buscar aunque sea
+[21:26] el próximo máximo.
+[21:29] ¿Qué sucede acá? ¿Listo? ¿El precio
+[21:32] logra desplazarse por debajo de este
+[21:33] mínimo? No, falla en el desplazamiento.
+[21:36] Entonces, así podemos ir entendiendo.
+[21:38] Entonces, vamos a unir algunas cosas.
+[21:41] Tenemos swing points, o sea, liquidez en
+[21:43] máximos y en mínimos que se encuentra.
+[21:47] Y luego tenemos otro concepto muy
+[21:48] importante que es la toma de liquidez.
+[21:50] Cuando el precio
+[21:52] básicamente falla en el desplazamiento
+[21:56] de bajos o de altos, a eso le llamamos
+[21:59] una toma de liquidez. Por ahora me estoy
+[22:03] moviendo en temporalidades como 30 o 15
+[22:04] minutos, pero quiero que vean que
+[22:05] literalmente funciona en cualquier esto
+[22:08] funciona, lo que les voy a enseñar
+[22:09] funciona en cualquier temporalidad, en
+[22:12] cualquier rango horario, en cualquier
+[22:14] activo. Son conceptos universales,
+[22:17] ¿okay? Eh, incluso si se van a
+[22:18] criptomoneda también van a ver estas
+[22:20] cosas. Quiero que lo vean acá como el
+[22:24] precio de vuelta falla en el
+[22:25] desplazamiento y a dónde vamos a estos
+[22:27] máximos. Entonces, el concepto del
+[22:29] liquidity Swift es fenomenal.
+[22:32] Eh, como les digo, esto es una guía, es
+[22:33] un video que va a durar 40, 45 minutos.
+[22:36] No lo puedo, no les puedo explicar todo
+[22:39] bien a detalle, pero espero que aunque
+[22:41] sea no les esté quedando muchas dudas
+[22:44] con los conceptos que voy mencionando.
+[22:45] Como les digo, capaz que pueden ver este
+[22:47] video, la guía y algún concepto no
+[22:49] entienden y van a mi bootcamp, que son
+[22:50] 50 videos explicando hacer train desde
+[22:52] cero y ahí se llenan de información
+[22:55] acerca de ese concepto que no
+[22:57] entendieron. Bueno, continuando con el
+[22:58] concepto número cuatro y ahora sí nos
+[23:00] estamos poniendo serios porque este es
+[23:01] uno de mis preferidos. Realmente a
+[23:03] partir de esto mi train cambió de por
+[23:06] vida. Eh, bien, ya entendemos lo que son
+[23:09] las tendencias, ya entendemos lo que son
+[23:11] las velas, ya entendemos lo que son las
+[23:12] temporalidades, ya entiendo que tengo
+[23:14] que operar un activo, una sesión,
+[23:16] entiendo lo que son las kilsons, que es
+[23:19] eso que les había dicho de que, bueno,
+[23:21] el mercado tiene sesiones.
+[23:23] Entiendo lo que es la liquidez, que se
+[23:25] encuentra en máximos eh mínimos, en
+[23:28] equal high, en equal lows,
+[23:31] en líneas de tendencia y todo eso. Y
+[23:34] encima entiendo que el precio va a ir de
+[23:37] liquidez en liquidez, o sea, de la
+[23:39] liquidez bajista hacia la liquidez
+[23:40] alcista. Y también, obviamente, podemos
+[23:42] encontrar un caso en donde el mercado
+[23:45] este esté en una tendencia capaz más
+[23:47] bajista. Y veamos eso, ¿no? Mírenlo. Así
+[23:51] ven como el mercado saca la liquidez
+[23:52] alcista y se va hacia la liquidez
+[23:54] bajista. De vuelta tenemos un montón de
+[23:57] ejemplos a lo largo de todo el gráfico y
+[24:00] creo que también lo van a poder ver.
+[24:02] Miren, acá tenemos una línea de
+[24:04] tendencia, entonces teníamos más
+[24:05] liquidez generada y el mercado
+[24:09] luego de haber sacado liquidez va a
+[24:10] buscar toda la liquidez contraria.
+[24:13] Obamente, como les digo, eh lo que
+[24:15] buscamos es que sea un movimiento de
+[24:16] continuación y un movimiento tendencial,
+[24:18] pero les quería sumar un ejemplo.
+[24:19] Entonces ya tenemos todo. Ahora, Fede,
+[24:23] si se saca la liquidez de este punto,
+[24:25] ahora, ¿qué hago yo? ¿Cómo pongo mi
+[24:27] posición para ir en búsqueda de ese
+[24:29] punto? Genial. Vamos a hablar entonces
+[24:31] acerca de cómo buscar sus entradas con
+[24:36] algunos conceptos que voy a ir
+[24:37] mencionando ahora. Bueno, estamos en el
+[24:38] PDF para explicar mi concepto preferido.
+[24:41] Vamos a hablar de lo que es el fair
+[24:43] value gap. ¿Okay? Quiero que entiendan
+[24:46] que el mercado necesita ser eficiente
+[24:49] para poder moverse bien. Entonces, lo
+[24:51] que voy a explicar ahora es una
+[24:52] ineficiencia, algo que hace que el
+[24:55] mercado no sea eficiente, por lo tanto,
+[24:57] que tiene que volver a rellenarlo para
+[25:00] continuar con su eficiencia. Entonces,
+[25:03] el precio es eficiente cuando el máximo
+[25:05] de la primera vela se encuentra con el
+[25:07] mínimo de la tercera vela o el mínimo de
+[25:09] la tercera vela se encuentra con el
+[25:11] máximo eh perdón, o el mínimo de la
+[25:14] primera vela se encuentra con el máximo
+[25:15] de la tercera vela. Acá hay un ejemplo
+[25:17] del precio siendo eficiente. Vamos a
+[25:18] darle un poquito de zoom. Ahí se ve
+[25:20] claro.
+[25:22] ¿Ven como
+[25:24] la mecha de la primera vela acá la mecha
+[25:28] alcista se encuentra con la mecha
+[25:31] bajista de la tercera vela? Perfecto.
+[25:33] Eso es que el precio está siendo
+[25:35] eficiente. Por lo tanto, ahí el mercado
+[25:37] puede subir, puede subir, subir, subir,
+[25:39] subir. Ahora,
+[25:41] acá lo que se genera es una
+[25:44] ineficiencia.
+[25:46] Quiere decir cuando la vela, o sea, la
+[25:49] mecha de la primera vela no se une con
+[25:52] la mecha de la tercera vela, en este
+[25:54] caso la alcista con la bajista y también
+[25:56] viceversa si hablamos del caso bajista.
+[25:59] Ahora, Fede, ¿qué sucede con esto? Y es
+[26:02] que lo que sucede acá es que hay un
+[26:05] vacío de órdenes en es en este punto. O
+[26:08] sea, hubo tanta fuerza alcista, hubo un
+[26:10] impulso tan fuerte al alza, o sea, acá
+[26:13] la gente solo estaba comprando las
+[26:15] instituciones, solo estaban poniendo
+[26:16] dinero al alza, nadie estaba poniendo
+[26:18] dinero a la baja, se crea esa
+[26:20] ineficiencia, esa brecha. Entonces, el
+[26:23] mercado debe volver a ese punto para
+[26:25] equilibrar las órdenes entre los
+[26:27] compradores y los vendedores, para
+[26:29] rellenar la ineficiencia. Entonces,
+[26:31] eficiente cuando la mecha de la primera
+[26:34] vela se une con la mecha de la tercera.
+[26:36] Ineficiente cuando la mecha de la
+[26:38] primera vela no se une con la mecha de
+[26:40] la tercera vela y deja un imbalance, un
+[26:43] vacío o en inglés un ferval. Acá hay un
+[26:46] ejemplo muy bueno en el que ven con las
+[26:49] clásicas velas eh alcista y bajista.
+[26:52] ¿Okay? Entonces, este fervia upap, ¿de
+[26:55] qué lo vamos a utilizar, Fede? o por qué
+[26:58] se menciona tanto el fair value app.
+[27:01] Bien, vamos a ir a los gráficos para
+[27:02] hablar de esto, que es mi concepto
+[27:04] preferido. Quiero que lo vean acá. Si
+[27:06] unimos el hecho de que acá había una
+[27:09] toma de liquidez y que acá había un Fal
+[27:11] up, vamos a ir un poquito más para
+[27:16] atrás. Ahí va.
+[27:19] Okay. Fíjense acá generamos un fair
+[27:22] value up. Listo. Primera vela.
+[27:26] Bueno, vamos a mostrar primero un
+[27:27] ejemplo del mercado siendo eficiente,
+[27:29] ¿no? Todo este tiempo fue eficiente.
+[27:30] ¿Ven? Cualquier ejemplo. Acá se eh unió
+[27:34] todo. Listo. En ningún momento quedó un
+[27:37] vacío. Ahora, como ven, acá sí se genera
+[27:39] un vacío. Vamos a mostrarlo. Fair value
+[27:41] app. Entonces,
+[27:43] con este vacío que se genera, lo que
+[27:45] vamos a esperar es que el mercado vuelva
+[27:48] a rellenarlo,
+[27:50] o sea, que tengamos un retroceso.
+[27:53] Bien, esto es importantísimo que lo
+[27:55] entiendan. Tenemos un bajo más bajo que
+[27:57] el anterior, un alto, perdón, un bajo
+[27:59] más alto que el anterior, un alto más
+[28:00] alto que el anterior y esto va a actuar
+[28:03] como un punto de interés, como un
+[28:05] soporte para el precio, eh, y también
+[28:08] como una confirmación para nosotros para
+[28:10] entender que de acá el mercado se va a
+[28:12] apoyar para continuar subiendo, o eso es
+[28:15] al menos lo que nosotros esperamos.
+[28:16] Vamos a ver si esto es verdad o si Fed
+[28:19] está diciendo farsas. Bien, acá estamos
+[28:23] dentro del F value app. Ahora, ¿qué
+[28:25] sucede? Vamos a ver si podemos unir la
+[28:27] toma de liquidez con el fa value app y
+[28:30] ver qué sucede luego. Bien, el mercado
+[28:34] respeta este Fer value up, como ven,
+[28:37] cuando yo digo respeta, quiere decir que
+[28:40] no hay un desplazamiento por debajo. Lo
+[28:42] mismo con este mínimo. Yo digo, liquida
+[28:45] este mínimo o respetaste bajo o respetas
+[28:48] este Ferap es porque no hay un
+[28:49] desplazamiento por debajo de ese punto.
+[28:51] Les voy a mostrar un ejemplo
+[28:53] en donde no se respete ese Fer value
+[28:56] app. Ven acá, acá tenemos un F value
+[28:59] app, o sea, un vacío. Acá tenemos otro
+[29:01] vacío. ¿Ven como
+[29:04] esta vela no le importa nada? Esta vela
+[29:07] de acá no le importa nada y logra
+[29:09] desplazarse
+[29:11] por encima
+[29:13] de todos estos Folaps. Genial. Entonces,
+[29:14] lo que esperamos acá es que el mercado,
+[29:18] vamos a ver si vamos a 15 minutos, se va
+[29:20] a ver clarísimo.
+[29:22] Vamos a ver acá. Esperamos que el
+[29:24] mercado vuelva a un Fue up en alguna
+[29:26] temporalidad. Puede ser en 5 minutos,
+[29:28] puede ser en 15 minutos, como les digo,
+[29:30] el mercado fractal
+[29:32] para así sumarnos a la a la tendencia,
+[29:35] ¿no? A la continuación.
+[29:38] Quiero que lo vean. Acá se genera un
+[29:40] ferro olividad palcista.
+[29:42] ¿Qué hace el mercado? vuelve a
+[29:44] rellenarlo. Entonces, ahora, ¿qué
+[29:45] podemos esperar? Que el precio vaya a
+[29:48] buscar la liquidez de compras. Entonces,
+[29:51] ya estamos uniendo. Pero Fede, acá no
+[29:53] tuve entrada en 15 minutos. Bueno,
+[29:56] entonces lo que vamos a hacer es
+[29:57] escalar. Mis entradas son en un minuto,
+[29:59] en 2 minutos, en 3 minutos. Mis
+[30:01] confirmaciones son en 15 minutos.
+[30:02] Entonces, vamos a ver si podemos unir
+[30:04] alguno de los conceptos que estuve
+[30:05] hablando en el día de hoy. Entonces,
+[30:07] como les decía, vamos a ver si podemos
+[30:09] unir los conceptos que estuvimos viendo
+[30:11] con la fractalidad del mercado. También
+[30:14] la realidad es que podría explicar un
+[30:16] montón de conceptos más, pero voy a
+[30:18] explicar este y un último tip que,
+[30:22] bueno, es un concepto que también va en
+[30:25] conjunto con este que es mi estrategia.
+[30:27] Como les digo, también en la descripción
+[30:28] van a tener el link al bootcamp, el link
+[30:30] al video de mi estrategia en donde la
+[30:32] explico a detalle para que cualquier
+[30:34] duda que tengan este lo vayan a ver. Sí,
+[30:36] capaz me faltó algún concepto, pero
+[30:39] realmente creo que con esto pueden
+[30:40] simplificar mucho su trading. Entonces,
+[30:44] vamos a darlo acá. Listo.
+[30:47] Eh, Fede, pero ¿qué hago? El mercado
+[30:50] volvió al este F up de 15 minutos y y
+[30:52] ¿cómo ejecuto así? O sea, realmente no
+[30:54] mi, no sé, mi win rate no no es bueno
+[30:57] hacia este high, o sea, mi riesgo de
+[31:00] beneficio, perdón, tengo un 1 a 0.71,
+[31:02] ¿qué hago entonces? Genial. Lo que vas a
+[31:05] hacer es escalar de temporalidades. Una
+[31:07] vez que tenemos confirmaciones en
+[31:09] temporalidades medias y en
+[31:10] temporalidades altas, lo que hacemos es
+[31:11] escalar a temporalidades bajas como 1,
+[31:14] 2, 3 o 5 minutos.
+[31:17] En este caso, yo voy a escalar un minuto
+[31:19] porque es la temporalidad en donde por
+[31:20] lo general ejecuto y vamos a ver cómo
+[31:23] tenemos una toma de liquidez. ¿Ven cómo
+[31:25] se ven perfecto esto, ¿qué hay acá? Una
+[31:28] falla en el desplazamiento. Entonces,
+[31:30] como acá tenemos una falla en
+[31:31] desplazamiento
+[31:33] combinado con que estamos reaccionando a
+[31:35] un fair value app de 15 minutos, lo voy
+[31:37] a marcar así para que ustedes lo vean
+[31:38] mejor. Entonces, tenemos reacción a fair
+[31:41] value appá arriba que tenemos trendline
+[31:44] liquidity, liquidez generada.
+[31:46] Nuestro take profit va a ir en nuestro
+[31:49] swinging point, o sea, nuestro máximo
+[31:52] eh, de acá.
+[31:54] Acá tenemos una toma de liquidez. ¿Y qué
+[31:56] tenemos por acá?
+[31:58] Un máximo. Este máximo fue el que generó
+[32:00] este mínimo. Entonces, ahora les voy a
+[32:02] explicar bien cuál es mi modelo de
+[32:04] entrada, pero aún así ustedes pueden
+[32:06] poner su entrada
+[32:08] en esta zona, ¿okay? Digamos que ponemos
+[32:10] el stopl por acá. pueden poner eh su
+[32:14] entrada en el momento que el mercado
+[32:16] quiebra estructura. pueden poner su
+[32:18] entrada en el momento en el que el
+[32:19] mercado, no sé, vuelve a un Ferval y
+[32:21] capaz que dejan su stop loss más corto.
+[32:24] Realmente acá donde digo cada uno tiene
+[32:26] que jugar y probarlo porque yo ahora les
+[32:29] estoy explicando un montón de cosas,
+[32:30] pero la realidad es que ustedes no saben
+[32:32] si es verdad hasta que vayan y lo
+[32:33] prueben. Por eso les digo, lo más lindo
+[32:35] de esto es que cuando terminen este
+[32:36] video vayan al mercado y prueben todo lo
+[32:38] que acabo de decir, eh, y fíjense
+[32:40] también con que se sienten más cómodos.
+[32:42] Yo les voy a explicar el último concepto
+[32:45] de todos,
+[32:46] que es el concepto del inverse F value
+[32:49] app. Y a continuación les voy a explicar
+[32:51] cuál es la entrada que yo tomo. Pero
+[32:54] antes de explicarles eso, como les digo,
+[32:56] eh pueden entrar con cualquier cosa. Acá
+[32:58] tenemos nuestra primer confirmación que
+[33:01] es la toma de liquidez. Listo, tenemos
+[33:02] una toma de liquidez. Después, ¿qué
+[33:04] podemos esperar? Pueden esperar un
+[33:05] quiebre de estructura. pueden esperar eh
+[33:07] un quiebre de estructura más un retesteo
+[33:09] a un F value app, por ejemplo, no
+[33:11] digamos que ustedes no se esperaban
+[33:13] esto. Fíjense como el mercado va directo
+[33:16] a su take profit, ¿no? En este caso
+[33:19] creo que teníamos una SMT con el SP500,
+[33:21] que es otro concepto, pero le digo, no
+[33:23] importa. Acá el mercado terminó llegando
+[33:25] a su take profit, tenían un montón de
+[33:27] entradas. pudieron, qué sé yo, haber
+[33:29] entrado con el quiebre de estructura acá
+[33:31] directo, pudieron haber esperado a que
+[33:34] el precio genere un fer up, como fue acá
+[33:37] y lo retesté. también pudieron haber
+[33:39] hecho eso, eh, pudieron haber esperado a
+[33:42] que el mercado genere un FW app,
+[33:44] retestee ese Ferw
+[33:46] y ver la reacción de ahí y esperar un
+[33:48] quiebre de estructura, por ejemplo.
+[33:50] Entonces, qué sé yo, no sé, esperaron
+[33:53] que el mercado vuelva a un farol up, eh,
+[33:56] y después vieron una quiebra de
+[33:57] estructura interno, entonces entraron
+[33:58] ahí ponele también puede ser. Realmente
+[34:01] hay un montón de confirmaciones,
+[34:05] eh, mejor dicho, de mezcla y de cómo
+[34:08] conjugar estas confirmaciones. Ahora, el
+[34:11] mejor concepto de todo para mí y la
+[34:13] entrada que yo suelo utilizar y que
+[34:15] vengo utilizando hace más de un año y
+[34:17] medio y realmente lo que a mí me cambió
+[34:20] todo es el concepto del inverse fair
+[34:23] value app. Este concepto, bien, lo voy a
+[34:26] explicar acá.
+[34:28] Vamos a borrar todo. Se compone de tres
+[34:30] velas. Bien, como ustedes ya saben,
+[34:33] tenemos un Ferrari que también se
+[34:34] compone de tres velas, que es un vacío.
+[34:36] Okay, es un vacío. Listo, ya entendemos
+[34:39] que es un vacío. Ahora, ¿qué sucede?
+[34:42] Bueno, en teoría lo que nosotros
+[34:43] esperamos con el vacío es que el mercado
+[34:46] vuelva y lo respete, ¿no? Eso es lo que
+[34:49] nosotros estaríamos esperando.
+[34:51] Obviamente,
+[34:52] en este caso, lo que vamos a dejar a un
+[34:55] lado son las temporalidades más altas.
+[34:56] Simplemente voy a explicar este
+[34:57] concepto. Lo que nosotros esperamos es
+[35:00] que el mercado respete este F app como
+[35:03] lo está haciendo acá. O sea, que en
+[35:05] ningún momento tengamos un
+[35:06] desplazamiento. Creo que acá se ve
+[35:08] perfecto. Miren, este es un ejemplo
+[35:10] increíble de todo lo que les voy a
+[35:11] explicar.
+[35:13] ¿Ven que acá tenemos un cierre de vela
+[35:16] por debajo de este ferro app? Genial.
+[35:19] Bueno, entonces esto es una invalidación
+[35:21] de ese Ferio Up. O sea, este ferap no es
+[35:23] más válido. Yo ahora no estoy esperando
+[35:25] que el mercado suba a este máximo, por
+[35:27] ejemplo, sino que obviamente es mucho
+[35:29] más probable que el mercado baje a este
+[35:31] mínimo. Entonces, literalmente así yo
+[35:34] podría tomar una entrada hacia este
+[35:36] mínimo. Obviamente que no es no es mi
+[35:37] riesgo de beneficio, no es un riesgo de
+[35:38] beneficio bueno, pero tengo la seguridad
+[35:41] de que el mercado va a venir a este
+[35:42] mínimo. Vamos a ver si lo que estoy
+[35:43] diciendo es cierto. El mercado viene a
+[35:46] este mínimo. Listo. Genial. Entonces,
+[35:49] ahora uniendo todos los conceptos.
+[35:52] Ya saben que esto es un FRW app
+[35:55] invalidado
+[35:57] y esto es un Fap respetado. Lo que está
+[35:59] sucediendo ahora, como ven, la mecha
+[36:03] de la mecha está respetando este Ferval
+[36:07] y a su vez, fíjense qué está haciendo
+[36:08] acá. está invalidando
+[36:11] otra vez ese Ferap. Entonces esto si yo
+[36:14] lo puedo conjugar, si puedo unir una
+[36:18] toma de liquidez con un F value app
+[36:20] respetado con un inverse fair value up,
+[36:23] que es este concepto, inverse fair value
+[36:24] up es fair value app invertido, quiere
+[36:27] decir esto literalmente cuando hay un
+[36:29] fair value up que en vez de respetarse
+[36:31] se invalida, tenemos un cierre de vela
+[36:33] por encima de esta zona.
+[36:36] Ahora, lo más importante de este
+[36:37] concepto es que tienen que suceder
+[36:40] varias cosas. Bien, punto número uno,
+[36:43] tiene que haber una única vela de camino
+[36:45] a tomar la liquidez o de camino a el
+[36:47] ferro up. En este caso, qué sé yo, si
+[36:49] voy a un minuto, me voy a dar cuenta que
+[36:50] en un minuto tengo también tenía una
+[36:52] única vela, pero muchas veces pasa que
+[36:55] en un minuto tienen, no sé, tres fer ups
+[36:57] y después van a 2 minutos y tienen un
+[36:59] único ferrup. Por eso siempre es
+[37:01] importante que le den bola a la
+[37:04] temporalidad más alta y al cierre de la
+[37:06] vela de esa temporalidad. Entonces,
+[37:10] cuando se invierte, o sea, cuando
+[37:12] logramos invalidar un F value app, se
+[37:14] llama IFBG, inverse fair value app, un
+[37:17] patrón de tres velas en donde en vez de
+[37:19] esta vela respetarse se invalida, lo que
+[37:21] hacemos es automáticamente, si esto
+[37:23] cierra así, poner una entrada en este
+[37:26] punto exacto y usamos esto como nuestra
+[37:30] zona de entrada. Bien, en vez de esperar
+[37:32] a cualquier cosa, vamos a usar esto con
+[37:35] como nuestra zona de entrada.
+[37:36] Obviamente, como les digo, este no es el
+[37:38] mejor ejemplo con el mejor riesgo de
+[37:39] beneficio, pero literalmente ahora voy a
+[37:41] ir avanzando y les voy a encontrar un
+[37:42] millón de ejemplos en los gráficos. Lo
+[37:44] que sucede cada vez que tenemos un IFBG
+[37:46] es que el movimiento es muy explosivo,
+[37:48] ¿okay? Eh, y tenemos una confirmación
+[37:51] inmediata. Muchas veces el mercado no
+[37:52] vuelve a retestear los fair value apps
+[37:55] durante eh, o sea, en el momento de
+[37:57] desenvolverse, ¿no? Sino que eh muchas
+[38:01] veces el mercado nos da un movimiento
+[38:04] recontrafuerte.
+[38:06] Y ahí ustedes van a poder aprovecharse
+[38:07] de eso. Entonces, vamos a ver si podemos
+[38:09] combinar este concepto, eh, y les voy a
+[38:13] mostrar como en cualquier literalmente
+[38:15] estoy en un minuto, ¿no? Sí, en
+[38:16] cualquier momento lo pueden utilizar.
+[38:19] Eh, a ver, vamos a ver, sobre todo,
+[38:21] vamos a ver si podemos agarrar un rato
+[38:22] de sesión.
+[38:24] Esto es sesión de Nueva York, ¿no?
+[38:26] Sesión de Nueva York e o perdón, esto es
+[38:28] sesión de Londres. Vamos a ver si
+[38:30] podemos enganchar en momento sesión de
+[38:32] Nueva York de 9:30
+[38:34] a 11, simplemente para mostrarles cómo
+[38:37] eh esto puede suceder
+[38:39] durante la sesión. Okay. Eh, a ver,
+[38:44] miren, qué sé yo, incluso voy a lo voy a
+[38:46] ver en lo voy a ver en cualquier
+[38:48] temporalidad. Eh, realmente, fíjense
+[38:53] qué tenemos acá. Un IFBG de 5 minutos.
+[38:56] Entonces ustedes pueden entrar
+[38:57] directamente en esta zona.
+[39:00] Okay. Hacia este punto, vamos a ver si
+[39:03] tenemos más mínimos por acá. Se puede
+[39:05] entrar hacia este punto en un trade o
+[39:10] incluso lo que pueden hacer es esperar a
+[39:12] temporalidades
+[39:14] medias y bajas. Y fíjense como acá se da
+[39:16] una entrada, sucede lo mismo, eh, se
+[39:19] respeta un Feral app y luego se da un
+[39:21] IFBG. Ahí ven que hay un pequeño IFBG.
+[39:24] Capaz que no es el más claro de todos,
+[39:27] pero hay un pequeño IFBG ahí. Entonces
+[39:29] pueden entrar en esa zona. Listo.
+[39:31] Incluso, qué sé yo, si vamos a 30
+[39:33] segundos capaz que encontramos un F up o
+[39:35] a 3 minutos también encontramos un F up.
+[39:38] Para mí lo, o sea, lo mejor en este caso
+[39:40] sería entrar así. Y fíjense como el
+[39:43] mercado explota. Bien, ahora que lo
+[39:46] estoy pensando, creo que podría ser una
+[39:47] parte dos de este video porque me faltó
+[39:51] hablar de conceptos como Daily bias, de
+[39:53] conceptos como SMT, eh puedo hablar de
+[39:56] Order Blogs, hay bastantes conceptos que
+[39:58] me faltaron en este video. Entonces, si
+[40:00] les gustó esta parte uno, háganmelo
+[40:02] saber. Realmente creo que hablé de las
+[40:06] cosas más esenciales. Eh, un punto que
+[40:09] me faltó explicar, que lo voy a explicar
+[40:11] relativamente rápido, es en estas
+[40:13] entradas siempre queremos apuntar a la
+[40:16] liquidez, o sea, apuntar a bajos, como
+[40:18] puede ser este bajo o puede ser este
+[40:21] bajo.
+[40:22] Eh, y el stop loss lo queremos dejar por
+[40:26] encima de swing points o por encima de
+[40:28] puntos en los que realmente ya no tiene
+[40:30] tanto sentido que el mercado vuelva.
+[40:32] Entonces, fíjense, mi stop loss fue
+[40:34] arriba de el swing high de un minuto.
+[40:37] Okay, que apaz iban a 5 minutos y fe,
+[40:39] ¿por qué dejas el stop loss ahí? Bueno,
+[40:41] eso stop loss por encima de swing points
+[40:44] o por debajo de swing lows en caso de
+[40:46] que estén tomando una compra. Take
+[40:50] profit en también esta zona. Bien, como
+[40:53] les digo, me faltó bastantes conceptos,
+[40:55] pero ya vamos 50 minutos, no quiero que
+[40:57] se haga un extensible de 3 horas, eh,
+[40:59] pero me quedan conceptos por hablar como
+[41:01] el Daily Vas, que sé que muchos de
+[41:03] ustedes lo conocen y y se les dificulta,
+[41:05] que básicamente es la dirección del día,
+[41:07] conceptos como SMT, Order Blogs, Change
+[41:10] ining state of delivery, hay cinco o
+[41:12] seis conceptos que podría hablar en una
+[41:14] parte dos. Así que háganme saber acá en
+[41:16] los comentarios si les gustó este video.
+[41:18] Dejen un like, suscríbanse, activen la
+[41:19] campanita, todo lo van a tener en la
+[41:20] descripción también. en vivo todos los
+[41:22] días. Para los que quieran hacer live
+[41:24] training conmigo, eh, van a tener un
+[41:26] link en el wop para acceder. Y bueno,
+[41:29] hágame saber también qué es lo que más
+[41:31] les gustó, cuál fue la mejor
+[41:32] explicación. Los leo un ratito en los
+[41:34] comentarios. Gracias a todos por pasarse
+[41:36] y como siempre nos vemos del otro lado
+[41:37] de la rentabilidad. Ciao. Ciao.

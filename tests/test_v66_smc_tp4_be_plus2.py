@@ -158,5 +158,5 @@ def test_smc_at_3r_evaluates_before_seeking_tp4(monkeypatch):
     )
     assert result["stage"] == "3R_TO_4R"
     assert result["extended"] is True
-    assert broker.sl == 120.0
+    assert broker.sl == 125.0  # Protege TP2.5 (+2.5R) para maximizar el ratio de ganancias
     assert broker.tp == 140.0

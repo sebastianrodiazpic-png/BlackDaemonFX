@@ -1,6 +1,7 @@
 MetaTrader5
 numpy
 pandas
+tzdata>=2025.2
 python-dotenv
 SQLAlchemy
 openpyxl

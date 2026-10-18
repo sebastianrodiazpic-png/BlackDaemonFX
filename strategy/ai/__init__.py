@@ -10,6 +10,7 @@ from strategy.ai.feature_extraction import (
     extract_meta_features,
     feature_vector,
 )
+from strategy.ai.gbdt_model import CalibratedGBDTModel
 from strategy.ai.meta_labeling import (
     FILTER_MODE,
     RANKING_MODE,
@@ -28,6 +29,7 @@ from strategy.ai.training import (
     TemporalValidationReport,
     build_training_dataset,
     temporal_validation,
+    train_worker_gbdt_model,
     train_worker_model,
 )
 
@@ -43,6 +45,7 @@ __all__ = [
     "MetaLabelingConfig",
     "MetaLabelingEngine",
     "CalibratedLogisticModel",
+    "CalibratedGBDTModel",
     "LogisticRegressionModel",
     "ProbabilityCalibrator",
     "rank_signals",
@@ -50,4 +53,5 @@ __all__ = [
     "build_training_dataset",
     "temporal_validation",
     "train_worker_model",
+    "train_worker_gbdt_model",
 ]

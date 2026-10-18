@@ -30,16 +30,18 @@ class MetaLabelingConfig:
     enabled: bool = True
     # SHADOW puntúa y registra sin bloquear; FILTER bloquea órdenes de baja probabilidad o expectativa.
     mode: str = os.getenv("DAEMONBLACKFX_META_LABELING_MODE", FILTER_MODE)
-    min_probability: float = 0.55
-    min_probability_forex: float = 0.60
-    min_probability_gold: float = 0.60
-    min_probability_volatility: float = 0.52
-    min_probability_orb: float = 0.52
-    min_net_expectancy_r: float = 0.10
+    min_probability: float = 0.47
+    min_probability_forex: float = 0.55
+    min_probability_gold: float = 0.55
+    min_probability_volatility: float = 0.47
+    min_probability_orb: float = 0.48
+    min_net_expectancy_r: float = 0.05
     ranking_enabled: bool = True
     max_signals_per_cycle: int = 1
     model_directory: str = "storage/ai_models"
     min_training_samples: int = 15
+    # Tipo de modelo de meta-etiquetado: "LOGISTIC" (por defecto, pure-NumPy) o "LIGHTGBM" (GBDT)
+    model_type: str = "LOGISTIC"
     # Sin modelo entrenado el filtro no debe bloquear operativa real.
     block_when_untrained: bool = False
 
@@ -164,10 +166,9 @@ class MetaLabelingEngine:
                     # El vector v112 añade contexto ORB/agotamiento. Un modelo
                     # v111 con otra dimensionalidad no puede reutilizarse sin
                     # reentrenar; se degrada de forma segura a no entrenado.
-                    if (
-                        tuple(model.model.feature_names) != tuple(FEATURE_NAMES)
-                        or (model.model.weights and len(model.model.weights) != len(FEATURE_NAMES))
-                    ):
+                    feat_names = tuple(getattr(getattr(model, "model", None), "feature_names", getattr(model, "feature_names", ())))
+                    weights = getattr(getattr(model, "model", None), "weights", None)
+                    if (feat_names and feat_names != tuple(FEATURE_NAMES)) or (weights and len(weights) != len(FEATURE_NAMES)):
                         model = CalibratedLogisticModel(
                             worker=self.worker,
                             strategy_name=str(strategy_name or "ALL"),
@@ -247,6 +248,10 @@ class MetaLabelingEngine:
 
     def train(self, trades, *, strategy_name: str = "ALL") -> dict:
         """Entrena y persiste el modelo del worker desde su historial."""
+        if self.worker == 'MALAYSIAN_SNR':
+            return {'worker':self.worker,'strategy_name':strategy_name,'trained':False,
+                    'reason':'MSNR_REQUIRES_CANONICAL_PURGED_TRAINING',
+                    'active_model_changed':False,'promotion_allowed':False}
         scoped_strategy = None if str(strategy_name).upper() == "ALL" else strategy_name
         dataset_rows = int(
             build_training_dataset(
@@ -259,6 +264,7 @@ class MetaLabelingEngine:
             strategy_name=None if str(strategy_name).upper() == "ALL" else strategy_name,
             min_samples=int(self.config.min_training_samples),
             allow_global_pooling=True,
+            model_type=str(getattr(self.config, "model_type", "LOGISTIC")),
         )
         model.worker = self.worker
         model.strategy_name = str(strategy_name or "ALL")
@@ -268,11 +274,12 @@ class MetaLabelingEngine:
             worker=self.worker,
             strategy_name=None if str(strategy_name).upper() == "ALL" else strategy_name,
         )
+        samples_count = int(getattr(model, "samples", getattr(getattr(model, "model", None), "samples", 0)))
         return {
             "worker": self.worker,
             "strategy_name": model.strategy_name,
             "trained": bool(model.trained),
-            "samples": int(model.model.samples),
+            "samples": samples_count,
             "available_samples": int(dataset_rows),
             "min_training_samples": int(self.config.min_training_samples),
             "reason": (
@@ -296,6 +303,10 @@ class MetaLabelingEngine:
         learning_rate: float = 0.05,
     ) -> bool:
         """Bucle de aprendizaje continuo en tiempo real (Online SGD Feedback Loop)."""
+        # SNR artifacts stay immutable after disjoint calibration/test validation.
+        # Online updates must become a new candidate, not retain a stale validation stamp.
+        if self.worker == 'MALAYSIAN_SNR':
+            return False
         vector = features if isinstance(features, list) else feature_vector(features)
         model = self.load_model(strategy_name)
         if not model.trained:
@@ -327,26 +338,26 @@ class MetaLabelingEngine:
     def resolve_min_probability(self, symbol: str) -> float:
         """Determina el umbral de probabilidad adaptativo según la familia del activo.
 
-        - FOREX y GOLD: umbral estricto >= 0.60 para filtrar falsos rompimientos y spread.
-        - VOLATILITY: umbral >= 0.52 para aprovechar mayor ratio de recorrido.
-        - OTRAS FAMILIAS (BOOM, CRASH, STEP, JUMP): umbral base >= 0.55.
+        - FOREX y GOLD: umbral >= 0.55 para filtrar falsos rompimientos y spread.
+        - VOLATILITY: umbral adaptado >= 0.47 optimizado para primer objetivo TP1 (1:1).
+        - OTRAS FAMILIAS SINTETICAS (BOOM, CRASH, STEP, JUMP, FLIP): umbral base >= 0.47.
         """
         sym = str(symbol or "").upper().strip()
         wk = str(self.worker or "").upper().strip()
 
         if wk == "ORB":
-            return float(getattr(self.config, "min_probability_orb", 0.52))
+            return float(getattr(self.config, "min_probability_orb", 0.48))
 
         if "XAU" in sym or "GOLD" in sym or wk == "GOLD":
-            return float(getattr(self.config, "min_probability_gold", 0.60))
+            return float(getattr(self.config, "min_probability_gold", 0.55))
 
         forex_currencies = ("EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD")
-        is_forex = any(c in sym for c in forex_currencies) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP"))
+        is_forex = any(c in sym for c in forex_currencies) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"))
         if is_forex or wk.startswith("FOREX"):
-            return float(getattr(self.config, "min_probability_forex", 0.60))
+            return float(getattr(self.config, "min_probability_forex", 0.55))
 
         if "VOLATILITY" in sym or "1S" in sym or wk.startswith("VOLATILITY"):
-            return float(getattr(self.config, "min_probability_volatility", 0.52))
+            return float(getattr(self.config, "min_probability_volatility", 0.47))
 
         return float(self.config.min_probability)
 

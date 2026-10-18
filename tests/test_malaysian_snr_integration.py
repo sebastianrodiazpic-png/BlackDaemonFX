@@ -36,7 +36,8 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         model = ai_engine.load_model("MALAYSIAN_SNR")
         self.assertTrue(model.trained)
         self.assertGreaterEqual(model.samples, 50)
-        self.assertEqual(len(model.model.weights), 44)
+        feature_count = len(getattr(model, "feature_names", None) or getattr(getattr(model, "model", None), "weights", []))
+        self.assertEqual(feature_count, 44)
 
     def test_strategy_dual_leg_planning(self):
         config = MalaysianSNRConfig()
@@ -84,13 +85,15 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertNotIn("Boom 300 Index", msnr_pruned)
         self.assertNotIn("Crash 600 Index", msnr_pruned)
         self.assertNotIn("Crash 1000 Index", msnr_pruned)
+        self.assertNotIn("Crash 500 Index", msnr_pruned)
+        self.assertNotIn("Boom 500 Index", msnr_pruned)
         
         # Verify that actual losing assets ARE pruned
         self.assertIn("Volatility 10 Index", msnr_pruned)
         self.assertIn("Volatility 50 Index", msnr_pruned)
         self.assertIn("CADCHF", msnr_pruned)
         self.assertIn("US Oil", msnr_pruned)
-        self.assertIn("Boom 500 Index", msnr_pruned)
+        self.assertIn("Boom 900 Index", msnr_pruned)
 
 
 if __name__ == "__main__":

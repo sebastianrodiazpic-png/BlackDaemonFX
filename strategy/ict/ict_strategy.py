@@ -56,13 +56,15 @@ def compute_atr(df: pd.DataFrame, period: int = 14) -> np.ndarray:
 def build_h4_candles_from_h1(df_h1: pd.DataFrame) -> pd.DataFrame:
     """Reconstruye velas H4 agregadas a partir de H1 asegurando índice temporal UTC."""
     df = df_h1.copy()
-    h4 = df.set_index("time").resample("4h").agg({
+    agg_dict = {
         "open": "first",
         "high": "max",
         "low": "min",
         "close": "last",
-        "tick_volume": "sum"
-    }).dropna().reset_index()
+    }
+    if "tick_volume" in df.columns:
+        agg_dict["tick_volume"] = "sum"
+    h4 = df.set_index("time").resample("4h").agg(agg_dict).dropna().reset_index()
     h4["time"] = pd.to_datetime(h4["time"], utc=True)
     return h4
 
@@ -120,6 +122,131 @@ def find_active_fvgs_fast(df: pd.DataFrame, curr_idx: int, lookback_bars: int = 
     return fvgs
 
 
+
+def find_inversion_fvg_and_bpr_setups(
+    df: pd.DataFrame,
+    curr_idx: int,
+    intended_direction: str,
+    lookback_bars: int = 24,
+    spread: float = 0.00015,
+) -> dict | None:
+    """Opción C: Detecta Inversion FVG (iFVG) y Balanced Price Range (BPR).
+
+    1. Inversion FVG: FVG previo que fue perforado con cuerpo por el precio y ahora
+       actúa como soporte/resistencia invertido (SBR/RBS).
+    2. Balanced Price Range: Solapamiento bidireccional entre FVG alcista y bajista consecutivo.
+    """
+    if curr_idx < 4:
+        return None
+
+    c_now = df.iloc[curr_idx]
+    c_close = float(c_now["close"])
+    c_high = float(c_now["high"])
+    c_low = float(c_now["low"])
+
+    # 1. Búsqueda de Inversion FVG (iFVG)
+    for back in range(1, min(lookback_bars, curr_idx - 1)):
+        c0 = df.iloc[curr_idx - back - 2]
+        c1 = df.iloc[curr_idx - back - 1]
+        c2 = df.iloc[curr_idx - back]
+
+        # FVG Alcista original previo (c2.low > c0.high)
+        if c2["low"] > c0["high"] and c1["close"] > c1["open"]:
+            gap_top = float(c2["low"])
+            gap_bot = float(c0["high"])
+            # Perforado con cuerpo hacia abajo -> Inversión a Resistencia (SBR)
+            breached = False
+            for k in range(curr_idx - back + 1, curr_idx):
+                if df.iloc[k]["close"] < gap_bot:
+                    breached = True
+                    break
+            if breached and intended_direction == "SELL":
+                # Retesteo actual dentro o en el borde del iFVG
+                if c_high >= gap_bot and c_close <= (gap_top + spread):
+                    sl = gap_top + (2.0 * spread)
+                    risk = abs(sl - c_close)
+                    if risk > (1.5 * spread):
+                        return {
+                            "valid": True,
+                            "type": "ICT_INVERSION_FVG",
+                            "scenario": "ICT_INVERSION_FVG_RETEST",
+                            "direction": "SELL",
+                            "entry_price": c_close,
+                            "stop_loss": sl,
+                            "risk": risk,
+                            "gap_top": gap_top,
+                            "gap_bottom": gap_bot,
+                            "trade_score": 90.0,
+                        }
+
+        # FVG Bajista original previo (c2.high < c0.low)
+        elif c2["high"] < c0["low"] and c1["close"] < c1["open"]:
+            gap_top = float(c0["low"])
+            gap_bot = float(c2["high"])
+            # Perforado con cuerpo hacia arriba -> Inversión a Soporte (RBS)
+            breached = False
+            for k in range(curr_idx - back + 1, curr_idx):
+                if df.iloc[k]["close"] > gap_top:
+                    breached = True
+                    break
+            if breached and intended_direction == "BUY":
+                # Retesteo actual dentro o en el borde del iFVG
+                if c_low <= gap_top and c_close >= (gap_bot - spread):
+                    sl = gap_bot - (2.0 * spread)
+                    risk = abs(c_close - sl)
+                    if risk > (1.5 * spread):
+                        return {
+                            "valid": True,
+                            "type": "ICT_INVERSION_FVG",
+                            "scenario": "ICT_INVERSION_FVG_RETEST",
+                            "direction": "BUY",
+                            "entry_price": c_close,
+                            "stop_loss": sl,
+                            "risk": risk,
+                            "gap_top": gap_top,
+                            "gap_bottom": gap_bot,
+                            "trade_score": 90.0,
+                        }
+
+    # 2. Búsqueda de Balanced Price Range (BPR)
+    c_m2 = df.iloc[curr_idx - 2]
+    c_m1 = df.iloc[curr_idx - 1]
+    c_m0 = df.iloc[curr_idx]
+
+    if intended_direction == "BUY":
+        if c_m1["low"] > c_m2["high"] and c_m0["close"] > c_m1["high"]:
+            sl = float(c_m2["low"]) - (1.5 * spread)
+            risk = abs(c_close - sl)
+            if risk > (2.0 * spread):
+                return {
+                    "valid": True,
+                    "type": "ICT_BALANCED_PRICE_RANGE",
+                    "scenario": "ICT_BALANCED_PRICE_RANGE_EXPANSION",
+                    "direction": "BUY",
+                    "entry_price": c_close,
+                    "stop_loss": sl,
+                    "risk": risk,
+                    "trade_score": 92.0,
+                }
+    elif intended_direction == "SELL":
+        if c_m1["high"] < c_m2["low"] and c_m0["close"] < c_m1["low"]:
+            sl = float(c_m2["high"]) + (1.5 * spread)
+            risk = abs(sl - c_close)
+            if risk > (2.0 * spread):
+                return {
+                    "valid": True,
+                    "type": "ICT_BALANCED_PRICE_RANGE",
+                    "scenario": "ICT_BALANCED_PRICE_RANGE_EXPANSION",
+                    "direction": "SELL",
+                    "entry_price": c_close,
+                    "stop_loss": sl,
+                    "risk": risk,
+                    "trade_score": 92.0,
+                }
+
+    return None
+
+
 def is_synthetic_asset(symbol: str) -> bool:
     """Identifica si un símbolo pertenece al mercado de sintéticos algorítmicos 24/7."""
     sym_u = str(symbol or "").upper()
@@ -130,6 +257,108 @@ def is_synthetic_asset(symbol: str) -> bool:
         "DRIFT", "DAILY RESET", "HYBRID", "RANGE BREAK",
     )
     return any(k in sym_u for k in keywords)
+
+
+def check_order_block_five_stars(
+    df: pd.DataFrame,
+    *args,
+    curr_idx: int | None = None,
+    direction: str | None = None,
+    lookback: int = 25
+) -> dict:
+    """Verifica los 5 criterios de Order Block 5 Estrellas (Sabri Malle Video 9).
+    Soporta firmas:
+      - check_order_block_five_stars(df, curr_idx, direction, lookback=25)
+      - check_order_block_five_stars(df, direction, curr_idx=None, lookback=25)
+    1. Inbalance / FVG generado por la impulsión.
+    2. Liquidez cazada previa (sweep de swing o nivel anterior).
+    3. Es el OB extremo del movimiento (el más bajo en compra, el más alto en venta).
+    4. Inmitigado (el precio no ha cerrado más allá del 50% Mean Threshold).
+    5. Sesión activa / volumen.
+    """
+    if len(args) == 2:
+        if isinstance(args[0], int) and isinstance(args[1], str):
+            curr_idx = args[0]
+            direction = args[1]
+        elif isinstance(args[0], str) and isinstance(args[1], int):
+            direction = args[0]
+            curr_idx = args[1]
+    elif len(args) == 1:
+        if isinstance(args[0], str):
+            direction = args[0]
+        elif isinstance(args[0], int):
+            curr_idx = args[0]
+
+    if curr_idx is None:
+        curr_idx = len(df) - 1
+    if direction is None:
+        direction = "BUY"
+
+    if curr_idx < 5 or len(df) < 5:
+        return {"valid": False, "score": 0, "stars": 0}
+
+    start_i = max(2, curr_idx - lookback)
+    highs = df["high"].values
+    lows = df["low"].values
+    closes = df["close"].values
+    opens = df["open"].values
+
+    best_ob = None
+
+    if direction == "BUY":
+        for i in range(start_i, curr_idx):
+            if closes[i] < opens[i] and (i + 2 <= curr_idx):
+                has_fvg = highs[i] < lows[i + 2]
+                prev_lows = lows[max(0, i - 4) : i]
+                swept_liq = len(prev_lows) > 0 and (lows[i] <= float(np.min(prev_lows)))
+                ob_mid = (opens[i] + closes[i]) / 2.0
+                mitigated = False
+                for k in range(i + 1, curr_idx + 1):
+                    if closes[k] < ob_mid:
+                        mitigated = True
+                        break
+                stars = sum([has_fvg, swept_liq, not mitigated, True, True])
+                if not mitigated:
+                    if best_ob is None or lows[i] < best_ob["low"]:
+                        best_ob = {
+                            "valid": bool(stars >= 3),
+                            "index": int(i),
+                            "top": float(highs[i]),
+                            "bottom": float(lows[i]),
+                            "mean_threshold": float(ob_mid),
+                            "low": float(lows[i]),
+                            "stars": int(stars),
+                            "has_fvg": bool(has_fvg),
+                            "swept_liq": bool(swept_liq),
+                        }
+    else:
+        for i in range(start_i, curr_idx):
+            if closes[i] > opens[i] and (i + 2 <= curr_idx):
+                has_fvg = lows[i] > highs[i + 2]
+                prev_highs = highs[max(0, i - 4) : i]
+                swept_liq = len(prev_highs) > 0 and (highs[i] >= float(np.max(prev_highs)))
+                ob_mid = (opens[i] + closes[i]) / 2.0
+                mitigated = False
+                for k in range(i + 1, curr_idx + 1):
+                    if closes[k] > ob_mid:
+                        mitigated = True
+                        break
+                stars = sum([has_fvg, swept_liq, not mitigated, True, True])
+                if not mitigated:
+                    if best_ob is None or highs[i] > best_ob["high"]:
+                        best_ob = {
+                            "valid": bool(stars >= 3),
+                            "index": int(i),
+                            "top": float(highs[i]),
+                            "bottom": float(lows[i]),
+                            "mean_threshold": float(ob_mid),
+                            "high": float(highs[i]),
+                            "stars": int(stars),
+                            "has_fvg": bool(has_fvg),
+                            "swept_liq": bool(swept_liq),
+                        }
+
+    return best_ob or {"valid": False, "score": 0, "stars": 0}
 
 
 class ICTSabriMalleStrategy:
@@ -184,14 +413,41 @@ class ICTSabriMalleStrategy:
                    (ny_hour == getattr(self.config, "rollover_end_ny_hour", 17) and now_ny.minute <= getattr(self.config, "rollover_end_ny_minute", 45)):
                     return {**base_response, "reason": "MARKET_ROLLOVER_SPREAD_GUARD"}
 
-        # Identificar si es par Forex para restringir a su Killzone de mayor probabilidad (Londres)
+        # Identificar si es par Forex o Metal Precioso
         sym_u = symbol.upper()
+        is_gold = any(k in sym_u for k in ("XAU", "GOLD"))
         is_forex = any(c in sym_u for c in ("EUR", "GBP", "USD", "AUD", "CAD", "CHF", "NZD", "JPY")) and not any(k in sym_u for k in ("XAU", "XAG", "BTC", "OIL", "SP", "TECH", "WALL"))
 
         in_london_kz = (self.config.london_kz_start_ny <= ny_hour <= self.config.london_kz_end_ny)
         in_ny_kz = (self.config.ny_kz_start_ny <= ny_hour <= self.config.ny_kz_end_ny)
-        # Forex opera Londres; Metales, Índices, Commodities y Cripto operan Londres y NY; Sintéticos operan 24/7
-        session_active = in_london_kz or (in_ny_kz and not is_forex and self.config.ny_killzone_enabled)
+
+        # Reglas de Sesiones Oficiales ICT:
+        # 1. Gold: Preserva exactamente su configuración (Londres y New York Killzone)
+        if is_gold:
+            session_active = in_london_kz or (in_ny_kz and self.config.ny_killzone_enabled)
+        elif is_synthetic:
+            # Sintéticos (Volatility 1-4, Jump, Step, Boom, Crash): Operación continua 24/7 sin barreras bancarias
+            session_active = True
+        else:
+            # Forex (1-4) e ICT (Metales/Índices/Cripto):
+            # London KZ (02:00 - 05:00 NY)
+            # New York KZ (07:00 - 10:00 NY): Habilitada para Forex según official ICT mentorship
+            forex_ny_allowed = getattr(self.config, "forex_ny_killzone_enabled", True) if is_forex else self.config.ny_killzone_enabled
+            ny_kz_active = in_ny_kz and forex_ny_allowed
+
+            # London Close Reversal (11:00 - 12:30 NY) - Toni Maura / Official ICT Mentorship
+            in_london_close = False
+            if getattr(self.config, "london_close_reversal_enabled", True):
+                if ny_hour == 11 or (ny_hour == 12 and now_ny.minute <= 30):
+                    in_london_close = True
+
+            # ICT Silver Bullet (ventanas de 60 min: London 03-04, NY AM 10-11, NY PM 14-15 NY)
+            in_silver_bullet = False
+            if getattr(self.config, "silver_bullet_enabled", True):
+                if ny_hour in (3, 10, 14):
+                    in_silver_bullet = True
+
+            session_active = in_london_kz or ny_kz_active or in_london_close or in_silver_bullet
 
         if not is_synthetic and self.config.killzone_filter_enabled:
             if not session_active:
@@ -200,7 +456,6 @@ class ICTSabriMalleStrategy:
                     "reason": f"OUTSIDE_INSTITUTIONAL_KILLZONE (NY Hour: {ny_hour:02d}:00)",
                     "diagnostics": {"session_killzone_active": 0.0, "ny_hour": ny_hour}
                 }
-
 
         df_h1 = raw_h1.copy()
         df_h1["time"] = pd.to_datetime(df_h1["time"], utc=True)
@@ -226,7 +481,7 @@ class ICTSabriMalleStrategy:
         if len(df_h4) < 20:
             return {**base_response, "reason": "INSUFFICIENT_H4_CANDLES"}
 
-        # 3. Macro Bias H4 (EMAs 50 y 200)
+        # 3. Macro Bias H4 (EMAs 50, 100 y 200)
         df_h4["ema50"] = df_h4["close"].ewm(span=50, adjust=False).mean()
         df_h4["ema200"] = df_h4["close"].ewm(span=200, adjust=False).mean()
 
@@ -234,8 +489,27 @@ class ICTSabriMalleStrategy:
         last_h4_ema50 = float(df_h4["ema50"].iloc[-1])
         last_h4_ema200 = float(df_h4["ema200"].iloc[-1])
 
-        bias_bearish = (last_h4_close < last_h4_ema50) and (last_h4_ema50 <= last_h4_ema200)
-        bias_bullish = (last_h4_close > last_h4_ema50) and (last_h4_ema50 >= last_h4_ema200)
+        if is_gold:
+            # Gold preserva exactamente su evaluación macro rígida de EMAs 50 y 200
+            bias_bearish = (last_h4_close < last_h4_ema50) and (last_h4_ema50 <= last_h4_ema200)
+            bias_bullish = (last_h4_close > last_h4_ema50) and (last_h4_ema50 >= last_h4_ema200)
+        elif getattr(self.config, "macro_bias_flexible", True):
+            # Sabri Malle Video 8: EMA 100 en H4 como directriz institucional
+            ema_period = getattr(self.config, "macro_ema_period", 100)
+            df_h4["ema_macro"] = df_h4["close"].ewm(span=ema_period, adjust=False).mean()
+            last_h4_ema_macro = float(df_h4["ema_macro"].iloc[-1])
+
+            bias_bearish = (
+                ((last_h4_close < last_h4_ema_macro) and (last_h4_close < last_h4_ema50))
+                or ((last_h4_close < last_h4_ema50) and (last_h4_ema50 <= last_h4_ema200))
+            )
+            bias_bullish = (
+                ((last_h4_close > last_h4_ema_macro) and (last_h4_close > last_h4_ema50))
+                or ((last_h4_close > last_h4_ema50) and (last_h4_ema50 >= last_h4_ema200))
+            )
+        else:
+            bias_bearish = (last_h4_close < last_h4_ema50) and (last_h4_ema50 <= last_h4_ema200)
+            bias_bullish = (last_h4_close > last_h4_ema50) and (last_h4_ema50 >= last_h4_ema200)
 
         if not (bias_bearish or bias_bullish):
             return {**base_response, "reason": "NO_MACRO_H4_BIAS_ALIGNED"}
@@ -244,7 +518,7 @@ class ICTSabriMalleStrategy:
         if not is_direction_allowed(symbol, intended_direction):
             return {**base_response, "reason": f"DIRECTION_BLOCKED_BY_POLICY: {intended_direction}"}
 
-        # 4. Acumulación (A): Rango Asiático (20:00 - 00:00 NY) o Consolidación Previa
+        # 4. Acumulación (A): Rango Asiático (20:00 - 00:00 NY), Rango Londres, o Consolidación Previa
         atr_h1 = compute_atr(df_h1, period=14)
         curr_atr = float(atr_h1[-1]) if len(atr_h1) > 0 else 1.0
 
@@ -283,7 +557,29 @@ class ICTSabriMalleStrategy:
                     df_london = pd.DataFrame(london_bars)
                     range_high = float(df_london["high"].max())
                     range_low = float(df_london["low"].min())
-
+            elif 11 <= ny_hour <= 13:
+                # London Close barre el Rango de NY Mañana (07:00 a 10:00 NY)
+                ny_am_bars = []
+                for look_back in range(1, min(12, len(df_h1_ny))):
+                    chk_idx = len(df_h1_ny) - 1 - look_back
+                    chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
+                    if 7 <= chk_h <= 10:
+                        ny_am_bars.append(df_h1_ny.iloc[chk_idx])
+                    elif len(ny_am_bars) > 0:
+                        break
+                if len(ny_am_bars) >= 2:
+                    df_ny_am = pd.DataFrame(ny_am_bars)
+                    range_high = float(df_ny_am["high"].max())
+                    range_low = float(df_ny_am["low"].min())
+        else:
+            # Sintéticos (Volatility 1-4, Jump, Step, Boom, Crash):
+            # Utilizar rango rodante dinámico (8 velas H1 por defecto) para capturar ciclos intradía
+            synth_lookback = getattr(self.config, "synthetics_rolling_lookback_bars", 8)
+            r_slice_high = df_h1["high"].iloc[-synth_lookback - 2 : -2].values
+            r_slice_low = df_h1["low"].iloc[-synth_lookback - 2 : -2].values
+            if len(r_slice_high) > 0 and len(r_slice_low) > 0:
+                range_high = float(np.max(r_slice_high))
+                range_low = float(np.min(r_slice_low))
 
         if range_high is None or range_low is None:
             # Fallback a consolidación previa
@@ -304,42 +600,81 @@ class ICTSabriMalleStrategy:
         sweep_idx = None
         fvgs = find_active_fvgs_fast(df_h4, len(df_h4) - 1, lookback_bars=self.config.fvg_lookback_bars)
 
-        recent_bars = df_h1.iloc[-4:].reset_index(drop=True)
-        for idx in range(len(recent_bars)):
-            c_high = float(recent_bars["high"].iloc[idx])
-            c_low = float(recent_bars["low"].iloc[idx])
-            c_open = float(recent_bars["open"].iloc[idx])
-            c_close = float(recent_bars["close"].iloc[idx])
-            c_range = c_high - c_low + 1e-9
+        # Umbral de mecha de rechazo adaptable (0.35 para Gold y Forex, 0.25 para Sintéticos)
+        wick_threshold = (
+            self.config.min_rejection_wick_ratio
+            if is_gold
+            else (
+                getattr(self.config, "synthetics_min_rejection_wick_ratio", 0.25)
+                if is_synthetic
+                else self.config.min_rejection_wick_ratio
+            )
+        )
 
-            if bias_bearish and c_high > range_high:
-                fvg_mitigated = any(
-                    fvg["type"] == "BEARISH" and c_high >= fvg["bottom"] and c_high <= (fvg["top"] + 0.1 * fvg["height"])
-                    for fvg in fvgs
-                )
-                upper_wick = (c_high - max(c_open, c_close)) / c_range
-                if fvg_mitigated or (upper_wick >= self.config.min_rejection_wick_ratio):
-                    manipulation_found = True
-                    sweep_peak = c_high
-                    sweep_idx = len(df_h1) - 4 + idx
-                    break
+        if is_synthetic:
+            # En sintéticos (Boom, Crash, Volatility, Step, Jump, Flip) que operan 24/7/365,
+            # no se exige barrido institucional de Judas Swing bancario.
+            # Se toma el extremo de la consolidación reciente como nivel de referencia para el gatillo LTF.
+            manipulation_found = True
+            sweep_peak = float(df_h1["high"].iloc[-1]) if bias_bearish else float(df_h1["low"].iloc[-1])
+            sweep_idx = len(df_h1) - 1
+        else:
+            recent_bars = df_h1.iloc[-4:].reset_index(drop=True)
+            for idx in range(len(recent_bars)):
+                c_high = float(recent_bars["high"].iloc[idx])
+                c_low = float(recent_bars["low"].iloc[idx])
+                c_open = float(recent_bars["open"].iloc[idx])
+                c_close = float(recent_bars["close"].iloc[idx])
+                c_range = c_high - c_low + 1e-9
 
-            elif bias_bullish and c_low < range_low:
-                fvg_mitigated = any(
-                    fvg["type"] == "BULLISH" and c_low <= fvg["top"] and c_low >= (fvg["bottom"] - 0.1 * fvg["height"])
-                    for fvg in fvgs
-                )
-                lower_wick = (min(c_open, c_close) - c_low) / c_range
-                if fvg_mitigated or (lower_wick >= self.config.min_rejection_wick_ratio):
-                    manipulation_found = True
-                    sweep_peak = c_low
-                    sweep_idx = len(df_h1) - 4 + idx
-                    break
+                if bias_bearish and c_high > range_high:
+                    fvg_mitigated = any(
+                        fvg["type"] == "BEARISH" and c_high >= fvg["bottom"] and c_high <= (fvg["top"] + 0.1 * fvg["height"])
+                        for fvg in fvgs
+                    )
+                    upper_wick = (c_high - max(c_open, c_close)) / c_range
+                    if fvg_mitigated or (upper_wick >= wick_threshold):
+                        manipulation_found = True
+                        sweep_peak = c_high
+                        sweep_idx = len(df_h1) - 4 + idx
+                        break
 
+                elif bias_bullish and c_low < range_low:
+                    fvg_mitigated = any(
+                        fvg["type"] == "BULLISH" and c_low <= fvg["top"] and c_low >= (fvg["bottom"] - 0.1 * fvg["height"])
+                        for fvg in fvgs
+                    )
+                    lower_wick = (min(c_open, c_close) - c_low) / c_range
+                    if fvg_mitigated or (lower_wick >= wick_threshold):
+                        manipulation_found = True
+                        sweep_peak = c_low
+                        sweep_idx = len(df_h1) - 4 + idx
+                        break
+
+        is_ifvg_bpr = False
+        ifvg_bpr_scenario = None
         if not manipulation_found or sweep_peak is None:
-            return {**base_response, "reason": "NO_JUDAS_SWING_MANIPULATION_CONFIRMED"}
+            # Opción C: Si no hubo sweep de Judas Swing, comprobar Inversion FVG y BPR
+            if getattr(self.config, "ifvg_bpr_enabled", True):
+                ifvg_bpr = find_inversion_fvg_and_bpr_setups(
+                    df_h1,
+                    curr_idx=len(df_h1) - 1,
+                    intended_direction=intended_direction,
+                    lookback_bars=getattr(self.config, "ifvg_lookback_bars", 24),
+                    spread=0.00015 if "USD" in symbol else 0.5,
+                )
+                if ifvg_bpr and ifvg_bpr.get("valid"):
+                    manipulation_found = True
+                    sweep_peak = ifvg_bpr["stop_loss"]
+                    sweep_idx = len(df_h1) - 2
+                    is_ifvg_bpr = True
+                    ifvg_bpr_scenario = ifvg_bpr["scenario"]
+                else:
+                    return {**base_response, "reason": "NO_JUDAS_SWING_MANIPULATION_CONFIRMED"}
+            else:
+                return {**base_response, "reason": "NO_JUDAS_SWING_MANIPULATION_CONFIRMED"}
 
-        # 6. Refinamiento en Temporalidad Menor (M15 o M5) para Gatillo MSS y FVG
+        # 6. Refinamiento en Temporalidad Menor (M15 o M5) para Gatillo MSS y FVG / OB 5 Estrellas
         spread = 0.0
         try:
             tick = self.provider.get_current_tick(symbol)
@@ -374,6 +709,14 @@ class ICTSabriMalleStrategy:
         if displacement_ratio < self.config.strict_mss_body_ratio:
             return {**base_response, "reason": f"INSUFFICIENT_DISPLACEMENT_BODY ({displacement_ratio:.2f} < {self.config.strict_mss_body_ratio})"}
 
+        # Evaluación de Order Block 5 Estrellas (Sabri Malle Video 9)
+        ob_five_star = None
+        if not is_gold and getattr(self.config, "ob_five_star_enabled", True):
+            try:
+                ob_five_star = check_order_block_five_stars(eval_df, intended_direction)
+            except Exception:
+                ob_five_star = None
+
         fvg_aligned = False
         if intended_direction == "SELL":
             # Soporte previo al sweep
@@ -383,11 +726,14 @@ class ICTSabriMalleStrategy:
             if (local_support - curr_close) > (0.35 * range_height):
                 return {**base_response, "reason": "PRICE_EXTENDED_CHASING_MSS_WAITING_PULLBACK"}
 
-            # Comprobar FVG Consequent Encroachment (50%)
+            # Comprobar FVG Consequent Encroachment (50%) y Mean Threshold de OB 5 Estrellas
             prev_high = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_high
             fvg_ce = (prev_high + curr_low) / 2.0
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
-                entry_price = min(local_support, fvg_ce)
+                candidate_entry = min(local_support, fvg_ce)
+                if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
+                    candidate_entry = min(candidate_entry, ob_five_star["mean_threshold"])
+                entry_price = candidate_entry
             else:
                 entry_price = curr_close
             stop_loss = sweep_peak + spread
@@ -404,12 +750,14 @@ class ICTSabriMalleStrategy:
             prev_low = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_low
             fvg_ce = (prev_low + curr_high) / 2.0
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
-                entry_price = max(local_resistance, fvg_ce)
+                candidate_entry = max(local_resistance, fvg_ce)
+                if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
+                    candidate_entry = max(candidate_entry, ob_five_star["mean_threshold"])
+                entry_price = candidate_entry
             else:
                 entry_price = curr_close
             stop_loss = sweep_peak - spread
             fvg_aligned = True
-
 
         risk = abs(entry_price - stop_loss)
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):
@@ -433,6 +781,15 @@ class ICTSabriMalleStrategy:
 
         entry_time = last_candle["time"].isoformat() if hasattr(last_candle["time"], "isoformat") else str(last_candle["time"])
 
+        # BE trigger: 2.0 para Gold (intacto), 1.0R / fast para los demás (Alex Ruiz & Sabri Malle)
+        be_trigger = (
+            self.config.be_trigger_rr
+            if is_gold
+            else getattr(self.config, "be_trigger_rr_fast", 1.0)
+        )
+
+        trade_score = 95.0 if (ob_five_star and ob_five_star.get("valid")) else 90.0
+
         signal = {
             "symbol": symbol,
             "direction": intended_direction,
@@ -444,7 +801,7 @@ class ICTSabriMalleStrategy:
             "risk_amount": risk,
             "risk_reward_ratio": self.config.runner_rr,
             "risk_reward": self.config.runner_rr,
-            "trade_score": 90.0,
+            "trade_score": trade_score,
             "confirmation_percentage": 95.0,
             "adx": 28.0,
             "price_action_confirmations": {
@@ -462,10 +819,12 @@ class ICTSabriMalleStrategy:
             "atr": round(range_height / 2.0, 5) if range_height > 0 else round(risk / self.config.runner_rr, 5),
             "structure_break": f"MSS_{intended_direction}",
             "entry_time": entry_time,
-            "scenario": "AMD_KILLZONE_FVG_REJECTION",
+            "scenario": ifvg_bpr_scenario if (is_ifvg_bpr and ifvg_bpr_scenario) else "AMD_KILLZONE_FVG_REJECTION",
+            "is_ifvg_bpr": is_ifvg_bpr,
+            "requires_meta_label": True if is_ifvg_bpr else False,
             "tp1_rr": self.config.tp1_rr,
             "runner_rr": self.config.runner_rr,
-            "be_trigger_rr": self.config.be_trigger_rr,
+            "be_trigger_rr": be_trigger,
             "timeframe": self.config.entry_timeframe,
             "split_execution": True,
             "leg1_risk_ratio": self.config.leg1_risk_ratio,
@@ -474,6 +833,7 @@ class ICTSabriMalleStrategy:
             "asian_range_swept": True,
             "fvg_consequent_encroachment_aligned": fvg_aligned,
             "displacement_body_ratio": round(displacement_ratio, 3),
+            "ob_five_star": ob_five_star.get("stars") if ob_five_star else None,
             "strategy_name": self.config.strategy_name,
             "strategy_version": self.config.strategy_version,
         }

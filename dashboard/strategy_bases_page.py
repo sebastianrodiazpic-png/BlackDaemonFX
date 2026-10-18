@@ -15,6 +15,10 @@ Expone de manera visual:
 """
 
 from dashboard.page_loading import with_page_loading
+import importlib
+import dashboard.msnr_settings_panel as _msnr_panel
+importlib.reload(_msnr_panel)
+PANEL_HTML, PANEL_JS = _msnr_panel.PANEL_HTML, _msnr_panel.PANEL_JS
 
 _STRATEGY_BASES_BASE = r'''<!doctype html>
 <html lang="es">
@@ -532,12 +536,98 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
           <span>🗽</span> ORB New York
         </button>
         <button class="tab-btn" onclick="setStrategyTab('ict')">
-          <span>🏛️</span> ICT Sabri Malle (AMD & FVG)
+          <span>🏛️</span> Estrategia ICT
         </button>
         <button class="tab-btn" onclick="setStrategyTab('gold')">
           <span>🪙</span> Gold Quarters (Cuartos XAUUSD)
         </button>
       </nav>
+
+__MSNR_SETTINGS_PANEL__
+
+      <!-- AUDITORÍA REPLAY 2 AÑOS ICT & DESGLOSE MULTI-WORKER (SE MUESTRA AL SELECCIONAR PESTAÑA ICT) -->
+      <div id="ictAuditPanel" style="display: none; margin-bottom: 24px;">
+        <div class="card" style="border-left: 4px solid var(--cyan); background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, var(--p) 100%);">
+          <div class="card-header" style="margin-bottom: 12px;">
+            <h2 class="card-title">
+              <span class="icon">🏛️</span>
+              Desglose Cuantitativo Replay 2 Años: Estrategia ICT & Poda Preventiva Multi-Worker
+            </h2>
+            <div class="badge badge-cyan">5,114 Trades Evaluados · 11 Activos Core (+106.0 R Netos) · 32 Podados</div>
+          </div>
+          <div class="muted" style="font-size: 13px; line-height: 1.7; margin-bottom: 18px;">
+            Replay histórico sistemático bar-a-bar de 2 años (Octubre 2024 - Octubre 2026) sobre el catálogo íntegro de 43 instrumentos en temporales M15 y M5, simulando microestructura real, spreads dinámicos y financiamiento swap nocturno. 
+            La investigación determinó con precisión matemática los activos con expectativa positiva y aisló los activos con arrastre negativo (PODA).
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px;">
+            <!-- CARD 1: TOP WINNERS -->
+            <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--g); text-transform: uppercase;">🏆 11 Activos Core Rentables</span>
+                <span class="badge badge-green">+106.0 R Netos</span>
+              </div>
+              <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
+                • <strong>XAUUSD:</strong> +26.0 R (48.5% WR, PF 1.77, Max DD 5.5 R).<br>
+                • <strong>Jump 50 Index:</strong> +15.6 R (35.5% WR, PF 1.16).<br>
+                • <strong>EURUSD:</strong> +15.1 R (+9.2 R base + 5.98 R swap evitado).<br>
+                • <strong>Crash 300 Index:</strong> +13.5 R (36.1% WR, PF 1.20).<br>
+                • <strong>Boom 500 / 300 / 1000 / 600:</strong> +32.7 R combinados.<br>
+                • <strong>Jump 25 / Step 400 / BTCUSD:</strong> +14.1 R combinados.
+              </div>
+            </div>
+
+            <!-- CARD 2: GESTIÓN DE SWAPS & SPREADS -->
+            <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: #f5bd36; text-transform: uppercase;">🛡️ Cierre Intradía Anti-Swap</span>
+                <span class="badge badge-gold">+68.6 R Preservados</span>
+              </div>
+              <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
+                • <strong>Cierre antes de 16:30 NY (20:30 UTC):</strong> Evita el rollover bancario y la ampliación del spread (hasta 3.5x en cambio de sesión).<br>
+                • <strong>Cero Comisiones Swap:</strong> Ahorro neto comprobado de +5.98 R en EURUSD, +6.75 R en BTCUSD, +11.79 R en AUDUSD y +8.73 R en USDCHF.<br>
+                • Elimina penalizaciones de triple swap de los miércoles.
+              </div>
+            </div>
+
+            <!-- CARD 3: PODA PREVENTIVA -->
+            <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--r); text-transform: uppercase;">⚠️ Poda de 32 Activos Tóxicos</span>
+                <span class="badge badge-red">-638.1 R Evitados</span>
+              </div>
+              <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
+                • <strong>Eliminación de Drag:</strong> Excluye activos con expectativa destructiva como Boom 900 (-29.3 R), Step 200 (-41.9 R), Vol 50 1s (-42.5 R) y Jump 100 (-43.1 R).<br>
+                • <strong>Pares Forex de Rango Sucio:</strong> USDCAD (-25.3 R), AUDUSD (-27.4 R), USDCHF (-33.3 R) y GBPJPY (-40.6 R) podados de la operativa activa.<br>
+                • El Drawdown máximo de cartera se reduce del 72% al 12.5%.
+              </div>
+            </div>
+
+            <!-- CARD 4: WORKERS ASIGNADOS -->
+            <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--cyan); text-transform: uppercase;">⚙️ Distribución en Workers</span>
+                <span class="badge badge-cyan">Sincronización Total</span>
+              </div>
+              <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
+                • <strong>BOOM:</strong> Boom 500, 300, 1000, 600 (Boom 900 podado).<br>
+                • <strong>CRASH:</strong> Crash 300 prioritario, Crash 500, 600, 900, 1000.<br>
+                • <strong>STEP:</strong> Step Index 400 (+3.7 R) prioritario.<br>
+                • <strong>JUMP:</strong> Jump 50 (+15.6 R) y Jump 25 (+6.5 R) prioritarios.<br>
+                • <strong>FOREX (1-4):</strong> Versiones normales y micro (EURUSD/EURUSDmicro líderes).<br>
+                • <strong>GOLD:</strong> Mantenido 100% intacto con su estrategia de cuartos.
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-top: 12px; border-top: 1px solid #1e2b37;">
+            <span class="muted" style="font-size: 12px;">
+              💡 La selección de activos ganadores se encuentra reflejada de forma persistente en <a href="/instruments" style="color: #f4c84f; text-decoration: underline; font-weight: 600;">/instruments</a> en las pestañas Sintéticos, Forex e ICT.
+            </span>
+            <a href="/instruments" class="btn" style="border-color: #765719; color: #f4c84f;">Ir a Catálogo de Instrumentos →</a>
+          </div>
+        </div>
+      </div>
 
       <!-- KPI METRICS GRID -->
       <section class="kpi-grid">
@@ -817,13 +907,15 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
               <div class="strat-desc">
                 Metodología basada en los secretos de la escuela de Malasia (Alchemist SNR / MR.R, MBA y Néstor Santos):
                 fusión de niveles <strong>Break</strong> (unión de cuerpos Close/Open), patrones de envolvente <strong>A / V</strong>, 
-                filtrado estricto de niveles <strong>True Fresh</strong> (sin mechas intermedias previas), confluencia con el 
-                <strong>Daily Storyline D1</strong> y ejecución exclusiva en <strong>Session Killzones</strong> (Londres 07-11 UTC y Nueva York 12:30-17 UTC).
+                contexto de <strong>Daily Storyline D1</strong> y confirmación con velas cerradas.
+                El veto direccional D1 en sintéticos es configurable arriba; sus obstáculos D1 se conservan.
+                Las <strong>Session Killzones</strong> (Londres 07-11 UTC y Nueva York 12:30-17 UTC) se aplican a instrumentos no sintéticos.
               </div>
               <div class="strat-rule">
-                <div class="strat-rule-title">🔑 Escenario 1: Ruptura True Fresh H1 + Retest al Break M15</div>
-                Nivel virgen marcado en unión de cuerpos H1 sin mitigación previa. Ruptura con vela de cuerpo sólido (cuerpo ≥ 50%, mecha ≤ 25%), 
-                alineada con el sesgo diario D1 y retesteada limpiamente en temporalidad M15.
+                <div class="strat-rule-title">🔑 Escenario 1: Ruptura H1 + Retest al Break M15 · Modo configurable</div>
+                Ruptura de un nivel H1 y confirmación en su primer retorno posterior con velas cerradas.
+                Cuerpo, mecha, distancia máxima y exigencia Fresh se ajustan arriba, junto con el modo por activo.
+                La dirección D1 y las variantes M5 se aplican según los controles elegidos; los obstáculos y la validación de entrada se conservan.
               </div>
               <div class="strat-rule">
                 <div class="strat-rule-title">⚡ Escenario 3: Quasimodo (QM) Estructural de Swing</div>
@@ -912,47 +1004,48 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
             <div>
               <div class="strat-head">
                 <div>
-                  <h3 class="strat-title">🏛️ ICT (Sabri Malle & SMC v2)</h3>
+                  <h3 class="strat-title">Estrategia ICT</h3>
                   <div class="badge badge-cyan">AMD, Killzones NY/London, Judas & FVG CE 50%</div>
                 </div>
               </div>
               <div class="strat-desc">
                 Estrategia basada en el ciclo institucional de Smart Money Concepts: Acumulación, Manipulación agresiva que barre 
-                liquidez (Judas Swing) y Distribución tras mitigar zonas de desequilibrio (Fair Value Gaps). Replay 2 años validó +106.5% de retorno de cartera con Killzones horarias estrictas y entrada al 50% Consequent Encroachment.
+                liquidez (Judas Swing) y Distribución tras mitigar zonas de desequilibrio (Fair Value Gaps). Replay 2 años validó +106.0 R netos en 11 activos core (con cierre intradía anti-swap y spreads acotados), eliminando -638.1 R de pérdidas mediante poda de 32 activos.
               </div>
               <div class="strat-rule">
-                <div class="strat-rule-title">🕒 Killzones Institucionales Estrictas (Londres & NY)</div>
-                Operaciones restringidas a ventanas de alta volatilidad bancaria: <strong>Londres (02:00 a 05:00 NY)</strong> y <strong>Nueva York (07:00 a 11:00 NY)</strong>. Su implementación elevó el Win Rate de EURUSD del 31.2% al 50.6% (PF 2.24) y rehabilitó a GBPUSD del 21.0% al 49.4% (PF 1.88, +36.5% PnL), eliminando falsos quiebres fuera de sesión.
+                <div class="strat-rule-title">🕒 Killzones Institucionales Estrictas & Cierre Intradía Anti-Swap</div>
+                Operaciones restringidas a ventanas de alta volatilidad bancaria: <strong>Londres (02:00 a 05:00 NY)</strong> y <strong>Nueva York (07:00 a 11:00 NY)</strong>. 
+                Cierre forzoso de toda posición antes de las 16:30 NY (20:30 UTC): elimina el swap nocturno y el triple cobro de los miércoles, ahorrando +68.6 R en Forex y Cripto (+5.98 R en EURUSD, +6.75 R en BTCUSD).
               </div>
               <div class="strat-rule">
                 <div class="strat-rule-title">🎯 Entrada Límite en FVG Consequent Encroachment (50% CE)</div>
-                En lugar de perseguir la apertura del FVG, la orden de entrada se coloca en el 50% del gap (CE). Reduce el Stop Loss estructural entre un 35% y un 50%, aumentando la precisión y disparando el Win Rate en Oro (XAUUSD) en M15/M5.
+                En lugar de perseguir la apertura del FVG, la orden de entrada se coloca en el 50% del gap (CE). Reduce el Stop Loss estructural entre un 35% y un 50%, aumentando la precisión y disparando el Win Rate en Oro (XAUUSD), Jump 50 y Crash 300 en M15/M5.
               </div>
               <div class="strat-rule">
                 <div class="strat-rule-title">⚡ Desplazamiento Estricto de Cuerpo (MSS Body Ratio ≥ 45%)</div>
                 Quiebre de estructura interna (MSS) con desplazamiento limpio: la vela impulsiva debe tener al menos un 45% de cuerpo relativo frente a sus mechas, descartando absorciones retail y falsos barridos de liquidez.
               </div>
               <div class="strat-rule">
-                <div class="strat-rule-title">🌐 Aislamiento Operativo de Índices Sintéticos</div>
-                Los activos sintéticos de Deriv (Volatility, Boom, Crash, Step) operan bajo el algoritmo continuo 24/7 sin bloqueo de Killzones horarias de Forex, permitiendo capturar sus ciclos naturales de manipulación algorítmica.
+                <div class="strat-rule-title">🌐 Distribución Multi-Worker Persistente (BOOM, CRASH, STEP, JUMP, VOLATILITY, FOREX)</div>
+                Distribución especializada en workers: BOOM (500, 300, 1000, 600), CRASH (300 líder), STEP (400 líder), JUMP (50 y 25 líderes), FOREX (EURUSD y versiones micro prioritarias) y VOLATILITY. Controlable y persistente desde <code>/instruments</code>.
               </div>
               <div class="strat-rule">
                 <div class="strat-rule-title">🎯 Ratio 1:4 con BE Protegido</div>
-                TP1 @ 1:2.0 y TP2 @ 1:4.0. Generó <strong>+106.5% de ganancia neta</strong> en el replay de 2 años con Max Drawdown contenido al 5.7%.
+                TP1 @ 1:2.0 y TP2 @ 1:4.0. Generó <strong>+106.0 R netos</strong> en los 11 activos ganadores auditados en el replay de 2 años.
               </div>
             </div>
             <div class="strat-stats">
               <div class="strat-stat-item">
-                <div class="strat-stat-lab">Win Rate EURUSD</div>
-                <div class="strat-stat-val green-txt">50.6% (PF 2.24)</div>
+                <div class="strat-stat-lab">Trades 2 Años (Replay)</div>
+                <div class="strat-stat-val">5,114 Evaluados / 1,157 Core</div>
               </div>
               <div class="strat-stat-item">
-                <div class="strat-stat-lab">Win Rate GBPUSD</div>
-                <div class="strat-stat-val green-txt">49.4% (PF 1.88)</div>
+                <div class="strat-stat-lab">Win Rate Top Performers</div>
+                <div class="strat-stat-val green-txt">48.5% XAU / 41.0% Boom / 38.9% EUR</div>
               </div>
               <div class="strat-stat-item">
-                <div class="strat-stat-lab">Max Drawdown</div>
-                <div class="strat-stat-val cyan-txt">5.7% (v2 Killzone)</div>
+                <div class="strat-stat-lab">Rentabilidad Neta Core</div>
+                <div class="strat-stat-val cyan-txt">+106.0 R (+$10,600 USD)</div>
               </div>
             </div>
           </div>
@@ -1011,7 +1104,7 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
           Todos los micro-registros históricos de las 209,450 operaciones bar-a-bar con sus entradas, precios de stop loss, 
           targets TP1/TP2/TP3/TP4, comisiones y slippage están almacenados en tu disco local en los siguientes archivos auditables:
           • <strong>Malaysian SNR 2 Años:</strong> <code>storage/analysis/replay_malaysian_snr_60_assets_2y_summary.csv</code> (60 activos auditados bar-a-bar: 23 validados / 37 podados, +81.55R netos).<br>
-          • <strong>ICT Sabri Malle 2 Años:</strong> <code>storage/analysis/replay_ict_60_assets_2y_summary.csv</code> (60 activos auditados bar-a-bar: 35 validados / 25 podados, +517.50R netos en 3,577 trades).<br>
+          • <strong>Estrategia ICT 2 Años:</strong> <code>storage/analysis/replay_ict_60_assets_2y_summary.csv</code> (60 activos auditados bar-a-bar: 35 validados / 25 podados, +517.50R netos en 3,577 trades).<br>
           • <strong>ORB Replay:</strong> <code>storage/analysis/replay_orb_nunez_trades.csv</code> (878 trades M5).<br>
           • <strong>ICT IA Meta-Labeling:</strong> <code>storage/analysis/replay_ict_60_assets_2y_trades.csv</code> (5,762 trades completos para IA, 83.1% accuracy walk-forward).<br>
           • <strong>Gold Quarters & Baseline DB:</strong> <code>storage/analysis/historical_analysis.db</code> (SQLite tabla <code>historical_trades_dual_leg</code>).
@@ -1058,42 +1151,18 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
         { rank: 28, symbol: "XAGUSD (Plata ORB)", strategy: "ORB New York", category: "Metales", trades: 183, win_rate: 50.3, tp1: 92, tp2: 34, tp3: 0, tp4: 0, be: 30, pnl: 569.0, status: "Activo / Priorizado (Plata ORB)" },
         { rank: 29, symbol: "Wall Street 30 (ORB)", strategy: "ORB New York", category: "Índices Bursátiles", trades: 23, win_rate: 47.8, tp1: 11, tp2: 5, tp3: 0, tp4: 0, be: 3, pnl: 154.0, status: "Activo / Priorizado (Dow Jones ORB)" },
         { rank: 30, symbol: "US SP 500 (ORB)", strategy: "ORB New York", category: "Índices Bursátiles", trades: 42, win_rate: 42.9, tp1: 18, tp2: 7, tp3: 0, tp4: 0, be: 4, pnl: 85.0, status: "Activo / Priorizado (S&P 500 ORB)" },
-        // ICT SABRI MALLE - REPLAY 2 AÑOS AUDITADO (60 ACTIVOS EVALUADOS: 35 ACTIVOS RENTABLES / +517.50 R NETOS)
-        { rank: 31, symbol: "Volatility 10 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Vol", trades: 198, win_rate: 42.9, tp1: 85, tp2: 51, tp3: 51, tp4: 51, be: 34, pnl: 6125.0, status: "Activo / Líder Volatility (+61.25R)" },
-        { rank: 32, symbol: "Jump 25 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump", trades: 170, win_rate: 42.9, tp1: 73, tp2: 45, tp3: 45, tp4: 45, be: 28, pnl: 5475.0, status: "Activo / Líder Jump (+54.75R)" },
-        { rank: 33, symbol: "Step Index 400", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 175, win_rate: 41.7, tp1: 73, tp2: 42, tp3: 42, tp4: 42, be: 31, pnl: 4450.0, status: "Activo / Líder Step (+44.50R)" },
-        { rank: 34, symbol: "Volatility 50 (1s) Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 208, win_rate: 39.9, tp1: 83, tp2: 49, tp3: 49, tp4: 49, be: 34, pnl: 4375.0, status: "Activo / Validado (+43.75R)" },
-        { rank: 35, symbol: "Jump 75 Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 173, win_rate: 42.2, tp1: 73, tp2: 37, tp3: 37, tp4: 37, be: 36, pnl: 3775.0, status: "Activo / Validado (+37.75R)" },
-        { rank: 36, symbol: "Step Index 500", strategy: "ICT Sabri Malle", category: "Sintéticos Step", trades: 191, win_rate: 38.7, tp1: 74, tp2: 39, tp3: 39, tp4: 39, be: 35, pnl: 2525.0, status: "Activo / Validado (+25.25R)" },
-        { rank: 37, symbol: "Volatility 25 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Vol", trades: 186, win_rate: 38.2, tp1: 71, tp2: 37, tp3: 37, tp4: 37, be: 34, pnl: 2075.0, status: "Activo / Validado (+20.75R)" },
-        { rank: 38, symbol: "Step Index", strategy: "ICT Sabri Malle", category: "Sintéticos Step", trades: 172, win_rate: 36.6, tp1: 63, tp2: 38, tp3: 38, tp4: 38, be: 25, pnl: 2050.0, status: "Activo / Validado (+20.50R)" },
-        { rank: 39, symbol: "Crash 600 Index", strategy: "ICT Sabri Malle", category: "Crash (Ventas)", trades: 73, win_rate: 43.8, tp1: 32, tp2: 15, tp3: 15, tp4: 15, be: 17, pnl: 1725.0, status: "Activo / Líder Crash (+17.25R)" },
-        { rank: 40, symbol: "XAUUSD", strategy: "ICT Sabri Malle", category: "Metales", trades: 103, win_rate: 38.8, tp1: 40, tp2: 23, tp3: 23, tp4: 23, be: 17, pnl: 1725.0, status: "Activo / Líder Metales (+17.25R)" },
-        { rank: 41, symbol: "GBPUSD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 58, win_rate: 43.1, tp1: 25, tp2: 14, tp3: 14, tp4: 14, be: 11, pnl: 1650.0, status: "Activo / Líder Forex (+16.50R)" },
-        { rank: 42, symbol: "Wall Street 30", strategy: "ICT Sabri Malle", category: "Índices Bursátiles", trades: 146, win_rate: 34.2, tp1: 50, tp2: 35, tp3: 35, tp4: 35, be: 15, pnl: 1525.0, status: "Activo / Líder Índices (+15.25R)" },
-        { rank: 43, symbol: "AUDJPY", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 37, win_rate: 54.1, tp1: 20, tp2: 7, tp3: 7, tp4: 7, be: 13, pnl: 1525.0, status: "Activo / Alta Efectividad (54.1% WR / +15.25R)" },
-        { rank: 44, symbol: "Volatility 15 Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 56, win_rate: 42.9, tp1: 24, tp2: 13, tp3: 13, tp4: 13, be: 11, pnl: 1475.0, status: "Activo / Validado (+14.75R)" },
-        { rank: 45, symbol: "Volatility 75 (1s) Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 176, win_rate: 37.5, tp1: 66, tp2: 33, tp3: 33, tp4: 33, be: 33, pnl: 1375.0, status: "Activo / Validado (+13.75R)" },
-        { rank: 46, symbol: "Boom 500 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 71, win_rate: 39.4, tp1: 28, tp2: 16, tp3: 16, tp4: 16, be: 12, pnl: 1300.0, status: "Activo / Líder Boom (+13.00R)" },
-        { rank: 47, symbol: "Jump 10 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump", trades: 156, win_rate: 38.5, tp1: 60, tp2: 28, tp3: 28, tp4: 28, be: 32, pnl: 1300.0, status: "Activo / Validado (+13.00R)" },
-        { rank: 48, symbol: "BTCUSD", strategy: "ICT Sabri Malle", category: "Criptomonedas", trades: 110, win_rate: 36.4, tp1: 40, tp2: 23, tp3: 23, tp4: 23, be: 17, pnl: 1025.0, status: "Activo / Cripto (+10.25R)" },
-        { rank: 49, symbol: "US Tech 100", strategy: "ICT Sabri Malle", category: "Índices Bursátiles", trades: 142, win_rate: 34.5, tp1: 49, tp2: 31, tp3: 31, tp4: 31, be: 18, pnl: 1025.0, status: "Activo / Nasdaq ICT (+10.25R)" },
-        { rank: 50, symbol: "AUDNZD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 24, win_rate: 45.8, tp1: 11, tp2: 7, tp3: 7, tp4: 7, be: 4, pnl: 1025.0, status: "Activo / Validado (+10.25R)" },
-        { rank: 51, symbol: "Boom 300 Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 88, win_rate: 38.6, tp1: 34, tp2: 16, tp3: 16, tp4: 16, be: 18, pnl: 800.0, status: "Activo / Validado (+8.00R)" },
-        { rank: 52, symbol: "Volatility 75 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Vol", trades: 205, win_rate: 35.6, tp1: 73, tp2: 38, tp3: 38, tp4: 38, be: 35, pnl: 750.0, status: "Activo / Validado (+7.50R)" },
-        { rank: 53, symbol: "GBPCAD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 66, win_rate: 34.8, tp1: 23, tp2: 15, tp3: 15, tp4: 15, be: 8, pnl: 625.0, status: "Activo / Validado (+6.25R)" },
-        { rank: 54, symbol: "EURCHF", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 63, win_rate: 38.1, tp1: 24, tp2: 12, tp3: 12, tp4: 12, be: 12, pnl: 600.0, status: "Activo / Validado (+6.00R)" },
-        { rank: 55, symbol: "Crash 500 Index", strategy: "ICT Sabri Malle", category: "Crash (Ventas)", trades: 109, win_rate: 34.9, tp1: 38, tp2: 22, tp3: 22, tp4: 22, be: 16, pnl: 550.0, status: "Activo / Validado (+5.50R)" },
-        { rank: 56, symbol: "CADCHF", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 54, win_rate: 37.0, tp1: 20, tp2: 11, tp3: 11, tp4: 11, be: 9, pnl: 525.0, status: "Activo / Validado (+5.25R)" },
-        { rank: 57, symbol: "EURUSD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 48, win_rate: 33.3, tp1: 16, tp2: 11, tp3: 11, tp4: 11, be: 5, pnl: 325.0, status: "Activo / Validado (+3.25R)" },
-        { rank: 58, symbol: "Volatility 90 Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 52, win_rate: 34.6, tp1: 18, tp2: 11, tp3: 11, tp4: 11, be: 7, pnl: 325.0, status: "Activo / Validado (+3.25R)" },
-        { rank: 59, symbol: "Volatility 250 (1s) Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 49, win_rate: 38.8, tp1: 19, tp2: 8, tp3: 8, tp4: 8, be: 11, pnl: 300.0, status: "Activo / Validado (+3.00R)" },
-        { rank: 60, symbol: "Boom 900 Index", strategy: "ICT Sabri Malle", category: "SYNTH_PODA", trades: 68, win_rate: 35.3, tp1: 24, tp2: 13, tp3: 13, tp4: 13, be: 11, pnl: 275.0, status: "Activo / Validado (+2.75R)" },
-        { rank: 61, symbol: "USDCAD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 47, win_rate: 34.0, tp1: 16, tp2: 10, tp3: 10, tp4: 10, be: 6, pnl: 250.0, status: "Activo / Validado (+2.50R)" },
-        { rank: 62, symbol: "US Oil", strategy: "ICT Sabri Malle", category: "Commodities", trades: 98, win_rate: 38.8, tp1: 38, tp2: 14, tp3: 14, tp4: 14, be: 24, pnl: 250.0, status: "Activo / Validado (+2.50R)" },
-        { rank: 63, symbol: "AUDUSD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 44, win_rate: 34.1, tp1: 15, tp2: 9, tp3: 9, tp4: 9, be: 6, pnl: 175.0, status: "Activo / Validado (+1.75R)" },
-        { rank: 64, symbol: "CHFJPY", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 34, win_rate: 41.2, tp1: 14, tp2: 4, tp3: 4, tp4: 4, be: 10, pnl: 100.0, status: "Activo / Validado (+1.00R)" },
-        { rank: 65, symbol: "Boom 600 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 67, win_rate: 37.3, tp1: 25, tp2: 10, tp3: 10, tp4: 10, be: 15, pnl: 50.0, status: "Activo / Validado (+0.50R)" },
+        // ICT SABRI MALLE - REPLAY 2 AÑOS AUDITADO (5,114 TRADES EVALUADOS: 11 ACTIVOS RENTABLES / +106.0 R NETOS)
+        { rank: 31, symbol: "XAUUSD", strategy: "ICT Sabri Malle", category: "Metales", trades: 68, win_rate: 48.5, tp1: 33, tp2: 20, tp3: 12, tp4: 5, be: 8, pnl: 2600.0, status: "Activo / Líder Absoluto (+26.0R / PF 1.77)" },
+        { rank: 32, symbol: "Jump 50 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump", trades: 152, win_rate: 35.5, tp1: 54, tp2: 28, tp3: 14, tp4: 6, be: 22, pnl: 1560.0, status: "Activo / Líder Jump (+15.6R)" },
+        { rank: 33, symbol: "EURUSD", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 108, win_rate: 38.9, tp1: 42, tp2: 23, tp3: 10, tp4: 4, be: 15, pnl: 1510.0, status: "Activo / Líder Forex (+15.1R / +5.98R Swap Evitado)" },
+        { rank: 34, symbol: "Crash 300 Index", strategy: "ICT Sabri Malle", category: "Crash (Ventas)", trades: 108, win_rate: 36.1, tp1: 39, tp2: 21, tp3: 11, tp4: 5, be: 14, pnl: 1350.0, status: "Activo / Líder Crash (+13.5R)" },
+        { rank: 35, symbol: "Boom 500 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 78, win_rate: 41.0, tp1: 32, tp2: 18, tp3: 9, tp4: 4, be: 12, pnl: 1340.0, status: "Activo / Líder Boom (+13.4R / PF 1.29)" },
+        { rank: 36, symbol: "Boom 300 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 90, win_rate: 35.6, tp1: 32, tp2: 16, tp3: 8, tp4: 3, be: 13, pnl: 820.0, status: "Activo / Validado (+8.2R)" },
+        { rank: 37, symbol: "Boom 1000 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 68, win_rate: 39.7, tp1: 27, tp2: 14, tp3: 7, tp4: 3, be: 10, pnl: 760.0, status: "Activo / Validado (+7.6R)" },
+        { rank: 38, symbol: "Jump 25 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump", trades: 159, win_rate: 33.3, tp1: 53, tp2: 27, tp3: 12, tp4: 5, be: 24, pnl: 650.0, status: "Activo / Validado (+6.5R)" },
+        { rank: 39, symbol: "BTCUSD", strategy: "ICT Sabri Malle", category: "Criptomonedas", trades: 100, win_rate: 37.0, tp1: 37, tp2: 19, tp3: 9, tp4: 4, be: 14, pnl: 390.0, status: "Activo / Cripto (+3.9R / +6.75R Swap Evitado)" },
+        { rank: 40, symbol: "Step Index 400", strategy: "ICT Sabri Malle", category: "Sintéticos Step", trades: 159, win_rate: 34.0, tp1: 54, tp2: 26, tp3: 12, tp4: 5, be: 23, pnl: 370.0, status: "Activo / Líder Step (+3.7R)" },
+        { rank: 41, symbol: "Boom 600 Index", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 67, win_rate: 38.8, tp1: 26, tp2: 13, tp3: 6, tp4: 3, be: 11, pnl: 350.0, status: "Activo / Validado (+3.5R)" },
         // GOLD QUARTERS (ESTRATEGIA DE CUARTOS - WORKER GOLD)
         { rank: 66, symbol: "XAGUSD (Plata Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 170, win_rate: 41.8, tp1: 71, tp2: 34, tp3: 0, tp4: 0, be: 32, pnl: 986.12, status: "Activo / Priorizado (+9.86% Retorno)" },
         { rank: 67, symbol: "XAUUSD (Oro Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 656, win_rate: 41.3, tp1: 271, tp2: 131, tp3: 0, tp4: 0, be: 124, pnl: 252.76, status: "Activo / Priorizado (Nivel Cuartos $25/$50)" }
@@ -1142,32 +1211,39 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
         // OTRAS ESTRATEGIAS PODADAS
         { symbol: "US Oil (Petróleo WTI ORB)", strategy: "ORB New York", trades: 245, win_rate: 42.4, sl_hits: 141, pnl: -4286.88, reason: "Deslizamiento severo en sesión NY cash y spread adverso (-42.87R). Podado en ORB." },
         { symbol: "UK Brent Oil", strategy: "ORB New York", trades: 282, win_rate: 45.4, sl_hits: 154, pnl: -4223.33, reason: "Falsas rupturas en los primeros 15 min de sesión NY cash (-42.23R). Podado en ORB." },
-        // ICT SABRI MALLE - 25 ACTIVOS PODADOS (REPLAY 2 AÑOS / EXPECTATIVA NEGATIVA O NEUTRAL)
-        { symbol: "Volatility 50 Index", strategy: "ICT Sabri Malle", trades: 118, win_rate: 27.1, sl_hits: 86, pnl: -4000.0, reason: "Poda confirmada en replay 2 años ICT: 27.1% WR, -40.00R. Falsos desplazamientos FVG y rachas bajistas prolongadas; derivado a worker VOLATILITY." },
-        { symbol: "Volatility 100 Index", strategy: "ICT Sabri Malle", trades: 122, win_rate: 32.0, sl_hits: 83, pnl: -3000.0, reason: "Poda confirmada en replay 2 años ICT: 32.0% WR, -30.00R. Ruido de alta volatilidad sin respeto al Consequent Encroachment FVG." },
-        { symbol: "EURCAD", strategy: "ICT Sabri Malle", trades: 59, win_rate: 25.4, sl_hits: 44, pnl: -2375.0, reason: "Poda confirmada en replay 2 años ICT: 25.4% WR, -23.75R. Cruce con spreads adversos y falta de liquidez en Killzones." },
-        { symbol: "US SP 500", strategy: "ICT Sabri Malle", trades: 148, win_rate: 30.4, sl_hits: 103, pnl: -1775.0, reason: "Poda confirmada en replay 2 años ICT: 30.4% WR, -17.75R. Volatilidad excesiva en apertura NY y sweeps no respetados; mejor en ORB." },
-        { symbol: "GBPCHF", strategy: "ICT Sabri Malle", trades: 64, win_rate: 26.6, sl_hits: 47, pnl: -1775.0, reason: "Poda confirmada en replay 2 años ICT: 26.6% WR, -17.75R. Rango errático sin continuación institucional." },
-        { symbol: "GBPAUD", strategy: "ICT Sabri Malle", trades: 42, win_rate: 19.0, sl_hits: 34, pnl: -1725.0, reason: "Poda confirmada en replay 2 años ICT: 19.0% WR, -17.25R. Baja tasa de TP1 y fuerte correlación de noticias asiáticas." },
-        { symbol: "AUDCHF", strategy: "ICT Sabri Malle", trades: 45, win_rate: 24.4, sl_hits: 34, pnl: -1425.0, reason: "Poda confirmada en replay 2 años ICT: 24.4% WR, -14.25R. Deslizamiento continuo y compresión en sesión asiática." },
-        { symbol: "Crash 900 Index", strategy: "ICT Sabri Malle", trades: 92, win_rate: 29.3, sl_hits: 65, pnl: -1350.0, reason: "Poda confirmada en replay 2 años ICT: 29.3% WR, -13.50R. Spikes intempestivos rompen estructuras FVG; operado en worker CRASH." },
-        { symbol: "EURNZD", strategy: "ICT Sabri Malle", trades: 31, win_rate: 22.6, sl_hits: 24, pnl: -1175.0, reason: "Poda confirmada en replay 2 años ICT: 22.6% WR, -11.75R. Desalineación con Killzones y spreads nocturnos desfavorables." },
-        { symbol: "CADJPY", strategy: "ICT Sabri Malle", trades: 37, win_rate: 27.0, sl_hits: 27, pnl: -1175.0, reason: "Poda confirmada en replay 2 años ICT: 27.0% WR, -11.75R. Rupturas sin mitigación en horario Londres." },
-        { symbol: "Crash 300 Index", strategy: "ICT Sabri Malle", trades: 121, win_rate: 32.2, sl_hits: 82, pnl: -1150.0, reason: "Poda confirmada en replay 2 años ICT: 32.2% WR, -11.50R. Caídas rápidas invalidan niveles FVG CE." },
-        { symbol: "EURAUD", strategy: "ICT Sabri Malle", trades: 42, win_rate: 23.8, sl_hits: 32, pnl: -975.0, reason: "Poda confirmada en replay 2 años ICT: 23.8% WR, -9.75R. Solapamiento de rangos asiático y europeo sin expansión limpia." },
-        { symbol: "Jump 50 Index", strategy: "ICT Sabri Malle", trades: 184, win_rate: 33.7, sl_hits: 122, pnl: -750.0, reason: "Poda confirmada en replay 2 años ICT: 33.7% WR, -7.50R. Saltos estocásticos de precio atraviesan zonas de descuento." },
-        { symbol: "USDJPY", strategy: "ICT Sabri Malle", trades: 31, win_rate: 35.5, sl_hits: 20, pnl: -725.0, reason: "Poda confirmada en replay 2 años ICT: 35.5% WR, -7.25R. Ausencia de volumen en Killzones y retrocesos tardíos." },
-        { symbol: "EURGBP", strategy: "ICT Sabri Malle", trades: 61, win_rate: 31.1, sl_hits: 42, pnl: -725.0, reason: "Poda confirmada en replay 2 años ICT: 31.1% WR, -7.25R. Rango sumamente comprimido y bajo desplazamiento medio." },
-        { symbol: "GBPJPY", strategy: "ICT Sabri Malle", trades: 48, win_rate: 33.3, sl_hits: 32, pnl: -550.0, reason: "Poda confirmada en replay 2 años ICT: 33.3% WR, -5.50R. Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR." },
-        { symbol: "AUDCAD", strategy: "ICT Sabri Malle", trades: 34, win_rate: 32.4, sl_hits: 23, pnl: -500.0, reason: "Poda confirmada en replay 2 años ICT: 32.4% WR, -5.00R. Falta de liquidez institucional en Killzones Londres/NY." },
-        { symbol: "USDCHF", strategy: "ICT Sabri Malle", trades: 74, win_rate: 33.8, sl_hits: 49, pnl: -475.0, reason: "Poda confirmada en replay 2 años ICT: 33.8% WR, -4.75R. Estructura divergente frente al EURUSD durante la Killzone." },
-        { symbol: "EURJPY", strategy: "ICT Sabri Malle", trades: 34, win_rate: 35.3, sl_hits: 22, pnl: -475.0, reason: "Poda confirmada en replay 2 años ICT: 35.3% WR, -4.75R. Intervenciones y tendencias unidireccionales sin pullback a FVG." },
-        { symbol: "GBPNZD", strategy: "ICT Sabri Malle", trades: 36, win_rate: 30.6, sl_hits: 25, pnl: -350.0, reason: "Poda confirmada en replay 2 años ICT: 30.6% WR, -3.50R. Rangos amplios con mechas falsas en cambio de sesión." },
-        { symbol: "Jump 100 Index", strategy: "ICT Sabri Malle", trades: 163, win_rate: 35.6, sl_hits: 105, pnl: -325.0, reason: "Poda confirmada en replay 2 años ICT: 35.6% WR, -3.25R. Saltos que saltan el FVG y disparan el Stop Loss." },
-        { symbol: "Crash 1000 Index", strategy: "ICT Sabri Malle", trades: 76, win_rate: 32.9, sl_hits: 51, pnl: -325.0, reason: "Poda confirmada en replay 2 años ICT: 32.9% WR, -3.25R. Ratios desfavorables frente a Crash 600 y Crash 500." },
-        { symbol: "Boom 1000 Index", strategy: "ICT Sabri Malle", trades: 81, win_rate: 34.6, sl_hits: 53, pnl: -225.0, reason: "Poda confirmada en replay 2 años ICT: 34.6% WR, -2.25R. Menor consistencia de pullback que Boom 500 y Boom 300." },
-        { symbol: "XAGUSD", strategy: "ICT Sabri Malle", trades: 99, win_rate: 33.3, sl_hits: 66, pnl: -150.0, reason: "Poda confirmada en replay 2 años ICT: 33.3% WR, -1.50R. Deslizamiento y dilatación en horario NY; mejor rendimiento en Malaysian SNR y ORB." },
-        { symbol: "Step Index 200", strategy: "ICT Sabri Malle", trades: 203, win_rate: 34.5, sl_hits: 133, pnl: 0.0, reason: "Poda confirmada en replay 2 años ICT: 34.5% WR, 0.00R. Rendimiento neutral sin ventaja matemática; focalizado en Step 400 y Step 500." }
+        // ICT SABRI MALLE - 32 ACTIVOS PODADOS (REPLAY 2 AÑOS / EXPECTATIVA NEGATIVA: -638.1 R EVITADOS)
+        { symbol: "XAGUSD", strategy: "ICT Sabri Malle", trades: 84, win_rate: 35.7, sl_hits: 54, pnl: -260.0, reason: "Poda confirmada en replay 2 años ICT: 35.7% WR, -2.6R. Spread adverso y deslizamiento en Killzones; mejor operado en Gold Quarters/Malaysian." },
+        { symbol: "Volatility 90 Index", strategy: "ICT Sabri Malle", trades: 61, win_rate: 32.8, sl_hits: 41, pnl: -520.0, reason: "Poda confirmada en replay 2 años ICT: 32.8% WR, -5.2R. Ruido estocástico en gaps M15; derivado a worker VOLATILITY." },
+        { symbol: "US Tech 100", strategy: "ICT Sabri Malle", trades: 107, win_rate: 31.8, sl_hits: 73, pnl: -520.0, reason: "Poda confirmada en replay 2 años ICT: 31.8% WR, -5.2R. Sweeps agresivos no respetados en apertura NY; operado en ORB New York." },
+        { symbol: "Volatility 25 Index", strategy: "ICT Sabri Malle", trades: 175, win_rate: 32.0, sl_hits: 119, pnl: -590.0, reason: "Poda confirmada en replay 2 años ICT: 32.0% WR, -5.9R. Drift continuo sin respeto a FVG; derivado a worker VOLATILITY." },
+        { symbol: "Crash 500 Index", strategy: "ICT Sabri Malle", trades: 105, win_rate: 32.4, sl_hits: 71, pnl: -820.0, reason: "Poda confirmada en replay 2 años ICT: 32.4% WR, -8.2R. Caídas rápidas sin mitigación FVG CE; operado en worker CRASH." },
+        { symbol: "Wall Street 30", strategy: "ICT Sabri Malle", trades: 118, win_rate: 29.7, sl_hits: 83, pnl: -1170.0, reason: "Poda confirmada en replay 2 años ICT: 29.7% WR, -11.7R. Falsos desplazamientos fuera de apertura; operado en ORB New York." },
+        { symbol: "Jump 75 Index", strategy: "ICT Sabri Malle", trades: 174, win_rate: 31.6, sl_hits: 119, pnl: -1200.0, reason: "Poda confirmada en replay 2 años ICT: 31.6% WR, -12.0R. Saltos de precio atraviesan zonas de descuento; operado en worker JUMP." },
+        { symbol: "Volatility 15 Index", strategy: "ICT Sabri Malle", trades: 61, win_rate: 26.2, sl_hits: 45, pnl: -1220.0, reason: "Poda confirmada en replay 2 años ICT: 26.2% WR, -12.2R. Spreads y baja frecuencia de mitigación; derivado a worker VOLATILITY." },
+        { symbol: "USDJPY", strategy: "ICT Sabri Malle", trades: 95, win_rate: 34.7, sl_hits: 62, pnl: -1300.0, reason: "Poda confirmada en replay 2 años ICT: 34.7% WR, -13.0R (-19.9R con swap). Desalineado con Killzones NY; swap negativo acumulado de 6.91R." },
+        { symbol: "Volatility 10 Index", strategy: "ICT Sabri Malle", trades: 154, win_rate: 30.5, sl_hits: 107, pnl: -1360.0, reason: "Poda confirmada en replay 2 años ICT: 30.5% WR, -13.6R. Tendencias prolongadas sin pullback a FVG; derivado a worker VOLATILITY." },
+        { symbol: "Jump 10 Index", strategy: "ICT Sabri Malle", trades: 166, win_rate: 29.5, sl_hits: 117, pnl: -1580.0, reason: "Poda confirmada en replay 2 años ICT: 29.5% WR, -15.8R. Mechas excesivas en velas M15; operado en worker JUMP." },
+        { symbol: "GBPUSD", strategy: "ICT Sabri Malle", trades: 120, win_rate: 29.2, sl_hits: 85, pnl: -1620.0, reason: "Poda confirmada en replay 2 años ICT: 29.2% WR, -16.2R (-23.9R con swap). Rango sucio durante Killzone Londres; swap adverso de 7.74R." },
+        { symbol: "Crash 600 Index", strategy: "ICT Sabri Malle", trades: 83, win_rate: 26.5, sl_hits: 61, pnl: -1720.0, reason: "Poda confirmada en replay 2 años ICT: 26.5% WR, -17.2R. Spikes violentos invalidan estructuras FVG; operado en worker CRASH." },
+        { symbol: "Crash 900 Index", strategy: "ICT Sabri Malle", trades: 92, win_rate: 27.2, sl_hits: 67, pnl: -1760.0, reason: "Poda confirmada en replay 2 años ICT: 27.2% WR, -17.6R. Dispersión alta de spikes; operado en worker CRASH." },
+        { symbol: "Volatility 50 Index", strategy: "ICT Sabri Malle", trades: 159, win_rate: 27.7, sl_hits: 115, pnl: -1790.0, reason: "Poda confirmada en replay 2 años ICT: 27.7% WR, -17.9R. Drift bajista severo e incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "Volatility 100 Index", strategy: "ICT Sabri Malle", trades: 173, win_rate: 30.1, sl_hits: 121, pnl: -2210.0, reason: "Poda confirmada en replay 2 años ICT: 30.1% WR, -22.1R. Exceso de volatilidad no modelada por FVG; derivado a worker VOLATILITY." },
+        { symbol: "Volatility 250 (1s) Index", strategy: "ICT Sabri Malle", trades: 152, win_rate: 30.3, sl_hits: 106, pnl: -2220.0, reason: "Poda confirmada en replay 2 años ICT: 30.3% WR, -22.2R. Ruido de microsegundo desfavorable a M15; derivado a worker VOLATILITY." },
+        { symbol: "USDCAD", strategy: "ICT Sabri Malle", trades: 121, win_rate: 31.4, sl_hits: 83, pnl: -2530.0, reason: "Poda confirmada en replay 2 años ICT: 31.4% WR, -25.3R (-30.5R con swap). Correlación con petróleo y whipsaws en noticias; swap adverso de 5.20R." },
+        { symbol: "EURJPY", strategy: "ICT Sabri Malle", trades: 82, win_rate: 28.0, sl_hits: 59, pnl: -2540.0, reason: "Poda confirmada en replay 2 años ICT: 28.0% WR, -25.4R (-31.7R con swap). Spreads amplios en rollover bancario; swap adverso de 6.30R." },
+        { symbol: "Crash 1000 Index", strategy: "ICT Sabri Malle", trades: 100, win_rate: 28.0, sl_hits: 72, pnl: -2550.0, reason: "Poda confirmada en replay 2 años ICT: 28.0% WR, -25.5R. Desplazamiento irregular en temporales M15; operado en worker CRASH." },
+        { symbol: "US SP 500", strategy: "ICT Sabri Malle", trades: 115, win_rate: 26.1, sl_hits: 85, pnl: -2680.0, reason: "Poda confirmada en replay 2 años ICT: 26.1% WR, -26.8R. Sweeps agresivos en apertura NY; operado en ORB New York." },
+        { symbol: "AUDUSD", strategy: "ICT Sabri Malle", trades: 116, win_rate: 30.2, sl_hits: 81, pnl: -2740.0, reason: "Poda confirmada en replay 2 años ICT: 30.2% WR, -27.4R (-39.2R con swap). Coste de swap masivo de 11.79R y baja expansión en NY." },
+        { symbol: "Volatility 75 (1s) Index", strategy: "ICT Sabri Malle", trades: 144, win_rate: 29.2, sl_hits: 102, pnl: -2780.0, reason: "Poda confirmada en replay 2 años ICT: 29.2% WR, -27.8R. Oscilaciones de un segundo desfavorables a M15; derivado a worker VOLATILITY." },
+        { symbol: "Step Index", strategy: "ICT Sabri Malle", trades: 185, win_rate: 30.8, sl_hits: 128, pnl: -2890.0, reason: "Poda confirmada en replay 2 años ICT: 30.8% WR, -28.9R. Falsos quiebres en escalón; superado ampliamente por Step Index 400." },
+        { symbol: "Boom 900 Index", strategy: "ICT Sabri Malle", trades: 81, win_rate: 22.2, sl_hits: 63, pnl: -2930.0, reason: "Poda confirmada en replay 2 años ICT: 22.2% WR, -29.3R. Peor expectativa del cluster Boom; podado preventivamente de toda operativa." },
+        { symbol: "Step Index 500", strategy: "ICT Sabri Malle", trades: 139, win_rate: 32.4, sl_hits: 94, pnl: -3110.0, reason: "Poda confirmada en replay 2 años ICT: 32.4% WR, -31.1R. Menor consistencia de retroceso FVG que Step Index 400." },
+        { symbol: "USDCHF", strategy: "ICT Sabri Malle", trades: 110, win_rate: 26.4, sl_hits: 81, pnl: -3330.0, reason: "Poda confirmada en replay 2 años ICT: 26.4% WR, -33.3R (-42.0R con swap). Desviación estructural frente a EURUSD y swap adverso de 8.73R." },
+        { symbol: "Volatility 75 Index", strategy: "ICT Sabri Malle", trades: 168, win_rate: 27.4, sl_hits: 122, pnl: -3980.0, reason: "Poda confirmada en replay 2 años ICT: 27.4% WR, -39.8R. Volatilidad extrema sin respetar Consequent Encroachment; derivado a worker VOLATILITY." },
+        { symbol: "GBPJPY", strategy: "ICT Sabri Malle", trades: 101, win_rate: 24.8, sl_hits: 76, pnl: -4060.0, reason: "Poda confirmada en replay 2 años ICT: 24.8% WR, -40.6R (-49.8R con swap). Rango extremo de mechas y swap adverso de 9.20R." },
+        { symbol: "Step Index 200", strategy: "ICT Sabri Malle", trades: 178, win_rate: 24.7, sl_hits: 134, pnl: -4190.0, reason: "Poda confirmada en replay 2 años ICT: 24.7% WR, -41.9R. Falta de continuación tendencial y retrocesos profundos; podado preventivamente." },
+        { symbol: "Volatility 50 (1s) Index", strategy: "ICT Sabri Malle", trades: 177, win_rate: 24.9, sl_hits: 133, pnl: -4250.0, reason: "Poda confirmada en replay 2 años ICT: 24.9% WR, -42.5R. Desplazamiento errático en temporalidad 1s; podado de ICT." },
+        { symbol: "Jump 100 Index", strategy: "ICT Sabri Malle", trades: 167, win_rate: 25.7, sl_hits: 124, pnl: -4310.0, reason: "Poda confirmada en replay 2 años ICT: 25.7% WR, -43.1R. Saltos estocásticos de máxima intensidad que violan stops; podado de ICT." },
       ];
 
       // Métricas por pestaña
@@ -1215,18 +1291,18 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
           bars: { tp1: 50.8, tp2: 23.8, tp3: 0.0, tp4: 0.0, be: 26.3, sl: 48.9 }
         },
         ict: {
-          total_trades: "3,717 activos / 5,762 evaluados",
-          tp1: "1,437",
-          tp1_rate: "38.7% ponderado en 35 Activos Validados",
-          tp2: "787",
-          tp2_rate: "21.2% expansiones completadas",
-          tp3: "787",
-          tp4: "787",
-          be: "589",
-          sl: "2,280",
-          profit: "+534.25 R (+$53,425 USD en 35 Activos Validados)",
-          badge: "ICT Sabri Malle v2.1 (60 Activos Replay: 35 Activos / 25 Podados)",
-          bars: { tp1: 38.7, tp2: 21.2, tp3: 21.2, tp4: 21.2, be: 15.8, sl: 61.3 }
+          total_trades: "1,157 activos core / 5,114 evaluados",
+          tp1: "426",
+          tp1_rate: "36.8% en 11 Activos Core Rentables",
+          tp2: "228",
+          tp2_rate: "19.7% expansiones completadas",
+          tp3: "114",
+          tp4: "57",
+          be: "172",
+          sl: "731",
+          profit: "+106.0 R (+$10,600 USD con Anti-Swap / 11 Activos Core)",
+          badge: "ICT Sabri Malle 2Y Replay (11 Activos Rentables / 32 Podados)",
+          bars: { tp1: 36.8, tp2: 19.7, tp3: 9.9, tp4: 4.9, be: 14.9, sl: 63.2 }
         },
         gold: {
           total_trades: "656",
@@ -1250,6 +1326,15 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
 
       function setStrategyTab(tab) {
         currentTab = tab;
+        const settingsCard = document.getElementById('msnrRuntimeSettings');
+        settingsCard.hidden = tab !== 'malaysian';
+        settingsCard.style.display = tab === 'malaysian' ? 'block' : 'none';
+
+        const ictPanel = document.getElementById('ictAuditPanel');
+        if (ictPanel) {
+          ictPanel.style.display = tab === 'ict' ? 'block' : 'none';
+        }
+
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tab));
         if (activeBtn) activeBtn.classList.add('active');
@@ -1405,13 +1490,17 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
         });
       }
 
+__MSNR_SETTINGS_SCRIPT__
+
       // Inicialización
       setStrategyTab('all');
+      loadMsnrSettings();
     </script>
   </body>
 </html>
 '''
 
+_STRATEGY_BASES_BASE = _STRATEGY_BASES_BASE.replace('__MSNR_SETTINGS_PANEL__', PANEL_HTML).replace('__MSNR_SETTINGS_SCRIPT__', PANEL_JS)
 STRATEGY_BASES_HTML = with_page_loading(_STRATEGY_BASES_BASE)
 
 
@@ -1422,6 +1511,20 @@ def _sync_runtime_dashboard_if_needed():
         import gc
         import importlib.util
         from pathlib import Path
+
+        # Refresh validation/defaults before importing the updated settings readers.
+        import strategy.malaysian_snr.universe as msnr_universe
+        import database.msnr_audit as msnr_audit
+        importlib.reload(msnr_universe)
+        importlib.reload(msnr_audit)
+        import strategy.malaysian_snr.runtime_settings as msnr_runtime_settings
+        importlib.reload(msnr_runtime_settings)
+        import strategy.malaysian_snr.config as msnr_config_module
+        importlib.reload(msnr_config_module)
+        import strategy.malaysian_snr.validation as msnr_validation
+        import strategy.malaysian_snr.opportunity_rules as msnr_opportunities
+        importlib.reload(msnr_validation)
+        importlib.reload(msnr_opportunities)
 
         # 1. Cargar fresh repository y parchear clase TradingRepository
         rep_path = Path(__file__).resolve().parent.parent / "database" / "repository.py"
@@ -1442,6 +1545,10 @@ def _sync_runtime_dashboard_if_needed():
                 old_repo_mod.TradingRepository._normalize_selection_profile = _norm_safe
                 old_repo_mod.TradingRepository.latest_instrument_selection_profiles = fresh_repo.TradingRepository.latest_instrument_selection_profiles
                 old_repo_mod.TradingRepository.save_instrument_selection_profile = fresh_repo.TradingRepository.save_instrument_selection_profile
+                for name in ('_ensure_strategy_preferences_table', 'latest_msnr_runtime_settings', 'save_msnr_runtime_settings',
+                    'save_msnr_candidate', 'msnr_candidates', 'save_msnr_candidate_outcome',
+                    'msnr_candidate_funnel', 'register_msnr_model', 'msnr_closed_execution_result'):
+                    setattr(old_repo_mod.TradingRepository, name, getattr(fresh_repo.TradingRepository, name))
 
         # 2. Cargar fresh realtime_dashboard y parchear clase RealtimeDashboardService y módulos
         rd_path = Path(__file__).resolve().parent / "realtime_dashboard.py"
@@ -1453,19 +1560,43 @@ def _sync_runtime_dashboard_if_needed():
 
             old_rd = sys.modules.get("dashboard.realtime_dashboard")
             if old_rd is not None:
+                import dashboard.performance_page as fresh_pp
+                importlib.reload(fresh_pp)
+                old_rd.PERFORMANCE_HTML = fresh_pp.PERFORMANCE_HTML
                 old_rd._SELECTION_PROFILES = fresh_rd._SELECTION_PROFILES
                 old_rd._INSTRUMENTS_HTML = fresh_rd._INSTRUMENTS_HTML
                 old_rd.DEFAULT_PRIORITIZED_SYMBOLS = fresh_rd.DEFAULT_PRIORITIZED_SYMBOLS
                 old_rd.ICT_PRUNED_INFO = fresh_rd.ICT_PRUNED_INFO
                 old_rd._selection_profile_for_category = fresh_rd._selection_profile_for_category
+                old_rd._REASON_LABELS_ES = fresh_rd._REASON_LABELS_ES
+                old_rd._build_confluence_matrix = fresh_rd._build_confluence_matrix
+                old_rd._extract_quality = fresh_rd._extract_quality
 
                 RDS = old_rd.RealtimeDashboardService
                 RDS._cached_instruments_payload = fresh_rd.RealtimeDashboardService._cached_instruments_payload
                 RDS._refresh_selection_profiles_from_db_locked = fresh_rd.RealtimeDashboardService._refresh_selection_profiles_from_db_locked
+                RDS.get_msnr_runtime_settings = fresh_rd.RealtimeDashboardService.get_msnr_runtime_settings
+                RDS.update_msnr_runtime_settings = fresh_rd.RealtimeDashboardService.update_msnr_runtime_settings
+
+            # Load only the updated analyzer; do not restart workers or manage positions.
+            msnr_path = Path(__file__).resolve().parent.parent / 'strategy' / 'malaysian_snr' / 'malaysian_snr_strategy.py'
+            msnr_spec = importlib.util.spec_from_file_location('_fresh_msnr_runtime', msnr_path)
+            fresh_msnr = importlib.util.module_from_spec(msnr_spec)
+            sys.modules['_fresh_msnr_runtime'] = fresh_msnr
+            msnr_spec.loader.exec_module(fresh_msnr)
+            config_spec = importlib.util.spec_from_file_location('_fresh_msnr_config', msnr_path.with_name('config.py'))
+            fresh_config = importlib.util.module_from_spec(config_spec)
+            sys.modules['_fresh_msnr_config'] = fresh_config
+            config_spec.loader.exec_module(fresh_config)
+            from dataclasses import fields
+            import dashboard.strategy_settings_api as settings_api
+            importlib.reload(settings_api)
+            install_strategy_settings_routes = settings_api.install_strategy_settings_routes
 
             for obj in gc.get_objects():
                 if type(obj).__name__ == "RealtimeDashboardService":
                     try:
+                        install_strategy_settings_routes(obj)
                         lock = getattr(obj, "_lock", None)
                         if lock is not None:
                             with lock:
@@ -1477,6 +1608,16 @@ def _sync_runtime_dashboard_if_needed():
                                     obj._invalidate_navigation_caches(instruments=True, account=True)
                     except Exception:
                         pass
+                elif type(obj).__name__ == 'LiveTradingEngine':
+                    strategy = getattr(obj, 'malaysian_snr_strategy', None)
+                    repository = getattr(obj, 'repository', None)
+                    if strategy is not None and callable(getattr(repository, 'latest_msnr_runtime_settings', None)):
+                        if strategy.config.strategy_version != fresh_config.MalaysianSNRConfig().strategy_version:
+                            values = {field.name: getattr(strategy.config, field.name) for field in fields(fresh_config.MalaysianSNRConfig)
+                                      if field.name != 'strategy_version' and hasattr(strategy.config, field.name)}
+                            strategy = fresh_msnr.MalaysianSNRStrategy(strategy.provider, fresh_config.MalaysianSNRConfig(**values))
+                            obj.malaysian_snr_strategy = strategy
+                        strategy.runtime_settings_loader = lambda engine=obj: engine.repository.latest_msnr_runtime_settings(source=engine.config.source)
     except Exception:
         pass
 

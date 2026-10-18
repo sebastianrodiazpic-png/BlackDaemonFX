@@ -4,6 +4,8 @@ import threading
 import time
 
 from .cache import MarketDataCache
+from .normalization import normalize_candles, MarketDataIdentity, timeframe_seconds
+import pandas as pd
 
 
 class MarketDataConfigurationError(RuntimeError):
@@ -95,7 +97,12 @@ class DerivOnlyMarketDataRouter:
             except Exception:
                 if self.metadata_provider is not None:
                     frame = self.metadata_provider.get_candles(exact, timeframe=timeframe, count=wanted)
-                    frame.attrs["market_data_source"] = "MT5_FALLBACK"
+                    attributes = dict(frame.attrs)
+                    frame = normalize_candles(frame, identity=MarketDataIdentity(
+                        exact, exact, "MT5_FALLBACK"), timeframe=timeframe)
+                    closed_at = frame['time'] + pd.Timedelta(seconds=timeframe_seconds(timeframe))
+                    frame['complete'] = frame['complete'] & (closed_at <= pd.Timestamp.now(tz='UTC'))
+                    frame.attrs.update(attributes, market_data_source="MT5_FALLBACK")
                 else:
                     raise
             frame.attrs.update({
@@ -198,4 +205,3 @@ class ExternalMarketDataRouter(DerivOnlyMarketDataRouter):
                 raise MarketDataConfigurationError("OANDA no configurado")
             return self.oanda_provider.get_candles(symbol, timeframe=timeframe, count=count)
         return super().get_candles(symbol, timeframe=timeframe, count=count)
-

@@ -39,7 +39,7 @@ DEFAULT_SYMBOLS = [
     "XAUUSD", "XAGUSD", "BTCUSD", "US Tech 100", "Wall Street 30",
     "EURUSD", "USDJPY", "US Oil",
 ]
-TF_MINUTES = {"M15": 15, "H1": 60, "D1": 1440}
+TF_MINUTES = {"M5": 5, "M15": 15, "H1": 60, "H4": 240, "D1": 1440}
 MAX_HOLD_BARS = 200
 
 
@@ -139,7 +139,7 @@ def replay_symbol(mt5, symbol: str, days: int, cfg: MalaysianSNRConfig):
 
 
 def replay_frames(symbol: str, frames: dict, days: int, cfg: MalaysianSNRConfig,
-                  spread: float, cost_r: float = 0.0):
+                  spread: float, cost_r: float = 0.0, on_evaluation=None):
     """Same causal detector for saved data and terminal data; no order sending."""
 
     provider = HistoricalProvider(frames)
@@ -148,15 +148,21 @@ def replay_frames(symbol: str, frames: dict, days: int, cfg: MalaysianSNRConfig,
     h, l, c, o = (m15[k].values.astype(float) for k in ("high", "low", "close", "open"))
     start_cut = m15["time"].iloc[-1] - pd.Timedelta(days=days)
     trades, busy_until = [], -1
+    executed_setups = set()
 
     for i in range(100, len(m15) - 2):
         if m15["time"].iloc[i] < start_cut or i <= busy_until:
             continue
         provider.now = m15["time"].iloc[i] + pd.Timedelta(minutes=15)  # cierre de la vela i
         res = strat.analyze_symbol(symbol, now_utc=provider.now.to_pydatetime())
+        if on_evaluation is not None:
+            on_evaluation(res)
         if not res.get("valid"):
             continue
         sig = res["signal"]
+        setup_id = sig.get('setup_id')
+        if setup_id and setup_id in executed_setups:
+            continue
         direction = sig["direction"]
         fill = o[i + 1] + (spread if direction == "BUY" else 0.0)
         sl = sig["stop_loss"]
@@ -178,9 +184,14 @@ def replay_frames(symbol: str, frames: dict, days: int, cfg: MalaysianSNRConfig,
             opens=o[i + 1:future_end], spreads=np.full(future_end - i - 1, spread),
             leg1_weight=cfg.leg1_risk_ratio, leg2_weight=cfg.leg2_risk_ratio, cost_r=cost_r)
         busy_until = i + bars
+        if setup_id:
+            executed_setups.add(setup_id)
         trades.append({
             "symbol": symbol, "time": str(provider.now), "exit_time": str(m15["time"].iloc[i + bars] + pd.Timedelta(minutes=15)),
             "strategy_version": cfg.strategy_version, "scenario": sig["scenario"],
+            "setup_id": setup_id, "entry_confirmation": sig.get('entry_confirmation'),
+            "freshness_state": (sig.get('freshness') or {}).get('state'),
+            "structure_closed_at": sig.get('structure_closed_at'),
             "direction": direction, "adx": sig["adx"], "body_ratio": sig["body_ratio"],
             "runner_rr": rr2, "risk_atr": sig_risk / sig["atr"] if sig.get("atr") else np.nan,
             "hour_utc": provider.now.hour, "outcome": outcome, "rr": round(rr_total, 3), "bars": bars,

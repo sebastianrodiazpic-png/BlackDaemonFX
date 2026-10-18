@@ -426,6 +426,7 @@ class CalibratedLogisticModel:
     trained_at: str | None = None
     average_win_rr: float = 1.0
     average_loss_rr: float = 1.0
+    provenance: dict = field(default_factory=dict)
 
     @property
     def trained(self) -> bool:
@@ -505,20 +506,25 @@ class CalibratedLogisticModel:
             "trained_at": self.trained_at,
             "average_win_rr": float(self.average_win_rr),
             "average_loss_rr": float(self.average_loss_rr),
+            "provenance": dict(self.provenance),
         }
 
     @classmethod
-    def from_dict(cls, payload: dict) -> "CalibratedLogisticModel":
+    def from_dict(cls, payload: dict) -> Any:
         """Reconstruye el modelo por worker desde su fichero persistido.
 
         Tolerante a ficheros incompletos o corruptos: devuelve un modelo sin
         entrenar en lugar de fallar, de forma que el worker afectado degrada
-        a modo sombra.
+        a modo sombra. Si el payload especifica model_type == "LIGHTGBM",
+        reconstruye un CalibratedGBDTModel de forma transparente.
 
         Vinculaciones:
         - Lo usa `strategy.ai.meta_labeling.MetaLabelingEngine.load_model`.
         """
         payload = payload if isinstance(payload, dict) else {}
+        if str(payload.get("model_type", "")).upper() == "LIGHTGBM":
+            from strategy.ai.gbdt_model import CalibratedGBDTModel
+            return CalibratedGBDTModel.from_dict(payload)
         return cls(
             worker=str(payload.get("worker") or "DEFAULT"),
             strategy_name=str(payload.get("strategy_name") or "ALL"),
@@ -527,4 +533,5 @@ class CalibratedLogisticModel:
             trained_at=payload.get("trained_at"),
             average_win_rr=float(payload.get("average_win_rr", 1.0)),
             average_loss_rr=float(payload.get("average_loss_rr", 1.0)),
+            provenance=dict(payload.get("provenance") or {}),
         )

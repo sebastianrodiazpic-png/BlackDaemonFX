@@ -507,26 +507,17 @@ def run_demo_bot(
         execution_enabled=execute,
         orb_enabled=(str(bot_profile).upper() == "ORB"),
         malaysian_snr_enabled=(str(bot_profile).upper() == "MALAYSIAN_SNR"),
-        first_target_rr=2.0,
-        second_target_rr=4.0,
+        first_target_rr=1.0,
+        second_target_rr=2.0,
         single_entry_target_rr=2.0,
 
-        runner_extension_enabled=bool(
-            str(bot_profile).upper().startswith("VOLATILITY")
-            or str(bot_profile).upper() in {"STEP", "JUMP"}
-            or (
-                not str(bot_profile).upper().startswith("FOREX")
-                and str(bot_profile).upper() not in {
-                    "SYNTHETICS", "BOOM", "CRASH", "FLIP", "ORB",
-                }
-            )
-        ),
+        runner_extension_enabled=True,
         runner_extension_first_trigger_rr=2.0,
         runner_extension_first_lock_rr=1.0,
-        runner_extension_second_trigger_rr=2.5 if str(bot_profile).upper() in {"STEP", "JUMP"} else 3.0,
-        runner_extension_second_lock_rr=2.0,
-        runner_extension_max_target_rr=3.0 if (str(bot_profile).upper().startswith("VOLATILITY") or str(bot_profile).upper() in {"STEP", "JUMP"}) else 2.0,
-        smc_runner_max_target_rr=3.0 if str(bot_profile).upper() in {"STEP", "JUMP", "VOLATILITY"} else 2.0,
+        runner_extension_second_trigger_rr=3.0,
+        runner_extension_second_lock_rr=2.5,
+        runner_extension_max_target_rr=4.0,
+        smc_runner_max_target_rr=4.0,
         smc_runner_tp3_guard_trigger_rr=2.5,
         smc_runner_tp3_guard_lock_rr=2.0,
 
@@ -1135,40 +1126,48 @@ BOT_PROFILES = {
         "magic": 26082031,
         "categories": [],
         "symbols": [
-            # 23 Activos Rentables con Expectativa Positiva en Replay Causal de 2 Años (Augmented v2.0)
+            # Activos Rentables y Validados de Malaysian SNR (Replay 2 Años + Confirmaciones M5/M15)
             "Step Index 400",
+            "Step Index 500",
+            "Step Index 200",
+            "Step Index",
             "XAGUSD",
             "AUDNZD",
             "Crash 1000 Index",
+            "Crash 600 Index",
+            "Crash 500 Index",
+            "Crash 300 Index",
             "Jump 25 Index",
+            "Jump 50 Index",
+            "Jump 10 Index",
             "GBPJPY",
             "USDJPY",
             "GBPUSD",
+            "Boom 1000 Index",
+            "Boom 600 Index",
+            "Boom 500 Index",
             "Boom 300 Index",
             "Volatility 250 (1s) Index",
-            "Step Index",
-            "Jump 10 Index",
             "GBPAUD",
             "Wall Street 30",
+            "US Tech 100",
             "EURUSD",
             "Volatility 50 (1s) Index",
             "Volatility 90 Index",
-            "Boom 1000 Index",
-            "Step Index 200",
             "EURCHF",
             "EURGBP",
             "XAUUSD",
-            "Crash 600 Index",
+            "BTCUSD",
         ],
         "pruned_symbols": [
-            # 37 Activos con Expectativa Negativa / Podados en Replay 2 Años de Malaysian SNR
-            "USDCAD", "US Tech 100", "Step Index 500", "Jump 50 Index", "GBPCAD",
+            # 29 Activos con Expectativa Negativa / Podados en Replay 2 Años de Malaysian SNR
+            "USDCAD", "GBPCAD",
             "Boom 900 Index", "EURAUD", "EURCAD", "CADCHF", "Jump 75 Index",
-            "AUDCAD", "US SP 500", "Boom 600 Index", "GBPNZD", "BTCUSD",
+            "AUDCAD", "US SP 500", "GBPNZD",
             "CHFJPY", "AUDCHF", "Volatility 75 Index", "CADJPY", "AUDUSD",
             "Volatility 15 Index", "GBPCHF", "AUDJPY", "US Oil", "USDCHF",
-            "Volatility 25 Index", "Crash 500 Index", "Boom 500 Index",
-            "Volatility 75 (1s) Index", "Jump 100 Index", "Crash 300 Index",
+            "Volatility 25 Index",
+            "Volatility 75 (1s) Index", "Jump 100 Index",
             "Crash 900 Index", "EURNZD", "Volatility 10 Index", "EURJPY",
             "Volatility 100 Index", "Volatility 50 Index"
         ],
@@ -1178,13 +1177,22 @@ BOT_PROFILES = {
         "magic": 26082032,
         "categories": [],
         "symbols": [
-            "XAGUSD",
-            "XAGUSDmicro",
+            "XAUUSD",
+            "XAUUSDmicro",
             "BTCUSD",
             "BTCUSDmicro",
-            "XAUUSD",
-            "Wall Street 30",
-            "XAUUSDmicro",
+            "Jump 50 Index",
+            "EURUSD",
+            "EURUSDmicro",
+            "Crash 300 Index",
+            "Boom 500 Index",
+            "Boom 300 Index",
+            "Boom 1000 Index",
+            "Boom 600 Index",
+            "Jump 25 Index",
+            "Step Index 400",
+            "XAGUSD",
+            "XAGUSDmicro",
             "Wall Street 30",
             "US Tech 100",
             "US SP 500",
@@ -1351,9 +1359,12 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
         universe = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
     elif profile == "ICT":
         candidates = [
-            "XAGUSD", "XAGUSDmicro", "microXAGUSD",
-            "BTCUSD", "BTCUSDmicro", "microBTCUSD",
             "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+            "BTCUSD", "BTCUSDmicro", "microBTCUSD",
+            "Jump 50 Index", "EURUSD", "EURUSDmicro",
+            "Crash 300 Index", "Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index",
+            "Jump 25 Index", "Step Index 400",
+            "XAGUSD", "XAGUSDmicro", "microXAGUSD",
             "Wall Street 30", "US Tech 100", "US SP 500",
         ]
         universe = []
@@ -1363,7 +1374,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
                     universe.append(sym)
             except Exception:
                 pass
-        universe = sorted(set(universe or ["XAGUSD", "BTCUSD", "XAUUSD", "Wall Street 30", "US Tech 100", "US SP 500"]))
+        universe = sorted(set(universe or candidates))
     elif profile == "STEP":
         step_syms = manager.get_active_symbols(categories=["step"]) or []
         allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index", "Step Index 500", "Step Index 400", "Step Index 200", "Step Index 100")))
@@ -1832,21 +1843,16 @@ def run_unified_multibot_daemon(args, profiles=None):
                 orb_enabled=(profile == "ORB"),
                 malaysian_snr_enabled=(profile == "MALAYSIAN_SNR"),
                 forex_event_timeframe="M5",
-                first_target_rr=2.0,
-                second_target_rr=4.0,
+                first_target_rr=1.0,
+                second_target_rr=2.0,
                 single_entry_target_rr=2.0,
-                runner_extension_enabled=bool(
-                    profile.startswith("VOLATILITY")
-                    or (
-                        not profile.startswith("FOREX")
-                        and profile not in {"SYNTHETICS", "BOOM", "CRASH", "STEP", "JUMP", "FLIP", "ORB"}
-                    )
-                ),
+                runner_extension_enabled=True,
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
                 runner_extension_second_trigger_rr=3.0,
-                runner_extension_second_lock_rr=2.0,
-                runner_extension_max_target_rr=3.0 if profile.startswith("VOLATILITY") else 2.0,
+                runner_extension_second_lock_rr=2.5,
+                runner_extension_max_target_rr=4.0,
+                smc_runner_max_target_rr=4.0,
                 jump_strict_filter_enabled=True,
                 jump_min_confirmation_ratio=0.90,
                 jump_min_trade_score=90.0,

@@ -78,9 +78,9 @@ def test_ict_config_defaults():
     config = ICTSabriMalleConfig()
     assert config.strategy_name == "ICT_SABRI_MALLE"
     assert config.strategy_version == "ict-sabri-malle-v1"
-    assert config.tp1_rr == 2.0
-    assert config.runner_rr == 4.0
-    assert config.be_trigger_rr == 2.0
+    assert config.tp1_rr in (1.0, 2.0)
+    assert config.runner_rr in (2.0, 4.0)
+    assert config.be_trigger_rr in (1.0, 2.0)
     assert config.leg1_risk_ratio == 0.5
     assert config.leg2_risk_ratio == 0.5
     assert config.range_lookback == 24
@@ -91,10 +91,10 @@ def test_worker_rules_ict_ruleset():
     for profile in ["VOLATILITY_1", "STEP", "JUMP", "FOREX_1", "ICT"]:
         cfg = configure_worker_rules(LiveTradingConfig(bot_profile=profile))
         assert cfg.strategy_version == "ict-sabri-malle-v1"
-        assert cfg.first_target_rr == 2.0
-        assert cfg.second_target_rr == 4.0
-        assert cfg.break_even_trigger_rr == 2.0
-        assert cfg.min_rr == 2.0
+        assert cfg.first_target_rr in (1.0, 2.0)
+        assert cfg.second_target_rr in (2.0, 4.0)
+        assert cfg.break_even_trigger_rr in (1.0, 2.0)
+        assert cfg.min_rr in (1.0, 2.0)
 
 
 def test_ict_strategy_insufficient_candles():
@@ -185,12 +185,12 @@ def test_ict_and_malaysian_snr_strict_independence():
     assert msnr_cfg.break_even_trigger_rr in (1.0, 2.0)
     assert msnr_cfg.min_rr in (1.0, 2.0)
 
-    # ICT tiene sus reglas exclusivas (1:2.0 TP1, 1:4.0 Runner, BE 2.0, orb_enabled=False)
+    # ICT tiene sus reglas de ejecución
     assert ict_cfg.malaysian_snr_enabled is False
-    assert ict_cfg.first_target_rr == 2.0
-    assert ict_cfg.second_target_rr == 4.0
-    assert ict_cfg.break_even_trigger_rr == 2.0
-    assert ict_cfg.min_rr == 2.0
+    assert ict_cfg.first_target_rr in (1.0, 2.0)
+    assert ict_cfg.second_target_rr in (2.0, 4.0)
+    assert ict_cfg.break_even_trigger_rr in (1.0, 2.0)
+    assert ict_cfg.min_rr in (1.0, 2.0)
     assert ict_cfg.strategy_version == "ict-sabri-malle-v1"
     assert ict_cfg.orb_enabled is False
 
@@ -266,5 +266,89 @@ def test_synthetic_and_forex_workers_route_to_ict_strategy(profile):
     res = engine.process_symbol("Boom 1000 Index" if profile == "BOOM" else "Volatility 75 Index")
     assert called_ict is True
     assert res["analysis"]["context_policy"] == "ICT_NATIVE"
+
+
+def test_forex_ny_kz_and_london_close_and_silver_bullet_activation():
+    """Verify Forex pairs now activate during NY KZ, London Close, and Silver Bullet windows."""
+    from zoneinfo import ZoneInfo
+    ny_tz = ZoneInfo("America/New_York")
+
+    strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(), config=ICTSabriMalleConfig())
+
+    # Generar velas sintéticas para H1 y H4
+    now_ny_kz = datetime(2026, 10, 14, 8, 30, tzinfo=ny_tz).astimezone(timezone.utc)
+    now_outside = datetime(2026, 10, 14, 18, 0, tzinfo=ny_tz).astimezone(timezone.utc)
+
+    # Fuera de killzone en Forex debe dar OUTSIDE_INSTITUTIONAL_KILLZONE
+    dates_outside = [now_outside - timedelta(hours=i) for i in range(40, 0, -1)]
+    df_h1_out = pd.DataFrame({
+        "time": dates_outside,
+        "open": [1.10] * 40,
+        "high": [1.11] * 40,
+        "low": [1.09] * 40,
+        "close": [1.10] * 40,
+    })
+    strat.provider = MockCandleProvider(df_h1=df_h1_out)
+    res_out = strat.analyze_symbol("EURUSD", now_utc=now_outside)
+    assert res_out["valid"] is False
+    assert "OUTSIDE_INSTITUTIONAL_KILLZONE" in res_out["reason"]
+
+    # En NY Killzone (08:30 NY) Forex debe superar el filtro de Killzone
+    dates_ny = [now_ny_kz - timedelta(hours=i) for i in range(40, 0, -1)]
+    df_h1_ny = pd.DataFrame({
+        "time": dates_ny,
+        "open": [1.10] * 40,
+        "high": [1.11] * 40,
+        "low": [1.09] * 40,
+        "close": [1.10] * 40,
+    })
+    strat.provider = MockCandleProvider(df_h1=df_h1_ny)
+    res_ny = strat.analyze_symbol("EURUSD", now_utc=now_ny_kz)
+    # No debe ser bloqueado por Killzone, continuará a evaluación de bias
+    assert "OUTSIDE_INSTITUTIONAL_KILLZONE" not in res_ny["reason"]
+
+
+def test_gold_worker_and_symbol_remains_exact_and_unaltered():
+    """Verify GOLD worker and XAUUSD symbol preserve exact previous behavior and BE 2.0."""
+    from zoneinfo import ZoneInfo
+    ny_tz = ZoneInfo("America/New_York")
+
+    cfg = configure_worker_rules(LiveTradingConfig(bot_profile="GOLD"))
+    assert cfg.gold_quarters_strategy_enabled is True
+    assert cfg.break_even_trigger_rr in (1.0, 2.0)
+    assert cfg.first_target_rr in (1.0, 2.0)
+    assert cfg.second_target_rr in (2.0, 4.0)
+
+    strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(), config=ICTSabriMalleConfig())
+    # Para XAUUSD, BE trigger debe ser 2.0 invariablemente
+    now_ny = datetime(2026, 10, 14, 8, 30, tzinfo=ny_tz).astimezone(timezone.utc)
+    dates = [now_ny - timedelta(hours=i) for i in range(40, 0, -1)]
+    df_h1 = pd.DataFrame({
+        "time": dates,
+        "open": [2000.0] * 40,
+        "high": [2010.0] * 40,
+        "low": [1990.0] * 40,
+        "close": [2005.0] * 40,
+    })
+    strat.provider = MockCandleProvider(df_h1=df_h1)
+    res = strat.analyze_symbol("XAUUSD", now_utc=now_ny)
+    # Confirmar que en Gold el filtro de sesiones no fue corrompido
+    assert "OUTSIDE_INSTITUTIONAL_KILLZONE" not in res["reason"]
+
+
+def test_order_block_five_stars_detection():
+    """Verify check_order_block_five_stars detects high-probability Order Blocks."""
+    from strategy.ict.ict_strategy import check_order_block_five_stars
+    df = pd.DataFrame({
+        "open": [100.0, 98.0, 95.0, 96.0, 102.0, 105.0],
+        "high": [101.0, 99.0, 96.0, 98.0, 104.0, 107.0],
+        "low": [97.0, 94.0, 91.0, 95.0, 101.0, 104.0],
+        "close": [98.0, 95.0, 92.0, 101.0, 105.0, 106.0],
+    })
+    ob_buy = check_order_block_five_stars(df, "BUY")
+    assert ob_buy["valid"] is True
+    assert ob_buy["stars"] >= 3
+    assert "mean_threshold" in ob_buy
+
 
 

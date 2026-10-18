@@ -230,8 +230,8 @@ class LiveTradingConfig:
     split_entry_risk_fraction: float = 0.50
     first_target_rr: float = 1.0
     second_target_rr: float = 2.0
-    volatility_first_target_rr: float = 2.0
-    volatility_second_target_rr: float = 3.0
+    volatility_first_target_rr: float = 1.0
+    volatility_second_target_rr: float = 2.0
     # Si el broker no permite dividir el 1% en dos piernas seguras, intentamos
     # una sola entrada de hasta 1% con TP 2.0R y BE al alcanzar 1R.
     single_entry_fallback_enabled: bool = True
@@ -301,11 +301,11 @@ class LiveTradingConfig:
     )
 
     # Los perfiles SMC sintéticos y forex permiten buscar TP3 o TP4 protegiendo ganancias de manera progresiva.
-    runner_extension_enabled: bool = False
+    runner_extension_enabled: bool = True
     runner_extension_first_trigger_rr: float = 2.0
     runner_extension_first_lock_rr: float = 1.0
     runner_extension_second_trigger_rr: float = 3.0
-    runner_extension_second_lock_rr: float = 2.0
+    runner_extension_second_lock_rr: float = 2.5
     runner_extension_max_target_rr: float = 4.0
     smc_runner_max_target_rr: float = 4.0
     # Protección intermedia mientras busca TP3.
@@ -321,9 +321,9 @@ class LiveTradingConfig:
     forex_runner_initial_target_rr: float = 2.0
     forex_runner_tp3_lock_rr: float = 1.0
     forex_runner_tp4_pre_eval_lock_rr: float = 2.5
-    forex_runner_tp4_lock_rr: float = 3.0
-    forex_runner_max_target_rr: float = 3.0
-    forex_runner_broker_safety_target_rr: float = 3.0
+    forex_runner_tp4_lock_rr: float = 2.5
+    forex_runner_max_target_rr: float = 4.0
+    forex_runner_broker_safety_target_rr: float = 4.0
 
     runner_extension_timeframe: str = "M5"
     runner_extension_candle_count: int = 80
@@ -362,15 +362,23 @@ class LiveTradingConfig:
     meta_labeling_mode: str = os.getenv(
         "DAEMONBLACKFX_META_LABELING_MODE", "FILTER"
     ).upper()
-    meta_labeling_min_probability: float = 0.55
-    meta_labeling_min_probability_forex: float = 0.60
-    meta_labeling_min_probability_gold: float = 0.60
-    meta_labeling_min_probability_volatility: float = 0.52
-    meta_labeling_min_net_expectancy_r: float = 0.10
+    meta_labeling_min_probability: float = 0.47
+    meta_labeling_min_probability_forex: float = 0.55
+    meta_labeling_min_probability_gold: float = 0.55
+    meta_labeling_min_probability_volatility: float = 0.47
+    meta_labeling_min_net_expectancy_r: float = 0.05
     meta_labeling_ranking_enabled: bool = True
     meta_labeling_max_signals_per_cycle: int = 1
     meta_labeling_model_directory: str = "storage/ai_models"
     meta_labeling_min_training_samples: int = 15
+    meta_labeling_model_type: str = os.getenv("DAEMONBLACKFX_META_MODEL_TYPE", "GBDT").upper()
+    market_regime_sentinel_enabled: bool = True
+    market_regime_sentinel_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_MODE", "FILTER").upper()
+    market_regime_forex_strict_filter: bool = True
+    symbol_loss_cooldown_enabled: bool = True
+    symbol_loss_cooldown_minutes: float = 60.0
+    symbol_daily_strikes_enabled: bool = False
+    symbol_max_daily_losses: int = 0
     step_min_adx: float = 25.0
     step_confirmation_timeframe: str = "M15"
 
@@ -905,9 +913,11 @@ class LiveTradingEngine:
                 enabled=bool(self.config.malaysian_snr_enabled or str(self.config.bot_profile).upper() == "MALAYSIAN_SNR"),
                 entry_timeframe="M15",
                 structure_timeframe="H1",
-                tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 2.0)),
-                tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.5)),
+                tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 1.0)),
+                tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.0)),
             ),
+            runtime_settings_loader=(lambda: self.repository.latest_msnr_runtime_settings(source=self.config.source))
+                if callable(getattr(self.repository, 'latest_msnr_runtime_settings', None)) else None,
         )
 
         from strategy.ict.ict_strategy import ICTSabriMalleStrategy
@@ -960,10 +970,19 @@ class LiveTradingEngine:
                 max_signals_per_cycle=int(self.config.meta_labeling_max_signals_per_cycle),
                 model_directory=str(self.config.meta_labeling_model_directory),
                 min_training_samples=int(self.config.meta_labeling_min_training_samples),
+                model_type=str(getattr(self.config, "meta_labeling_model_type", "LOGISTIC")),
             ),
             worker=str(self.config.bot_profile or "DEFAULT"),
         )
         self._meta_label_cycle_decisions = []
+        from strategy.regime.market_regime_sentinel import MarketRegimeSentinel, MarketRegimeConfig
+        self.regime_sentinel = MarketRegimeSentinel(
+            MarketRegimeConfig(
+                enabled=bool(getattr(self.config, "market_regime_sentinel_enabled", True)),
+                mode=str(getattr(self.config, "market_regime_sentinel_mode", "OBSERVE")),
+                forex_strict_filter=bool(getattr(self.config, "market_regime_forex_strict_filter", True)),
+            )
+        )
         from strategy.execution.daily_profit_target import DailyProfitTargetManager
         self.daily_profit_target_manager = DailyProfitTargetManager(
             repository=self.repository,
@@ -1304,7 +1323,7 @@ class LiveTradingEngine:
             "risk_engine": broker_risk.get("risk_engine"),
         }
 
-    def _execution_key(self, symbol, confirmation_time, direction, strategy_name="SMC"):
+    def _execution_key(self, symbol, confirmation_time, direction, strategy_name="SMC", setup_id=None):
         """Construye la clave única e idempotente de una ejecución.
 
         Sirve para que la MISMA senal no se ejecute dos veces aunque el ciclo
@@ -1326,6 +1345,8 @@ class LiveTradingEngine:
         """
         stamp = pd.to_datetime(confirmation_time, utc=True).isoformat()
         strategy = str(strategy_name or "SMC").upper()
+        if strategy == "MALAYSIAN_SNR" and setup_id:
+            return f"{self.config.source}:{symbol}:MSNR:H1:M15:{setup_id}:{direction}"
         if strategy == "ORB_NEW_YORK":
             return f"{self.config.source}:{symbol}:ORB:NY:M1:{stamp}:{direction}"
         return f"{self.config.source}:{symbol}:H1:M15:M5:{stamp}:{direction}"
@@ -1468,6 +1489,16 @@ class LiveTradingEngine:
         if event_name == "SYMBOL_PROCESS_RESULT":
             compact_result = audit_payload.get("result") if isinstance(audit_payload.get("result"), dict) else {}
             compact_action = str(compact_result.get("action") or action or "").upper()
+            if (str(self.config.bot_profile).upper() == 'MALAYSIAN_SNR'
+                    and compact_result.get('reason') == 'NO_SETUP_CONFIRMED'):
+                h1 = (compact_result.get('diagnostics') or {}).get('h1_snapshot') or {}
+                if h1.get('closed_at'):
+                    signature = (h1['closed_at'], compact_result.get('runtime_settings_version'))
+                    cache = getattr(self, '_msnr_h1_audit_signatures', {})
+                    if cache.get(str(instrument)) == signature:
+                        return {'sampled_out':True, 'runtime_error':runtime_error}
+                    cache[str(instrument)] = signature
+                    self._msnr_h1_audit_signatures = cache
             always_persist = bool(
                 compact_result.get("valid")
                 or compact_action in {"ORDER_OPENED", "SPLIT_ORDER_OPENED", "DRY_RUN_VALIDATED"}
@@ -1480,7 +1511,10 @@ class LiveTradingEngine:
                 str(instrument or compact_result.get("symbol") or ""),
                 compact_action,
                 str(compact_result.get("reason") or reason or ""),
+                str(compact_result.get("setup_id") or ""),
                 tuple(compact_result.get("missing_confirmations") or ()),
+                compact_result.get('runtime_settings_version'),
+                ((compact_result.get('diagnostics') or {}).get('h1_snapshot') or {}).get('closed_at'),
             )
             now_mono = time.monotonic()
             cache = dict(getattr(self, "_strategy_evaluation_audit_cache", {}) or {})
@@ -1680,6 +1714,41 @@ class LiveTradingEngine:
                 for stage in ("h1", "m15", "m5")
             },
         }
+
+        if strategy_name.upper() == "MALAYSIAN_SNR":
+            compact['history_diagnostics'] = analysis.get('history_diagnostics')
+            compact['variant_diagnostics'] = analysis.get('variant_diagnostics')
+            compact['candidate_audit_error'] = row.get('candidate_audit_error')
+            compact['returned_data_error'] = row.get('returned_data_error')
+            for name in ('setup_id', 'scenario', 'entry_timeframe', 'structure_closed_at', 'entry_confirmation',
+                         'freshness', 'retest_evidence', 'macro_bias', 'break_level', 'ref_level',
+                         'macro_bias_enforced', 'runtime_settings_version', 'fractal_min_body_ratio',
+                         'fractal_max_entry_distance_atr', 'max_entry_distance_atr', 'execution_mode',
+                         'structure_timeframe', 'opportunity', 'macro_candle_bias', 'macro_structure_bias',
+                         'macro_structure_observation', 'macro_bias_method', 'gap_data_reason'):
+                value = signal.get(name, diagnostics.get(name, analysis.get(name)))
+                if value is not None:
+                    compact[name] = value
+            compact['diagnostics'] = {name: diagnostics[name] for name in (
+                'setup_id', 'stage', 'scenario', 'freshness', 'macro_bias', 'level',
+                'structure_closed_at', 'expires_at', 'remaining_minutes', 'retest', 'candidates',
+                'macro_bias_enforced', 'runtime_settings_version', 'fractal_min_body_ratio',
+                'fractal_max_entry_distance_atr', 'max_entry_distance_atr', 'h1_snapshot',
+                'structure_timeframe', 'opportunity', 'variant_mode', 'macro_candle_bias', 'macro_structure_bias')
+                if name in diagnostics}
+            compact['shadow_candidates'] = [{
+                'setup_id':(item.get('signal') or {}).get('setup_id'),
+                'scenario':(item.get('signal') or {}).get('scenario'),
+                'direction':(item.get('signal') or {}).get('direction'),
+                'opportunity':(item.get('signal') or {}).get('opportunity'),
+                'entry_price':(item.get('signal') or {}).get('entry_price'),
+                'stop_loss':(item.get('signal') or {}).get('stop_loss'),
+                'tp1_price':(item.get('signal') or {}).get('tp1_price'),
+                'tp2_price':(item.get('signal') or {}).get('tp2_price'),
+                'execution_mode':'SHADOW',
+                'macro_bias_method':(item.get('signal') or {}).get('macro_bias_method'),
+                'confirmation_closed_at':(item.get('signal') or {}).get('confirmation_closed_at')
+            } for item in analysis.get('shadow_candidates',[]) if item.get('shadow_only')]
 
         if row.get("silver_contract_selection"):
             compact["silver_contract_selection"] = row["silver_contract_selection"]
@@ -2463,6 +2532,117 @@ class LiveTradingEngine:
                         "calendar_status": calendar["status"],
                     },
                 }
+        return None
+
+    def _market_regime_entry_gate(self, symbol: str) -> dict | None:
+        """Capa 1: Centinela de Regímenes de Mercado.
+
+        Evalúa el entorno estructural H1 del símbolo. Si está en modo FILTER
+        y el régimen es TOXIC_NOISE (alta congestión con barridos de mechas o spread
+        anómalo), bloquea la apertura de nuevas posiciones protegiendo la cuenta.
+        En modo OBSERVE (por defecto) registra el régimen sin vetar.
+        """
+        sentinel = getattr(self, "regime_sentinel", None)
+        if sentinel is None or not getattr(sentinel.config, "enabled", False):
+            return None
+
+        mode = str(getattr(sentinel.config, "mode", "OBSERVE")).upper()
+        if mode == "OFF":
+            return None
+
+        try:
+            get_candles = getattr(self.provider, "get_candles", None)
+            df_h1 = get_candles(symbol, timeframe="H1", count=40) if callable(get_candles) else None
+        except Exception:
+            df_h1 = None
+
+        if df_h1 is None or len(df_h1) < int(getattr(sentinel.config, "min_candles_required", 20)):
+            return None
+
+        spread_info = self._meta_execution_spread(symbol) if hasattr(self, "_meta_execution_spread") else {}
+        current_spread = spread_info.get("spread")
+
+        decision = sentinel.evaluate_symbol(
+            symbol=symbol,
+            df_h1=df_h1,
+            current_spread=current_spread,
+            baseline_spread=spread_info.get("median_spread"),
+        )
+
+        if mode == "FILTER" and decision.is_toxic:
+            if hasattr(self, "_persist_audit_event"):
+                self._persist_audit_event(
+                    "MARKET_REGIME_BLOCKED",
+                    instrument=str(symbol),
+                    action="REGIME_FILTER_BLOCKED",
+                    reason=decision.reason,
+                    payload={"regime": decision.to_dict()},
+                )
+            return {
+                "symbol": str(symbol),
+                "action": "MARKET_REGIME_BLOCKED",
+                "reason": decision.reason,
+                "regime": decision.to_dict(),
+            }
+
+        return None
+
+    def _symbol_loss_cooldown_gate(self, symbol: str) -> dict | None:
+        """Puerta de enfriamiento y control de pérdidas consecutivas por símbolo.
+
+        Previene bucles de overtrading en rangos erráticos (whipsaw):
+        1. Veta nuevas entradas durante los X minutos siguientes a un SL (por defecto 60m).
+        2. Veta nuevas entradas en el día si el símbolo ya acumuló N pérdidas (por defecto 2).
+        """
+        if not bool(getattr(self.config, "symbol_loss_cooldown_enabled", True)):
+            return None
+
+        repo = getattr(self, "repository", None)
+        checker = getattr(repo, "get_symbol_loss_status", None) if repo is not None else None
+        if not callable(checker):
+            return None
+
+        cooldown_min = float(getattr(self.config, "symbol_loss_cooldown_minutes", 60.0))
+        daily_strikes_enabled = bool(getattr(self.config, "symbol_daily_strikes_enabled", False))
+        max_losses = int(getattr(self.config, "symbol_max_daily_losses", 0))
+        source = getattr(self.config, "source", "DEMO")
+
+        try:
+            status = checker(
+                symbol=symbol,
+                source=source,
+                cooldown_minutes=cooldown_min,
+                max_daily_losses=max_losses,
+            )
+        except Exception:
+            return None
+
+        # Restricción de strikes diarios por activo eliminada por instrucción operativa.
+        # Se permite operar sin bloquear el activo por número de pérdidas acumuladas.
+
+        if status.get("cooldown_active"):
+            rem_min = status.get("cooldown_remaining_minutes", 0.0)
+            until_str = status.get("cooldown_until") or ""
+            reason = (
+                f"SYMBOL_COOLDOWN_POST_SL: Enfriamiento anti-whipsaw activo "
+                f"tras SL reciente. Restan {rem_min:.1f} min (hasta {until_str}). "
+                "Esperando descongestión del rango."
+            )
+            if hasattr(self, "_persist_audit_event"):
+                self._persist_audit_event(
+                    "SYMBOL_COOLDOWN_BLOCKED",
+                    instrument=str(symbol),
+                    action="COOLDOWN_POST_SL_BLOCKED",
+                    reason=reason,
+                    payload={"status": status},
+                )
+            return {
+                "symbol": str(symbol),
+                "action": "SYMBOL_COOLDOWN_POST_SL",
+                "reason": reason,
+                "loss_status": status,
+            }
+
         return None
 
     def _protect_forex_position_for_high_impact_news(
@@ -3737,20 +3917,15 @@ class LiveTradingEngine:
             ):
                 result["reason"] = "ORB_FIXED_SL_TP"
                 return result
-        synthetic_profile = str(
-            metadata.get("bot_profile") or self.config.bot_profile or ""
-        ).upper()
-        if synthetic_profile in {"BOOM", "CRASH"}:
-            result["reason"] = "SYNTHETICS_FIXED_TP2_TARGET"
-            return result
         strategy_name = str(metadata.get("strategy_name") or "SMC").upper()
         is_orb_runner = strategy_name == "ORB_NEW_YORK"
+        is_msnr_runner = strategy_name == "MALAYSIAN_SNR"
         bot_profile = str(metadata.get("bot_profile") or self.config.bot_profile or "").upper()
         symbol = str(trade.get("instrument") or "")
-        is_forex_runner = (bot_profile.startswith("FOREX") or self._is_forex_symbol(symbol)) and not is_orb_runner
+        is_forex_runner = (bot_profile.startswith("FOREX") or self._is_forex_symbol(symbol)) and not is_orb_runner and not is_msnr_runner
         is_vol_worker = any(bot_profile.startswith(p) for p in ("VOLATILITY", "VOL"))
-        is_volatility_runner = is_vol_worker and self._is_volatility_symbol(symbol) and not is_orb_runner
-        if not is_forex_runner and not is_volatility_runner and not bool(self.config.runner_extension_enabled):
+        is_volatility_runner = is_vol_worker and self._is_volatility_symbol(symbol) and not is_orb_runner and not is_msnr_runner
+        if not bool(self.config.runner_extension_enabled):
             return result
         if str(metadata.get("trade_leg") or "").upper() != "RUNNER":
             return result
@@ -3770,61 +3945,37 @@ class LiveTradingEngine:
             result["error"] = "TRADE_EXECUTOR_DOES_NOT_SUPPORT_RUNNER_CLOSE"
             return result
 
-        if is_forex_runner:
-            max_target_rr = float(self.config.forex_runner_max_target_rr)
-            if max_target_rr <= 2.0:
-                result["reason"] = "FOREX_FIXED_TP2_TARGET"
-                return result
-            stages = [
+        max_target_rr = float(
+            metadata.get("runner_max_target_rr")
+            or (self.config.forex_runner_max_target_rr if is_forex_runner else getattr(self.config, "runner_extension_max_target_rr", 4.0))
+            or 4.0
+        )
+        if max_target_rr <= 2.0:
+            result["reason"] = "FOREX_FIXED_TP2_TARGET" if is_forex_runner else "FIXED_TP2_TARGET"
+            return result
+
+        first_trigger = float(self.config.runner_extension_first_trigger_rr or 2.0)
+        first_lock = float(self.config.runner_extension_first_lock_rr or 1.0)
+        second_trigger = float(self.config.runner_extension_second_trigger_rr or 3.0)
+        second_lock = float(self.config.runner_extension_second_lock_rr or 2.5)
+
+        stages = [
+            (
+                "2R_TO_3R",
+                first_trigger,
+                first_lock,
+                3.0,
+            ),
+        ]
+        if max_target_rr > 3.0:
+            stages.append(
                 (
-                    "2R_TO_3R",
-                    float(self.config.forex_runner_initial_target_rr),
-                    float(self.config.forex_runner_tp3_lock_rr),
-                    3.0,
-                ),
-            ]
-            if max_target_rr > 3.0:
-                stages.append(
-                    (
-                        "3R_TO_4R",
-                        3.0,
-                        float(self.config.forex_runner_tp4_pre_eval_lock_rr),
-                        max_target_rr,
-                    ),
+                    "3R_TO_4R",
+                    second_trigger,
+                    second_lock,
+                    max_target_rr,
                 )
-        elif is_volatility_runner:
-            max_target_rr = float(getattr(self.config, "volatility_second_target_rr", 3.0))
-            stages = [
-                (
-                    "2R_TO_3R",
-                    float(self.config.runner_extension_first_trigger_rr),
-                    float(self.config.runner_extension_first_lock_rr),
-                    3.0,
-                ),
-            ]
-        else:
-            max_target_rr = (
-                float(self.config.runner_extension_max_target_rr)
-                if (is_orb_runner or strategy_name in {"GOLD_QUARTERS", "MALAYSIAN_SNR"})
-                else float(self.config.smc_runner_max_target_rr)
             )
-            stages = [
-                (
-                    "2R_TO_3R",
-                    float(self.config.runner_extension_first_trigger_rr),
-                    float(self.config.runner_extension_first_lock_rr),
-                    3.0,
-                ),
-            ]
-            if max_target_rr > 3.0:
-                stages.append(
-                    (
-                        "3R_TO_4R",
-                        float(self.config.runner_extension_second_trigger_rr),
-                        float(self.config.runner_extension_second_lock_rr),
-                        max_target_rr,
-                    )
-                )
         completed_stages = set(metadata.get("runner_extension_completed_stages") or [])
         current_logical_target_rr = float(
             metadata.get("runner_logical_target_rr")
@@ -4069,6 +4220,21 @@ class LiveTradingEngine:
                 },
             )
 
+            if is_msnr_runner:
+                completed_stages.add(stage_name)
+                metadata["runner_extension_completed_stages"] = sorted(completed_stages)
+                metadata["runner_extension_stage"] = stage_name
+                result.update({
+                    "managed": True,
+                    "extended": True,
+                    "stage": stage_name,
+                    "profit_lock_rr": float(lock_rr),
+                    "profit_lock_price": float(protected_sl),
+                    "target_rr": max_target_rr,
+                    "target_price": float(target_price),
+                })
+                return result
+
             # ------------------------------------------------------------
             # 2) EVALUAR SI EXISTE CONTINUACIÓN
             # ------------------------------------------------------------
@@ -4150,9 +4316,9 @@ class LiveTradingEngine:
                 metadata.get("runner_extension_tp4_protect_tp3")
                 or getattr(self.config, "runner_extension_tp4_protect_tp3", False)
             )
-            if stage_name == "3R_TO_4R" and (is_forex_runner or protect_tp3_on_tp4):
-                # El mercado ganó el derecho a buscar TP4: proteger estrictamente TP3 (+3.0R) para maximizar ganancias
-                tp4_lock_rr = 3.0 if protect_tp3_on_tp4 else float(self.config.forex_runner_tp4_lock_rr)
+            if stage_name == "3R_TO_4R":
+                # El mercado ganó el derecho a buscar TP4: proteger estrictamente TP2.5 (+2.5R) para maximizar ganancias (o TP3 si protect_tp3_on_tp4)
+                tp4_lock_rr = 3.0 if protect_tp3_on_tp4 else float(self.config.runner_extension_second_lock_rr or 2.5)
                 tp4_lock_price = rr_price(
                     entry_price,
                     float(initial_stop_loss),
@@ -4170,7 +4336,7 @@ class LiveTradingEngine:
                     position_ticket=ticket,
                     stop_loss=float(tp4_protected_sl),
                     take_profit=float(target_price),
-                    reason="runner_tp4_protect_tp3_lock_3r" if protect_tp3_on_tp4 else "forex_runner_tp4_lock_2_5r",
+                    reason="runner_tp4_lock_2_5r",
                 )
                 if post_eval_lock.get("modified", False):
                     protected_sl = float(tp4_protected_sl)
@@ -4776,8 +4942,8 @@ class LiveTradingEngine:
                     bot_prof_val = str(metadata.get("bot_profile") or self.config.bot_profile or "").upper()
                     is_fixed_tp2_runner = (
                         not bool(self.config.runner_extension_enabled)
-                        or strategy_name_val in {"GOLD_QUARTERS", "MALAYSIAN_SNR"}
-                        or bot_prof_val in {"BOOM", "CRASH"}
+                        or strategy_name_val == "GOLD_QUARTERS"
+                        or (strategy_name_val == "MALAYSIAN_SNR" and float(metadata.get("runner_max_target_rr") or runner_target_rr) <= 2.0)
                         or float(metadata.get("runner_max_target_rr") or runner_target_rr) <= 2.0
                     )
                     # Si la pierna 2 no extiende (objetivo fijado en TP2) y alcanzó su objetivo (>= 2.0R),
@@ -6399,6 +6565,180 @@ class LiveTradingEngine:
             market["spread_reason"] = type(exc).__name__ + ": " + str(exc)
         return market
 
+    def _detect_ict_msnr_confluence(
+        self,
+        *,
+        symbol: str,
+        direction: str,
+        signal: dict,
+        analysis: dict,
+        strategy_name: str,
+    ) -> dict:
+        """Detector de confluencia explícita entre ICT y Malaysian SNR en el motor de ejecución.
+        
+        Permite que cada estrategia opere de manera 100% INDEPENDIENTE.
+        Sin embargo, cuando una señal activa (ICT o MSNR) encuentra confirmación
+        estructural o direccional en la estrategia hermana para el mismo activo:
+        1. Se estampa la marca de confluencia institucional AAA ('confluence_grade': 'AAA_CONFLUENCE').
+        2. Se eleva el trade_score y confirmation_percentage (+15 pts hasta 100).
+        3. Se alimenta al modelo LightGBM para maximizar la probabilidad predictiva.
+        """
+        confluence_info = {
+            "has_confluence": False,
+            "confluence_type": None,
+            "peer_strategy": None,
+            "peer_details": None,
+        }
+        strat_upper = str(strategy_name or "").upper()
+        
+        try:
+            # Caso A: La señal primaria es ICT -> Consultar si Malaysian SNR ve zona o señal en la misma dirección
+            if strat_upper in {"ICT", "ICT_SABRI_MALLE"}:
+                msnr_strat = getattr(self, "malaysian_snr_strategy", None)
+                if msnr_strat is not None:
+                    msnr_eval = msnr_strat.analyze_symbol(symbol)
+                    msnr_sig = msnr_eval.get("signal") or msnr_eval.get("entry")
+                    msnr_dir = str((msnr_sig or {}).get("direction") or msnr_eval.get("direction") or "").upper()
+                    if msnr_dir == direction:
+                        confluence_info["has_confluence"] = True
+                        confluence_info["confluence_type"] = "ICT_TRIGGER_AT_MSNR_LEVEL"
+                        confluence_info["peer_strategy"] = "MALAYSIAN_SNR"
+                        confluence_info["peer_details"] = {
+                            "scenario": (msnr_sig or {}).get("scenario") or msnr_eval.get("scenario"),
+                            "ref_level": (msnr_sig or {}).get("ref_level"),
+                        }
+
+            # Caso B: La señal primaria es Malaysian SNR -> Consultar si ICT ve sesgo/gatillo en la misma dirección
+            elif strat_upper == "MALAYSIAN_SNR":
+                ict_strat = getattr(self, "ict_strategy", None)
+                if ict_strat is not None:
+                    ict_eval = ict_strat.analyze_symbol(symbol)
+                    ict_sig = ict_eval.get("signal") or ict_eval.get("entry")
+                    ict_dir = str((ict_sig or {}).get("direction") or ict_eval.get("direction") or "").upper()
+                    if ict_dir == direction:
+                        confluence_info["has_confluence"] = True
+                        confluence_info["confluence_type"] = "MSNR_LEVEL_WITH_ICT_TRIGGER"
+                        confluence_info["peer_strategy"] = "ICT_SABRI_MALLE"
+                        confluence_info["peer_details"] = {
+                            "fvg": (ict_sig or {}).get("fvg_top"),
+                            "structure_break": (ict_sig or {}).get("structure_break"),
+                        }
+        except Exception:
+            # Nunca bloquear la señal independiente si falla la consulta entre estrategias
+            pass
+
+        if confluence_info["has_confluence"]:
+            signal["confluence_grade"] = "AAA_CONFLUENCE"
+            signal["ict_msnr_confluence"] = True
+            signal["confluence_info"] = confluence_info
+            curr_score = float(signal.get("trade_score") or 75.0)
+            signal["trade_score"] = min(100.0, curr_score + 15.0)
+            curr_conf = float(signal.get("confirmation_percentage") or 80.0)
+            signal["confirmation_percentage"] = min(100.0, curr_conf + 15.0)
+            confirmations = signal.setdefault("confirmations", {})
+            if isinstance(confirmations, dict):
+                confirmations["ict_msnr_confluence"] = True
+        else:
+            signal["confluence_grade"] = "INDEPENDENT_SETUP"
+            signal["ict_msnr_confluence"] = False
+
+        return confluence_info
+
+    def _detect_smt_divergence(
+        self,
+        *,
+        symbol: str,
+        direction: str,
+        signal: dict,
+    ) -> dict:
+        """Detector de Divergencia SMT (Smart Money Technique) entre activos correlacionados.
+
+        Comprueba manipulación institucional cross-asset en pares gemelos:
+        - Forex: EURUSD <-> GBPUSD
+        - Sintéticos: Volatility 75 <-> Volatility 75 (1s), Volatility 50 <-> Volatility 50 (1s),
+          Boom 1000 <-> Boom 500, Crash 1000 <-> Crash 500, Step Index <-> Step Index 200
+        - Índices: US Tech 100 <-> US SP 500
+
+        Si se confirma divergencia SMT en la dirección de la señal:
+        1. Estampa 'smt_divergence': True y 'smt_twin': gemelo.
+        2. Añade +15 pts al trade_score y confirmation_percentage.
+        3. Añade 'SMT_INSTITUTIONAL_DIVERGENCE' en los tags de confluencia.
+        """
+        smt_twins = {
+            "EURUSD": "GBPUSD", "GBPUSD": "EURUSD",
+            "US Tech 100": "US SP 500", "US SP 500": "US Tech 100",
+            "Volatility 75 Index": "Volatility 75 (1s) Index",
+            "Volatility 75 (1s) Index": "Volatility 75 Index",
+            "Volatility 50 Index": "Volatility 50 (1s) Index",
+            "Volatility 50 (1s) Index": "Volatility 50 Index",
+            "Boom 1000 Index": "Boom 500 Index", "Boom 500 Index": "Boom 1000 Index",
+            "Crash 1000 Index": "Crash 500 Index", "Crash 500 Index": "Crash 1000 Index",
+            "Step Index": "Step Index 200", "Step Index 200": "Step Index",
+        }
+
+        twin_sym = smt_twins.get(symbol)
+        smt_info = {
+            "has_smt": False,
+            "twin_symbol": twin_sym,
+            "smt_type": None,
+        }
+        if not twin_sym or getattr(self, "provider", None) is None:
+            signal["smt_divergence"] = False
+            return smt_info
+
+        try:
+            resolve_sym = getattr(self.provider, "resolve_symbol", lambda s: s)
+            twin_resolved = resolve_sym(twin_sym)
+
+            df_a = self.provider.get_candles(symbol, "M15", count=24)
+            df_b = self.provider.get_candles(twin_resolved, "M15", count=24)
+
+            if df_a is not None and df_b is not None and len(df_a) >= 12 and len(df_b) >= 12:
+                half = 6
+                sub_a = df_a.iloc[-12:]
+                sub_b = df_b.iloc[-12:]
+
+                high_a_prev, high_a_curr = float(sub_a["high"].iloc[:half].max()), float(sub_a["high"].iloc[half:].max())
+                low_a_prev, low_a_curr = float(sub_a["low"].iloc[:half].min()), float(sub_a["low"].iloc[half:].min())
+
+                high_b_prev, high_b_curr = float(sub_b["high"].iloc[:half].max()), float(sub_b["high"].iloc[half:].max())
+                low_b_prev, low_b_curr = float(sub_b["low"].iloc[:half].min()), float(sub_b["low"].iloc[half:].min())
+
+                dir_u = str(direction or "").upper()
+                # Bearish SMT: Activo A hace Higher High pero Activo B falla (Lower High) o viceversa
+                if dir_u == "SELL":
+                    if (high_a_curr > high_a_prev and high_b_curr < high_b_prev) or (high_a_curr < high_a_prev and high_b_curr > high_b_prev):
+                        smt_info["has_smt"] = True
+                        smt_info["smt_type"] = "BEARISH_SMT_DISTRIBUTION"
+
+                # Bullish SMT: Activo A hace Lower Low pero Activo B falla (Higher Low) o viceversa
+                elif dir_u == "BUY":
+                    if (low_a_curr < low_a_prev and low_b_curr > low_b_prev) or (low_a_curr > low_a_prev and low_b_curr < low_b_prev):
+                        smt_info["has_smt"] = True
+                        smt_info["smt_type"] = "BULLISH_SMT_ACCUMULATION"
+
+        except Exception:
+            pass
+
+        if smt_info["has_smt"]:
+            signal["smt_divergence"] = True
+            signal["smt_twin"] = twin_sym
+            signal["smt_info"] = smt_info
+            curr_score = float(signal.get("trade_score") or 75.0)
+            signal["trade_score"] = min(100.0, curr_score + 15.0)
+            curr_conf = float(signal.get("confirmation_percentage") or 80.0)
+            signal["confirmation_percentage"] = min(100.0, curr_conf + 15.0)
+            confirmations = signal.setdefault("confirmations", {})
+            if isinstance(confirmations, dict):
+                confirmations["smt_divergence"] = True
+            tags = signal.setdefault("confluence_tags", [])
+            if isinstance(tags, list) and "SMT_INSTITUTIONAL_DIVERGENCE" not in tags:
+                tags.append("SMT_INSTITUTIONAL_DIVERGENCE")
+        else:
+            signal["smt_divergence"] = False
+
+        return smt_info
+
     def _meta_label_gate(
         self,
         *,
@@ -6421,7 +6761,15 @@ class LiveTradingEngine:
                       "risk_percent": float(self.config.risk_percent),
                       "entry_price": signal.get("entry_price")}
             market.update(self._meta_execution_spread(symbol))
-            decision = engine.score_signal(
+            scorer = engine
+            if str(strategy_name).upper() == 'MALAYSIAN_SNR':
+                from strategy.malaysian_snr.ai_policy import score_candidate
+                from strategy.malaysian_snr.universe import resolve_symbol_settings
+                decision = score_candidate(engine, symbol, signal, analysis, market,
+                    source=self.config.source, settings=analysis.get('runtime_controls') or resolve_symbol_settings(
+                        self.malaysian_snr_strategy.settings_snapshot(), symbol))
+            else:
+                decision = scorer.score_signal(
                 symbol=str(symbol),
                 signal=signal,
                 analysis=analysis,
@@ -6434,7 +6782,9 @@ class LiveTradingEngine:
                 decision["shadow"] = True
                 decision["reason"] = "ORB_INDEPENDENT_STRATEGY"
         except Exception as exc:
-            # Un fallo del modelo nunca debe impedir operar una señal válida.
+            # SNR's filter must not bypass its configured policy on an AI error.
+            if str(strategy_name).upper() == 'MALAYSIAN_SNR':
+                return {"allowed": False, "reason": f"MSNR_META_LABEL_ERROR:{exc}"}
             return {"allowed": True, "reason": f"META_LABEL_ERROR:{exc}"}
 
         self._meta_label_cycle_decisions.append(decision)
@@ -6554,6 +6904,26 @@ class LiveTradingEngine:
                 pass
 
         min_adx = float(getattr(self.config, "step_min_adx", 25.0))
+        snr_step = (str(self.config.bot_profile or '').upper()=='MALAYSIAN_SNR'
+            and str(signal.get('strategy_name') or '').upper()=='MALAYSIAN_SNR')
+        if snr_step:
+            from strategy.malaysian_snr.universe import resolve_symbol_settings
+            import math
+            try:
+                controls=(analysis or {}).get('runtime_controls') or self.malaysian_snr_strategy.settings_snapshot()
+                controls=resolve_symbol_settings(controls,symbol)
+                min_adx=float(controls['step_min_adx'])
+            except Exception:
+                return {'symbol':str(symbol),'action':'MSNR_SETTINGS_UNAVAILABLE',
+                    'reason':'MSNR_STEP_EXECUTION_SETTINGS_UNAVAILABLE'}
+            if adx is None or not math.isfinite(float(adx)) or float(adx)<min_adx:
+                return {'symbol':str(symbol),'action':'STEP_ADX_LOW',
+                    'reason':'MSNR_STEP_EXECUTION_ADX_BELOW_MINIMUM',
+                    'adx':float(adx) if adx is not None and math.isfinite(float(adx)) else None,
+                    'min_adx':min_adx,'adx_timeframe':signal.get('structure_timeframe'),
+                    'runtime_settings_version':controls.get('version')}
+            signal['step_execution_quality']={'minimum_adx':min_adx,'captured_adx':float(adx),
+                'runtime_settings_version':controls.get('version')}
         if is_step_worker:
             if adx is None or float(adx) < min_adx:
                 return {
@@ -6563,7 +6933,7 @@ class LiveTradingEngine:
                     "adx": float(adx) if adx is not None else 0.0,
                     "min_adx": min_adx,
                 }
-        elif adx is not None and float(adx) < min_adx:
+        elif not snr_step and adx is not None and float(adx) < min_adx:
             return {
                 "symbol": str(symbol),
                 "action": "STEP_ADX_LOW",
@@ -6572,9 +6942,15 @@ class LiveTradingEngine:
                 "min_adx": min_adx,
             }
 
+        from strategy.malaysian_snr.universe import resolve_symbol_settings
         # Trasladar confirmación técnica a velas de M15 (descartar M5/M1)
         sig_tf = str(signal.get("confirmation_timeframe") or signal.get("timeframe") or "").upper()
-        if sig_tf in {"M1", "M5"}:
+        snr_m5 = (str(signal.get('strategy_name')).upper()=='MALAYSIAN_SNR'
+            and signal.get('entry_timeframe')=='M5'
+            and str(signal.get('structure_timeframe'))=='H1'
+            and resolve_symbol_settings(
+                self.malaysian_snr_strategy.settings_snapshot(), symbol)['m5_confirmation_mode']=='live')
+        if sig_tf in {"M1", "M5"} and not snr_m5:
             return {
                 "symbol": str(symbol),
                 "action": "STEP_TIMEFRAME_TOO_LOW",
@@ -7145,18 +7521,50 @@ class LiveTradingEngine:
         return None if guard['can_analyze'] else self._position_guard_result(symbol, guard)
 
     def process_symbol(self, symbol: str, sync_before_execution: bool = True):
+        if not hasattr(self, '_msnr_audit_local'):
+            self._msnr_audit_local = threading.local()
+        self._msnr_audit_local.analysis = None
+        try:
+            result = self._process_symbol_impl(symbol, sync_before_execution)
+            if str(getattr(self.config, 'bot_profile', '')).upper() == 'MALAYSIAN_SNR':
+                from strategy.malaysian_snr.candidate_audit import audit_result
+                audit_result(self, symbol, result)
+            return result
+        finally:
+            self._msnr_audit_local.analysis = None
+
+    def _process_symbol_impl(self, symbol: str, sync_before_execution: bool = True):
         """Processes symbol execution. If strategy_name == "ORB_NEW_YORK", uses self.config.orb_risk_percent."""
         from strategy.execution.active_position_guard import symbol_cycle_lock
         exact_symbol = self.provider.resolve_symbol(symbol)
+        prepared_msnr = None
+        config = getattr(self, 'config', None)
+        if config is not None and (str(getattr(config,'bot_profile','')).upper() == 'MALAYSIAN_SNR' or getattr(config,'malaysian_snr_enabled',False)):
+            from strategy.malaysian_snr.runtime_engine import observation_result, track_pending
+            try:
+                outside_lock = self.malaysian_snr_strategy.settings_snapshot()['analysis_outside_entry_lock']
+            except Exception:
+                msnr_res = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
+                msnr_res["context_policy"] = "MALAYSIAN_SNR_NATIVE"
+                return observation_result(exact_symbol, msnr_res)
+            if outside_lock:
+                prepared_msnr = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
+                prepared_msnr["context_policy"] = "MALAYSIAN_SNR_NATIVE"
+                track_pending(self, exact_symbol, prepared_msnr)
+                self._msnr_audit_local.analysis = prepared_msnr
+                if not prepared_msnr.get('valid') or prepared_msnr.get('shadow_only'):
+                    return observation_result(exact_symbol, prepared_msnr)
         if not bool(getattr(getattr(self, "config", None), "execution_enabled", True)):
-            result = self._process_symbol_guarded(exact_symbol, sync_before_execution)
+            result = (self._process_symbol_guarded(exact_symbol, sync_before_execution)
+                      if prepared_msnr is None else self._process_symbol_guarded(exact_symbol, sync_before_execution, prepared_msnr_analysis=prepared_msnr))
         else:
             with symbol_cycle_lock(exact_symbol) as acquired:
                 if not acquired:
                     return self._position_guard_result(exact_symbol, dict(can_analyze=False,
                         status='BLOCKED_SYMBOL_CYCLE', diagnostic_tag='WAITING_SYMBOL_CYCLE',
                         reason='Otro worker esta evaluando o enviando una entrada para este simbolo'))
-                result = self._process_symbol_guarded(exact_symbol, sync_before_execution)
+                result = (self._process_symbol_guarded(exact_symbol, sync_before_execution)
+                          if prepared_msnr is None else self._process_symbol_guarded(exact_symbol, sync_before_execution, prepared_msnr_analysis=prepared_msnr))
         if isinstance(result, dict):
             from strategy.orb.signal_payload import log_audit_summary
             import logging
@@ -7189,6 +7597,21 @@ class LiveTradingEngine:
     ):
         split_failure = None
         execution_mode = "SINGLE"
+        if strategy_name == 'MALAYSIAN_SNR' and signal.get('setup_id'):
+            try:
+                sign = 1 if direction == 'BUY' else -1
+                atr = float(signal['atr'])
+                distance = sign * (float(entry) - float(signal['ref_level'])) / atr
+                deadline = pd.Timestamp(signal.get('setup_execution_deadline_at') or signal['setup_expires_at'])
+                expired = pd.isna(deadline) or pd.Timestamp.now(tz='UTC') > deadline
+                bound = float(signal['invalidation_level'])
+                invalidated = sign * (float(entry) - bound) <= 0
+                permitted = (math.isfinite(distance) and math.isfinite(bound) and atr > 0 and not expired and not invalidated
+                             and 0 <= distance <= float(signal['max_entry_distance_atr']))
+            except (KeyError, ValueError, TypeError, ZeroDivisionError):
+                permitted = False
+            if not permitted:
+                return None, {'code': 'MSNR_ENTRY_CONTEXT_CHANGED'}, None, 'SPLIT'
         sym_norm = str(exact_symbol).upper().replace(" ", "")
         is_asymmetric_300_500 = any(k in sym_norm for k in ("BOOM300", "CRASH500"))
         is_forex_symbol = self._is_forex_symbol(exact_symbol) if callable(getattr(self, "_is_forex_symbol", None)) else False
@@ -7201,7 +7624,7 @@ class LiveTradingEngine:
                 eff_second_rr = float(self.config.second_target_rr)
                 forex_runner_target = max(
                     eff_second_rr,
-                    float(getattr(self.config, "forex_runner_broker_safety_target_rr", 3.0)),
+                    float(getattr(self.config, "forex_runner_broker_safety_target_rr", 4.0)),
                 )
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
@@ -7259,8 +7682,8 @@ class LiveTradingEngine:
                     ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
                 ]
             else:
-                eff_first_rr = 1.2 if is_asymmetric_300_500 else float(self.config.first_target_rr)
-                eff_second_rr = 2.5 if is_asymmetric_300_500 else float(self.config.second_target_rr)
+                eff_first_rr = float(self.config.first_target_rr)
+                eff_second_rr = float(self.config.second_target_rr)
                 if strategy_name == "ORB_NEW_YORK":
                     range_ratio = float(signal.get("opening_range_atr_ratio") or 1.5)
                     retest_quality = str(signal.get("retest_quality") or "").upper()
@@ -7278,7 +7701,10 @@ class LiveTradingEngine:
                     runner_logical_rr = context_runner_rr
                 else:
                     runner_logical_rr = eff_second_rr
-                    runner_target_rr = eff_second_rr
+                    if bool(self.config.runner_extension_enabled):
+                        runner_target_rr = max(eff_second_rr, float(self.config.runner_extension_max_target_rr))
+                    else:
+                        runner_target_rr = eff_second_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
                     ("RUNNER", risk_fraction, runner_logical_rr, runner_target_rr),
@@ -7309,7 +7735,7 @@ class LiveTradingEngine:
 
         return legs, split_failure, single_failure, execution_mode
 
-    def _process_symbol_guarded(self, symbol: str, sync_before_execution: bool = True):
+    def _process_symbol_guarded(self, symbol: str, sync_before_execution: bool = True, prepared_msnr_analysis=None):
         """Procesa un símbolo de extremo a extremo: análisis, filtros y ejecución.
 
         METODO CENTRAL del motor. Recorre en orden todas las etapas y se
@@ -7383,6 +7809,14 @@ class LiveTradingEngine:
         if forex_news_gate is not None:
             return forex_news_gate
 
+        regime_gate = self._market_regime_entry_gate(exact_symbol)
+        if regime_gate is not None:
+            return regime_gate
+
+        loss_cooldown_gate = self._symbol_loss_cooldown_gate(exact_symbol)
+        if loss_cooldown_gate is not None:
+            return loss_cooldown_gate
+
         quarantined = self._quarantine_result(exact_symbol)
         if quarantined is not None:
             return {
@@ -7432,8 +7866,23 @@ class LiveTradingEngine:
             str(self.config.bot_profile or "").upper() == "MALAYSIAN_SNR"
             or bool(self.config.malaysian_snr_enabled)
         ):
-            analysis = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
+            analysis = prepared_msnr_analysis
+            # A parameter update or a new M15 close invalidates pre-analysis.
+            if analysis is not None:
+                version = self.malaysian_snr_strategy.settings_snapshot()['version']
+                evaluated = pd.Timestamp((analysis.get('signal') or {}).get('evaluated_at'))
+                if (version != (analysis.get('signal') or {}).get('runtime_settings_version')
+                        or pd.isna(evaluated) or evaluated.floor('5min' if (analysis.get('signal') or {}).get('entry_timeframe')=='M5' else '15min') != pd.Timestamp.now(tz='UTC').floor('5min' if (analysis.get('signal') or {}).get('entry_timeframe')=='M5' else '15min')):
+                    analysis = None
+            if analysis is None:
+                analysis = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
             analysis["context_policy"] = "MALAYSIAN_SNR_NATIVE"
+            if hasattr(self, "_msnr_audit_local"):
+                self._msnr_audit_local.analysis = analysis
+            from strategy.malaysian_snr.runtime_engine import observation_result, track_pending
+            track_pending(self, exact_symbol, analysis)
+            if analysis.get('shadow_only'):
+                return observation_result(exact_symbol, analysis)
         elif (
             str(self.config.bot_profile or "").upper() == "IDX_OPEN"
             and bool(self.config.idx_open_enabled)
@@ -7627,8 +8076,23 @@ class LiveTradingEngine:
             or ("ICT" if str(self.config.bot_profile or "").upper() == "ICT" else "SMC")
         ).upper()
         strategy_version = str(signal.get("strategy_version") or analysis.get("strategy_version") or self.config.strategy_version)
-        key = self._execution_key(exact_symbol, signal["entry_time"], direction, strategy_name=strategy_name)
+        key = self._execution_key(exact_symbol, signal["entry_time"], direction,
+                                  strategy_name=strategy_name, **(
+                                      {"setup_id": signal["setup_id"]}
+                                      if strategy_name == "MALAYSIAN_SNR" and signal.get("setup_id") else {}))
 
+        self._detect_ict_msnr_confluence(
+            symbol=exact_symbol,
+            direction=direction,
+            signal=signal,
+            analysis=analysis,
+            strategy_name=strategy_name,
+        )
+        self._detect_smt_divergence(
+            symbol=exact_symbol,
+            direction=direction,
+            signal=signal,
+        )
         self._enrich_learning_indicators(exact_symbol, signal)
         meta_label = self._meta_label_gate(
             symbol=exact_symbol,
@@ -7721,6 +8185,12 @@ class LiveTradingEngine:
             if bool(self.config.split_entries_enabled)
             else [key]
         )
+        if strategy_name == "MALAYSIAN_SNR" and signal.get("setup_id"):
+            legacy_key = self._execution_key(exact_symbol, signal["entry_time"], direction,
+                                             strategy_name=strategy_name)
+            # Check both single/split plans and pre-upgrade confirmation keys.
+            execution_keys = [f"{parent}{suffix}" for parent in (key, legacy_key)
+                              for suffix in ("", ":TP1", ":RUNNER")]
         if any(self.repository.get_trade_by_execution_key(item) is not None for item in execution_keys):
             return {
                 "symbol": exact_symbol,
@@ -8306,6 +8776,7 @@ class LiveTradingEngine:
                     "break_even_enabled": bool(self.config.break_even_enabled) and strategy_name != "ORB_NEW_YORK",
                     "break_even_trigger_rr": (
                         float(signal.get("be_trigger_rr") or self.config.first_target_rr) if strategy_name == "MALAYSIAN_SNR"
+                        else float(signal.get("be_trigger_rr") or self.config.break_even_trigger_rr) if (strategy_name in {"ICT", "ICT_SABRI_MALLE"} and not is_orb_gold_symbol(exact_symbol) and str(self.config.bot_profile).upper() != "GOLD")
                         else float(self.config.volatility_first_target_rr) if (is_vol_profile and is_volatility)
                         else float(self.config.break_even_trigger_rr)
                     ),
@@ -8315,8 +8786,7 @@ class LiveTradingEngine:
                     "runner_logical_target_rr": float(leg.get("logical_target_rr", leg["target_rr"])),
                     "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                     "runner_max_target_rr": (
-                        float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if strategy_name == "MALAYSIAN_SNR"
-                        else None if self._is_synthetics_profile_name(self.config.bot_profile)
+                        float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if (strategy_name in {"MALAYSIAN_SNR", "ICT", "ICT_SABRI_MALLE"} and not is_orb_gold_symbol(exact_symbol) and str(self.config.bot_profile).upper() != "GOLD")
                         else float(self.config.forex_runner_max_target_rr)
                         if (is_forex_profile and is_forex_symbol)
                         else (
@@ -8329,22 +8799,10 @@ class LiveTradingEngine:
                             )
                         )
                     ),
-                    "runner_tp3_guard_trigger_rr": (
-                        None if self._is_synthetics_profile_name(self.config.bot_profile)
-                        else float(self.config.smc_runner_tp3_guard_trigger_rr)
-                    ),
-                    "runner_tp3_guard_lock_rr": (
-                        None if self._is_synthetics_profile_name(self.config.bot_profile)
-                        else float(self.config.smc_runner_tp3_guard_lock_rr)
-                    ),
-                    "runner_tp4_guard_trigger_rr": (
-                        None if self._is_synthetics_profile_name(self.config.bot_profile)
-                        else float(self.config.smc_runner_tp4_guard_trigger_rr)
-                    ),
-                    "runner_tp4_guard_lock_rr": (
-                        None if self._is_synthetics_profile_name(self.config.bot_profile)
-                        else float(self.config.smc_runner_tp4_guard_lock_rr)
-                    ),
+                    "runner_tp3_guard_trigger_rr": float(self.config.smc_runner_tp3_guard_trigger_rr),
+                    "runner_tp3_guard_lock_rr": float(self.config.smc_runner_tp3_guard_lock_rr),
+                    "runner_tp4_guard_trigger_rr": float(self.config.smc_runner_tp4_guard_trigger_rr),
+                    "runner_tp4_guard_lock_rr": float(self.config.smc_runner_tp4_guard_lock_rr),
                     "bot_profile": str(self.config.bot_profile).upper(),
                     "daemon_magic": int(self.config.magic),
                     "orb_market": signal.get("orb_market"),
@@ -8892,7 +9350,6 @@ class LiveTradingEngine:
                         "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                         "runner_max_target_rr": (
                             float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if strategy_name == "MALAYSIAN_SNR"
-                            else None if self._is_synthetics_profile_name(self.config.bot_profile)
                             else float(self.config.forex_runner_max_target_rr)
                             if (is_forex_profile and is_forex_symbol)
                             else (
@@ -8905,22 +9362,10 @@ class LiveTradingEngine:
                                 )
                             )
                         ),
-                        "runner_tp3_guard_trigger_rr": (
-                            None if self._is_synthetics_profile_name(self.config.bot_profile)
-                            else float(self.config.smc_runner_tp3_guard_trigger_rr)
-                        ),
-                        "runner_tp3_guard_lock_rr": (
-                            None if self._is_synthetics_profile_name(self.config.bot_profile)
-                            else float(self.config.smc_runner_tp3_guard_lock_rr)
-                        ),
-                        "runner_tp4_guard_trigger_rr": (
-                            None if self._is_synthetics_profile_name(self.config.bot_profile)
-                            else float(self.config.smc_runner_tp4_guard_trigger_rr)
-                        ),
-                        "runner_tp4_guard_lock_rr": (
-                            None if self._is_synthetics_profile_name(self.config.bot_profile)
-                            else float(self.config.smc_runner_tp4_guard_lock_rr)
-                        ),
+                        "runner_tp3_guard_trigger_rr": float(self.config.smc_runner_tp3_guard_trigger_rr),
+                        "runner_tp3_guard_lock_rr": float(self.config.smc_runner_tp3_guard_lock_rr),
+                        "runner_tp4_guard_trigger_rr": float(self.config.smc_runner_tp4_guard_trigger_rr),
+                        "runner_tp4_guard_lock_rr": float(self.config.smc_runner_tp4_guard_lock_rr),
                         "break_even_offset_points": int(self.config.break_even_offset_points),
                         "break_even_trigger_rr": (
                             float(self.config.volatility_first_target_rr) if (is_vol_profile and is_volatility)
@@ -9503,6 +9948,7 @@ class LiveTradingEngine:
         if profile.startswith("FOREX"): return "FOREX"
         if profile == "IDX_OPEN": return "IDX_OPEN"
         if profile == "ORB": return "ORB"
+        if profile == "FLIP": return "FLIP"
         return "SYNTHETICS"
 
     def _smc_event_timeframe(self):
@@ -9513,6 +9959,19 @@ class LiveTradingEngine:
         return str(self.config.forex_event_timeframe or 'M5').upper()
 
     def _selected_cycle_symbols(self, base_symbols):
+        selected = self._selected_base_cycle_symbols(base_symbols)
+        if str(self.config.bot_profile).upper() == 'MALAYSIAN_SNR':
+            daily_mgr = getattr(self, 'daily_profit_target_manager', None)
+            if daily_mgr is not None and not daily_mgr.is_entry_allowed()[0]:
+                return []
+            from strategy.malaysian_snr.runtime_engine import cycle_symbols
+            try:
+                return cycle_symbols(self, selected)
+            except Exception:
+                return []
+        return selected
+
+    def _selected_base_cycle_symbols(self, base_symbols):
         """Filtra los símbolos del ciclo según la selección vigente del usuario.
 
         El operador puede elegir desde el panel que instrumentos quedan
@@ -9550,14 +10009,16 @@ class LiveTradingEngine:
         if callable(reader):
             try: pref=reader(profile,source=self.config.source)
             except Exception: pref=None
-        if pref is None and profile == "SYNTHETICS":
+        if pref is None and profile in ("SYNTHETICS", "FLIP"):
             legacy=getattr(self.repository,"latest_instrument_selection",None)
             if callable(legacy):
                 try: pref=legacy(source=self.config.source)
                 except Exception: pref=None
         if pref is not None:
             selected={str(s) for s in (pref.get("selected_symbols") or [])}
-            return [s for s in base if s in selected]
+            filtered = [s for s in base if s in selected]
+            if filtered:
+                return filtered
         if self.dashboard_service is not None:
             try:
                 selected=self.dashboard_service.get_selected_symbols(default=base,selection_profile=profile)
@@ -9625,6 +10086,12 @@ class LiveTradingEngine:
             "valid": bool(analysis.get("valid", False)),
             "direction": direction,
             "score": pick("trade_score", "score", "quality_score"),
+            "macro_bias": pick('macro_bias'),
+            "macro_bias_enforced": pick('macro_bias_enforced'),
+            "runtime_settings_version": pick('runtime_settings_version'),
+            "fractal_min_body_ratio": pick('fractal_min_body_ratio'),
+            "fractal_max_entry_distance_atr": pick('fractal_max_entry_distance_atr'),
+            "strategy_version": pick('strategy_version'),
             "grade": pick("trade_grade", "grade"),
             "confirmation_percentage": pick("confirmation_percentage"),
             "passed": list(passed),

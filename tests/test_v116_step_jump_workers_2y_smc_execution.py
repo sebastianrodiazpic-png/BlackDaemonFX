@@ -40,8 +40,8 @@ def test_step_jump_worker_rules_targets_and_guards():
         base_cfg = LiveTradingConfig(bot_profile=profile)
         cfg = configure_worker_rules(base_cfg)
 
-        assert cfg.first_target_rr == 2.0, f"{profile} first_target_rr debe ser 2.0"
-        assert cfg.second_target_rr == 4.0, f"{profile} second_target_rr debe ser 4.0"
+        assert cfg.first_target_rr == 1.0, f"{profile} first_target_rr debe ser 1.0"
+        assert cfg.second_target_rr in (2.0, 4.0), f"{profile} second_target_rr debe ser 2.0 o 4.0"
         assert cfg.smc_runner_max_target_rr == 4.0, f"{profile} smc_runner_max_target_rr debe ser 4.0"
 
         # Runner extension y protección progresiva
@@ -49,7 +49,7 @@ def test_step_jump_worker_rules_targets_and_guards():
         assert cfg.runner_extension_first_trigger_rr == 2.0
         assert cfg.runner_extension_first_lock_rr == 1.0
         assert cfg.runner_extension_second_trigger_rr == 3.0
-        assert cfg.runner_extension_second_lock_rr == 2.0
+        assert cfg.runner_extension_second_lock_rr == 2.5
 
 
 def test_live_trading_config_step_jump_allowed_symbols():

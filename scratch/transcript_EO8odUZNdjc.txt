@@ -1,0 +1,711 @@
+TITLE: Sabri Malle - Domina los Order Blocks y opera como los bancos
+URL: https://www.youtube.com/watch?v=EO8odUZNdjc
+
+[00:00] Si hay un solo concepto que cambió
+[00:01] completamente mi trading, que me
+[00:03] permitió pasar de perder dinero a
+[00:04] generar más de 150,000 al mes es este,
+[00:07] los order blocks. Y no exagero cuando te
+[00:09] digo esto. Desde que entendí cómo
+[00:11] funcionan los orders, desde que aprendí
+[00:13] a identificarlos correctamente y a
+[00:14] usarlos como las instituciones los usan,
+[00:17] mi training dio un giro de 180º. ¿Te
+[00:19] acuerdas de mi último video donde te
+[00:21] expliqué mi estrategia de scalping en
+[00:22] tres pilares? Pues el Order [música]
+[00:23] block es el pilar número dos de esta
+[00:25] estrategia y hoy vamos a deconstruirlo
+[00:27] por completo. Voy a revelarte
+[00:29] exactamente qué es un order block, por
+[00:31] qué funciona tan bien, cómo identificar
+[00:33] los order blocks que realmente valen la
+[00:35] pena, los que yo llamo order blocks
+[00:37] cinco estrellas y sobre todo cómo
+[00:39] usarlos para entrar en posición con una
+[00:41] precisión quirúrgica. Pero antes de
+[00:43] empezar, quiero que sepas algo. No
+[00:44] aprendí esto en internet. Tengo dos
+[00:46] másts en finanzas de mercados y he
+[00:47] trabajado en fondos de inversión y he
+[00:49] aprendido estos conceptos de manera
+[00:51] institucional desde dentro del sistema.
+[00:53] Y lo que voy a compartir contigo hoy son
+[00:55] técnicas que las instituciones, los
+[00:57] bancos, los grandes fondos utilizan
+[00:59] todos los días para extraer liquidez del
+[01:00] mercado. Así que si quieres entender
+[01:02] cómo funciona realmente el mercado desde
+[01:04] dentro, si quieres dejar de ser el
+[01:06] retail que pierde dinero y convertirte
+[01:08] en el trader que opera como las
+[01:10] instituciones, este video es para ti.
+[01:12] Dale like ahora mismo, pon el video en
+[01:14] pantalla completa y concéntrate al 100%
+[01:17] porque lo que vas a descubrir aquí puede
+[01:18] literalmente transformar tu manera de
+[01:20] operar. Vamos allá. Justo antes de
+[01:22] empezar con las explicaciones, si
+[01:23] quieres tener acceso a todos mis
+[01:25] análisis en directo, a todos mis trado
+[01:27] exactamente estos conceptos en tiempo
+[01:29] real, he creado un grupo premium en
+[01:30] Telegram. El enlace está en la
+[01:32] descripción. Todos los días hago
+[01:33] directos en YouTube durante la sesión
+[01:35] americana de Nueva York, donde tomo
+[01:37] posiciones usando exactamente lo que te
+[01:39] voy a enseñar hoy y en mi grupo premium
+[01:41] comparto todos estos setups, todas estas
+[01:43] entradas en tiempo real y además te doy
+[01:45] acceso a una academia completa de más de
+[01:47] 10 horas de contenido y todo es gratis.
+[01:49] Si todo eso te interesa, tienes el
+[01:50] enlace en la primera línea de la
+[01:52] descripción por debajo. Ahora bien,
+[01:54] antes de hablarte de los order blocks,
+[01:55] necesito que entiendas algo fundamental.
+[01:57] Hay dos tipos de traders en el mercado.
+[01:59] Los traders retails y los traders
+[02:01] institucional, lo que llamamos smart
+[02:03] money. La diferencia entre los dos es
+[02:04] brutal. ¿Qué es un trader retail? Un
+[02:06] trader retail es la mayoría de la gente
+[02:08] que hace trading. Es el trader que opera
+[02:10] desde su casa con una cuenta pequeña,
+[02:12] que sigue las señales que ve en
+[02:13] internet, que compra cuando ve un
+[02:14] breakout, que vende cuando ve que el
+[02:16] precio cae. Es el trader emocional. el
+[02:18] que actúa por impulso, el que sigue a la
+[02:20] masa. ¿Y qué es el smart money? Pues el
+[02:22] smart money son las instituciones, los
+[02:23] bancos, los fondos de inversión, los
+[02:25] grandes jugadores. Ellos no operan como
+[02:27] el retail, ellos no compran en los
+[02:29] breakouts o no sé qué, no, ellos
+[02:30] esperan, son pacientes estratégicos. Y
+[02:34] aquí viene la parte más importante. El
+[02:36] retail es la liquidez para smart money.
+[02:38] Déjame explicarte esto con una metáfora
+[02:40] muy simple. Imagina una ratonera, en esa
+[02:43] ratonera hay un trozo de queso. El
+[02:45] retail ve el queso y se lanza sin
+[02:47] pensar. Mira, el precio está rompiendo,
+[02:49] hay un breakout, vamos a comprar. Pero
+[02:51] lo que no ve Retail es que detrás del
+[02:53] queso hay una trampa y detrás de esta
+[02:55] trampa está el gato, la Smart Money,
+[02:58] esperando pacientemente. El ratón se
+[03:01] lanza, muerde el queso y bam, la trampa
+[03:03] se cierra. El gato la atrapa, pues en el
+[03:05] mercado es exactamente igual. El smart
+[03:08] money coloca trampas. Ellos crean
+[03:10] movimientos falsos, breakouts falsos
+[03:12] para atraer a retail. Y cuando todo
+[03:14] retail ha entrado, ahí es cuando el
+[03:16] smart money entra en la dirección
+[03:18] opuesta y se lleva todo el dinero. ¿Y
+[03:20] por qué te cuento esto? Porque yo he
+[03:22] vivido los dos lados. Cuando empecé en
+[03:24] el traing, yo era un retail más.
+[03:26] compraba en los breakouts, vendía cuando
+[03:28] veía miedo, vendía cuando veía que el
+[03:30] precio estaba bajando y perdía dinero.
+[03:32] Pero cuando trabajé en fondos de
+[03:33] inversión, cuando hice mis dos másts de
+[03:35] finanzas de mercados, entendí cómo
+[03:37] funciona realmente el juego. Entendí que
+[03:39] el mercado no es un lugar donde todos
+[03:41] ganan. No sería imposible. Es un lugar
+[03:43] donde unos pocos, la Smart Money, ganan
+[03:46] a costa de la mayoría, el retail. Y el
+[03:49] día que entendí esto, el día que decidí
+[03:51] dejar de ser el retail y a empezar a
+[03:54] operar como el smart money, mi trading
+[03:56] cambió por completo. Y hoy voy a
+[03:57] enseñarte exactamente cómo hacerlo.
+[03:59] Ahora que entiendes la diferencia entre
+[04:01] retail y smart money, quiero que
+[04:02] entiendas por qué los conceptos Smart
+[04:04] Money funcionan tan bien. Es muy simple,
+[04:07] las instituciones controlan el mercado.
+[04:09] Ellos mueven millones, cientos de
+[04:11] millones, incluso miles de millones de
+[04:13] dólares. Cuando GP Morgan decide
+[04:15] comprar, el precio sube. Cuando Black
+[04:17] Rock decide vender, el precio baja. Así
+[04:19] de simple. El retail no tiene ese poder.
+[04:22] Tú y yo con nuestras cuentas de 1000,
+[04:24] 5000, 10000, 100.000 € no podemos mover
+[04:27] el mercado. Pero las instituciones sí. Y
+[04:29] aquí viene lo más importante. Si no
+[04:31] puedes vencerlos, únete a ellos. Si
+[04:34] sabes dónde están posicionándose las
+[04:35] instituciones, si sabes dónde han dejado
+[04:37] sus órdenes pendientes, si sabes dónde
+[04:39] van a volver a entrar en el mercado,
+[04:41] entonces puedes posicionarte exactamente
+[04:43] en los mismos lugares que ellos. Y
+[04:45] cuando ellos empujan el precio, tú te
+[04:47] llevas el beneficio junto con ellos. Es
+[04:49] como si estuvieras montando en el mismo
+[04:51] camión que Smart Money. Ellos conducen,
+[04:52] tú solo te subes y disfrutas del viaje.
+[04:54] Y los order blocks son exactamente eso.
+[04:57] Son las zonas donde las instituciones
+[04:58] han dejado sus órdenes. Son las
+[05:00] estaciones de servicio donde los
+[05:02] camiones institucionales repuestan antes
+[05:05] de seguir su camino. Y cuando aprendes a
+[05:07] identificarlas estas zonas, cuando
+[05:08] aprendes a esperar pacientemente a que
+[05:10] el precio vuelva a estas zonas, ahí es
+[05:12] cuando puedes tener entradas de
+[05:14] francotirador, entradas quirúrgicas,
+[05:16] entradas que te dan un 80 90% de tasa de
+[05:19] acierto. Así que ahora vamos a ver
+[05:20] exactamente qué es un order block. Un
+[05:22] order block es muy simple de entender.
+[05:24] Es la última vela de movimiento inverso
+[05:26] antes de una impulsión violenta del
+[05:28] mercado. ¿No lo entendiste? Okay, déjame
+[05:30] repetirlo porque es importante. La
+[05:32] última vela de movimiento inverso antes
+[05:36] de una impulsión violenta. Por ejemplo,
+[05:38] si el mercado está en tendencia alcista
+[05:40] y de repente hace una impulsión violente
+[05:42] al alza, el order block es la última
+[05:44] vela bajista antes de esa impulsión. Si
+[05:46] el mercado está en tendencia bajista y
+[05:48] de repente hace una impulsión violenta a
+[05:50] la baja, el order block es la última
+[05:51] vela alcista antes de esa impulsión
+[05:54] bajista. ¿Por qué esa vela en
+[05:55] particular? Porque es ahí donde las
+[05:57] instituciones han acumulado sus
+[05:59] posiciones, es ahí donde han dejado sus
+[06:01] órdenes pendientes, por eso que se llama
+[06:02] un order block, un bloque de órdenes,
+[06:04] una zona donde hay muchas órdenes. Y
+[06:07] cuando el precio vuelve a esta zona,
+[06:08] estas órdenes se activan y el precio
+[06:10] reacciona con fuerza. Es como una
+[06:12] estación de servicio. Imagina una
+[06:13] autopista. Todos los camiones grandes,
+[06:15] las instituciones, se detienen en esta
+[06:18] estación de servicio para rellenar el
+[06:19] tanque. Una vez que han llenado,
+[06:21] arrancan con toda su fuerza y avanzan a
+[06:23] toda velocidad, pues el order block es
+[06:25] exactamente esa estación de servicio en
+[06:27] los mercados. Es el lugar donde los
+[06:29] vehículos institucionales repostan. Y
+[06:31] cuando el precio vuelve a esta zona es
+[06:32] como si todos estos camiones arrancan de
+[06:34] nuevo al mismo tiempo. El precio
+[06:36] reacciona con una fuerza brutal. Y para
+[06:38] que entiendas la lógica por detrás,
+[06:40] porque es algo que me gusta explicar, la
+[06:42] lógica financiera, pues tú y yo los
+[06:43] retails, cuando entramos en posición, o
+[06:46] compramos o vendemos, no los dos,
+[06:48] obviamente. Porque, ¿a qué sirve tener
+[06:49] una compra y una venta? Si el mercado
+[06:51] sube, pues estás en positivo con la
+[06:53] operación de compra, pero estás en
+[06:54] negativo con la operación de venta, pues
+[06:56] no sirve de nada. Pero los bancos, ellos
+[06:58] sí abren posiciones de compra y venta al
+[07:00] mismo tiempo. Me vas a preguntar, pero
+[07:02] sabido, ¿a qué sirve? Te voy a explicar.
+[07:05] acumulan órdenes de compra y venta al
+[07:07] mismo tiempo en este order block. Okay.
+[07:09] Luego el precio sube, genial. Es decir,
+[07:11] que las órdenes de compra están en
+[07:13] positivo y las órdenes de venta están en
+[07:15] negativo. Pues, ¿qué hacen? Ceran las
+[07:17] órdenes de compra al techo en positivo y
+[07:20] luego manipulan el precio con una
+[07:22] presión vendedora para volver al order
+[07:24] block, cerrar las órdenes de ventas que
+[07:26] estaban en negativo en break even, es
+[07:28] decir, sin ganancias y sin perdidas.
+[07:30] Ahora se llevan solamente las ganancias
+[07:32] de la operación de compra. ¿Estamos de
+[07:34] acuerdo? Y boom, cerrando las órdenes de
+[07:36] ventas que estaban pendientes. Eso, ¿qué
+[07:38] hace? Eso crea una presión compradora y
+[07:40] el precio, boom, sube de nuevo. Ahora en
+[07:42] la práctica, vamos a ver cómo se ve esto
+[07:44] en los gráficos. Vamos a pasar a Triniew
+[07:46] para que veas exactamente cómo
+[07:48] identificar un ordor block en los
+[07:49] gráficos. Perfecto, estoy aquí en Trin
+[07:51] viiew en el gráfico del XO USD, el oro
+[07:54] en 5 minutos y vamos a ver juntos cómo
+[07:57] identificar un order block. Miren, aquí
+[07:58] tenemos el precio que hace una
+[07:59] corrección bajista y de repente, pam,
+[08:02] impulsión violenta al alza. ¿Ven ese
+[08:03] movimiento agresivo? Es lo que buscamos.
+[08:06] Ahora, ¿cuál es el block? Simple. Es la
+[08:08] última vela bajista antes de esta
+[08:10] impulsión. Está justo aquí. Trazo un
+[08:12] rectángulo desde el máximo de la vela
+[08:15] hasta el mínimo y lo extiendo hacia la
+[08:17] derecha. Esto es mi order block bullish.
+[08:20] Bullish significa alcista y beish
+[08:22] significa bajista en inglés. Ahora vamos
+[08:24] a ver un ejemplo de order block beish.
+[08:26] Aquí el preso está en tendencia bajista,
+[08:28] hace una pequeña corrección alcista y
+[08:31] luego pam, impulsión violenta a la baja.
+[08:33] ¿Cuál es el order block? La última vela
+[08:36] alcista antes de esa impulsión. Esta.
+[08:39] Taso mi rectángulo, lo extiendo y listo.
+[08:42] Order block beish. Esto es mi zona donde
+[08:44] espero que si el precio vuelve va a
+[08:46] reaccionar a la baja. Hasta aquí todo
+[08:48] claro, ¿verdad? Pero ahora viene la
+[08:50] parte más importante porque no todos los
+[08:52] order blocks son iguales, no todos
+[08:54] funcionan. Y si operas todos los order
+[08:56] blocks que ves, vas a perder dinero. Por
+[08:57] eso, necesitas aprender a identificar
+[08:59] los order blocks cinco estrellas, los
+[09:01] que tienen la mayor probabilidad de
+[09:02] reaccionar. Y eso es exactamente lo que
+[09:04] vamos a ver ahora. Un order block cinco
+[09:06] estrellas tiene cinco criterios
+[09:08] específicos. En cuanto más criterios
+[09:10] cumpla tu order block, más
+[09:11] probabilidades tiene de reaccionar. Voy
+[09:13] a explicarte cada uno de manera teórica
+[09:15] y luego volvemos a Trading Viiew para
+[09:16] enseñarte un ejemplo real. Criterio
+[09:18] número uno, debe crear una invalence, un
+[09:21] desequilibrio. Pero, ¿qué es una
+[09:22] inbalance, Abri? es una zona de
+[09:23] ineficiencia en el mercado, es decir, el
+[09:26] precio se movió tan rápido que dejó un
+[09:28] hueco entre las velas. Técnicamente es
+[09:30] cuando el máximo de la vela del order
+[09:32] block no toca el mínimo de la tercera
+[09:34] vela. Cuando hay un inbalance, el
+[09:35] mercado casi siempre vuelve a rellenar
+[09:38] ese hueco. Es como un bache en una
+[09:40] carretera. Todos los coches lo evitan la
+[09:42] primera vez, pero tarde o temprano
+[09:43] alguien tiene que volver para repararlo,
+[09:45] pues el mercado es igual. Si tu order
+[09:47] block crea una invalence, tiene muchas
+[09:48] más probabilidades de que el precio
+[09:49] vuelva a esta zona. Criterio número dos,
+[09:51] debe haber liquidez cazada. ¿Qué es la
+[09:53] liquidez? Son las zonas donde hay muchas
+[09:55] órdenes acumuladas. Por ejemplo, una
+[09:57] línea de tendencia, un soporte, una
+[09:59] resistencia. Cuando el precio rompe
+[10:01] estas zonas, está cazando liquidez, está
+[10:03] variendo todas las órdenes que estaban
+[10:05] ahí y después de cazar liquidez, el
+[10:07] precio suele volver al order block antes
+[10:09] de continuar su camino. Es como un
+[10:10] cazador. Un cazador no persigue a su
+[10:12] presa corriendo como un loco, no. Él
+[10:14] coloca una trampa y espera pacientemente
+[10:16] y cuando la presa cae en la trampa, ahí
+[10:18] es cuando actúa. Pues el smart money
+[10:19] hace lo mismo, caza la liquidez de
+[10:21] retail y luego vuelve al order block
+[10:23] para cargar sus posiciones. Criterio
+[10:24] número tres, debe ser el último order
+[10:26] block del movimiento. Esto es crucial.
+[10:28] En un mercado alcista siempre vas a ver
+[10:30] varios order blocks, pero el que tiene
+[10:32] más probabilidades de reaccionar es el
+[10:33] más bajo, porque los otros order blocks
+[10:35] son trampas, son el queso de la
+[10:37] ratonera, el mercado los coloca para
+[10:39] atraer a retail, liquidarlos y luego
+[10:41] volver al verdadero order block. El más
+[10:44] bajo en un mercado bajista es lo
+[10:45] contrario. El order block más alto es el
+[10:47] que tiene más probabilidades de
+[10:49] reaccionar. Criterio número cuatro, no
+[10:51] debe haber sido tocado. Es el criterio
+[10:53] más importante. Si un order block ya ha
+[10:56] sido tocado antes, si el precio ya
+[10:58] volvió a esta zona, pierde fuerza. Es lo
+[11:01] que llamamos mitigation, mitigación. Un
+[11:03] order block mitigated, mitigado, es un
+[11:05] order block que ya ha sido usado y las
+[11:07] probabilidades de que reaccione de nuevo
+[11:09] son mucho más bajas. Es como una
+[11:11] estación de servicio. Si todos los
+[11:12] camiones ya han repuestado ahí, ¿para
+[11:14] qué van a volver? Ya llenaron el tanque.
+[11:16] Así que siempre prioriza los order
+[11:18] blocks que nunca han sido tocados.
+[11:20] Criterio número cinco, debe haber sido
+[11:22] creado en una sesión volátil. No todas
+[11:24] las sesiones son iguales. La sesión
+[11:26] asiática es plana, aburrida, sin
+[11:28] volatilidad. Los ordor blocks que se
+[11:29] crean ahí tienen muy pocas
+[11:31] probabilidades de reaccionar. En cambio,
+[11:33] los ordor blocks que se crean en la
+[11:34] sesión americana o en la sesión europea
+[11:37] tienen muchas más probabilidades de
+[11:39] reaccionar. ¿Por qué? Porque es cuando
+[11:40] el mercado tiene más volumen, más
+[11:42] liquidez, más instituciones operando. Y
+[11:45] hay un momento en particular que es
+[11:47] ultra poderoso. Es el solpamiento entre
+[11:49] Londres y Nueva York entre las 3 y las 5
+[11:52] de la tarde, hora de Europa. Es el
+[11:54] momento cuando las dos plazas
+[11:55] financieras más grandes del mundo están
+[11:57] operando al mismo tiempo y es ahí donde
+[11:59] se crean los movimientos más violentos.
+[12:02] Así que si tu order block se crea en
+[12:03] este momento, puedes estar casi seguro
+[12:05] de que si tien los otros criterios va a
+[12:07] reaccionar. Ahora volvemos a Trading
+[12:09] Viiew para que veas ejemplos concretos
+[12:10] de estos cinco criterios. Perfecto,
+[12:12] estoy de vuelta en Trading Viiew y vamos
+[12:13] a analizar juntos un order block para
+[12:15] ver si cumple los cinco criterios. Aquí
+[12:17] tengo un movimiento alcista. El precio
+[12:19] hace una corrección y luego bam,
+[12:21] impulsión violenta. Identifico mi order
+[12:23] block, la última vela bajista antes de
+[12:25] la impulsión, esta. Ahora vamos a
+[12:27] verificar los cinco criterios. Criterio
+[12:28] uno, crea un invalence. Pues hago zoom
+[12:31] en la vela del order block, miro el
+[12:33] máximo de la vela y miro el mínimo de la
+[12:35] tercera vela. ¿Ven? No se tocan. Hay un
+[12:38] hueco, hay un invalense. Primera
+[12:40] estrella validada. Criterio número dos,
+[12:42] hay líquid cazada. Miro justo antes del
+[12:44] order block. Aquí veo que había una
+[12:45] línea de tendencia y el precio rompió
+[12:47] esta línea justo antes de crear el order
+[12:49] block. Liquidez cazada, segunda estrella
+[12:51] varidad. Criterio número tres es el
+[12:53] último block del movimiento. Miro hacia
+[12:55] atrás. Aquí veo otro block más arriba,
+[12:58] pero el que estoy analizando es el más
+[12:59] bajo del movimiento. Tercera estrella
+[13:02] varidada. Criterio cuatro, nunca ha sido
+[13:04] tocado. Miro hacia la derecha. El precio
+[13:06] nunca ha vuelto a esta zona. Es un order
+[13:08] block virgen. Cuarta estrella validada.
+[13:10] Criterio número cinco. Se creó en una
+[13:12] sesión volátil. Miro la hora, 4:30 hora
+[13:15] de Europa. Solapamiento Londres, Nueva
+[13:17] York. Quinta estrella validada.
+[13:19] Perfecto. Tenemos un order block cinco
+[13:20] estrellas. Ahora vamos a ver qué hace el
+[13:22] precio cuando vuelve a esta zona. El
+[13:24] precio corrige un poco. Okay. Baja.
+[13:27] Vuelve exactamente a mi order block y
+[13:30] miren lo que pasa. Pam. Reacción brutal
+[13:32] al alza. Es quirúrgico. Esto es la
+[13:34] potencia de un order block cinco
+[13:36] estrellas. Ahora vamos a ver un ejemplo
+[13:37] de cómo tomar un trade con un order
+[13:39] block. Perfecto. Ahora vamos a ver un
+[13:41] ejemplo completo de principio a fin.
+[13:43] Estoy en un gráfico del XO USD en 5
+[13:45] minutos. Paso uno, identifico el
+[13:46] movimiento violento. Aquí esta impulsión
+[13:48] alcista brutal. Paso número dos,
+[13:50] identifico un orderor block. La última
+[13:52] vela bajista antes de la impulsión esta.
+[13:54] Tras mi rectángulo. Paso número tres,
+[13:56] verifico los cinco criterios. Invalence,
+[13:59] liquidez cazzada. Último block del
+[14:00] movimiento, nunca tocado. Sesión
+[14:02] volátil. Order block cinco estrellas
+[14:04] validado. Paso número cuatro. Espero que
+[14:06] el precio vuelva. Y aquí viene lo más
+[14:08] importante. Un franco tirador puede
+[14:09] esperar durante horas. Escondido,
+[14:11] inmóvil, esperando el momento perfecto.
+[14:13] No dispara al primer objetivo que ve. No
+[14:15] dispara cuando hay viento. No dispara
+[14:17] cuando la luz no es buena. Él espera,
+[14:20] espera y espera. Y solo cuando todas las
+[14:22] condiciones están perfectamente
+[14:23] alineadas, ahí es cuando aprieta el
+[14:25] gatillo. Pues nosotros hacemos lo mismo.
+[14:27] Esperamos pacientemente a que el precio
+[14:29] vuelva a nuestro order block. Y miren el
+[14:31] precio empieza a corregir, baja, llega
+[14:35] exactamente a mi order block. Paso
+[14:37] número cinco, bajo a un minuto para
+[14:39] buscar confirmación. Aquí es donde la
+[14:40] estrategia se vuelve ultra precisa.
+[14:42] Puede ser una vela doji de indecidion,
+[14:44] una vela martillo reversal o una
+[14:46] envolvente engolfing. Y miren lo que
+[14:48] pasa. La vela sale del order block y
+[14:50] boom, confirmación varidada. Entro en
+[14:53] posición. Pues paso número seis, abro mi
+[14:55] trade de compra. Paso número siete,
+[14:57] coloco mi stop loss. ¿Dónde? Justo
+[14:58] debajo del order block. ¿Por qué? Porque
+[15:01] si el precio pasa por debajo del lorder
+[15:02] block significa que la estructura se ha
+[15:04] invalidado y prefiero salir con una
+[15:06] pequeña pérdida que dejar correr una
+[15:07] operación que ya no tiene sentido,
+[15:09] obviamente. Paso número ocho, coloco mi
+[15:11] take profit, un RR de 1x2, una ro riesgo
+[15:14] beneficio. Si arriesgo $100 busco ganar
+[15:17] $200. No más, no soy codicioso, ¿okay?
+[15:20] Personalmente prefiero tener un winrate
+[15:21] alto que buscar RR de 1x5, que solo pasa
+[15:24] en el 20% de las veces, pero es algo
+[15:26] personal. Paso número nueve, gestiono el
+[15:28] trade. El precio empieza a subir
+[15:30] perfecto. Cuando llego a un R, es decir,
+[15:32] cuando ya he ganado lo mismo que
+[15:34] arriesgué, hago algo muy importante.
+[15:36] Muevo mis stop los a mi precio de
+[15:38] entrada. ¿Por qué? Porque a partir de
+[15:39] este momento ya no arriesgo nada. Si el
+[15:42] mercado se da la vuelta, salgo en cero.
+[15:44] Eso se llama ser un break even. Si
+[15:46] continúa, me llevo mi take profit
+[15:47] completo. Genial. Es la forma más
+[15:49] inteligente de proteger su capital. Y
+[15:51] miren, el precio sigue subiendo y boom,
+[15:53] take profit ha alcanzado más $10 en este
+[15:56] trade en menos de 5 minutos. Esto es la
+[15:58] potencia de los order blocks. Y esto que
+[16:00] acabas de ver lo hago todos los días en
+[16:02] mis directos de YouTube.
+[16:05] Tp1, pum, bam. Todo el mundo ha tocado
+[16:07] TP1, pa, pa, pa, pa, pa, qué locura.
+[16:10] Bam, bam, bam, bam, bam. Tp1. La gente
+[16:12] que está dentro, familia, es una locura.
+[16:15] ¿Cuándo os digo que hay que conectarse a
+[16:16] los directos? Como lo ves, es algo que
+[16:18] funciona superb y todos estos trades,
+[16:19] todos estos setups, los comparto en
+[16:21] tiempo real en mi grupo premium de
+[16:23] Telegram. Si quieres tener acceso a todo
+[16:24] esto, si quieres ver cómo aplico esa
+[16:26] estrategia en directo día tras día y
+[16:28] aprender conmigo a través de mi academia
+[16:30] completa, haz clic en el primer enlace
+[16:32] que aparece en la descripción y únete
+[16:33] ahora. Hay más de 2,500 alumnos que ya
+[16:35] están dentro y están obteniendo
+[16:37] resultados increíbles. Todo es gratis,
+[16:38] así que te espero dentro. Ahora volvemos
+[16:40] a Train View porque quiero mostrarte un
+[16:42] ejemplo de un order block que no
+[16:43] funciona porque es igual de importante
+[16:45] saber que no operar. Perfecto, estamos
+[16:47] de vuelta en Trading View y ahora vamos
+[16:49] a ver un ejemplo de un order block que
+[16:50] no debería superar. Aquí tengo un
+[16:51] movimiento alcista. Identifico un order
+[16:54] block. Esta velista antes de la
+[16:56] impulsión. Parece perfecto, ¿verdad?
+[16:58] Pero vamos a verificar los cinco
+[17:00] criterios. Crea un inbalance. Hago zoom.
+[17:03] Miro el máximo de la vela del order
+[17:04] block y el mínimo de la tercera vela. Se
+[17:06] tocan. No hay imbalance. Primera
+[17:08] estrella, no valida. Hay liquidez
+[17:10] casada. No veo ningún de tendencia rota,
+[17:12] ningún nivel de liquidez barrido.
+[17:14] Segunda estrella no validada. Criterio
+[17:16] tres, ¿es el último order block del
+[17:18] movimiento, no hay otro order block más
+[17:20] abajo. Tercera estrella, no valida.
+[17:21] Criterio cuatro, nunca ha sido tocado.
+[17:23] Mira hacia la derecha y aquí veo que el
+[17:25] precio ya volvió en esta zona. Ya está
+[17:28] mitigado. Cuarta estrella, no validad.
+[17:30] Criterio cinco, se creó en una sesión
+[17:32] volátil. Miro la hora. 4 de la mañana
+[17:34] sesión asiática. Quinta estrella, no
+[17:37] variedada. Este order block no cumple
+[17:39] ningún criterio. Ahora miren lo que pasa
+[17:41] cuando el precio vuelve. El precio llega
+[17:43] a la zona, hace una pequeña reacción y
+[17:45] luego boom. explota el order block y
+[17:47] sigue bajando. Si hubiera operado en
+[17:48] este order block, habría perdido dinero.
+[17:50] Por eso es tan importante verificar los
+[17:52] cinco criterios. No todos los order
+[17:54] blocks funcionan, solo los order blocks
+[17:56] cinco estrellas. Ahora que ya sabes cómo
+[17:58] identificar y operar los order blocks
+[18:00] cinco estrellas, quiero hablarte de los
+[18:02] errores más comunes que veo todos los
+[18:03] días porque puedes tener la mejor
+[18:05] estrategia del mundo, pero si cometes
+[18:07] estos errores, vas a perder dinero, pues
+[18:09] error número uno, trazar order blocks
+[18:11] por todas partes sin criterios. Muchos
+[18:13] traders cuando descubren los order
+[18:14] blocks empiezan a trazar rectángulos por
+[18:16] todas partes. Ven una vela y dicen,
+[18:17] "Esto es un order block." Ven otra vela
+[18:19] y dicen, "Eso también es un order
+[18:21] block." No, si trazas order blocks sin
+[18:23] verificar los cinco criterios, estás
+[18:25] operando al azar. Tienes un gráfico
+[18:27] sucio que no tiene sentido, con
+[18:28] rectángulos por todos lados y vas a
+[18:31] perder dinero. Sé selectivo, sé
+[18:33] exigente. Solo opera block cinco
+[18:35] estrellas, por favor. Error número dos,
+[18:36] entrar sin confirmación de vela. Otro
+[18:38] error común es entrar directamente
+[18:40] cuando el precio llega al order block,
+[18:41] sin esperar confirmación, sin bajar a un
+[18:43] minuto, sin esperar que el precio sale
+[18:45] del order block y muchas veces el precio
+[18:47] toca el order block y sigue cayendo y tú
+[18:49] te quedas atrapado en un trade perdedor.
+[18:53] Siempre, siempre, siempre esperar la
+[18:55] confirmación. Error número tres, ignorar
+[18:57] la sesión de trading. Como te dije, no
+[18:59] todas las sesiones son iguales. Si
+[19:00] operas order blocks en la sesión
+[19:01] asiática, vas a tener un win rate muy
+[19:03] bajo porque el mercado está plano, sin
+[19:05] volatilidad, sin volumen. Tendrás order
+[19:07] blocks por todos lados que no tendrán
+[19:09] ningún impacto porque no hay volumen. En
+[19:11] cambio, si operas en la sesión americana
+[19:13] o la sección de Londres, pues tu win
+[19:14] rate va a ser mucho más alto. Así que
+[19:16] presta atención a la hora en la que
+[19:18] estás operando. Error número cuatro,
+[19:19] operar order blocks mitigados. Este es
+[19:22] uno de los errores más graves. Si un
+[19:23] order block ya ha sido tocado antes, por
+[19:25] favor entrar en posición porque no tiene
+[19:28] sentido. Las órdenes ya están cerradas,
+[19:30] no hay una razón financiera de
+[19:32] reaccionar. Error número cinco, ser
+[19:33] demasiado codicioso con el take profit.
+[19:35] Muchos traders quieren un RR de 1 por 5,
+[19:38] 1 por 10. Quieren hacer un X10 en un
+[19:40] solo trade. Y sí, es bonito cuando pasa,
+[19:42] pero ¿cuántas veces pasa? El 10, 20% de
+[19:45] las veces. Yo prefiero un RR de 1 por2
+[19:48] que pasa al 70 80% de las veces.
+[19:50] Prefiero ganar menos, pero ganar más
+[19:52] seguido. Como dice refrán, más vale
+[19:54] pájaro en mano que volando. Error número
+[19:56] seis, no poner el break even. Si ves que
+[19:58] tu trade ya está subiendo, si ya ha
+[20:00] llegado tu TP1 con RRD1, asegura tu
+[20:03] posición, mueve tu stoplos a tu precio
+[20:04] de entrada, así puedes seguir con
+[20:06] tranquilidad, sin estrés, sin miedo. Así
+[20:08] aún que el mercado se da la vuelta, pues
+[20:10] sales en cero, sin ganancias, sin
+[20:12] perdidas. Ahora quiero hablarte de algo
+[20:14] que nadie te cuenta. Puedes tener la
+[20:15] mejor estrategia del mundo. Puedes
+[20:17] conocer todos los conceptos al dedillo,
+[20:19] pero si no tienes una mentalidad
+[20:20] correcta, no vas a ganar dinero. El
+[20:22] trading no es un juego, no es apostar al
+[20:24] azar, es un negocio. Y como en cualquier
+[20:26] negocio necesitas disciplina, paciencia
+[20:29] y sobre todo saber esperar el momento
+[20:31] perfecto. Yo siempre comparo el training
+[20:32] con un francotirador. Un francotirador
+[20:34] puede esperar escondido durante horas,
+[20:36] días esperando el momento perfecto. Tú
+[20:38] tienes que hacer lo mismo. Por eso que
+[20:39] yo solo tomo uno, dos, como máximo tres
+[20:42] trades al día. Bueno, recapitulemos todo
+[20:44] lo que hemos visto en este vídeo. Uno,
+[20:46] la diferencia entre el trader retail y
+[20:48] smart money. El retail es la liquidez
+[20:50] para el smart money. Dos, los order
+[20:51] blocks, las zonas donde las
+[20:52] instituciones han dejado sus órdenes
+[20:54] pendientes. Tres, los cinco criterios de
+[20:56] un order block, cinco estrellas. Cuatro,
+[20:58] la estrategia de ejecución de estas
+[21:00] operaciones con estos order blocks. Y
+[21:02] cinco, los errores a evitar. Y seis, la
+[21:04] mentalidad. C. como el francotirador.
+[21:07] Espera el momento perfecto. Bueno,
+[21:09] amigo, acabas de descubrir el concepto
+[21:10] que más dinero me ha generado en el
+[21:12] trading, los ordor blocks. Y no es
+[21:14] suerte, no es magía, es un método, un
+[21:16] proceso, una disciplina. Y tú también
+[21:19] puedes aplicarlo, pero necesitas dos
+[21:21] cosas. Primero, practicar, entrenar, ver
+[21:23] el mercado cada día, identificar los
+[21:25] orderor blocks, verificar los cinco
+[21:27] criterios, tomar notas, ser como el
+[21:29] francotirador que entrena durante años
+[21:31] antes de ir a la misión real y segundo
+[21:33] rodearte de las personas correctas.
+[21:35] Porque el trading no es un camino que
+[21:36] puedes recorrer solo o vas a perder
+[21:38] demasiado tiempo. Necesitas una
+[21:39] comunidad, necesitas traders que están
+[21:41] ahí para ayudarte, necesitas traders que
+[21:42] piensan como profesionales, necesitas
+[21:44] acceso a análisis en tiempo real y eso
+[21:46] es exactamente lo que ofrezco en mi
+[21:48] comunidad premium de Telegram. Todos los
+[21:50] días estoy en directo en YouTube, donde
+[21:52] aplico exactamente lo que te acabo de
+[21:53] enseñar. Todos los días tomo posiciones
+[21:55] usando Order Blocks cinco estrellas en
+[21:57] directo al frente de miles de personas
+[21:59] para un máximo de transparencia. Todos
+[22:01] estos setups los comparto en tiempo real
+[22:03] en mi grupo premium. Tengo más de 50,000
+[22:05] personas en mi comunidad de Telegram y
+[22:06] más de 2,500 alumnos en mi grupo premio.
+[22:08] Personas que replican mis entradas y que
+[22:10] aprenden a través de mi academia
+[22:12] completa. Y todos los días estoy
+[22:13] recibiendo testimonios de personas que
+[22:14] están cambiando su vida gracias al
+[22:16] trading. Así que si quieres formar parte
+[22:18] de esto, si quieres tener acceso a todo
+[22:20] este contenido, solo tienes que pulsar
+[22:22] el primer enlace que está en la
+[22:23] descripción por debajo de este video.
+[22:25] Todo es totalmente gratis, no te cobro
+[22:27] nada. Es tu decisión. Puedes seguir
+[22:29] viendo vídeos en YouTube esperando el
+[22:31] milagro o puedes dar el paso, invertir
+[22:33] en ti mismo y empezar [música] a obtener
+[22:34] resultados reales, como el francotirador
+[22:36] que deja de entrenar en el campo de tiro
+[22:38] y va a la misión real. Como el surfista
+[22:39] que deja de mirar las olas desde la
+[22:41] playa y se mete al agua. La decisión es
+[22:43] tuya. Y antes de irte, no olvides
+[22:45] suscribirte a este canal de YouTube
+[22:46] porque cada semana subo contenido de
+[22:47] [música] este nivel. Déjame un
+[22:48] comentario diciéndome si te ha gustado
+[22:50] el vídeo, leo todos los comentarios y
+[22:51] respondo personalmente. Nos vemos en el
+[22:53] próximo video. [música] Fue Sabri. Buen
+[22:55] training a todos. Co?

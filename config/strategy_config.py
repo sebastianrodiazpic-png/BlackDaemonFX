@@ -87,46 +87,61 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    "STEP": ("Step Index", "Step Index 500", "Step Index 400", "Step Index 200", "Step Index 100"),
-    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 75, Jump 25 y Jump 10.
-    "JUMP": ("Jump 75 Index", "Jump 10 Index", "Jump 25 Index"),
+    # STEP: Step Index 400 es el único activo rentable en 2 años (+3.7 R, PF 1.04). Se conservan los demás para compatibilidad.
+    "STEP": ("Step Index 400", "Step Index", "Step Index 500", "Step Index 200", "Step Index 100"),
+    # JUMP: Jump 50 Index (+15.6 R, 35.5% WR, PF 1.16) y Jump 25 Index (+6.5 R) son los líderes absolutos de la familia.
+    "JUMP": ("Jump 50 Index", "Jump 25 Index", "Jump 75 Index", "Jump 10 Index"),
+    # VOLATILITY: Selección curada con los activos de menor drawdown histórico (Vol 90, 25, 15, 10, etc.)
     "VOLATILITY": (
-        "Volatility 100 Index",
-        "Volatility 100 (1s) Index",
-        "Volatility 75 Index",
-        "Volatility 75 (1s) Index",
-        "Volatility 50 (1s) Index",
-        "VolSwitch High Vol Index",
-        "High Frequency Vol 50 Index",
-        "Vol over Crash 550",
-        "Volatility 15 Index",
-        "Volatility 150 (1s) Index",
-        "Volatility 250 (1s) Index",
         "Volatility 90 Index",
+        "Volatility 25 Index",
+        "Volatility 15 Index",
+        "Volatility 10 Index",
+        "Volatility 50 Index",
+        "Volatility 100 Index",
+        "Volatility 250 (1s) Index",
         "Volatility 5 Index",
+        "Volatility 90 (1s) Index",
         "High Frequency Vol 100 Index",
         "Vol over Boom 550",
-        "Volatility 90 (1s) Index",
-        "Volatility 25 Index",
-        "Volatility 10 Index",
+        "High Frequency Vol 50 Index",
+        "Vol over Crash 550",
+        "VolSwitch High Vol Index",
+        "Volatility 50 (1s) Index",
+        "Volatility 75 Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 100 (1s) Index",
     ),
-    "BOOM": ("Boom 1000 Index", "Boom 900 Index", "Boom 600 Index", "Boom 500 Index", "Boom 300 Index"),
-    # ACTIVACIÓN: Crash 1000 Index (+17.9 R en replay 2Y) se incorpora como líder.
-    "CRASH": ("Crash 1000 Index", "Crash 900 Index", "Crash 600 Index", "Crash 500 Index", "Crash 300 Index"),
-    # PODA: Eliminados GBPUSD (-5.0R) y USDJPY (-7.0R). ACTIVADOS: USDCAD (+12.0R, 62.5% WR), EURUSD (+7.0R), USDCHF (+3.0R) y AUDUSD (+2.0R).
+    # BOOM: Boom 500 (+13.4 R), Boom 300 (+8.2 R), Boom 1000 (+7.6 R) y Boom 600 (+3.5 R) son rentables. Boom 900 podado (-29.3 R).
+    "BOOM": ("Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index"),
+    # CRASH: Crash 300 Index es el único líder rentable (+13.5 R, 36.1% WR, PF 1.20).
+    "CRASH": ("Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index", "Crash 1000 Index"),
+    # FOREX: Versiones normales y micro habilitables. EURUSD / EURUSDmicro es el líder rentable (+15.1 R con cierre intradía).
     "FOREX": (
-        "USDCAD", "EURUSD", "USDCHF", "AUDUSD",
-        "USDCADmicro", "EURUSDmicro", "USDCHFmicro", "AUDUSDmicro",
+        "EURUSD", "EURUSDmicro",
+        "USDCAD", "USDCADmicro",
+        "USDCHF", "USDCHFmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "GBPUSD", "GBPUSDmicro",
+        "USDJPY", "USDJPYmicro",
     ),
-    # ACTIVACIÓN: XAGUSD (Plata) generó +38.1 R (activo #1 del ecosistema). Se habilita plenamente.
+    # GOLD: Conservado 100% intacto según requerimiento estricto.
     "GOLD": (
         "XAUUSD", "XAGUSD",
         "XAUUSDmicro", "XAGUSDmicro",
     ),
-    # ICT SABRI MALLE: Metales, Cripto e Índices (XAGUSD #1 +38.1R, BTCUSD #2 +28.1R, Wall Street 30 +12.0R, US Tech 100 +6.0R, XAUUSD +6.0R, US SP 500 +1.0R).
+    # ICT SABRI MALLE: Activos líderes del replay de 2 años (Metales, Cripto, Sintéticos y Forex con normal y micro).
     "ICT": (
-        "XAGUSD", "BTCUSD", "XAUUSD",
-        "XAGUSDmicro", "BTCUSDmicro", "XAUUSDmicro",
+        "XAUUSD", "XAUUSDmicro",
+        "BTCUSD", "BTCUSDmicro",
+        "Jump 50 Index",
+        "EURUSD", "EURUSDmicro",
+        "Crash 300 Index",
+        "Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index",
+        "Jump 25 Index",
+        "Step Index 400",
+        "XAGUSD", "XAGUSDmicro",
         "Wall Street 30", "US Tech 100", "US SP 500",
     ),
 }
