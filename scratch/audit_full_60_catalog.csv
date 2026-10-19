@@ -1,0 +1,61 @@
+symbol,raw_stem,family,m15_rows,start_date,end_date,years_m15,h1_rows,max_gap_hrs,spread_pts,in_msnr_19,in_msnr_23,in_ict_14,in_exp_60
+AUDCAD,AUDCAD,Forex,49618,2024-10-10,2026-10-09,2.0,12406,49.2,0.00025,False,False,False,True
+AUDCHF,AUDCHF,Forex,49622,2024-10-10,2026-10-09,2.0,12407,49.2,0.00025,False,False,False,True
+AUDJPY,AUDJPY,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.025,False,False,False,True
+AUDNZD,AUDNZD,Forex,49622,2024-10-10,2026-10-09,2.0,12407,49.2,0.00025,False,True,False,True
+AUDUSD,AUDUSD,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.00018,False,False,False,True
+Boom 1000 Index,Boom_1000_Index,Sintético Crash/Boom,70012,2024-10-10,2026-10-10,2.0,17504,16.8,0.5,True,True,True,True
+Boom 300 Index,Boom_300_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.2,True,True,True,True
+Boom 500 Index,Boom_500_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,True,True,True,True
+Boom 600 Index,Boom_600_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.6,False,False,True,True
+Boom 900 Index,Boom_900_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.6,False,False,False,True
+BTCUSD,BTCUSD,Criptomonedas,70042,2024-10-10,2026-10-10,2.0,17516,3.2,15.0,True,False,True,True
+CADCHF,CADCHF,Forex,49621,2024-10-10,2026-10-09,2.0,12407,49.2,0.00025,False,False,False,True
+CADJPY,CADJPY,Forex,49586,2024-10-10,2026-10-09,2.0,12406,49.2,0.025,False,False,False,True
+CHFJPY,CHFJPY,Forex,49620,2024-10-10,2026-10-09,2.0,12407,49.2,0.028,False,False,False,True
+Crash 1000 Index,Crash_1000_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,True,True,False,True
+Crash 300 Index,Crash_300_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.3,False,False,True,True
+Crash 500 Index,Crash_500_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,True,True,False,True
+Crash 600 Index,Crash_600_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,True,True,False,True
+Crash 900 Index,Crash_900_Index,Sintético Crash/Boom,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.6,False,False,False,True
+EURAUD,EURAUD,Forex,49622,2024-10-10,2026-10-09,2.0,12407,49.2,0.00025,False,False,False,True
+EURCAD,EURCAD,Forex,49615,2024-10-10,2026-10-09,2.0,12405,49.2,0.00025,False,False,False,True
+EURCHF,EURCHF,Forex,49597,2024-10-10,2026-10-09,2.0,12407,49.2,0.00022,False,False,False,True
+EURGBP,EURGBP,Forex,49623,2024-10-10,2026-10-09,2.0,12407,49.2,0.00018,False,False,False,True
+EURJPY,EURJPY,Forex,49612,2024-10-10,2026-10-09,2.0,12405,49.2,0.022,False,False,False,True
+EURNZD,EURNZD,Forex,49589,2024-10-10,2026-10-09,2.0,12404,49.2,0.0003,False,False,False,True
+EURUSD,EURUSD,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.00015,True,True,True,True
+GBPAUD,GBPAUD,Forex,49619,2024-10-10,2026-10-09,2.0,12406,49.2,0.00028,True,False,False,True
+GBPCAD,GBPCAD,Forex,49615,2024-10-10,2026-10-09,2.0,12406,49.2,0.00028,False,False,False,True
+GBPCHF,GBPCHF,Forex,49593,2024-10-10,2026-10-09,2.0,12407,49.2,0.00028,False,False,False,True
+GBPJPY,GBPJPY,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.026,True,False,False,True
+GBPNZD,GBPNZD,Forex,49552,2024-10-10,2026-10-09,2.0,12393,52.0,0.00035,False,False,False,True
+GBPUSD,GBPUSD,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.0002,True,True,False,True
+Jump 100 Index,Jump_100_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,4.0,False,False,False,True
+Jump 10 Index,Jump_10_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,2.5,True,True,False,True
+Jump 25 Index,Jump_25_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,1.5,True,True,True,True
+Jump 50 Index,Jump_50_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,2.0,True,True,True,True
+Jump 75 Index,Jump_75_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,3.0,False,False,False,True
+Step Index 200,Step_Index_200,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.2,False,True,False,True
+Step Index 400,Step_Index_400,Sintético Jump/Step,67444,2024-11-07,2026-10-10,1.92,16862,0.5,0.4,True,True,True,True
+Step Index 500,Step_Index_500,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,False,True,False,True
+Step Index,Step_Index,Sintético Jump/Step,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.1,True,True,False,True
+US Oil,US_Oil,Commodities (Energía),47109,2024-10-10,2026-10-09,2.0,11785,73.2,0.04,False,False,False,True
+US SP 500,US_SP_500,Metales & Índices,47003,2024-10-10,2026-10-09,2.0,11771,73.2,0.5,False,False,True,True
+US Tech 100,US_Tech_100,Metales & Índices,47005,2024-10-10,2026-10-09,2.0,11774,73.2,1.25,False,False,True,True
+USDCAD,USDCAD,Forex,49622,2024-10-10,2026-10-09,2.0,12406,49.2,0.0002,False,False,False,True
+USDCHF,USDCHF,Forex,49621,2024-10-10,2026-10-09,2.0,12407,49.2,0.00018,False,False,False,True
+USDJPY,USDJPY,Forex,49621,2024-10-10,2026-10-09,2.0,12406,49.2,0.018,True,True,False,True
+Volatility 100 Index,Volatility_100_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,1.0,False,False,False,True
+Volatility 10 Index,Volatility_10_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,False,False,False,True
+Volatility 15 Index,Volatility_15_Index,Sintético Volatility,22995,2026-02-13,2026-10-10,0.66,5749,0.2,0.15,False,False,False,True
+Volatility 250 (1s) Index,Volatility_250_(1s)_Index,Sintético Volatility,70076,2024-10-10,2026-10-10,2.0,17520,1.0,0.0035,False,True,False,True
+Volatility 25 Index,Volatility_25_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,False,False,False,True
+Volatility 50 (1s) Index,Volatility_50_(1s)_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.05,False,True,False,True
+Volatility 50 Index,Volatility_50_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.5,False,False,False,True
+Volatility 75 (1s) Index,Volatility_75_(1s)_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.075,False,False,False,True
+Volatility 75 Index,Volatility_75_Index,Sintético Volatility,70079,2024-10-10,2026-10-10,2.0,17520,0.5,0.75,False,False,False,True
+Volatility 90 Index,Volatility_90_Index,Sintético Volatility,22995,2026-02-13,2026-10-10,0.66,5749,0.2,0.9,False,True,False,True
+Wall Street 30,Wall_Street_30,Metales & Índices,47003,2024-10-10,2026-10-09,2.0,11772,73.2,2.5,True,True,True,True
+XAGUSD,XAGUSD,Metales & Índices,47045,2024-10-10,2026-10-09,2.0,11793,73.2,0.025,False,True,False,True
+XAUUSD,XAUUSD,Metales & Índices,47053,2024-10-10,2026-10-09,2.0,11794,73.2,0.25,True,True,True,True

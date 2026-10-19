@@ -47,5 +47,5 @@ def test_dashboard_hides_superseded_but_keeps_db_history():
 def test_recent_analysis_uses_sqlalchemy_as_authoritative_source():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert 'state["recent"] = persisted_recent or list(self._recent)' in text
+    assert 'raw_recent = persisted_recent or list(self._recent)' in text
     assert "SQLAlchemy" in text

@@ -9,6 +9,9 @@ from reporting.orb_metrics import summarize_orb_trades
 from test_orb_new_york_strategy import FakeProvider, _session_candles
 
 
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
+
+
 @pytest.mark.parametrize("ratio,momentum,valid", [(1.8, True, True), (1.81, False, True), (2.34, False, True), (2.35, False, False)])
 def test_range_boundaries(ratio, momentum, valid):
     result = check_range_amplitude(ratio, 0, 1)

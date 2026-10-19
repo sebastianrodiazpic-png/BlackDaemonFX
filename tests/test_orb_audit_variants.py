@@ -2,6 +2,10 @@ import copy
 from test_orb_momentum import evaluate
 from dashboard.orb_audit import record,snapshot
 from strategy.execution.live_trading_engine import LiveTradingEngine
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
 
 
 def test_missing_volume_shadow_does_not_authorize_live_entry():

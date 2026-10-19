@@ -10,6 +10,10 @@ from strategy.orb.new_york_orb import (
     is_orb_gold_symbol,
     score_orb_gold_contract_candidate,
 )
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
 
 
 class FakeProvider:

@@ -15,6 +15,10 @@ from strategy.orb.asset_rules import execution_metadata, check_range_amplitude
 from strategy.orb.signal_payload import log_audit_summary
 from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradingConfig
 from test_orb_new_york_strategy import FakeProvider, _session_candles
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
 
 
 class TestORBNYv4Integration(unittest.TestCase):

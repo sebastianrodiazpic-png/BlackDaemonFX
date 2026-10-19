@@ -6,6 +6,9 @@ from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradin
 from strategy.orb.new_york_orb import NewYorkORBStrategy, ORBConfig, orb_session_asset
 
 
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
+
+
 def engine(rows):
     e=object.__new__(LiveTradingEngine)
     e.config=LiveTradingConfig()

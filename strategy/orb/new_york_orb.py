@@ -34,7 +34,7 @@ import pandas as pd
 
 from strategy.smc.volume_utils import select_volume_column
 from strategy.orb.asset_rules import (
-    ORB_STRATEGY_VERSION, default_asset_profiles, check_range_amplitude,
+    ORB_STRATEGY_VERSION, ORB_SWEEP_STRATEGY_VERSION, default_asset_profiles, check_range_amplitude,
     audit_volume_confirmation, evaluate_retest_quality,
 )
 
@@ -612,6 +612,112 @@ class NewYorkORBStrategy:
         df["time_ny"] = df["time"].dt.tz_convert(self.tz)
         return df.sort_values("time").reset_index(drop=True)
 
+    @staticmethod
+    def _profile_key_for_market(market):
+        return {"MICRO_XAUUSD": "XAUUSD", "WALL_STREET_30": "US30",
+                "US_TECH_100": "NAS100", "MICRO_XAGUSD": "XAGUSD",
+                "US_OIL": "USOIL", "US_500": "US500"}.get(market, market)
+
+    def _evaluate_sweep(self, *, symbol, market, df, opening, post_range, cfg, atr_reference,
+                        range_high, range_low, midpoint, profile_key, base, now_ny, open_ny,
+                        range_end_ny, amplitude, range_atr_ratio):
+        """ORB SWEEP (réplica exacta de `sweep_signal` en tools/replay_orb_nunez_2y.py).
+
+        Barrido fuera del ORB por una vela M5 que cierra DENTRO del rango, seguido en 1..3
+        velas por un MSS (cierre que rompe los extremos de las 3 velas previas al barrido y
+        el 50% del ORB). SL más allá del extremo barrido (+/- atr_buffer*ATR). VWAP o POC
+        alineado. Ventana de decisión 09:45-15:50 NY. Una oportunidad por sesión.
+        """
+        bar = post_range.iloc[-1]
+        bar_ny = pd.Timestamp(bar["time_ny"])
+        if bar_ny.hour * 60 + bar_ny.minute >= 955:
+            return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": "SWEEP_FUERA_DE_VENTANA_09_45_15_50"}
+        session_date_str = str(now_ny.date())
+        remembered = self._session_signal_memory.get(orb_session_asset(symbol))
+        if remembered is not None and remembered[0] == session_date_str:
+            return {**base, "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
+                    "reason": "SWEEP_YA_UTILIZADO_ESTA_SESION", "session_previous_breakout_time": remembered[1]}
+        buffer = float(cfg.get("atr_buffer", 0.05)) * float(atr_reference)
+        bar_pos = df.index.get_loc(bar.name)
+        offset = len(post_range) - 1
+        for earlier in range(max(0, offset - 3), offset):
+            sweep = post_range.iloc[earlier]
+            sweep_pos = df.index.get_loc(sweep.name)
+            before = df.iloc[max(0, sweep_pos - 3):sweep_pos]
+            if len(before) != 3 or not (range_low < float(sweep["close"]) < range_high):
+                continue
+            sell = float(sweep["high"]) > range_high + buffer and float(bar["close"]) < min(float(before["low"].min()), midpoint)
+            buy = float(sweep["low"]) < range_low - buffer and float(bar["close"]) > max(float(before["high"].max()), midpoint)
+            if not sell and not buy:
+                continue
+            direction = "SELL" if sell else "BUY"
+            side = -1 if sell else 1
+            evidence = audit_volume_confirmation(df.iloc[max(0, bar_pos - 350):bar_pos + 1], sweep["time"],
+                                                 "RETEST", cfg.get("require_volume", False))
+            first_pos = df.index.get_loc(opening.index[0])
+            session_slice = df.iloc[first_pos:bar_pos + 1]
+            vwap = self._session_vwap(session_slice)
+            poc = self._session_poc(session_slice)
+            close = float(bar["close"])
+            if not evidence["confirmed"] or not any(lvl is not None and side * (close - lvl) > 0 for lvl in (vwap, poc)):
+                continue
+            stop_loss = float(sweep["high"]) + buffer if sell else float(sweep["low"]) - buffer
+            entry_price = close
+            risk_distance = abs(entry_price - stop_loss)
+            if risk_distance <= 0 or side * (entry_price - stop_loss) <= 0:
+                continue
+            target_rr = max(0.1, float(self.config.target_rr))
+            take_profit = entry_price + side * risk_distance * target_rr
+            tp1 = entry_price + side * risk_distance
+            sweep_key = str(pd.Timestamp(sweep["time"]).isoformat())
+            confirmations = {"opening_range_complete": True, "orb_sweep_outside_range": True,
+                             "sweep_close_back_inside": True, "m5_mss_confirmed": True,
+                             "vwap_or_poc_alignment": True, "new_york_session": True,
+                             "eligible_market": True, "opening_range_atr_valid": bool(amplitude.get("isValid"))}
+            signal = {
+                "strategy_name": "ORB_NEW_YORK", "strategy_version": ORB_SWEEP_STRATEGY_VERSION,
+                "orb_entry_mode": "ORB_SWEEP_MSS", "orb_metrics_strategy": "ORB_NY_SWEEP",
+                "retest_quality": None, "retest_quality_weight": None, "rejection_tail_ratio": None,
+                "retest_candle_index": None, "asset_profile": profile_key, "range_amplitude": amplitude,
+                "orb_signal_atr": atr_reference, "timeframe": "M5", "valid": True, "direction": direction,
+                "entry_time": pd.Timestamp(bar["time"]).to_pydatetime(), "entry_price": entry_price,
+                "stop_loss": float(stop_loss), "take_profit": float(take_profit), "risk_reward_ratio": target_rr,
+                "confirmation_ok": True, "confirmation_decision": "ORB_SWEEP_MSS_CONFIRMED",
+                "confirmation_percentage": 100.0, "confirmations_passed": len(confirmations),
+                "confirmations_total": len(confirmations), "passed_confirmations": list(confirmations),
+                "missing_confirmations": [], "critical_confirmations_ok": True,
+                "critical_confirmation_failures": [], "rejection_reasons": [], "confirmations": confirmations,
+                "trade_score": 100.0, "trade_grade": "A", "orb_market": market,
+                "opening_range_high": range_high, "opening_range_low": range_low, "opening_range_midpoint": midpoint,
+                "session_vwap": vwap, "session_poc": poc,
+                "breakout_candle_time_ny": pd.Timestamp(sweep["time_ny"]).isoformat(),
+                "breakout_candle_time": sweep_key, "sweep_candle_time": sweep_key,
+                "mss_candle_time_ny": bar_ny.isoformat(), "retest_candle_time_ny": None,
+                "orb_session_date": session_date_str, "volume_evidence": evidence,
+                "volume_status": evidence["status"], "atr_frozen_m5": atr_reference,
+                "orb_atr_frozen_at": range_end_ny.isoformat(), "opening_range_atr_ratio": range_atr_ratio,
+                "breakout_volume_ratio": None,
+                "orb_risk_model": "1_PERCENT_TOTAL_SPLIT_0_5_TP1_0_5_RUNNER",
+                "orb_runner_plan": "FIXED_TP_BE_AFTER_TP1_SPREAD_PROTECTED",
+                "break_even_enabled": bool(getattr(self.config, "break_even_enabled", True)),
+                "break_even_trigger_rr": float(getattr(self.config, "break_even_trigger_rr", 1.0)),
+                "evidence_source": "replay_orb_nunez_2y SWEEP (XAUUSD +0.17R/+0.21R por mitad)",
+            }
+            from strategy.orb.signal_payload import build_signal_payload
+            signal.update(build_signal_payload(direction, entry_price, stop_loss, tp1, take_profit,
+                "SWEEP_MSS", atr_frozen_m5=atr_reference, volume_status=evidence["status"],
+                range_amplitude_ratio=range_atr_ratio,
+                be_enabled=bool(getattr(self.config, "break_even_enabled", True))))
+            return {**base, "strategy_version": ORB_SWEEP_STRATEGY_VERSION, "valid": True,
+                    "action": "ORB_SIGNAL_CONFIRMED", "reason": "ORB_SWEEP_MSS_CONFIRMADO_CON_VWAP_O_POC",
+                    "direction": direction, "signal": signal, "entry": signal, "h1_trend": None,
+                    "m15_setup_type": None, "m15_structure_break_type": None, "m15_zone": None,
+                    "diagnostics": {"sweep_candle_time": sweep_key, "mss_candle_time": bar_ny.isoformat()},
+                    "opening_range_high": range_high, "opening_range_low": range_low,
+                    "opening_range_midpoint": midpoint}
+        return {**base, "action": "WAITING_ORB_SWEEP", "reason": "SIN_BARRIDO_MAS_MSS_CONFIRMADO",
+                "opening_range_high": range_high, "opening_range_low": range_low, "opening_range_midpoint": midpoint}
+
     def analyze_symbol(self, symbol: str, now_utc: datetime | None = None) -> dict:
         """Evalúa un símbolo y devuelve la señal ORB, válida o no.
 
@@ -686,7 +792,8 @@ class NewYorkORBStrategy:
         cutoff_minute = int(getattr(self.config, "entry_cutoff_minute", 30))
         entry_cutoff_ny = pd.Timestamp(datetime.combine(now_ny.date(), time(cutoff_hour, cutoff_minute)), tz=self.tz)
         base["entry_cutoff_ny"] = entry_cutoff_ny.isoformat()
-        if bool(getattr(self.config, "entry_cutoff_enabled", False)) and now_ny >= entry_cutoff_ny:
+        sweep_profile_enabled = bool((self.config.asset_profiles.get(self._profile_key_for_market(market)) or {}).get("sweep_enabled"))
+        if bool(getattr(self.config, "entry_cutoff_enabled", False)) and now_ny >= entry_cutoff_ny and not sweep_profile_enabled:
             return {**base, "action": "ORB_ENTRY_WINDOW_CLOSED", "reason": "DESPUES_DE_VENTANA_OPTIMA_NEW_YORK"}
 
         df = self._prepare_candles(symbol, now_utc)
@@ -716,11 +823,10 @@ class NewYorkORBStrategy:
         if not math.isfinite(range_size) or range_size <= 0:
             return {**base, "action": "INVALID_OPENING_RANGE", "reason": "RANGO_ORB_SIN_AMPLITUD"}
 
-        profile_key = {"MICRO_XAUUSD": "XAUUSD", "WALL_STREET_30": "US30",
-                       "US_TECH_100": "NAS100", "MICRO_XAGUSD": "XAGUSD",
-                       "US_OIL": "USOIL", "US_500": "US500"}.get(market, market)
+        profile_key = self._profile_key_for_market(market)
         cfg = self.config.asset_profiles.get(profile_key, {
-            "allowed_modes": ["MOMENTUM", "RETEST"],
+            # Fase 1: activo sin perfil explícito => sin entradas (ORB solo opera XAUUSD).
+            "allowed_modes": [],
             "atr_buffer": self.config.breakout_atr_buffer_fraction,
             "max_range_atr_ratio": self.config.max_opening_range_atr_multiple,
             "require_volume": self.config.require_breakout_volume_confirmation,
@@ -774,6 +880,17 @@ class NewYorkORBStrategy:
                 "opening_range_midpoint": midpoint,
                 "opening_range_size": range_size,
             }
+
+        if cfg.get("sweep_enabled"):
+            sweep_result = self._evaluate_sweep(
+                symbol=symbol, market=market, df=df, opening=opening, post_range=post_range, cfg=cfg,
+                atr_reference=atr_reference, range_high=range_high, range_low=range_low, midpoint=midpoint,
+                profile_key=profile_key, base=base, now_ny=now_ny, open_ny=open_ny, range_end_ny=range_end_ny,
+                amplitude=amplitude, range_atr_ratio=range_atr_ratio)
+            classic_open = bool(list(cfg.get("allowed_modes") or [])) and not (
+                bool(getattr(self.config, "entry_cutoff_enabled", False)) and now_ny >= entry_cutoff_ny)
+            if sweep_result.get("valid") or not classic_open:
+                return sweep_result
 
         # ORB: BREAKOUT -> RETEST -> ENTRADA. El retest puede aparecer durante
         # las siguientes 1..N velas cerradas, sin perseguir rupturas antiguas.

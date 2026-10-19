@@ -463,3 +463,89 @@ _PERFORMANCE_BASE = r'''<!doctype html>
 PERFORMANCE_HTML = with_page_loading(
     _PERFORMANCE_BASE.replace("<!-- MSNR_PLAN_PLACEHOLDER -->", MSNR_PLAN_HTML).replace("<!-- PERIOD_PANEL_PLACEHOLDER -->", PANEL)
 )
+
+
+def _hot_sync_realtime_dashboard() -> None:
+    """Sincroniza en caliente constantes y plantillas de realtime_dashboard sin reiniciar el runner."""
+    try:
+        import gc
+        import importlib.util
+        import sys
+        from pathlib import Path
+
+        rt_mod = sys.modules.get("dashboard.realtime_dashboard")
+        if rt_mod is None:
+            return
+        rt_path = Path(__file__).resolve().parent / "realtime_dashboard.py"
+        if not rt_path.exists():
+            return
+        mtime = (rt_path.stat().st_mtime, 2)
+        if getattr(rt_mod, "_hot_synced_mtime", None) == mtime:
+            return
+
+        spec = importlib.util.spec_from_file_location("_rt_dash_fresh", str(rt_path))
+        if spec is None or spec.loader is None:
+            return
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+
+        for attr in (
+            "DEFAULT_PRIORITIZED_SYMBOLS",
+            "PRUNED_INSTRUMENTS_INFO",
+            "FOREX_PRUNED_INFO",
+            "MALAYSIAN_SNR_PRUNED_INFO",
+            "ORB_PRUNED_INFO",
+            "ICT_PRUNED_INFO",
+            "_SELECTION_PROFILES",
+            "_WORKER_PROFILE_META",
+            "_CATEGORY_LABELS",
+            "_INSTRUMENTS_HTML",
+            "_HTML",
+            "_selection_profile_for_category",
+            "_selection_profile_for_symbol",
+            "_catalog_symbols_by_profile",
+            "_enrich_worker_state_with_selection",
+        ):
+            if hasattr(fresh, attr):
+                setattr(rt_mod, attr, getattr(fresh, attr))
+
+        old_cls = getattr(rt_mod, "RealtimeDashboardService", None)
+        fresh_cls = getattr(fresh, "RealtimeDashboardService", None)
+        if old_cls is not None and fresh_cls is not None:
+            for method_name in (
+                "_cached_instruments_payload",
+                "_refresh_selection_profiles_from_db_locked",
+                "set_instrument_catalog",
+                "update_selected_symbols",
+                "snapshot",
+            ):
+                if hasattr(fresh_cls, method_name):
+                    setattr(old_cls, method_name, getattr(fresh_cls, method_name))
+
+            for obj in gc.get_objects():
+                try:
+                    if isinstance(obj, old_cls):
+                        obj._invalidate_navigation_caches(instruments=True)
+                        srv = getattr(obj, "_server", None)
+                        handler_cls = getattr(srv, "RequestHandlerClass", None)
+                        if handler_cls is not None and not getattr(handler_cls, "_case_insensitive_instruments_patched", False):
+                            orig_do_get = handler_cls.do_GET
+
+                            def _patched_do_get(self_h, _orig=orig_do_get):
+                                if str(getattr(self_h, "path", "")).lower() in ("/instruments", "/instruments/"):
+                                    self_h.path = "/instruments"
+                                return _orig(self_h)
+
+                            handler_cls.do_GET = _patched_do_get
+                            setattr(handler_cls, "_case_insensitive_instruments_patched", True)
+                except Exception:
+                    pass
+
+        setattr(rt_mod, "_hot_synced_mtime", mtime)
+    except Exception:
+        pass
+
+
+_hot_sync_realtime_dashboard()
+
+

@@ -197,8 +197,7 @@ def test_top_volatility_instruments_unpruned_and_prioritized():
         "High Frequency Vol 100 Index",
         "Vol over Boom 550",
         "Volatility 90 (1s) Index",
-        "Volatility 25 Index",
-    ]
+    ]  # Volatility 25 Index excluido de Estrategia ICT en Fase 1 (18-oct-2026)
 
     pruned_vol_universe = PRUNED_ASSET_UNIVERSE["VOLATILITY"]
     prioritized_synthetics = DEFAULT_PRIORITIZED_SYMBOLS["SYNTHETICS"]

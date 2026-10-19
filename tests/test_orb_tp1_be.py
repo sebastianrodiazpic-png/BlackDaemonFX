@@ -40,10 +40,11 @@ def test_orb_tp1_gate_spread_confirmation_and_retry(direction, reached):
 def test_requested_asset_profiles():
     from strategy.orb.asset_rules import default_asset_profiles
     p = default_asset_profiles()
-    assert p['XAUUSD']['allowed_modes'] == ['MOMENTUM','RETEST']
+    # Fase 1: XAUUSD solo SWEEP; el resto sin modos de entrada.
+    assert p['XAUUSD']['allowed_modes'] == [] and p['XAUUSD']['sweep_enabled'] is True
     assert p['XAGUSD']['pruned'] is True
-    assert p['EURUSD']['allowed_modes'] == ['MOMENTUM', 'RETEST']
-    assert p['US500']['allowed_modes'] == ['MOMENTUM', 'RETEST']
+    assert p['EURUSD']['allowed_modes'] == []
+    assert p['US500']['allowed_modes'] == []
     assert p['USOIL']['max_range_atr_ratio'] == 2
 
 

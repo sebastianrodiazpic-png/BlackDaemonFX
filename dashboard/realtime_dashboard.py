@@ -944,27 +944,33 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
     # Filtrar sólo los que están actualmente seleccionados si el perfil tiene selecciones explícitas
     if isinstance(selection_profiles, dict):
+        versions = state.get("selection_profile_versions") or {}
+        sel_ver = int(state.get("selection_version") or 0)
         filtered_matrix = []
         for row in matrix:
             sk = row.get("strategy_key")
             s_sym = row.get("symbol")
             if sk == "MALAYSIAN_SNR":
                 allowed_p = selection_profiles.get("MALAYSIAN_SNR")
-                if allowed_p and s_sym not in allowed_p:
-                    continue
+                if allowed_p is not None and (len(allowed_p) > 0 or "MALAYSIAN_SNR" in versions or sel_ver > 0):
+                    if s_sym not in allowed_p:
+                        continue
             elif sk == "ORB":
                 allowed_p = selection_profiles.get("ORB")
-                if allowed_p and s_sym not in allowed_p:
-                    continue
+                if allowed_p is not None and (len(allowed_p) > 0 or "ORB" in versions or sel_ver > 0):
+                    if s_sym not in allowed_p:
+                        continue
             elif sk == "GOLD_QUARTERS":
                 allowed_p = selection_profiles.get("GOLD")
-                if allowed_p and s_sym not in allowed_p:
-                    continue
+                if allowed_p is not None and (len(allowed_p) > 0 or "GOLD" in versions or sel_ver > 0):
+                    if s_sym not in allowed_p:
+                        continue
             elif sk == "ICT":
                 allowed_ict = set(selection_profiles.get("ICT") or [])
                 allowed_ict.update(selection_profiles.get("SYNTHETICS") or [])
                 allowed_ict.update(selection_profiles.get("FOREX") or [])
-                if allowed_ict and s_sym not in allowed_ict:
+                has_ict_sel = bool(allowed_ict) or any(k in versions for k in ("ICT", "SYNTHETICS", "FOREX")) or sel_ver > 0
+                if has_ict_sel and s_sym not in allowed_ict:
                     continue
             filtered_matrix.append(row)
         matrix = filtered_matrix
@@ -974,98 +980,106 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 DEFAULT_PRIORITIZED_SYMBOLS = {
     "SYNTHETICS": [
-        "Jump 50 Index",
-        "Jump 25 Index",
-        "Crash 300 Index",
-        "Boom 500 Index",
-        "Boom 300 Index",
-        "Boom 1000 Index",
-        "Boom 600 Index",
+        "Volatility 10 Index",
         "Step Index 400",
-        "Crash 500 Index",
+        "Volatility 50 (1s) Index",
+        "Jump 75 Index",
+        "Step Index 500",
+        "Step Index 200",
+        "Step Index 100",
         "Crash 600 Index",
+        "Volatility 15 Index",
+        "Volatility 75 (1s) Index",
+        "Boom 500 Index",
+        "Jump 10 Index",
+        "Boom 300 Index",
+        "Volatility 75 Index",
+        "Volatility 250 (1s) Index",
+        "Boom 900 Index",
+        "Boom 600 Index",
+        "Boom 1000 Index",
+        "Crash 300 Index",
+        "Crash 500 Index",
+        "Crash 900 Index",
+        "Crash 1000 Index",
+        "Jump 50 Index",
         "High Frequency Vol 100 Index",
         "High Frequency Vol 50 Index",
-        "Jump 10 Index",
-        "Jump 75 Index",
-        "Step Index",
-        "Step Index 500",
         "Vol over Boom 550",
         "Vol over Crash 550",
         "VolSwitch High Vol Index",
-        "Volatility 10 Index",
         "Volatility 100 (1s) Index",
-        "Volatility 15 Index",
         "Volatility 150 (1s) Index",
-        "Volatility 25 Index",
-        "Volatility 250 (1s) Index",
         "Volatility 5 Index",
-        "Volatility 50 (1s) Index",
-        "Volatility 75 (1s) Index",
-        "Volatility 75 Index",
+        "Volatility 50 Index",
+        "Volatility 100 Index",
         "Volatility 90 (1s) Index",
         "Volatility 90 Index",
     ],
     "FOREX": [
         "EURUSD",
         "EURUSDmicro",
+        "GBPUSD",
+        "GBPUSDmicro",
         "USDCAD",
         "USDCADmicro",
         "USDCHF",
         "USDCHFmicro",
         "AUDUSD",
         "AUDUSDmicro",
-        "GBPUSD",
-        "GBPUSDmicro",
         "USDJPY",
         "USDJPYmicro",
         "AUDJPY",
+        "AUDJPYmicro",
         "AUDNZD",
+        "AUDNZDmicro",
         "CADCHF",
+        "CADCHFmicro",
         "CHFJPY",
+        "CHFJPYmicro",
         "EURCHF",
+        "EURCHFmicro",
         "GBPCAD",
+        "GBPCADmicro",
+        "EURJPY",
+        "EURJPYmicro",
+        "GBPJPY",
+        "GBPJPYmicro",
     ],
     "ORB": [
-        "Wall Street 30",
         "XAUUSD",
         "XAUUSDmicro",
         "microXAUUSD",
-        "US Tech 100",
-        "BTCUSD",
     ],
     "IDX_OPEN": [
         "Wall Street 30",
         "US Tech 100",
     ],
     "MALAYSIAN_SNR": [
-        "Jump 25 Index",
-        "Jump 50 Index",
-        "Jump 10 Index",
         "Step Index 400",
-        "Step Index 500",
-        "Step Index 200",
-        "Step Index",
-        "Boom 1000 Index",
-        "Crash 1000 Index",
-        "Boom 600 Index",
-        "Crash 600 Index",
-        "Boom 500 Index",
-        "Crash 500 Index",
-        "Boom 300 Index",
-        "Crash 300 Index",
-        "BTCUSD",
-        "XAUUSD",
-        "Wall Street 30",
-        "US Tech 100",
-        "USDJPY",
-        "EURUSD",
-        "GBPUSD",
-        "GBPJPY",
+        "XAGUSD",
         "AUDNZD",
+        "Crash 1000 Index",
+        "Jump 25 Index",
+        "GBPJPY",
+        "USDJPY",
+        "GBPUSD",
+        "Boom 300 Index",
+        "Volatility 250 (1s) Index",
+        "Step Index",
+        "Jump 10 Index",
         "GBPAUD",
+        "Wall Street 30",
+        "EURUSD",
+        "Volatility 50 (1s) Index",
+        "Volatility 90 Index",
+        "Boom 1000 Index",
+        "Step Index 200",
+        "EURCHF",
+        "EURGBP",
+        "XAUUSD",
+        "Crash 600 Index",
     ],
-
     "GOLD": [
         "XAUUSD",
         "XAUUSDmicro",
@@ -1075,80 +1089,78 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "XAUUSD",
         "XAUUSDmicro",
         "microXAUUSD",
-        "Jump 50 Index",
-        "EURUSD",
-        "EURUSDmicro",
-        "Crash 300 Index",
-        "Boom 500 Index",
-        "Boom 300 Index",
-        "Boom 1000 Index",
-        "Boom 600 Index",
-        "Jump 25 Index",
         "BTCUSD",
         "BTCUSDmicro",
         "microBTCUSD",
-        "Step Index 400",
+        "US Oil",
         "Wall Street 30",
         "US Tech 100",
         "US SP 500",
-        "XAGUSD",
-        "XAGUSDmicro",
+        "EURUSD",
+        "EURUSDmicro",
+        "Jump 75 Index",
+        "Jump 10 Index",
+        "Jump 50 Index",
+        "Step Index 400",
+        "Step Index 500",
+        "Crash 600 Index",
+        "Crash 300 Index",
+        "Boom 500 Index",
+        "Boom 300 Index",
+        "Boom 900 Index",
+        "Boom 600 Index",
+        "Boom 1000 Index",
     ],
 }
 
 PRUNED_INSTRUMENTS_INFO = {
-    # FOREX (Poda confirmada por análisis cuantitativo de 2 años en activos con expectativa negativa)
-    "EURCAD": "Poda confirmada en replay 2 años: -23.75R netos (Win Rate 25.4%). Cruce con spreads adversos y falta de liquidez en Killzones.",
-    "GBPCHF": "Poda confirmada en replay 2 años: -17.75R netos (Win Rate 26.6%). Rango errático sin continuación institucional.",
-    "GBPAUD": "Poda confirmada en replay 2 años: -17.25R netos (Win Rate 19.0%). Baja tasa de TP1 y fuerte correlación de noticias asiáticas.",
-    "AUDCHF": "Poda confirmada en replay 2 años: -14.25R netos (Win Rate 24.4%). Deslizamiento continuo y compresión en sesión asiática.",
-    "EURNZD": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 22.6%). Desalineación con Killzones y spreads nocturnos desfavorables.",
-    "CADJPY": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 27.0%). Rupturas sin mitigación en horario Londres.",
-    "EURAUD": "Poda confirmada en replay 2 años: -9.75R netos (Win Rate 23.8%). Solapamiento de rangos asiático y europeo sin expansión limpia.",
-    "USDJPY": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%). Ausencia de volumen en Killzones y retrocesos tardíos.",
-    "USDJPYmicro": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%).",
-    "EURGBP": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 31.1%). Rango sumamente comprimido y bajo desplazamiento medio.",
-    "GBPJPY": "Poda confirmada en replay 2 años: -5.50R netos (Win Rate 33.3%). Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR.",
-    "AUDCAD": "Poda confirmada en replay 2 años: -5.00R netos (Win Rate 32.4%). Falta de liquidez institucional en Killzones Londres/NY.",
-    "USDCHF": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%). Estructura divergente frente al EURUSD durante la Killzone.",
-    "USDCHFmicro": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%).",
-    "EURJPY": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 35.3%). Intervenciones y tendencias unidireccionales sin pullback a FVG.",
-    "GBPNZD": "Poda confirmada en replay 2 años: -3.50R netos (Win Rate 30.6%). Rangos amplios con mechas falsas en cambio de sesión.",
+    # FOREX (Poda confirmada únicamente en cruces perdedores y exóticos; todos los pares rentables señalados están libres de poda)
+    "AUDCAD": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%). Falta de liquidez institucional en Killzones Londres/NY.",
+    "AUDCADmicro": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%).",
+    "EURGBP": "Poda confirmada en replay multi-anual ICT: -30.00R netos (Win Rate 21.2%). Rango comprimido; derivado a Malaysian SNR C2 (+0.43R).",
+    "EURGBPmicro": "Poda confirmada en replay multi-anual ICT: -30.00R netos (Win Rate 21.2%).",
+    "GBPAUD": "Poda confirmada en replay multi-anual ICT: -21.25R netos (Win Rate 22.9%). Baja tasa de TP1; derivado a Malaysian SNR (+0.60R).",
+    "EURAUD": "Poda confirmada en replay multi-anual ICT: -18.50R netos (Win Rate 25.0%). Solapamiento de rangos asiático y europeo sin expansión limpia.",
+    "EURAUDmicro": "Poda confirmada en replay multi-anual ICT: -18.50R netos (Win Rate 25.0%).",
+    "GBPNZD": "Poda confirmada en replay multi-anual ICT: -17.00R netos (Win Rate 24.4%). Rangos amplios con mechas falsas en cambio de sesión.",
+    "EURCAD": "Poda confirmada en replay multi-anual ICT: -15.50R netos (Win Rate 24.4%). Cruce con spreads adversos y falta de liquidez en Killzones.",
+    "EURCADmicro": "Poda confirmada en replay multi-anual ICT: -15.50R netos (Win Rate 24.4%).",
+    "EURNZD": "Poda confirmada en replay multi-anual ICT: -15.25R netos (Win Rate 24.5%). Desalineación con Killzones y spreads nocturnos desfavorables.",
+    "EURNZDmicro": "Poda confirmada en replay multi-anual ICT: -15.25R netos (Win Rate 24.5%).",
+    "CADJPY": "Poda confirmada en replay multi-anual ICT: -11.75R netos (Win Rate 28.0%). Rupturas sin mitigación en horario Londres.",
+    "GBPCHF": "Poda confirmada en replay multi-anual ICT: -8.50R netos (Win Rate 27.6%). Rango errático sin continuación institucional.",
+    "GBPCHFmicro": "Poda confirmada en replay multi-anual ICT: -8.50R netos (Win Rate 27.6%).",
+    "AUDCHF": "Poda confirmada en replay multi-anual ICT: -8.25R netos (Win Rate 27.5%). Deslizamiento continuo y compresión en sesión asiática.",
+    "AUDCHFmicro": "Poda confirmada en replay multi-anual ICT: -8.25R netos (Win Rate 27.5%).",
     "NZDCAD": "Poda preventiva: Baja liquidez institucional en broker.",
     "NZDCHF": "Poda preventiva: Spreading costoso y baja frecuencia de setups limpios.",
     "NZDJPY": "Poda preventiva: Ruido recurrente en sesión asiática.",
     "NZDUSD": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
-    # BOOM (Replay histórico 2 años)
-    "Boom 900 Index": "Poda confirmada en replay 2 años: -29.30R netos (Win Rate 22.2%). Falsas roturas de estructura en compras y mechas prolongadas.",
+    "NZDUSDmicro": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
+    # BOOM (Poda preventiva en activos no señalados; Boom 300, 500, 600, 900 y 1000 están 100% libres de poda)
     "Boom 50 Index": "Poda preventiva: Baja inercia en zonas de demanda institucional.",
     "Boom 100 Index": "Poda preventiva: Ruido aleatorio y bajo ratio de confirmación.",
     "Boom 150 Index": "Poda preventiva: Spikes desalineados con zonas SMC M15.",
     "Boom 200 Index": "Poda preventiva: Expectativa matemática subóptima.",
     "Boom 99 Index": "Poda preventiva: Poca profundidad de mercado sintético.",
-    # CRASH (Replay histórico 2 años)
-    "Crash 900 Index": "Poda confirmada en replay 2 años: -17.60R netos (Win Rate 27.2%). Spikes intempestivos rompen estructuras FVG.",
-    "Crash 600 Index": "Poda confirmada en replay 2 años: -17.20R netos (Win Rate 26.5%). Caídas rápidas invalidan niveles de soporte.",
-    "Crash 500 Index": "Poda confirmada en replay 2 años: -8.20R netos (Win Rate 32.4%).",
-    "Crash 1000 Index": "Poda confirmada en replay 2 años: -25.50R netos (Win Rate 28.0%). Ratios desfavorables frente a Crash 300.",
+    # CRASH (Poda preventiva en activos no señalados; Crash 300, 500, 600, 900 y 1000 están 100% libres de poda)
     "Crash 50 Index": "Poda preventiva: Ruido y falsos rebotes en soportes.",
     "Crash 100 Index": "Poda preventiva: Spikes contratendenciales prematuros.",
     "Crash 150 Index": "Poda preventiva: Baja reactividad en bloques de órdenes M15.",
     "Crash 200 Index": "Poda preventiva: Falsas confirmaciones de quiebre estructural.",
     "Crash 99 Index": "Poda preventiva: Falta de tracción institucional simulada.",
-    # STEP (Replay histórico 2 años)
-    "Step Index 200": "Poda confirmada en replay 2 años: -41.90R netos (Win Rate 24.7%). Drift bajista continuo sin absorción CRT.",
-    "Step Index 500": "Poda confirmada en replay 2 años: -31.10R netos (Win Rate 32.4%). Falsas confirmaciones de quiebre estructural.",
-    "Step Index": "Poda confirmada en replay 2 años: -28.90R netos (Win Rate 30.8%). Expectativa negativa frente a Step 400.",
+    # FASE 1 (exclusiones de Estrategia ICT; siguen activos en Malaysian SNR cuando corresponde)
+    "Step Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "Jump 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "Volatility 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    # STEP (Poda preventiva en activos no señalados; Step 100, 200, 400 y 500 están 100% libres de poda)
     "Step Index 300": "Poda preventiva: Replay descartó activos de ruido en ticks. Se prioriza Step Index 400.",
     "Multi Step 2 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 3 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
     "Multi Step 4 Index": "Poda preventiva: Dispersión desfavorable de volatilidad y saltos de tick desalineados.",
-    # JUMP (Replay histórico 2 años)
-    "Jump 100 Index": "Poda confirmada en replay 2 años: -43.10R netos (Win Rate 25.7%). Saltos erráticos que vulneran zonas de oferta/demanda.",
-    "Jump 10 Index": "Poda confirmada en replay 2 años: -15.80R netos (Win Rate 29.5%).",
-    # VOLATILITY (Poda confirmada por análisis cuantitativo de 2 años)
-    "Volatility 50 Index": "Poda confirmada en replay 2 años: -17.90R netos (Win Rate 27.7%). Falsas rupturas continuas y stops sistemáticos en M15.",
-    "Volatility 100 Index": "Poda confirmada en replay 2 años: -22.10R netos (Win Rate 30.1%). Ruido de alta volatilidad sin respeto al pullback.",
+    # JUMP (Poda confirmada en Jump 100 y Fase 1 en Jump 25; Jump 10, 50 y 75 están 100% libres de poda)
+    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: -3.25R netos (Win Rate 28.0%). Saltos erráticos que vulneran zonas de oferta/demanda.",
+    # VOLATILITY (Poda confirmada en activos descartados; los 19 activos Volatility señalados están 100% libres de poda)
     "Vol over Crash 400": "Poda confirmada: -24.0% PnL en replay 2 años (Win Rate 15.4%). Falsas roturas de estructura recurrentes.",
     "Vol over Boom 750": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 21.1%). Inconsistencia en zonas de oferta.",
     "Spot Up - Volatility Up Index": "Poda confirmada: -13.0% PnL en replay 2 años (Win Rate 26.1%). Dispersión de colas.",
@@ -1158,65 +1170,72 @@ PRUNED_INSTRUMENTS_INFO = {
     "High Frequency Vol 75 Index": "Poda confirmada: -8.0% PnL en replay 2 años (Win Rate 25.0%).",
     "High Frequency Vol 25 Index": "Poda confirmada: -7.5% PnL en replay 2 años (Win Rate 22.7%).",
     "Volatility 30 Index": "Poda preventiva: Baja efectividad en retesteos de bloques de órdenes.",
-    # COMMODITIES & PETRÓLEO (Poda confirmada por análisis histórico 2 años)
-    "US Oil": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural de la sesión cash NY frente a metales e índices.",
-    "USOIL": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural de la sesión cash NY frente a metales e índices.",
-    "Crude Oil": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
-    "WTI": "Poda confirmada por análisis histórico 2 años: -34.25% PnL (-$3,425 USD, PF 0.77). Deslizamiento adverso y desalineación estructural en sesión cash NY.",
+    # COMMODITIES PODADOS
     "Brent": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
     "UK Brent Oil": "Poda confirmada por análisis histórico 2 años: Baja correlación y costos de spread elevados en ventanas ORB.",
-    # PLATA / SILVER (Poda confirmada)
-    "XAGUSD": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD. Se prioriza Oro y Euro.",
-    "XAGUSDmicro": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
-    "Silver": "Poda: Mayor volatilidad y riesgo no compensado frente a XAUUSD y EURUSD.",
 }
 
 FOREX_PRUNED_INFO = {
-    # 14 Pares Forex con expectativa negativa en replay de 2 años
-    "EURCAD": "Poda confirmada en replay 2 años: -23.75R netos (Win Rate 25.4%). Cruce con spreads adversos y falta de liquidez en Killzones.",
-    "GBPCHF": "Poda confirmada en replay 2 años: -17.75R netos (Win Rate 26.6%). Rango errático sin continuación institucional.",
-    "GBPAUD": "Poda confirmada en replay 2 años: -17.25R netos (Win Rate 19.0%). Baja tasa de TP1 y fuerte correlación de noticias asiáticas.",
-    "AUDCHF": "Poda confirmada en replay 2 años: -14.25R netos (Win Rate 24.4%). Deslizamiento continuo y compresión en sesión asiática.",
-    "EURNZD": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 22.6%). Desalineación con Killzones y spreads nocturnos desfavorables.",
-    "CADJPY": "Poda confirmada en replay 2 años: -11.75R netos (Win Rate 27.0%). Rupturas sin mitigación en horario Londres.",
-    "EURAUD": "Poda confirmada en replay 2 años: -9.75R netos (Win Rate 23.8%). Solapamiento de rangos asiático y europeo sin expansión limpia.",
-    "USDJPY": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%). Ausencia de volumen en Killzones y retrocesos tardíos.",
-    "USDJPYmicro": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 35.5%).",
-    "EURGBP": "Poda confirmada en replay 2 años: -7.25R netos (Win Rate 31.1%). Rango sumamente comprimido y bajo desplazamiento medio.",
-    "GBPJPY": "Poda confirmada en replay 2 años: -5.50R netos (Win Rate 33.3%). Volatilidad descontrolada en sesión de Tokio/Londres; mejor en Malaysian SNR.",
-    "AUDCAD": "Poda confirmada en replay 2 años: -5.00R netos (Win Rate 32.4%). Falta de liquidez institucional en Killzones Londres/NY.",
-    "USDCHF": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%). Estructura divergente frente al EURUSD durante la Killzone.",
-    "USDCHFmicro": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 33.8%).",
-    "EURJPY": "Poda confirmada en replay 2 años: -4.75R netos (Win Rate 35.3%). Intervenciones y tendencias unidireccionales sin pullback a FVG.",
-    "GBPNZD": "Poda confirmada en replay 2 años: -3.50R netos (Win Rate 30.6%). Rangos amplios con mechas falsas en cambio de sesión.",
+    # Pares Forex descartados por expectativa negativa en replay multi-anual de Estrategia ICT.
+    # Todos los pares rentables señalados (EURUSD, GBPUSD, USDCAD, USDCHF, AUDUSD, USDJPY,
+    # AUDJPY, AUDNZD, CADCHF, CHFJPY, EURCHF, GBPCAD, EURJPY, GBPJPY y sus variantes micro)
+    # están ACTIVOS y 100% LIBRES DE PODA.
+    "AUDCAD": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%, PF 0.54). Falta de liquidez institucional en Killzones.",
+    "AUDCADmicro": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%, PF 0.54).",
+    "EURGBP": "Poda confirmada en replay multi-anual ICT: -30.00R netos (Win Rate 21.2%, PF 0.56). Derivado a Malaysian SNR C2 (+0.43R).",
+    "EURGBPmicro": "Poda confirmada en replay multi-anual ICT: -30.00R netos (Win Rate 21.2%, PF 0.56).",
+    "GBPAUD": "Poda confirmada en replay multi-anual ICT: -21.25R netos (Win Rate 22.9%, PF 0.67). Derivado a Malaysian SNR C2 (+0.60R).",
+    "EURAUD": "Poda confirmada en replay multi-anual ICT: -18.50R netos (Win Rate 25.0%, PF 0.72). Solapamiento de rangos sin expansión limpia.",
+    "EURAUDmicro": "Poda confirmada en replay multi-anual ICT: -18.50R netos (Win Rate 25.0%, PF 0.72).",
+    "GBPNZD": "Poda confirmada en replay multi-anual ICT: -17.00R netos (Win Rate 24.4%, PF 0.72). Rangos amplios con mechas falsas.",
+    "EURCAD": "Poda confirmada en replay multi-anual ICT: -15.50R netos (Win Rate 24.4%, PF 0.72). Cruce con spreads adversos.",
+    "EURCADmicro": "Poda confirmada en replay multi-anual ICT: -15.50R netos (Win Rate 24.4%, PF 0.72).",
+    "EURNZD": "Poda confirmada en replay multi-anual ICT: -15.25R netos (Win Rate 24.5%, PF 0.73). Desalineación con Killzones.",
+    "EURNZDmicro": "Poda confirmada en replay multi-anual ICT: -15.25R netos (Win Rate 24.5%, PF 0.73).",
+    "CADJPY": "Poda confirmada en replay multi-anual ICT: -11.75R netos (Win Rate 28.0%, PF 0.81). Rupturas sin mitigación en Londres.",
+    "GBPCHF": "Poda confirmada en replay multi-anual ICT: -8.50R netos (Win Rate 27.6%, PF 0.85). Rango errático sin continuación.",
+    "GBPCHFmicro": "Poda confirmada en replay multi-anual ICT: -8.50R netos (Win Rate 27.6%, PF 0.85).",
+    "AUDCHF": "Poda confirmada en replay multi-anual ICT: -8.25R netos (Win Rate 27.5%, PF 0.85). Compresión en sesión asiática.",
+    "AUDCHFmicro": "Poda confirmada en replay multi-anual ICT: -8.25R netos (Win Rate 27.5%, PF 0.85).",
+    "NZDCAD": "Poda preventiva: Baja liquidez institucional en Killzones.",
+    "NZDCHF": "Poda preventiva: Spreads elevados y baja frecuencia de setups limpios.",
+    "NZDJPY": "Poda preventiva: Ruido recurrente en sesión asiática.",
+    "NZDUSD": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
+    "NZDUSDmicro": "Poda preventiva: Falsos quiebres de estructura y baja reactividad.",
 }
 
 MALAYSIAN_SNR_PRUNED_INFO = {
-    # Índices Sintéticos no aptos para reversión Malaysian SNR (Mejor desempeño en sus workers especializados)
-    "Boom 900 Index": "Poda en Malaysian SNR: 25.0% WR, -1.30R. Ruido estructural en M15.",
+    # 37 Activos Podados en Malaysian SNR (Desactivados en /Instruments; 23 activos canónicos permanecen activos)
+    "Boom 900 Index": "Poda en Malaysian SNR: 25.0% WR, -1.30R. Derivado a Estrategia ICT (+2.75R).",
+    "Boom 600 Index": "Poda en Malaysian SNR: -1.42R en walk-forward OOS. Derivado a Estrategia ICT (+0.50R).",
     "Crash 900 Index": "Poda en Malaysian SNR: 13.3% WR, -8.76R. Caídas directas sin mitigación.",
-    "Jump 75 Index": "Poda en Malaysian SNR: 37.0% WR, -2.31R. Spreads y mechas adversas.",
+    "Crash 300 Index": "Poda en Malaysian SNR: -8.49R en walk-forward OOS. Caídas directas sin reacción A/V.",
+    "Jump 50 Index": "Poda en Malaysian SNR: -0.25R en OOS. Derivado a monitoreo secundario.",
+    "Jump 75 Index": "Poda en Malaysian SNR: 37.0% WR, -2.31R. Derivado a Estrategia ICT (+37.75R, PF 1.32).",
     "Jump 100 Index": "Poda en Malaysian SNR: 25.0% WR, -8.56R. Dispersión severa y falta de soporte.",
-    "Volatility 10 Index": "Poda en Malaysian SNR: 28.0% WR, -11.78R. Drift tendencial continuo que vulnera soportes A/V.",
-    "Volatility 25 Index": "Poda en Malaysian SNR: 27.6% WR, -6.79R. Ruido de oscilación lateral.",
+    "Step Index 500": "Poda en Malaysian SNR: -0.45R en OOS. Derivado a Estrategia ICT (+25.25R, PF 1.28).",
+    "Volatility 10 Index": "Poda en Malaysian SNR: 28.0% WR, -11.78R. Derivado a Estrategia ICT (+61.25R, Top #1).",
+    "Volatility 25 Index": "Poda en Malaysian SNR: 27.6% WR, -6.79R. También excluido de Estrategia ICT en Fase 1.",
     "Volatility 50 Index": "Poda en Malaysian SNR: 8.0% WR, -17.85R. Falsas rupturas continuas y stops sistemáticos en M15.",
-    "Volatility 75 Index": "Poda en Malaysian SNR: 34.1% WR, -4.27R. Expansiones sin respeto a niveles de reversión.",
+    "Volatility 75 Index": "Poda en Malaysian SNR: 34.1% WR, -4.27R. Derivado a Estrategia ICT (+7.50R, PF 1.18).",
     "Volatility 100 Index": "Poda en Malaysian SNR: 19.2% WR, -13.73R. Movimientos agresivos que rompen zonas A/V.",
-    "Volatility 15 Index": "Poda en Malaysian SNR: 11.1% WR, -5.75R. Compresión y stops adversos.",
-    "Volatility 75 (1s) Index": "Poda en Malaysian SNR: 26.7% WR, -8.36R. Micro-ticks erráticos sin absorción CRT.",
-    # Índices Americanos (Incompatibles con reversión SNR; derivados a ORB NY e ICT)
-    "US SP 500": "Poda en Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas sin respeto de niveles Break; derivado a ORB New York.",
-    # Forex y Commodities con expectativa negativa o spread adverso
-    "USDCAD": "Poda en Malaysian SNR: 42.9% WR, -0.21R. Derivado a ICT Forex (+12.0R) y FOREX.",
+    "Volatility 15 Index": "Poda en Malaysian SNR: 11.1% WR, -5.75R. Derivado a Estrategia ICT (+14.75R, PF 1.14).",
+    "Volatility 75 (1s) Index": "Poda en Malaysian SNR: 26.7% WR, -8.36R. Derivado a Estrategia ICT (+13.75R, PF 1.17).",
+    # Índices Americanos y Cripto (Incompatibles con reversión SNR; derivados a ORB NY e ICT)
+    "US SP 500": "Poda en Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas sin respeto de niveles Break.",
+    "US Tech 100": "Poda en Malaysian SNR: -0.35R en OOS. Volatilidad excesiva en apertura americana.",
+    "BTCUSD": "Poda en Malaysian SNR: -3.20R en OOS estricto. Derivado a Estrategia ICT (+10.25R).",
+    # Forex y Commodities con expectativa negativa en MSNR
+    "USDCAD": "Poda en Malaysian SNR: 42.9% WR, -0.21R. Expectativa nula en niveles A/V M15.",
     "AUDUSD": "Poda en Malaysian SNR: 23.1% WR, -5.14R. Rango lateral sin expansión hacia TP1 en M15.",
     "USDCHF": "Poda en Malaysian SNR: 20.0% WR, -6.66R. Compresión de rango y rechazos prematuros.",
-    "US Oil": "Poda en Malaysian SNR: 12.5% WR, -6.51R. Deslizamiento severo y mechas erráticas en M15.",
-    "CADCHF": "Poda en Malaysian SNR: 16.7% WR, -2.00R. Rango errático sin continuación institucional.",
+    "US Oil": "Poda en Malaysian SNR: 12.5% WR, -6.51R. Derivado a Estrategia ICT (+2.50R).",
+    "CADCHF": "Poda en Malaysian SNR: 16.7% WR, -2.00R. Derivado a Estrategia ICT (+5.25R, PF 1.19).",
     "AUDCAD": "Poda en Malaysian SNR: 22.2% WR, -2.35R. Barridos de liquidez adversos en retesteos.",
     "AUDCHF": "Poda en Malaysian SNR: 22.2% WR, -4.22R. Baja liquidez institucional y dispersión de spread.",
-    "AUDJPY": "Poda en Malaysian SNR: 20.0% WR, -6.25R. Ruido estructural en sesiones asiáticas.",
+    "AUDJPY": "Poda en Malaysian SNR: 20.0% WR, -6.25R. Derivado a Estrategia ICT (+15.25R, PF 1.29).",
     "CADJPY": "Poda en Malaysian SNR: 18.2% WR, -5.00R. Ruido y falsos retrocesos en Killzones.",
-    "CHFJPY": "Poda en Malaysian SNR: 28.6% WR, -3.97R. Comportamiento errático en gaps y rollover.",
+    "CHFJPY": "Poda en Malaysian SNR: 28.6% WR, -3.97R. Derivado a Estrategia ICT (+1.00R).",
     "EURAUD": "Poda en Malaysian SNR: 33.3% WR, -1.31R. Falsos chochs y deslizamiento adverso.",
     "EURCAD": "Poda en Malaysian SNR: 40.0% WR, -1.74R. Expectativa matemática negativa.",
     "EURJPY": "Poda en Malaysian SNR: 15.8% WR, -12.18R. Inconsistencia direccional y falsos quiebres.",
@@ -1226,48 +1245,430 @@ MALAYSIAN_SNR_PRUNED_INFO = {
     "GBPNZD": "Poda en Malaysian SNR: 14.3% WR, -3.50R. Ruido extendido sin seguimiento.",
 }
 
-
 ICT_PRUNED_INFO = {
-    # 32 Activos Podados en Replay 2 Años Estrategia ICT (Expectativa Matemática Negativa o Drawdown Extremo)
-    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: 25.7% WR, -43.10R netos, Max DD 45.9R. Saltos erráticos que rompen zonas de oferta/demanda.",
-    "Volatility 50 (1s) Index": "Poda confirmada en replay 2 años ICT: 24.9% WR, -42.50R netos, Max DD 47.8R. Ruido de tick sin respeto a FVG M15.",
-    "Step Index 200": "Poda confirmada en replay 2 años ICT: 24.7% WR, -41.90R netos, Max DD 46.9R. Drift bajista continuo sin absorción CRT.",
-    "GBPJPY": "Poda confirmada en replay 2 años ICT: 24.8% WR, -40.60R netos. Swap Drag de -9.20R y spreads amplios.",
-    "Volatility 75 Index": "Poda confirmada en replay 2 años ICT: 27.4% WR, -39.80R netos, Max DD 43.2R. Volatilidad extrema desalineada con FVG.",
-    "USDCHF": "Poda confirmada en replay 2 años ICT: 26.4% WR, -33.30R netos. Swap Drag nocturno de -8.73R.",
-    "USDCHFmicro": "Poda confirmada en replay 2 años ICT: 26.4% WR, -33.30R netos.",
-    "Step Index 500": "Poda confirmada en replay 2 años ICT: 32.4% WR, -31.10R netos. Falsas confirmaciones de quiebre estructural.",
-    "Boom 900 Index": "Poda confirmada en replay 2 años ICT: 22.2% WR, -29.30R netos. Spikes desalineados y rechazos bajistas.",
-    "Step Index": "Poda confirmada en replay 2 años ICT: 30.8% WR, -28.90R netos, Max DD 42.2R. Expectativa negativa frente a Step 400.",
-    "Volatility 75 (1s) Index": "Poda confirmada en replay 2 años ICT: 29.2% WR, -27.80R netos. Micro-ticks desfavorables.",
-    "AUDUSD": "Poda confirmada en replay 2 años ICT: 30.2% WR, -27.40R netos. Fuerte penalización por Swap Drag (-11.79R).",
-    "AUDUSDmicro": "Poda confirmada en replay 2 años ICT: 30.2% WR, -27.40R netos.",
-    "US SP 500": "Poda confirmada en replay 2 años ICT: 26.1% WR, -26.80R netos. Volatilidad excesiva en apertura NY; mejor en ORB.",
-    "Crash 1000 Index": "Poda confirmada en replay 2 años ICT: 28.0% WR, -25.50R netos. Ratios desfavorables frente a Crash 300.",
-    "EURJPY": "Poda confirmada en replay 2 años ICT: 28.0% WR, -25.40R netos. Swap Drag de -6.30R e intervenciones.",
-    "USDCAD": "Poda confirmada en replay 2 años ICT: 31.4% WR, -25.30R netos. Swap Drag de -5.20R.",
-    "USDCADmicro": "Poda confirmada en replay 2 años ICT: 31.4% WR, -25.30R netos.",
-    "Volatility 250 (1s) Index": "Poda confirmada en replay 2 años ICT: 30.3% WR, -22.20R netos. Rachas de pérdidas consecutivas.",
-    "Volatility 100 Index": "Poda confirmada en replay 2 años ICT: 30.1% WR, -22.10R netos. Ruido de alta volatilidad sin respeto a FVG CE.",
-    "Volatility 50 Index": "Poda confirmada en replay 2 años ICT: 27.7% WR, -17.90R netos. Falsos desplazamientos FVG y rachas bajistas.",
-    "Crash 900 Index": "Poda confirmada en replay 2 años ICT: 27.2% WR, -17.60R netos. Spikes intempestivos rompen estructuras.",
-    "Crash 600 Index": "Poda confirmada en replay 2 años ICT: 26.5% WR, -17.20R netos. Caídas rápidas sin mitigación FVG.",
-    "GBPUSD": "Poda confirmada en replay 2 años ICT: 29.2% WR, -16.20R netos. Swap Drag nocturno de -7.74R.",
-    "GBPUSDmicro": "Poda confirmada en replay 2 años ICT: 29.2% WR, -16.20R netos.",
-    "Jump 10 Index": "Poda confirmada en replay 2 años ICT: 29.5% WR, -15.80R netos. Saltos contratendenciales frecuentes.",
-    "Volatility 10 Index": "Poda confirmada en replay 2 años ICT: 30.5% WR, -13.60R netos. Drift sostenido sin retroceso al 50% CE.",
-    "USDJPY": "Poda confirmada en replay 2 años ICT: 34.7% WR, -13.00R netos. Swap Drag de -6.91R y retrocesos tardíos.",
-    "USDJPYmicro": "Poda confirmada en replay 2 años ICT: 34.7% WR, -13.00R netos.",
-    "Volatility 15 Index": "Poda confirmada en replay 2 años ICT: 26.2% WR, -12.20R netos. Compresión y stops adversos.",
-    "Jump 75 Index": "Poda confirmada en replay 2 años ICT: 31.6% WR, -12.00R netos. Mechas excesivas.",
-    "Wall Street 30": "Poda confirmada en replay 2 años ICT: 29.7% WR, -11.70R netos. Deslizamiento en campana de apertura NY.",
-    "Crash 500 Index": "Poda confirmada en replay 2 años ICT: 32.4% WR, -8.20R netos. Expectativa inferior a Crash 300.",
-    "Volatility 25 Index": "Poda confirmada en replay 2 años ICT: 32.0% WR, -5.90R netos. Ruido en M5/M15.",
-    "US Tech 100": "Poda confirmada en replay 2 años ICT: 31.8% WR, -5.20R netos. Mejor desempeño en ORB NY.",
-    "Volatility 90 Index": "Poda confirmada en replay 2 años ICT: 32.8% WR, -5.20R netos. Expectativa marginal.",
-    "XAGUSD": "Poda confirmada en replay 2 años ICT: 35.7% WR, -2.60R netos. Deslizamiento y dilatación en horario NY; mejor en Malaysian SNR y ORB.",
-    "XAGUSDmicro": "Poda confirmada en replay 2 años ICT: 35.7% WR, -2.60R netos.",
+    # Activos Podados en Estrategia ICT (Desactivados en /Instruments; todos los activos señalados en Metales, Cripto, Índices y Sintéticos están 100% libres de poda)
+    "ETHUSD": "Poda preventiva en ICT: Menor eficiencia relativa frente a BTCUSD (+31.5R).",
+    "ETHUSDmicro": "Poda preventiva en ICT: Menor eficiencia relativa frente a BTCUSD (+31.5R).",
+    "AUDCAD": "Poda confirmada en replay 2 años ICT: 20.6% WR, -34.25R netos (PF 0.54). Falta de liquidez en Killzones.",
+    "EURGBP": "Poda confirmada en replay 2 años ICT: 21.2% WR, -30.00R netos (PF 0.56). Derivado a Malaysian SNR C2 (+0.43R).",
+    "GBPAUD": "Poda confirmada en replay 2 años ICT: 22.9% WR, -21.25R netos (PF 0.67). Derivado a Malaysian SNR C2 (+0.60R).",
+    "EURAUD": "Poda confirmada en replay 2 años ICT: 25.0% WR, -18.50R netos (PF 0.72). Rangos solapados sin expansión.",
+    "GBPNZD": "Poda confirmada en replay 2 años ICT: 24.4% WR, -17.00R netos (PF 0.72). Mechas falsas en cambio de sesión.",
+    "EURCAD": "Poda confirmada en replay 2 años ICT: 24.4% WR, -15.50R netos (PF 0.72).",
+    "EURNZD": "Poda confirmada en replay 2 años ICT: 24.5% WR, -15.25R netos (PF 0.73).",
+    "CADJPY": "Poda confirmada en replay 2 años ICT: 28.0% WR, -11.75R netos (PF 0.81).",
+    "GBPCHF": "Poda confirmada en replay 2 años ICT: 27.6% WR, -8.50R netos (PF 0.85).",
+    "AUDCHF": "Poda confirmada en replay 2 años ICT: 27.5% WR, -8.25R netos (PF 0.85).",
+    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: 28.0% WR, -3.25R netos (PF 0.96).",
+    # Fase 1 (18-oct-2026): exclusiones con expectativa negativa en ambas mitades del replay fiel
+    "XAGUSD": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "XAGUSDmicro": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "microXAGUSD": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "Jump 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "Step Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
+    "Volatility 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
 }
+
+ORB_PRUNED_INFO = {
+    # Activos Podados en ORB New York (Fase 1: sólo permanece activo XAUUSD en modo SWEEP)
+    "EURUSD": "Poda confirmada en replay 2 años ORB NY: 43.2% WR, -3.17R netos (PF 0.93). Derivado a Estrategia ICT (+9.00R) y Malaysian SNR (+1.46R).",
+    "EURUSDmicro": "Poda confirmada en replay 2 años ORB NY: 43.2% WR, -3.17R netos (PF 0.93).",
+    "US SP 500": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -11.83R netos (PF 0.74). Falsos rompimientos en campana de apertura 09:30 NY.",
+    "US500": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -11.83R netos (PF 0.74).",
+    "Wall Street 30": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -12.16R netos (PF 0.74). Derivado a Malaysian SNR C2 (+1.48R, 63.6% WR).",
+    "US Tech 100": "Poda confirmada en replay 2 años ORB NY: 38.6% WR, -21.11R netos (PF 0.56). Barridos bidireccionales severos en apertura NY.",
+    "UK Brent Oil": "Poda confirmada en replay 2 años ORB NY: Baja correlación y costos de spread elevados.",
+    "BTCUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "BTCUSDmicro": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "microBTCUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "XAGUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "XAGUSDmicro": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "microXAGUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    "US Oil": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+}
+
+_WORKER_PROFILE_META = {
+    "CRASH": {
+        "selection_profile": "SYNTHETICS",
+        "category": "crash",
+        "label": "CRASH · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082102,
+    },
+    "BOOM": {
+        "selection_profile": "SYNTHETICS",
+        "category": "boom",
+        "label": "BOOM · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082101,
+    },
+    "STEP": {
+        "selection_profile": "SYNTHETICS",
+        "category": "step",
+        "label": "STEP · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082104,
+    },
+    "JUMP": {
+        "selection_profile": "SYNTHETICS",
+        "category": "jump",
+        "label": "JUMP · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082105,
+    },
+    "VOLATILITY": {
+        "selection_profile": "SYNTHETICS",
+        "category": "volatility",
+        "label": "VOLATILITY · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082103,
+    },
+    "VOLATILITY_1": {
+        "selection_profile": "SYNTHETICS",
+        "category": "volatility",
+        "shard_index": 0,
+        "shard_count": 4,
+        "label": "VOLATILITY 1 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082401,
+    },
+    "VOLATILITY_2": {
+        "selection_profile": "SYNTHETICS",
+        "category": "volatility",
+        "shard_index": 1,
+        "shard_count": 4,
+        "label": "VOLATILITY 2 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082402,
+    },
+    "VOLATILITY_3": {
+        "selection_profile": "SYNTHETICS",
+        "category": "volatility",
+        "shard_index": 2,
+        "shard_count": 4,
+        "label": "VOLATILITY 3 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082403,
+    },
+    "VOLATILITY_4": {
+        "selection_profile": "SYNTHETICS",
+        "category": "volatility",
+        "shard_index": 3,
+        "shard_count": 4,
+        "label": "VOLATILITY 4 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082404,
+    },
+    "FOREX": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "label": "FOREX · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082027,
+    },
+    "FOREX_1": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "shard_index": 0,
+        "shard_count": 4,
+        "grouped_forex": True,
+        "label": "FOREX 1 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082201,
+    },
+    "FOREX_2": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "shard_index": 1,
+        "shard_count": 4,
+        "grouped_forex": True,
+        "label": "FOREX 2 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082202,
+    },
+    "FOREX_3": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "shard_index": 2,
+        "shard_count": 4,
+        "grouped_forex": True,
+        "label": "FOREX 3 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082203,
+    },
+    "FOREX_4": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "shard_index": 3,
+        "shard_count": 4,
+        "grouped_forex": True,
+        "label": "FOREX 4 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082204,
+    },
+    "ICT": {
+        "selection_profile": "ICT",
+        "category": "ict",
+        "label": "ICT (Metales, Cripto & Índices) · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 26082032,
+    },
+    "MALAYSIAN_SNR": {
+        "selection_profile": "MALAYSIAN_SNR",
+        "category": "malaysian_snr",
+        "label": "Malaysian SNR (M15 Fresh/Break)",
+        "strategy_key": "MALAYSIAN_SNR",
+        "strategy_label": "Malaysian SNR (M15 Fresh/Break · Variante C2)",
+        "magic": 26082031,
+    },
+    "ORB": {
+        "selection_profile": "ORB",
+        "category": "orb",
+        "label": "ORB · Apertura New York (Sweep/HTF)",
+        "strategy_key": "ORB",
+        "strategy_label": "ORB New York (Sweep / HTF_Sweep)",
+        "magic": 26082028,
+    },
+    "GOLD": {
+        "selection_profile": "GOLD",
+        "category": "gold",
+        "label": "Cuartos · Oro/Plata (XAUUSD / XAGUSD)",
+        "strategy_key": "GOLD_QUARTERS",
+        "strategy_label": "Gold Quarters (Cuartos Psicológicos)",
+        "magic": 26082029,
+    },
+}
+
+
+def _dashboard_forex_family_key(symbol: str) -> str:
+    normalized = "".join(ch for ch in str(symbol).casefold() if ch.isalnum())
+    for suffix in ("micro", "mini", "pro", "raw"):
+        if normalized.endswith(suffix):
+            return normalized[:-len(suffix)]
+    return normalized
+
+
+def _resolve_worker_universe_and_selection(
+    bot_profile: str,
+    catalog: list[dict] | None,
+    selection_profiles: dict | None,
+    has_persisted_selection: bool = False,
+) -> dict:
+    """Calcula en paralelo los instrumentos activos y podados (desactivados) de un worker según /Instruments."""
+    wp = str(bot_profile or "").upper()
+    meta = _WORKER_PROFILE_META.get(wp, {
+        "selection_profile": "SYNTHETICS",
+        "category": wp.lower(),
+        "label": wp,
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "magic": 0,
+    })
+    sel_prof = meta["selection_profile"]
+    cat = meta["category"]
+    catalog = catalog or []
+
+    universe: list[str] = []
+    if sel_prof == "SYNTHETICS":
+        for g in catalog:
+            if str(g.get("category") or "").lower() == cat:
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            all_synth = set(DEFAULT_PRIORITIZED_SYMBOLS.get("SYNTHETICS", [])) | set(PRUNED_INSTRUMENTS_INFO.keys())
+            if cat == "boom":
+                universe = [s for s in all_synth if s.startswith("Boom")]
+            elif cat == "crash":
+                universe = [s for s in all_synth if s.startswith("Crash")]
+            elif cat == "step":
+                universe = [s for s in all_synth if "Step" in s]
+            elif cat == "jump":
+                universe = [s for s in all_synth if s.startswith("Jump")]
+            elif cat == "volatility":
+                universe = [s for s in all_synth if ("Vol" in s or "Spot Up" in s)]
+        universe = sorted(set(universe), key=str.casefold)
+        if meta.get("shard_count"):
+            ordered = sorted(set(universe), key=str.upper)
+            sc = int(meta["shard_count"])
+            si = int(meta.get("shard_index", 0))
+            universe = [s for i, s in enumerate(ordered) if i % sc == si]
+    elif sel_prof == "FOREX":
+        for g in catalog:
+            if str(g.get("category") or "").lower() == "forex" or str(g.get("selection_profile") or "").upper() == "FOREX":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            universe = sorted(set(DEFAULT_PRIORITIZED_SYMBOLS.get("FOREX", [])) | set(FOREX_PRUNED_INFO.keys()), key=str.casefold)
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+        if meta.get("shard_count"):
+            sc = int(meta["shard_count"])
+            si = int(meta.get("shard_index", 0))
+            groups: dict[str, list[str]] = {}
+            for sym in universe:
+                groups.setdefault(_dashboard_forex_family_key(sym), []).append(sym)
+            selected_keys = {
+                gk for idx, gk in enumerate(sorted(groups, key=str.casefold))
+                if idx % sc == si
+            }
+            universe = [
+                sym for gk in sorted(selected_keys, key=str.casefold)
+                for sym in groups[gk]
+            ]
+    elif sel_prof == "ICT":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "ICT":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            universe = sorted(
+                set(DEFAULT_PRIORITIZED_SYMBOLS.get("ICT", []))
+                | {"XAGUSD", "XAGUSDmicro", "Wall Street 30", "US Tech 100", "US SP 500", "US Oil"},
+                key=str.casefold,
+            )
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+    elif sel_prof == "MALAYSIAN_SNR":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "MALAYSIAN_SNR":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            universe = sorted(
+                set(DEFAULT_PRIORITIZED_SYMBOLS.get("MALAYSIAN_SNR", []))
+                | set(MALAYSIAN_SNR_PRUNED_INFO.keys())
+                | {"Boom 500 Index", "Crash 500 Index"},
+                key=str.casefold,
+            )
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+    elif sel_prof == "ORB":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "ORB":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            universe = sorted(
+                set(DEFAULT_PRIORITIZED_SYMBOLS.get("ORB", []))
+                | set(ORB_PRUNED_INFO.keys()),
+                key=str.casefold,
+            )
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+    elif sel_prof == "GOLD":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "GOLD":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            universe = ["XAUUSD", "XAUUSDmicro", "XAGUSD", "XAGUSDmicro"]
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+
+    selection_profiles = selection_profiles or {}
+    raw_sel = selection_profiles.get(sel_prof)
+    if raw_sel is not None and (len(raw_sel) > 0 or has_persisted_selection):
+        selected_set = set(raw_sel)
+    else:
+        selected_set = set(DEFAULT_PRIORITIZED_SYMBOLS.get(sel_prof, []))
+
+    active_symbols = [s for s in universe if s in selected_set]
+    pruned_symbols = [s for s in universe if s not in selected_set]
+    return {
+        "bot_profile": wp,
+        "selection_profile": sel_prof,
+        "worker_label": meta["label"],
+        "strategy_key": meta["strategy_key"],
+        "strategy_label": meta["strategy_label"],
+        "daemon_magic": meta["magic"],
+        "universe_symbols": universe,
+        "active_symbols": active_symbols,
+        "pruned_symbols": pruned_symbols,
+        "active_symbols_count": len(active_symbols),
+        "pruned_symbols_count": len(pruned_symbols),
+        "universe_symbols_count": len(universe),
+    }
+
+
+def _selection_profile_for_symbol(symbol: str) -> str:
+    """Infiere el perfil de selección de /Instruments para un símbolo."""
+    s = str(symbol or "").strip()
+    sl = s.lower()
+    if any(k in sl for k in ("boom", "crash", "volatility", "step", "jump", "vol over", "volswitch", "high frequency vol", "dex", "drift", "multi step", "range break")):
+        return "SYNTHETICS"
+    if any(k in sl for k in ("xau", "xag", "btc", "eth", "wall street", "tech 100", "sp 500", "oil", "brent")):
+        return "ICT"
+    if len(s.replace("micro", "")) == 6 and s.replace("micro", "").isalpha():
+        return "FOREX"
+    return "SYNTHETICS"
+
+
+def _enrich_worker_state_with_selection(
+    row: dict,
+    state_or_catalog: dict | list[dict] | None = None,
+    selection_profiles: dict | None = None,
+    selection_profile_versions: dict | None = None,
+    selection_version: int = 0,
+) -> dict:
+    """Sincroniza el estado de un worker con los instrumentos activos y podados en /Instruments."""
+    if isinstance(state_or_catalog, dict) and selection_profiles is None:
+        state_dict = state_or_catalog
+        catalog = state_dict.get("instrument_catalog")
+        selection_profiles = state_dict.get("selection_profiles")
+        selection_profile_versions = state_dict.get("selection_profile_versions")
+        selection_version = int(state_dict.get("selection_version") or 0)
+    else:
+        catalog = state_or_catalog  # type: ignore[assignment]
+
+    wp = str((row or {}).get("bot_profile") or "").upper()
+    meta_sel_prof = (_WORKER_PROFILE_META.get(wp) or {}).get("selection_profile", "SYNTHETICS")
+    versions = selection_profile_versions or {}
+    raw_sel = (selection_profiles or {}).get(meta_sel_prof)
+    has_explicit_version = bool(meta_sel_prof in versions or int(selection_version or 0) > 0)
+    has_persisted = bool(has_explicit_version or (raw_sel is not None and len(raw_sel) > 0))
+    info = _resolve_worker_universe_and_selection(
+        wp, catalog, selection_profiles, has_persisted_selection=has_persisted
+    )
+    enriched = {
+        **dict(row or {}),
+        "selection_profile": info["selection_profile"],
+        "worker_label": info["worker_label"],
+        "strategy_key": info["strategy_key"],
+        "strategy_label": info["strategy_label"],
+        "universe_symbols": info["universe_symbols"],
+        "active_symbols": info["active_symbols"],
+        "pruned_symbols": info["pruned_symbols"],
+        "active_symbols_count": info["active_symbols_count"],
+        "pruned_symbols_count": info["pruned_symbols_count"],
+        "universe_symbols_count": info["universe_symbols_count"],
+    }
+    if has_explicit_version and info["universe_symbols_count"] > 0:
+        active_cnt = info["active_symbols_count"]
+        raw_proc = int(enriched.get("symbols_processed") or 0)
+        raw_tot = int(enriched.get("symbols_total") or 0)
+        enriched["symbols_total"] = active_cnt
+        if active_cnt == 0:
+            enriched["symbols_processed"] = 0
+            enriched["current_symbol"] = None
+        else:
+            if raw_tot > 0 and raw_proc >= raw_tot:
+                enriched["symbols_processed"] = active_cnt
+            else:
+                enriched["symbols_processed"] = min(raw_proc, active_cnt)
+            cur_sym = enriched.get("current_symbol")
+            if cur_sym and cur_sym not in info["active_symbols"]:
+                enriched["current_symbol"] = info["active_symbols"][0]
+    return enriched
+
 
 def _selection_profile_for_category(category: str) -> str:
     """Mapea una categoria de instrumento a su perfil de worker."""
@@ -2195,8 +2596,8 @@ class RealtimeDashboardService:
     def _cached_instruments_payload(self, force=False):
         """Payload minimo de la pagina de instrumentos, con cache corta.
 
-        Construye solo catalogo y seleccion; deliberadamente omite posiciones,
-        cuenta y graficos, que son la parte cara del snapshot completo.
+        Construye catalogo, seleccion y progreso en vivo de workers por perfil;
+        deliberadamente omite posiciones, cuenta y graficos.
         """
         now = time.monotonic()
         cached = self._instruments_cache
@@ -2207,10 +2608,55 @@ class RealtimeDashboardService:
         ):
             return cached["payload"]
 
-        # Sólo los datos que /instruments necesita; evita construir posiciones,
-        # account, gráficos y análisis recientes.
         with self._lock:
             self._refresh_selection_profiles_from_db_locked()
+            raw_workers = []
+            if self.repository is not None and hasattr(self.repository, "worker_runtime_states"):
+                try:
+                    raw_workers = self.repository.worker_runtime_states(source="DEMO") or []
+                except Exception:
+                    raw_workers = []
+            by_prof = {}
+            for w in raw_workers:
+                wp = str((w or {}).get("bot_profile") or "").upper()
+                if wp and not _is_retired_worker_profile(wp) and str((w or {}).get("status") or "").upper() != "SUPERSEDED":
+                    by_prof[wp] = dict(w or {})
+            for wp in _WORKER_PROFILE_META:
+                if wp not in by_prof:
+                    by_prof[wp] = {
+                        "bot_profile": wp,
+                        "status": "STANDBY",
+                        "cycle_number": 0,
+                        "symbols_total": 0,
+                        "symbols_processed": 0,
+                        "current_symbol": None,
+                        "last_action": "WAITING_SELECTION",
+                        "last_reason": "STANDBY_IN_INSTRUMENTS",
+                    }
+            enriched_workers = []
+            workers_by_selection_profile = {
+                "SYNTHETICS": [],
+                "FOREX": [],
+                "ICT": [],
+                "MALAYSIAN_SNR": [],
+                "ORB": [],
+                "GOLD": [],
+            }
+            for wp in _WORKER_PROFILE_META:
+                row = by_prof.get(wp) or {"bot_profile": wp, "status": "STANDBY"}
+                enriched = _enrich_worker_state_with_selection(
+                    {
+                        **dict(row),
+                        "last_action_es": _action_label_es(row.get("last_action")),
+                        "last_reason_es": _reason_label_es(row.get("last_reason")),
+                        "status_es": _state_label_es(row.get("status")),
+                    },
+                    self._state,
+                )
+                enriched_workers.append(enriched)
+                sp = str(enriched.get("selection_profile") or "SYNTHETICS").upper()
+                workers_by_selection_profile.setdefault(sp, []).append(enriched)
+
             payload = {
                 "instrument_catalog": list(self._state.get("instrument_catalog") or []),
                 "selection_profiles": dict(self._state.get("selection_profiles") or {}),
@@ -2225,13 +2671,15 @@ class RealtimeDashboardService:
                 "pruned_instruments_by_profile": {
                     "SYNTHETICS": dict(PRUNED_INSTRUMENTS_INFO),
                     "FOREX": dict(FOREX_PRUNED_INFO),
-                    "ORB": dict(PRUNED_INSTRUMENTS_INFO),
+                    "ORB": dict(ORB_PRUNED_INFO),
                     "IDX_OPEN": dict(PRUNED_INSTRUMENTS_INFO),
                     "MALAYSIAN_SNR": dict(MALAYSIAN_SNR_PRUNED_INFO),
                     "GOLD": {},
                     "ICT": dict(ICT_PRUNED_INFO),
                 },
                 "prioritized_symbols": dict(DEFAULT_PRIORITIZED_SYMBOLS),
+                "worker_states": enriched_workers,
+                "workers_by_profile": workers_by_selection_profile,
             }
         payload = _json_safe(payload)
         self._instruments_cache = {"at": now, "payload": payload}
@@ -2240,6 +2688,7 @@ class RealtimeDashboardService:
     def _invalidate_navigation_caches(self, *, account=False, instruments=False):
         """Descarta las caches indicadas tras un cambio de estado relevante."""
         self._dashboard_snapshot_cache = {"at": 0.0, "payload": None}
+        self._snapshot_aux_cache = {"at": 0.0, "recent": None, "workers": None, "candidates": None}
         if account:
             self._account_cache = {"at": 0.0, "payload": None}
         if instruments:
@@ -2368,7 +2817,7 @@ class RealtimeDashboardService:
                     else:
                         self._send(b"Logo not found", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
                     return
-                if path in ("/instruments", "/instruments/"):
+                if path.lower() in ("/instruments", "/instruments/"):
                     self._send(_INSTRUMENTS_HTML.encode("utf-8"), "text/html; charset=utf-8")
                     return
                 trade_audit_match = re.fullmatch(r"/account/trade/(\d+)/audit/?", path)
@@ -3729,7 +4178,7 @@ class RealtimeDashboardService:
         if "ict_crypto_btcusd" not in cat_keys:
             catalog.append({"category": "ict_crypto_btcusd", "selection_profile": "ICT", "label": "ICT Criptomonedas · Bitcoin (BTCUSD)", "symbols": ["BTCUSD", "BTCUSDmicro"]})
         if "ict_indices" not in cat_keys:
-            catalog.append({"category": "ict_indices", "selection_profile": "ICT", "label": "ICT Índices Bursátiles", "symbols": ["Wall Street 30", "US Tech 100", "US SP 500"]})
+            catalog.append({"category": "ict_indices", "selection_profile": "ICT", "label": "ICT Índices & Energía", "symbols": ["US Oil", "Wall Street 30", "US Tech 100", "US SP 500"]})
         self._state["instrument_catalog"] = catalog
         allowed = _catalog_symbols_by_profile(catalog)
         profiles = dict(self._state.get("selection_profiles") or {p: [] for p in _SELECTION_PROFILES})
@@ -3757,7 +4206,7 @@ class RealtimeDashboardService:
         self._state["selection_persistence_error"] = None
         self._state["selection_persistence_checked_at"] = _now_iso()
 
-    def snapshot(self):
+    def snapshot(self, force: bool = False):
         """Devuelve el estado completo que consume el dashboard.
 
         Es el endpoint principal (`/api/state`). Usa una cache de ~1,5 s para
@@ -3771,7 +4220,8 @@ class RealtimeDashboardService:
         now_snapshot = time.monotonic()
         cached_snapshot = self._dashboard_snapshot_cache
         if (
-            cached_snapshot.get("payload") is not None
+            not force
+            and cached_snapshot.get("payload") is not None
             and (now_snapshot - float(cached_snapshot.get("at") or 0.0))
             < self._dashboard_snapshot_cache_ttl_seconds
         ):
@@ -3848,28 +4298,56 @@ class RealtimeDashboardService:
                 }
 
             # SQLAlchemy sigue siendo la fuente autoritativa; el enriquecimiento
-            # posterior sólo agrega etiquetas/explicaciones para la interfaz.
-            state["recent"] = persisted_recent or list(self._recent)
+            # posterior sólo agrega etiquetas/explicaciones y filtra por la
+            # selección persistida en /Instruments para consistencia total.
+            raw_recent = persisted_recent or list(self._recent)
+            sel_profiles_map = state.get("selection_profiles") or {}
+            sel_versions_map = state.get("selection_profile_versions") or {}
+            global_sel_ver = int(state.get("selection_version") or 0)
+
+            def _is_symbol_selected_for_row(row_obj):
+                sym = str((row_obj or {}).get("symbol") or "").strip()
+                if not sym:
+                    return True
+                prof = str((row_obj or {}).get("bot_profile") or "").strip().upper()
+                meta = _WORKER_PROFILE_META.get(prof) or {}
+                sel_prof = meta.get("selection_profile") or _selection_profile_for_symbol(sym)
+                if sel_prof not in sel_versions_map:
+                    return True
+                if sel_prof not in sel_profiles_map:
+                    return True
+                allowed_set = set(sel_profiles_map.get(sel_prof) or [])
+                return sym in allowed_set
+
             state["recent"] = [
                 _enrich_recent_row(row)
-                for row in state["recent"]
+                for row in raw_recent
                 if not _is_retired_worker_profile((row or {}).get("bot_profile"))
+                and _is_symbol_selected_for_row(row)
             ]
             visible_worker_states = [
-                {
-                    **dict(row or {}),
-                    "last_action_es": _action_label_es((row or {}).get("last_action")),
-                    "last_reason_es": _reason_label_es((row or {}).get("last_reason")),
-                    "status_es": _state_label_es((row or {}).get("status")),
-                }
+                _enrich_worker_state_with_selection(
+                    {
+                        **dict(row or {}),
+                        "last_action_es": _action_label_es((row or {}).get("last_action")),
+                        "last_reason_es": _reason_label_es((row or {}).get("last_reason")),
+                        "status_es": _state_label_es((row or {}).get("status")),
+                    },
+                    state,
+                )
                 for row in worker_states
                 if (
                     str((row or {}).get("status") or "").upper() != "SUPERSEDED"
                     and not _is_retired_worker_profile((row or {}).get("bot_profile"))
                 )
             ]
+            filtered_candidates = {}
+            for c_prof, cand in (worker_candidates or {}).items():
+                if isinstance(cand, dict) and not _is_symbol_selected_for_row({**cand, "bot_profile": c_prof}):
+                    continue
+                filtered_candidates[c_prof] = cand
             state["worker_states"] = visible_worker_states
-            state["worker_candidates"] = worker_candidates
+            state["worker_candidates"] = filtered_candidates
             state["financial_news"] = self.news_service.snapshot()
             state["multi_bot_mode"] = bool(visible_worker_states)
             state["daemon_version"] = DAEMONBLACKFX_VERSION
@@ -7181,13 +7659,26 @@ _HTML = r'''
             const rows = visibleWorkers(s),
               grid = $('workerGrid');
             if (!grid) return;
-            const order = ['BOOM', 'CRASH', 'VOLATILITY', 'STEP', 'JUMP', 'GOLD', 'ORB', 'FOREX', 'MALAYSIAN_SNR', 'ICT'];
+            const order = [
+              'BOOM', 'CRASH', 'STEP', 'JUMP',
+              'VOLATILITY', 'VOLATILITY_1', 'VOLATILITY_2', 'VOLATILITY_3', 'VOLATILITY_4',
+              'FOREX', 'FOREX_1', 'FOREX_2', 'FOREX_3', 'FOREX_4',
+              'ICT', 'MALAYSIAN_SNR', 'ORB', 'GOLD'
+            ];
             const workerLabels = {
               IDX_OPEN: 'Apertura Bursátiles',
               GOLD: 'Oro · Cuartos & Niveles Psicológicos (XAUUSD)',
               ORB: 'ORB · Apertura New York',
               MALAYSIAN_SNR: 'Malaysian SNR (M15 Fresh/Break)',
-              ICT: 'ICT',
+              ICT: 'ICT (Metales, Cripto & Índices)',
+              VOLATILITY_1: 'VOLATILITY (1)',
+              VOLATILITY_2: 'VOLATILITY (2)',
+              VOLATILITY_3: 'VOLATILITY (3)',
+              VOLATILITY_4: 'VOLATILITY (4)',
+              FOREX_1: 'FOREX (1)',
+              FOREX_2: 'FOREX (2)',
+              FOREX_3: 'FOREX (3)',
+              FOREX_4: 'FOREX (4)',
             };
             const now = Date.now();
             const sorted = [...rows].sort((a, b) => {
@@ -7203,6 +7694,8 @@ _HTML = r'''
                   const isOrb = prof === 'ORB';
                   const total = Number(w.symbols_total || 0),
                     done = Number(w.symbols_processed || 0),
+                    activeCnt = Number(w.active_symbols_count ?? total),
+                    prunedCnt = Number(w.pruned_symbols_count ?? 0),
                     pctv = total ? Math.min(100, (done / total) * 100) : 0;
                   const age = w.last_event_time
                     ? Math.max(0, (now - new Date(w.last_event_time).getTime()) / 1000)
@@ -7239,15 +7732,16 @@ _HTML = r'''
                             : 'bad';
                   const displayName =
                     workerLabels[prof] ||
+                    w.worker_label ||
                     w.bot_profile ||
                     'WORKER';
                   const stratLabel = isGold
                     ? 'Cuartos ($25) · M5/H1'
                     : isOrb
-                      ? 'ORB New York M5'
+                      ? 'ORB New York M5 (SWEEP)'
                       : prof === 'MALAYSIAN_SNR'
-                        ? 'Malaysian SNR M15'
-                        : 'Estrategia ICT';
+                        ? 'Malaysian SNR (M15 Fresh/Break · C2)'
+                        : 'Estrategia ICT (Sabri Malle)';
                   return `<section class="workerCard ${paused && !isOrb ? 'workerPaused' : disabled ? 'workerPaused' : stale ? 'workerStale' : ''}">
     <div class="workerHead"><div class="workerName">${esc(displayName)}</div><span class="statusPill ${cls}">${esc(status)}</span></div>
     <div class="workerMeta">
@@ -7255,7 +7749,7 @@ _HTML = r'''
       <div><span>PID</span><b>${esc(w.pid || '—')}</b></div>
       <div><span>Magic</span><b>${esc(w.daemon_magic || '—')}</b></div>
       <div><span>Ciclo</span><b>${esc(w.cycle_number || 0)}</b></div>
-      <div><span>Progreso</span><b>${done} / ${total}</b></div>
+      <div><span>Progreso (/Instruments)</span><b>${done} / ${total} (${activeCnt} act · ${prunedCnt} poda OFF)</b></div>
       <div><span>Instrumento</span><b>${esc(w.current_symbol || 'En espera')}</b></div>
       <div><span>Última acción</span><b>${esc(w.last_action_es || '—')}</b><span class="technical">${esc(w.last_action || '')}</span></div>
     </div>
@@ -7994,19 +8488,31 @@ _INSTRUMENTS_HTML = r'''
         <div class="head">
           <div class="actions" id="profileTabs">
             <button class="btn profileTab active" data-profile="SYNTHETICS" type="button">
-              SINTÉTICOS</button
-            ><button class="btn profileTab" data-profile="FOREX" type="button">FOREX</button
-            ><button class="btn profileTab" data-profile="ORB" type="button">ORB NEW YORK</button
-            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">MALAYSIAN SNR</button
-            ><button class="btn profileTab" data-profile="GOLD" type="button">CUARTOS (GOLD)</button
-            ><button class="btn profileTab" data-profile="ICT" type="button">ICT (METALES, CRIPTO & ÍNDICES)</button>
+              SINTÉTICOS <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+            ><button class="btn profileTab" data-profile="FOREX" type="button">
+              FOREX <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+            ><button class="btn profileTab" data-profile="ICT" type="button">
+              ICT (METALES, CRIPTO & ÍNDICES) <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">
+              MALAYSIAN SNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#fbbf24;">[M15 Fresh/Break]</span></button
+            ><button class="btn profileTab" data-profile="ORB" type="button">
+              ORB NEW YORK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#34d399;">[SWEEP]</span></button
+            ><button class="btn profileTab" data-profile="GOLD" type="button">CUARTOS (GOLD)</button>
           </div>
           <div class="actions">
-            <button class="btn" id="selectAll" type="button">Seleccionar todos</button
+            <button class="btn" id="selectProfitable" type="button" style="border-color:rgba(16,185,129,0.55);color:#34d399;font-weight:700;">
+              ✓ Seleccionar rentables (Poda OFF)</button
+            ><button class="btn" id="selectAll" type="button">Seleccionar todos</button
             ><button class="btn" id="clearAll" type="button">Limpiar</button
             ><button class="btn primary" id="save" type="button">Aplicar selección</button>
           </div>
         </div>
+        <div id="strategyHighlightBanner" class="note" style="margin-top:12px;border-left:4px solid #38bdf8;background:rgba(14,29,45,0.85);">
+          <b>Estrategia ICT (Sabri Malle)</b> · Pestaña vinculada a workers en tiempo real.
+        </div>
+        <section id="tabWorkerPanel" class="card" style="margin-top:12px;padding:12px;background:var(--panel2);">
+          <div class="sub">Cargando estado de workers y progreso en paralelo…</div>
+        </section>
         <div style="margin-top: 12px">
           <input
             id="search"
@@ -8018,7 +8524,10 @@ _INSTRUMENTS_HTML = r'''
         </div>
         <div class="stats">
           <div class="metric">
-            <span class="sub">Seleccionados</span><b id="selectedCount">0</b>
+            <span class="sub">Seleccionados (Activos)</span><b id="selectedCount" style="color:#34d399;">0</b>
+          </div>
+          <div class="metric">
+            <span class="sub">Podados Desactivados</span><b id="prunedOffCount" style="color:#f87171;">0</b>
           </div>
           <div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div>
           <div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div>
@@ -8054,6 +8563,44 @@ _INSTRUMENTS_HTML = r'''
       let state = null,
         dirty = false,
         activeProfile = 'SYNTHETICS';
+      const PROFILE_STRATEGY_INFO = {
+        SYNTHETICS: {
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · 24/7)',
+          color: '#38bdf8',
+          workersText: 'CRASH · BOOM · STEP · JUMP · VOLATILITY (1-4)',
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle (Judas Swing + FVG + OTE + GBDT >= 0.55) y controla en paralelo los workers CRASH, BOOM, STEP, JUMP y VOLATILITY (1-4). Los instrumentos rentables permanecen activos y los podados desactivados.',
+        },
+        FOREX: {
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · KILLZONES)',
+          color: '#38bdf8',
+          workersText: 'FOREX (1-4): FOREX_1 · FOREX_2 · FOREX_3 · FOREX_4',
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle con filtro de Killzones Institucionales (Londres/NY) y controla los workers FOREX (1-4) por familia de divisa.',
+        },
+        ICT: {
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · METALES, CRIPTO & ÍNDICES)',
+          color: '#38bdf8',
+          workersText: 'ICT (Metales, Cripto & Índices)',
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle dedicada a Metales (XAUUSD, XAGUSD), Cripto (BTCUSD) e Índices/Energía (US Oil, Wall Street 30, US Tech 100, US SP 500) y controla el worker ICT.',
+        },
+        MALAYSIAN_SNR: {
+          badge: 'ESTRATEGIA MALAYSIAN SNR (M15 FRESH/BREAK · C2)',
+          color: '#fbbf24',
+          workersText: 'Malaysian SNR (M15 Fresh/Break)',
+          desc: 'Controla el worker Malaysian SNR (M15 Fresh/Break) con configuración C2 (ADX >= 30, ATR <= 1.2 en Forex/Metales, ATR <= 1.5 en Sintéticos y Wall Street 30, Cap=1). Muestra en paralelo los 23 activos rentables activos y mantiene los 37 podados desactivados.',
+        },
+        ORB: {
+          badge: 'ESTRATEGIA ORB NEW YORK (M5 SWEEP / HTF_SWEEP)',
+          color: '#34d399',
+          workersText: 'ORB · Apertura New York',
+          desc: 'Controla el worker ORB New York enfocado en los 4 activos rentables en modo SWEEP / HTF_SWEEP (XAUUSD, BTCUSD, XAGUSD, US Oil -> 231 trades, 56.7%-59.1% WR, +31.54R) manteniendo podados los índices perdedores.',
+        },
+        GOLD: {
+          badge: 'ESTRATEGIA CUARTOS ($25) · ORO Y PLATA',
+          color: '#facc15',
+          workersText: 'GOLD (Cuartos & Niveles Psicológicos)',
+          desc: 'Controla el worker especializado de niveles psicológicos de cuartos en XAUUSD / XAGUSD.',
+        },
+      };
       function visibleInstrumentGroups(s) {
         return (s.instrument_catalog || [])
           .filter(
@@ -8085,7 +8632,7 @@ _INSTRUMENTS_HTML = r'''
                   .flatMap((g) => g.symbols),
               );
               return (
-                ['Sintéticos', 'Forex', 'ORB', 'Malaysian SNR', 'Cuartos (Gold)', 'ICT (Metales, Cripto & Índices)'][i] +
+                ['Sintéticos [ICT]', 'Forex [ICT]', 'ORB', 'Malaysian SNR', 'Cuartos (Gold)', 'ICT (Metales, Cripto & Índices)'][i] +
                 ': ' +
                 ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
               );
@@ -8099,7 +8646,103 @@ _INSTRUMENTS_HTML = r'''
           .sort((a, b) => a.localeCompare(b, 'es'));
       }
       function updateCount() {
-        $('selectedCount').textContent = selected().length;
+        const allInputs = [...document.querySelectorAll('input[data-symbol]')];
+        const checkedCnt = allInputs.filter((x) => x.checked).length;
+        const prunedOffCnt = allInputs.filter((x) => !x.checked && x.dataset.pruned === 'true').length;
+        $('selectedCount').textContent = checkedCnt;
+        if ($('prunedOffCount')) $('prunedOffCount').textContent = prunedOffCnt;
+      }
+      async function toggleWorkerFromInstruments(workerProfile, enableFlag) {
+        if (!enableFlag && !confirm(`¿Desactivar el worker ${workerProfile}? No se puede desactivar si mantiene posiciones abiertas.`)) {
+          return;
+        }
+        try {
+          const r = await fetch(`/api/workers/${encodeURIComponent(workerProfile)}/enabled`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: Boolean(enableFlag) }),
+          });
+          const data = await r.json();
+          if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo cambiar el estado del worker');
+          $('msg').textContent = `Worker ${workerProfile}: ${enableFlag ? 'REACTIVADO' : 'DESACTIVADO'}`;
+          await load();
+        } catch (e) {
+          $('msg').textContent = 'Error controlando worker: ' + e.message;
+        }
+      }
+      function renderTabWorkers(s) {
+        const banner = $('strategyHighlightBanner');
+        const info = PROFILE_STRATEGY_INFO[activeProfile] || PROFILE_STRATEGY_INFO.SYNTHETICS;
+        if (banner) {
+          banner.style.borderLeftColor = info.color;
+          banner.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div><span style="display:inline-block;padding:2px 8px;border-radius:5px;font-weight:800;font-size:11px;background:rgba(56,189,248,0.16);color:${info.color};border:1px solid ${info.color};margin-right:8px;">${esc(info.badge)}</span>
+            <b>Workers controlados en esta pestaña:</b> <span style="color:#f3c64c;">${esc(info.workersText)}</span></div>
+            <span class="sub" style="font-size:12px;">Consistente con Modo Centinela y Análisis Recientes</span>
+          </div>
+          <div class="sub" style="margin-top:5px;font-size:12.5px;">${esc(info.desc)}</div>`;
+        }
+        const panel = $('tabWorkerPanel');
+        if (!panel) return;
+        const workersByProfile = s.workers_by_profile || {};
+        const workers = workersByProfile[activeProfile] || [];
+        if (!workers.length) {
+          panel.innerHTML = '<div class="sub">No hay workers asociados a esta pestaña.</div>';
+          return;
+        }
+        const liveSelected = new Set(dirty ? selected() : ((s.selection_profiles || {})[activeProfile] || []));
+        const cardsHtml = workers.map((w) => {
+          const wp = String(w.bot_profile || '').toUpperCase();
+          const label = w.worker_label || wp;
+          const strat = w.strategy_label || info.badge;
+          const univ = Array.isArray(w.universe_symbols) && w.universe_symbols.length ? w.universe_symbols : [];
+          const actSyms = univ.length ? univ.filter((sym) => liveSelected.has(sym)) : (w.active_symbols || []);
+          const pruSyms = univ.length ? univ.filter((sym) => !liveSelected.has(sym)) : (w.pruned_symbols || []);
+          const total = actSyms.length;
+          const rawDone = Number(w.symbols_processed || 0);
+          const done = total > 0 ? Math.min(total, rawDone) : 0;
+          const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+          const disabled = String(w.status || '').toUpperCase() === 'DISABLED';
+          const statusTxt = disabled ? 'DESACTIVADO' : (total === 0 ? 'PAUSADO (0 ACTIVOS)' : (w.status || 'RUNNING'));
+          const statusColor = disabled || total === 0 ? '#f87171' : '#34d399';
+          const actPreview = actSyms.slice(0, 8).map((x) => `<span style="display:inline-block;padding:1px 6px;margin:2px;border-radius:4px;font-size:11px;background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.3);">✓ ${esc(x)}</span>`).join('') + (actSyms.length > 8 ? `<span class="sub" style="font-size:11px;"> +${actSyms.length - 8} más</span>` : '');
+          const pruPreview = pruSyms.slice(0, 6).map((x) => `<span style="display:inline-block;padding:1px 6px;margin:2px;border-radius:4px;font-size:11px;background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.28);">⚠️ ${esc(x)} (OFF)</span>`).join('') + (pruSyms.length > 6 ? `<span class="sub" style="font-size:11px;"> +${pruSyms.length - 6} podados OFF</span>` : '');
+          return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#0a141e;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <div>
+                <b style="font-size:13.5px;color:#f3c64c;">${esc(label)}</b>
+                <div class="sub" style="font-size:11px;">${esc(strat)} · Ciclo #${esc(w.cycle_number || 0)}</div>
+              </div>
+              <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid ${statusColor};color:${statusColor};">${esc(statusTxt)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span>Progreso paralelo: <b>${done} / ${total}</b> (${pct}%)</span>
+              <span>En curso: <b>${esc(w.current_symbol && liveSelected.has(w.current_symbol) ? w.current_symbol : (total ? 'En cola' : 'Sin activos'))}</b></span>
+            </div>
+            <div style="height:7px;background:#132435;border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#10b981,#38bdf8);"></div>
+            </div>
+            <div style="font-size:11.5px;">
+              <div><b style="color:#34d399;">Activos (${actSyms.length}):</b> ${actPreview || '<span class="sub">Ninguno seleccionado</span>'}</div>
+              <div style="margin-top:3px;"><b style="color:#f87171;">Podados OFF (${pruSyms.length}):</b> ${pruPreview || '<span class="sub">0 podados</span>'}</div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+              <button type="button" class="btn workerToggleBtn ${disabled ? 'primary' : ''}" data-worker-toggle="${esc(wp)}" data-worker-enable="${disabled ? 'true' : 'false'}" style="padding:5px 10px;font-size:11.5px;">
+                ${disabled ? 'Reactivar worker ' + esc(wp) : 'Desactivar worker ' + esc(wp)}
+              </button>
+            </div>
+          </div>`;
+        }).join('');
+        panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <b>Control de Workers en Paralelo · Pestaña ${esc(activeProfile)} (${workers.length} worker${workers.length === 1 ? '' : 's'})</b>
+            <span class="sub" style="font-size:12px;">Progreso sincronizado con instrumentos activos · Podados quedan desactivados (OFF)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:10px;">${cardsHtml}</div>`;
+        panel.querySelectorAll('.workerToggleBtn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            toggleWorkerFromInstruments(btn.dataset.workerToggle, btn.dataset.workerEnable === 'true');
+          });
+        });
       }
       function renderNews(s) {
         const n = s.financial_news || {},
@@ -8129,60 +8772,68 @@ _INSTRUMENTS_HTML = r'''
           gs
             .map((g) => {
               const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
+              const isIctTab = ['SYNTHETICS', 'FOREX', 'ICT'].includes(activeProfile);
+              const stratTag = isIctTab
+                ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(56,189,248,0.14);color:#38bdf8;border:1px solid rgba(56,189,248,0.35);margin-left:6px;">ICT Sabri Malle</span>`
+                : activeProfile === 'MALAYSIAN_SNR'
+                  ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(251,191,36,0.14);color:#fbbf24;border:1px solid rgba(251,191,36,0.35);margin-left:6px;">Malaysian SNR (M15 Fresh/Break)</span>`
+                  : activeProfile === 'ORB'
+                    ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.35);margin-left:6px;">ORB SWEEP</span>`
+                    : '';
               return items.length
-                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span></h3>${items.map((sym) => {
+                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span>${stratTag}</h3>${items.map((sym) => {
                     const isChecked = chosen.has(sym);
                     const isPrioritized = prioritized.has(sym);
                     const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
-                    const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis de 2 años por baja expectativa matemática.' : '');
+                    const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis multi-anual por baja expectativa matemática.' : '');
                     let badge = isPruned
-                      ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda)</span>`
-                      : `<span class="activeBadge">✓ Priorizado</span>`;
+                      ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda OFF)</span>`
+                      : `<span class="activeBadge">✓ Rentable Activo</span>`;
                     if (activeProfile === 'ICT' && !isPruned) {
-                      if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Top #1 Universal (+26.0R · 48.5% WR)</span>`;
-                      else if (sym.includes('Jump 50')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 Líder Jump (+15.6R · 35.5% WR)</span>`;
-                      else if (sym.includes('EURUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Líder Forex (+15.1R · Swap Salvado)</span>`;
-                      else if (sym.includes('Crash 300')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ #1 Líder Crash (+13.5R · PF 1.20)</span>`;
-                      else if (sym.includes('Boom 500')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ #1 Líder Boom (+13.4R · PF 1.29)</span>`;
-                      else if (sym.includes('Boom 300')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+8.2R)</span>`;
-                      else if (sym.includes('Boom 1000')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+7.6R)</span>`;
-                      else if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ Validado Jump (+6.5R)</span>`;
-                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Líder Cripto (+3.9R · Swap Salvado)</span>`;
-                      else if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #1 Líder Step (+3.7R · PF 1.04)</span>`;
-                      else if (sym.includes('Boom 600')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+3.5R)</span>`;
-                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Índices ICT</span>`;
-                      else if (sym.includes('Tech 100')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Nasdaq ICT</span>`;
+                      if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Tier S · Oro (+61.4R · GBDT 0.55)</span>`;
+                      else if (sym.includes('US Oil')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier S · Petróleo (+89.0R · PF 1.83)</span>`;
+                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ ICT Tier A · Cripto (+31.5R)</span>`;
+                      else if (sym.includes('XAG')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT/MSNR/ORB · Plata Activa (Sin Poda)</span>`;
+                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT/MSNR · Dow Jones (+5.9R · Sin Poda)</span>`;
+                      else if (sym.includes('Tech 100')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT · Nasdaq 100 (+1.7R · Sin Poda)</span>`;
+                      else if (sym.includes('SP 500')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT · S&P 500 (+2.5R · Sin Poda)</span>`;
+                      else badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Activo (Sin Poda)</span>`;
                     } else if (activeProfile === 'FOREX' && !isPruned) {
-                      if (sym.includes('EURUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Líder Forex (+15.1R · Swap Salvado +5.98R)</span>`;
-                      else if (sym.includes('USDCAD')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ Habilitado Micro & Normal</span>`;
-                      else if (sym.includes('USDCHF')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Habilitado Micro & Normal</span>`;
-                      else if (sym.includes('AUDUSD')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Habilitado Micro & Normal</span>`;
-                      else if (sym.includes('GBPUSD')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Habilitado Micro & Normal</span>`;
-                      else if (sym.includes('USDJPY')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Habilitado Micro & Normal</span>`;
-                      else if (sym.includes('AUDJPY')) badge = `<span class="activeBadge" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.4);">✓ Forex Secundario</span>`;
-                      else if (sym.includes('AUDNZD')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ Forex Secundario</span>`;
+                      if (sym.includes('EURUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT #1 Líder Forex (+15.1R · Swap Salvado)</span>`;
+                      else if (sym.includes('GBPUSD')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Tier S · Forex (+2.86R · 70% WR)</span>`;
+                      else if (sym.includes('AUDNZD')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT/MSNR Tier S · Forex (+5.23R · 100% WR)</span>`;
+                      else if (sym.includes('AUDJPY')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier A · Forex (+2.46R · 58.3% WR)</span>`;
+                      else if (sym.includes('USDCAD')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT Forex Rentable (+8.8R)</span>`;
+                      else if (sym.includes('EURJPY')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Forex Rentable (+7.8R)</span>`;
+                      else if (sym.includes('CHFJPY')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT Forex Rentable (+1.92R · 66.7% WR)</span>`;
+                      else if (sym.includes('EURCHF')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT Forex Rentable (+0.85R · 66.7% WR)</span>`;
+                      else if (sym.includes('CADCHF')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT Forex Rentable (+0.65R · 100% WR)</span>`;
+                      else if (sym.includes('USDCHF') || sym.includes('AUDUSD') || sym.includes('USDJPY') || sym.includes('GBPCAD') || sym.includes('GBPJPY')) badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT/ORB/MSNR Forex Activo (Sin Poda)</span>`;
+                      else badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Forex Activo</span>`;
                     } else if (activeProfile === 'SYNTHETICS' && !isPruned) {
-                      if (sym.includes('Jump 50')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 Líder Jump (+15.6R · 35.5% WR)</span>`;
-                      else if (sym.includes('Crash 300')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ #1 Líder Crash (+13.5R · PF 1.20)</span>`;
-                      else if (sym.includes('Boom 500')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ #1 Líder Boom (+13.4R · PF 1.29)</span>`;
-                      else if (sym.includes('Boom 300')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+8.2R)</span>`;
-                      else if (sym.includes('Boom 1000')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+7.6R)</span>`;
-                      else if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ Validado Jump (+6.5R)</span>`;
-                      else if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #1 Líder Step (+3.7R · PF 1.04)</span>`;
-                      else if (sym.includes('Boom 600')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Validado Boom (+3.5R)</span>`;
-                      else if (sym.includes('Volatility 90')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ Top Volatility</span>`;
-                      else if (sym.includes('Volatility 25')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ Top Volatility</span>`;
+                      if (sym === 'Volatility 10 Index') badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Tier S · #1 Volatility (+61.25R · PF 2.13)</span>`;
+                      else if (sym === 'Jump 25 Index') badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Tier S · #1 Jump (+54.75R · PF 2.09)</span>`;
+                      else if (sym === 'Step Index 400') badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT/MSNR Tier S · #1 Step (+44.50R · PF 2.13)</span>`;
+                      else if (sym === 'Volatility 50 (1s) Index') badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Tier S · Vol 50 1s (+43.75R · PF 2.05)</span>`;
+                      else if (sym.includes('Jump 75')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier S · Jump (+37.75R · PF 1.88)</span>`;
+                      else if (sym.includes('Step') && sym.includes('500')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier S · Step 500 (+25.25R · PF 1.83)</span>`;
+                      else if (sym === 'Volatility 25 Index') badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier A · Vol 25 (+20.75R · PF 1.82)</span>`;
+                      else if (sym === 'Step Index') badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ ICT Tier A · Step (+20.50R · PF 1.91)</span>`;
+                      else if (sym.includes('Crash 600')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Líder Crash (+17.25R · PF 1.66)</span>`;
+                      else if (sym.includes('Boom 900')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT #1 Boom (+83.1R · PF 1.85)</span>`;
+                      else if (sym.includes('Jump 50')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ ICT Jump (+15.6R · Sin Poda)</span>`;
+                      else if (sym.includes('Crash 300')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ ICT Crash (+13.5R · PF 1.20)</span>`;
+                      else if (sym.includes('Boom 500')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ ICT Boom (+13.0R · PF 1.29)</span>`;
+                      else badge = `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Sintético Activo (Sin Poda)</span>`;
                     } else if (activeProfile === 'MALAYSIAN_SNR' && !isPruned) {
-                      if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ #1 Líder Jump (+3,325R · 55.3% WR)</span>`;
-                      else if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Líder Step (+3,007R · 54.5% WR)</span>`;
-                      else if (sym.includes('BTC')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ #1 Cripto MSNR (+1,792R · 51.0% WR)</span>`;
-                      else if (sym.includes('Boom 1000')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ Líder Boom (+1,738R · 51.5% WR)</span>`;
-                      else if (sym.includes('Crash 1000')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Líder Crash (+1,632R · 50.5% WR)</span>`;
-                      else if (sym.includes('XAU')) badge = `<span class="activeBadge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border-color: rgba(234, 179, 8, 0.4);">✓ Líder Oro (+1,617R · 50.2% WR)</span>`;
-                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ Dow Jones (+1,502R · 49.1% WR)</span>`;
-                      else if (sym.includes('USDJPY')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ #1 Forex MSNR (+1,164R · 44.5% WR)</span>`;
-                      else if (sym.includes('EURUSD')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ Forex Core (+416R)</span>`;
-                      else if (sym.includes('GBPUSD')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ Forex Core (+339R)</span>`;
+                      if (sym.includes('Step') && sym.includes('400')) badge = `<span class="activeBadge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">✓ MSNR Tier S · #1 Step (+7.07R · 80% WR)</span>`;
+                      else if (sym.includes('XAG')) badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">✓ MSNR Tier S · Plata C2 (+5.71R · 80% WR)</span>`;
+                      else if (sym.includes('AUDNZD')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ MSNR Tier S · Forex C2 (+5.23R · 100% WR)</span>`;
+                      else if (sym.includes('Jump 25')) badge = `<span class="activeBadge" style="background: rgba(6, 182, 212, 0.15); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">✓ MSNR Tier S · Jump (+3.77R · 75% WR)</span>`;
+                      else if (sym.includes('Wall Street')) badge = `<span class="activeBadge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.4);">✓ MSNR C2 · WS30 Preservado (+1.38R · 67% WR)</span>`;
+                      else badge = `<span class="activeBadge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);">✓ MSNR Canónico Activo</span>`;
+                    } else if (activeProfile === 'ORB' && !isPruned) {
+                      badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">✓ ORB Tier S · SWEEP Rentable (56.7%–59.1% WR)</span>`;
                     }
                     return `<label class="item ${isPruned ? 'prunedItem' : ''}"><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked ? 'checked' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
                   }).join('')}</section>`
@@ -8192,7 +8843,7 @@ _INSTRUMENTS_HTML = r'''
         $('totalCount').textContent = gs.reduce((n, g) => n + (g.symbols || []).length, 0);
         $('msg').textContent = selectionSummary(s);
         $('profileNote').innerHTML =
-          `<b>${activeProfile}:</b> selección persistente independiente. Los instrumentos priorizados están marcados; los descartados por poda pueden activarse opcionalmente con advertencia.`;
+          `<b>${activeProfile}:</b> selección persistente independiente sincronizada con Modo Centinela, Análisis Recientes y progreso de Workers en paralelo. Los instrumentos rentables están activos y los podados desactivados.`;
         document
           .querySelectorAll('.profileTab')
           .forEach((b) => b.classList.toggle('active', b.dataset.profile === activeProfile));
@@ -8212,10 +8863,12 @@ _INSTRUMENTS_HTML = r'''
             }
             dirty = true;
             updateCount();
-            $('msg').textContent = `Cambios pendientes para ${activeProfile}. Haz clic en Guardar selección para confirmar.`;
+            renderTabWorkers(state);
+            $('msg').textContent = `Cambios pendientes para ${activeProfile}. Haz clic en Aplicar selección para persistir en los workers.`;
           }),
         );
         updateCount();
+        renderTabWorkers(s);
       }
       let loadBusy = false;
       async function load() {
@@ -8271,15 +8924,28 @@ _INSTRUMENTS_HTML = r'''
           if (state) render(state);
         }),
       );
+      if ($('selectProfitable')) {
+        $('selectProfitable').addEventListener('click', () => {
+          document.querySelectorAll('input[data-symbol]').forEach((x) => {
+            x.checked = x.dataset.pruned !== 'true';
+          });
+          dirty = true;
+          updateCount();
+          if (state) renderTabWorkers(state);
+          $('msg').textContent = `Seleccionados únicamente los instrumentos rentables de ${activeProfile} (Podados OFF). Haz clic en Aplicar selección.`;
+        });
+      }
       $('selectAll').addEventListener('click', () => {
         document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = true));
         dirty = true;
         updateCount();
+        if (state) renderTabWorkers(state);
       });
       $('clearAll').addEventListener('click', () => {
         document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = false));
         dirty = true;
         updateCount();
+        if (state) renderTabWorkers(state);
       });
       $('save').addEventListener('click', save);
       load();

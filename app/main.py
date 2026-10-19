@@ -1181,16 +1181,23 @@ BOT_PROFILES = {
             "XAUUSDmicro",
             "BTCUSD",
             "BTCUSDmicro",
+            "US Oil",
             "Jump 50 Index",
             "EURUSD",
             "EURUSDmicro",
             "Crash 300 Index",
+            "Crash 600 Index",
             "Boom 500 Index",
             "Boom 300 Index",
+            "Boom 900 Index",
             "Boom 1000 Index",
             "Boom 600 Index",
             "Jump 25 Index",
+            "Jump 75 Index",
+            "Jump 10 Index",
             "Step Index 400",
+            "Step Index 500",
+            "Step Index",
             "XAGUSD",
             "XAGUSDmicro",
             "Wall Street 30",
@@ -1361,9 +1368,12 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
         candidates = [
             "XAUUSD", "XAUUSDmicro", "microXAUUSD",
             "BTCUSD", "BTCUSDmicro", "microBTCUSD",
+            "US Oil",
             "Jump 50 Index", "EURUSD", "EURUSDmicro",
-            "Crash 300 Index", "Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index",
-            "Jump 25 Index", "Step Index 400",
+            "Crash 300 Index", "Crash 600 Index",
+            "Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 1000 Index", "Boom 600 Index",
+            "Jump 25 Index", "Jump 75 Index", "Jump 10 Index",
+            "Step Index 400", "Step Index 500", "Step Index",
             "XAGUSD", "XAGUSDmicro", "microXAGUSD",
             "Wall Street 30", "US Tech 100", "US SP 500",
         ]
@@ -1507,7 +1517,7 @@ def _build_multi_bot_dashboard_catalog(profiles):
                             categorized.setdefault("ict_crypto_btcusd", []).append(sym)
                     except Exception:
                         pass
-                for sym in ("Wall Street 30", "US Tech 100", "US SP 500"):
+                for sym in ("US Oil", "Wall Street 30", "US Tech 100", "US SP 500"):
                     try:
                         if provider.get_symbol_info(sym):
                             categorized.setdefault("ict_indices", []).append(sym)

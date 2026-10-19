@@ -4,6 +4,10 @@ from strategy.orb.signal_payload import build_signal_payload, log_audit_summary
 from strategy.orb.asset_rules import execution_metadata
 from strategy.orb.new_york_orb import NewYorkORBStrategy
 from test_orb_new_york_strategy import FakeProvider, _session_candles
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
 
 
 def test_payload_preserves_precision_and_policy():

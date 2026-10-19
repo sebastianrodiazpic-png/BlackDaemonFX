@@ -31,6 +31,25 @@ from config.symbol_policy import is_direction_allowed
 from strategy.ict.config import ICTSabriMalleConfig
 
 NEW_YORK = ZoneInfo("America/New_York")
+TIMEFRAME_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
+
+
+def closed_candles_only(df: pd.DataFrame, timeframe: str, now: pd.Timestamp, count: int | None = None) -> pd.DataFrame:
+    """Devuelve solo las velas ya CERRADAS en `now` (apertura + duración <= now), ordenadas.
+
+    Con `count` recorta a las últimas `count` cerradas (se pide una vela extra al proveedor
+    para que la ventana de indicadores tenga el mismo tamaño que en el replay).
+
+    MT5 entrega la vela en formación como última fila; evaluarla genera señales intra-vela
+    que el replay fiel (solo velas cerradas) no produce y que pueden desaparecer al cierre.
+    """
+    out = df.copy()
+    out["time"] = pd.to_datetime(out["time"], utc=True)
+    duration = pd.Timedelta(minutes=TIMEFRAME_MINUTES.get(str(timeframe).upper(), 0))
+    out = out[out["time"] + duration <= now].sort_values("time")
+    if count is not None:
+        out = out.tail(int(count))
+    return out.reset_index(drop=True)
 
 
 def compute_atr(df: pd.DataFrame, period: int = 14) -> np.ndarray:
@@ -384,9 +403,13 @@ class ICTSabriMalleStrategy:
             "symbol": symbol,
         }
 
+        excluded = {str(s).strip().lower() for s in (getattr(self.config, "excluded_symbols", ()) or ())}
+        if str(symbol).strip().lower() in excluded:
+            return {**base_response, "reason": "ICT_SYMBOL_EXCLUDED_NEGATIVE_EXPECTANCY"}
+
         # 1. Obtener velas históricas H1
         try:
-            raw_h1 = self.provider.get_candles(symbol, self.config.structure_timeframe, count=80)
+            raw_h1 = self.provider.get_candles(symbol, self.config.structure_timeframe, count=81)
         except Exception as exc:
             return {**base_response, "reason": f"PROVIDER_ERROR_H1: {exc}"}
 
@@ -444,7 +467,7 @@ class ICTSabriMalleStrategy:
             # ICT Silver Bullet (ventanas de 60 min: London 03-04, NY AM 10-11, NY PM 14-15 NY)
             in_silver_bullet = False
             if getattr(self.config, "silver_bullet_enabled", True):
-                if ny_hour in (3, 10, 14):
+                if ny_hour in tuple(getattr(self.config, "silver_bullet_hours_ny", (3, 10, 14))):
                     in_silver_bullet = True
 
             session_active = in_london_kz or ny_kz_active or in_london_close or in_silver_bullet
@@ -457,9 +480,7 @@ class ICTSabriMalleStrategy:
                     "diagnostics": {"session_killzone_active": 0.0, "ny_hour": ny_hour}
                 }
 
-        df_h1 = raw_h1.copy()
-        df_h1["time"] = pd.to_datetime(df_h1["time"], utc=True)
-        df_h1 = df_h1[df_h1["time"] <= now].sort_values("time").reset_index(drop=True)
+        df_h1 = closed_candles_only(raw_h1, self.config.structure_timeframe, now, count=80)
 
         if len(df_h1) < 28:
             return {**base_response, "reason": "INSUFFICIENT_HISTORICAL_H1"}
@@ -467,11 +488,9 @@ class ICTSabriMalleStrategy:
         # Velas H4 para Macro Bias
         df_h4 = None
         try:
-            raw_h4 = self.provider.get_candles(symbol, self.config.macro_timeframe, count=100)
+            raw_h4 = self.provider.get_candles(symbol, self.config.macro_timeframe, count=101)
             if raw_h4 is not None and len(raw_h4) >= 30:
-                df_h4 = raw_h4.copy()
-                df_h4["time"] = pd.to_datetime(df_h4["time"], utc=True)
-                df_h4 = df_h4[df_h4["time"] <= now].sort_values("time").reset_index(drop=True)
+                df_h4 = closed_candles_only(raw_h4, self.config.macro_timeframe, now, count=100)
         except Exception:
             pass
 
@@ -686,11 +705,9 @@ class ICTSabriMalleStrategy:
         # Intentar consultar velas de menor temporalidad (M15 o M5)
         df_ltf = None
         try:
-            raw_ltf = self.provider.get_candles(symbol, self.config.entry_timeframe, count=80)
+            raw_ltf = self.provider.get_candles(symbol, self.config.entry_timeframe, count=81)
             if raw_ltf is not None and len(raw_ltf) >= 20:
-                df_ltf = raw_ltf.copy()
-                df_ltf["time"] = pd.to_datetime(df_ltf["time"], utc=True)
-                df_ltf = df_ltf[df_ltf["time"] <= now].sort_values("time").reset_index(drop=True)
+                df_ltf = closed_candles_only(raw_ltf, self.config.entry_timeframe, now, count=80)
         except Exception:
             pass
 

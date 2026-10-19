@@ -915,6 +915,12 @@ class LiveTradingEngine:
                 structure_timeframe="H1",
                 tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 1.0)),
                 tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.0)),
+                # Variante C2: ADX>=30 + tope SL/ATR (1.2 FX/Metales, 1.5 resto). Desactivar con DAEMONBLACKFX_MSNR_C2=0.
+                enable_c2_fx_metals_atr_cap=os.getenv("DAEMONBLACKFX_MSNR_C2", "1").strip() not in ("0", "false", "False", "off"),
+                strategy_version=("msnr-v3.0-c2" if os.getenv("DAEMONBLACKFX_MSNR_C2", "1").strip() not in ("0", "false", "False", "off") else "msnr-v2.9-video-evidence"),
+                min_adx=30.0,
+                c2_fx_metals_max_sl_atr=1.2,
+                c2_default_max_sl_atr=1.5,
             ),
             runtime_settings_loader=(lambda: self.repository.latest_msnr_runtime_settings(source=self.config.source))
                 if callable(getattr(self.repository, 'latest_msnr_runtime_settings', None)) else None,
@@ -7489,6 +7495,13 @@ class LiveTradingEngine:
         """
         if str(strategy_name or "").upper() == "ORB_NEW_YORK":
             return float(self.config.orb_risk_percent)
+        if str(strategy_name or "").upper() == "MALAYSIAN_SNR":
+            # Fase 1: MSNR a riesgo reducido hasta acumular 50 trades reales con C2 (DAEMONBLACKFX_MSNR_RISK_MULT).
+            try:
+                mult = float(os.getenv("DAEMONBLACKFX_MSNR_RISK_MULT", "0.5"))
+            except ValueError:
+                mult = 0.5
+            return float(self.config.risk_percent) * min(1.0, max(0.1, mult))
         return float(self.config.risk_percent)
 
     def _gold_quarters_analysis(self, symbol):

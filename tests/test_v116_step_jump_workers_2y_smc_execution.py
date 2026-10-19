@@ -28,7 +28,7 @@ def test_step_jump_unpruned_instruments_persistence():
 
     # Verificación en config universe
     assert "Step Index 400" in PRUNED_ASSET_UNIVERSE["STEP"]
-    assert "Step Index" in PRUNED_ASSET_UNIVERSE["STEP"]
+    assert "Step Index" not in PRUNED_ASSET_UNIVERSE["STEP"]  # Fase 1: excluido de Estrategia ICT
     assert "Step Index 500" in PRUNED_ASSET_UNIVERSE["STEP"]
 
     assert "Jump 75 Index" in PRUNED_ASSET_UNIVERSE["JUMP"]

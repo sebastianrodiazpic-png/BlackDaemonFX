@@ -1,0 +1,29 @@
+=============================================================================================================================
+FRONTERA DE CANTIDAD DE TRADES (N) vs RENTABILIDAD NETA: MSNR + ICT + ORB
+=============================================================================================================================
+
+[1. MALAYSIAN SNR (MSNR): PALANCAS PARA AUMENTAR CANTIDAD DE TRADES Y RENTABILIDAD (180d WF, 957 señales base)]
+  Configuración MSNR Evaluada en Walk-Forward (4 Folds)              | N    | W/L     | WR%    | Payoff | Exp(R)   | Net R    | PF Base/Sev   | MaxDD
+  ------------------------------------------------------------------------------------------------------------------------------------------
+  Benchmark V4 (ADX>=30, ATR<=1.5, 23 act, Cap=1)                    |   42 | 23/19   |  54.8% |   1.80 |  +0.536R |  +22.50R | 2.18 / 1.50   |  4.0R
+  Fase 1: C2 (ADX>=30, ATR<=1.2 FX/Met, 23 act, Cap=1)               |   38 | 22/16   |  57.9% |   1.84 |  +0.645R |  +24.50R | 2.53 / 1.74   |  4.0R
+  Fase 2: C2+B (ADX>=30, ATR<=1.2 FX/Met, Sin Crash1000, Cap=1)      |   33 | 20/13   |  60.6% |   1.85 |  +0.727R |  +24.00R | 2.85 / 1.96   |  4.0R
+  Palanca MSNR-1: C2+B con Cap=2 (hasta 2 trades/activo)             |   37 | 21/16   |  56.8% |   1.79 |  +0.581R |  +21.50R | 2.34 / 1.61   |  4.0R
+  Palanca MSNR-2: C2+B con ADX>=25 en Sint/WS30 y ADX>=30 FX/Met     |   49 | 22/27   |  44.9% |   1.77 |  +0.245R |  +12.00R | 1.44 / 0.99   |  5.0R
+  Palanca MSNR-3: C2+B con ADX>=25 Global (ATR<=1.2 FX/Met)          |   57 | 23/34   |  40.4% |   1.80 |  +0.132R |   +7.50R | 1.22 / 0.84   |  7.0R
+  Palanca MSNR-4: C2+B con ADX>=22 en Sint/WS30 y ADX>=25 FX/Met     |   69 | 26/43   |  37.7% |   1.76 |  +0.041R |   +2.82R | 1.07 / 0.73   | 10.9R
+  Palanca MSNR-5: C2+B con ADX>=20 Global + ATR<=1.2 FX/Met + Cap=2  |   99 | 35/64   |  35.4% |   1.73 |  -0.035R |   -3.44R | 0.95 / 0.65   | 18.2R
+
+[2. ICT SABRI MALLE: ESCALADO DE CANTIDAD DE TRADES Y RENTABILIDAD (2 AÑOS: replay_ict_60_assets_2y_summary.csv)]
+  * ICT Universo Completo Sin Poda (60 activos, 2Y)          | N(2Y)=5762 (240.1/mes) | WR_TP1= 36.1% | Exp=+0.045R | NetR(2Y)=+259.50R
+  * ICT Todos los Activos Positivos (35 activos, 2Y)         | N(2Y)=3717 (154.9/mes) | WR_TP1= 38.7% | Exp=+0.144R | NetR(2Y)=+534.25R
+  * ICT Selección Oficial ACTIVE (22 activos, 2Y)            | N(2Y)=3063 (127.6/mes) | WR_TP1= 39.6% | Exp=+0.159R | NetR(2Y)=+486.25R
+  * ICT Élite Alta Expectativa (NetR >= +10R: 20 activos, 2Y) | N(2Y)=2625 (109.4/mes) | WR_TP1= 39.6% | Exp=+0.181R | NetR(2Y)=+475.25R
+  * ICT Top 10 Activos Líderes (10 activos, 2Y)              | N(2Y)=1649 ( 68.7/mes) | WR_TP1= 40.4% | Exp=+0.208R | NetR(2Y)=+343.00R
+
+[3. ORB NEW YORK (Jonathan Núñez M5): FILTRADO INTELIGENTE PARA MULTIPLICAR RENTABILIDAD Y TRADES]
+  * ORB CURRENT (Sin filtro Sweep - 6 activos)                                | N= 424 | WR= 50.5% | Exp=-0.075R | NetR= -31.68R | PF=0.85 | MaxDD=37.43R
+  * ORB SWEEP (Todos los 9 activos sin seleccionar)                           | N= 893 | WR= 45.6% | Exp=-0.117R | NetR=-104.52R | PF=0.79 | MaxDD=115.19R
+  * ORB SWEEP Élite (XAUUSD + BTCUSD)                                         | N= 132 | WR= 59.1% | Exp=+0.191R | NetR= +25.25R | PF=1.47 | MaxDD= 7.99R
+  * ORB HTF_SWEEP Élite (XAGUSD + US Oil)                                     | N=  99 | WR= 53.5% | Exp=+0.064R | NetR=  +6.29R | PF=1.14 | MaxDD= 9.15R
+  * ORB Portafolio Combinado Élite (XAU + BTC [SWEEP] + XAG + Oil [HTF_SWEEP]) | N= 231 | WR= 56.7% | Exp=+0.137R | NetR= +31.54R | PF=1.31 | MaxDD= 8.95R

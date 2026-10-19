@@ -178,13 +178,15 @@ def mock_build_plan_factory(entry, sl, direction, total_risk_amount):
     ("MALAYSIAN_SNR", 1.0, 2.0),
 ])
 def test_all_strategies_calculate_1pct_total_risk_and_split_into_two_half_pct_legs(
-    strategy_name, expected_tp1_rr, expected_tp2_rr
+    monkeypatch, strategy_name, expected_tp1_rr, expected_tp2_rr
 ):
     """Verifies that for an account of $10,000 USD (1% = $100 USD total risk):
     - Each operation executes 2 legs of 50% each ($50 USD risk each = 0.5%).
     - Leg 1 (TP1) targets 1:1 R:R (+ $50 USD gain).
     - Leg 2 (RUNNER) targets TP2 at 1:2 R:R (+ $100 USD gain).
     """
+    # Fase 1 reduce MSNR a 0.5x por defecto; aquí se fija a 1.0x para validar la mecánica 1% total.
+    monkeypatch.setenv("DAEMONBLACKFX_MSNR_RISK_MULT", "1.0")
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(
         risk_percent=1.0,
@@ -650,3 +652,16 @@ def test_tp1_closes_immediately_when_crossing_target_rr_and_never_persists_open(
     assert "tp1_target_reached" in close_reason
     assert engine.sync_closed_trades.called
 
+
+
+@pytest.mark.parametrize("env_value,expected", [(None, 0.5), ("1.0", 1.0), ("0.01", 0.1), ("abc", 0.5)])
+def test_msnr_phase1_reduced_risk_multiplier(monkeypatch, env_value, expected):
+    """Fase 1: MSNR opera a 0.5x del riesgo base hasta acumular 50 trades reales con C2."""
+    if env_value is None:
+        monkeypatch.delenv("DAEMONBLACKFX_MSNR_RISK_MULT", raising=False)
+    else:
+        monkeypatch.setenv("DAEMONBLACKFX_MSNR_RISK_MULT", env_value)
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(risk_percent=1.0, orb_risk_percent=1.0)
+    assert engine._risk_percent_for_strategy("MALAYSIAN_SNR") == pytest.approx(expected)
+    assert engine._risk_percent_for_strategy("ORB_NEW_YORK") == 1.0

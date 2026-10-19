@@ -1,0 +1,318 @@
+﻿
+==================================================================================================================================
+REPORTE INTEGRAL DE VARIANTE: A. V4 SIN CAMBIOS (Dataset Limpio 23 Activos, 957 Trades -> N=42)
+==================================================================================================================================
+1. M├ëTRICAS GLOBALES OOS (4 FOLDS COMBINADOS):
+   * Operaciones OOS ├Ünicas: N = 42 (Wins=23, Losses=19, BE=0)
+   * Win Rate Puntual      : 54.8% | IC Wilson 95%: [39.9%, 68.8%]
+   * Payoff (AvgW / AvgL)  : 1.80 (AvgWin=+1.804R, AvgLoss=-1.000R)
+   * Costos Base (MT5 Real): Exp=+0.5357 R/op | Net R=+22.50 R | PF=2.18 | MaxDD=4.00 R
+   * Costos Moderados      : Exp=+0.4145 R/op | Net R=+17.41 R | PF=1.76 | MaxDD=4.83 R (+0.05R slip, +15% gap SL)
+   * Costos Severos (20%g) : Exp=+0.3362 R/op | Net R=+14.12 R | PF=1.56 | MaxDD=5.28 R (+0.10R slip, +20% gap SL)
+   * Costos Severos (25%g) : Exp=+0.3113 R/op | Net R=+13.08 R | PF=1.50 | MaxDD=5.50 R (+0.10R slip, +25% gap SL)
+
+2. SEPARACI├ôN PNL EJECUTADO VS CONTRAFACTUALES:
+   * PnL Ejecutado (Aceptadas Cap=1)  : N=42 | Net R=+22.50 R
+   * Bloqueadas por Cap=1 (Contrafact): N=5 | Net R=-3.50 R (P├®rdidas evitadas: 4 ops [-4.00R], Ganancias no tomadas: 1 ops [+0.50R])
+
+3. DESGLOSE POR VENTANA WALK-FORWARD (4 FOLDS):
+   Ventana / Fold                   | Purga | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   Fold 1 (2026-05-19..2026-06-23)  |     3 |  10 | 5/5   | 50.0% | [23.7%, 76.3%] |   2.20 | +0.6000R |    +6.00R |  2.20 |  4.00R |   +4.71R |   1.78 |     +3.62R |     1.53
+   Fold 2 (2026-06-24..2026-07-31)  |     1 |  11 | 6/5   | 54.5% | [28.0%, 78.7%] |   1.42 | +0.3182R |    +3.50R |  1.70 |  3.00R |   +2.16R |   1.36 |     +1.02R |     1.15
+   Fold 3 (2026-07-31..2026-09-04)  |     4 |   9 | 5/4   | 55.6% | [26.7%, 81.1%] |   1.50 | +0.3889R |    +3.50R |  1.88 |  2.00R |   +2.42R |   1.50 |     +1.50R |     1.27
+   Fold 4 (2026-09-04..2026-10-09)  |     2 |  12 | 7/5   | 58.3% | [32.0%, 80.7%] |   2.07 | +0.7917R |    +9.50R |  2.90 |  2.00R |   +8.11R |   2.34 |     +6.93R |     2.01
+
+4. DESGLOSE POR FAMILIA DE ACTIVOS:
+   Familia                | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   -----------------------------------------------------------------------------------------------------------------------------------------------------------
+   Sint├®ticos (SYNTH)     |  23 | 14/9  | 60.9% | [40.8%, 77.8%] |   1.68 | +0.6304R |   +14.50R |  2.61 |  4.00R |  +11.93R |   2.10 |     +9.72R |     1.79
+   Metales+WS30 (METALS)  |  15 | 7/8   | 46.7% | [24.8%, 69.9%] |   2.07 | +0.4333R |    +6.50R |  1.81 |  4.00R |   +4.49R |   1.46 |     +2.80R |     1.25
+   Forex (FOREX)          |   4 | 2/2   | 50.0% | [15.0%, 85.0%] |   1.75 | +0.3750R |    +1.50R |  1.75 |  2.00R |   +0.99R |   1.41 |     +0.55R |     1.20
+     -> Solo XAU/XAG      |  10 | 5/5   | 50.0% | [23.7%, 76.3%] |   1.90 | +0.4500R |    +4.50R |  1.90 |  2.00R |   +3.21R |   1.53 |     +2.12R |     1.31
+     -> Solo WS30         |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |   1.35 |     +0.67R |     1.16
+
+5. DESGLOSE POR ACTIVO (UNIVERSO CAN├ôNICO DE 23 ACTIVOS):
+   S├¡mbolo                    | Fam    | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | NetR Sev25
+   -------------------------------------------------------------------------------------------------------------------------------------------------
+   AUDNZD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Boom 1000 Index            | SYNTH  |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.75 | +0.6500R |    +6.50R |  2.62 |  3.00R |   +5.37R |     +4.40R
+   Boom 300 Index             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Crash 1000 Index           | SYNTH  |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   1.75 | +0.1000R |    +0.50R |  1.17 |  2.00R |   -0.22R |     -0.83R
+   Crash 600 Index            | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURCHF                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURGBP                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURUSD                     | FOREX  |   2 | 2/0   | 100.0% | [34.2%, 100.0%] |  99.00 | +1.7500R |    +3.50R | 99.00 |  0.00R |   +3.40R |     +3.30R
+   GBPAUD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPJPY                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPUSD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Jump 10 Index              | SYNTH  |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   0.50 | -0.2500R |    -0.50R |  0.50 |  1.00R |   -0.76R |     -0.97R
+   Jump 25 Index              | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Step Index                 | SYNTH  |   4 | 3/1   | 75.0% | [30.1%, 95.4%] |   2.67 | +1.7500R |    +7.00R |  8.00 |  1.00R |   +6.64R |     +6.32R
+   Step Index 200             | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Step Index 400             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   USDJPY                     | FOREX  |   2 | 0/2   |  0.0% | [0.0%, 65.8%]  |   0.00 | -1.0000R |    -2.00R |  0.00 |  1.00R |   -2.42R |     -2.75R
+   Volatility 250 (1s) Index  | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Volatility 50 (1s) Index   | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Volatility 90 Index        | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Wall Street 30             | METALS |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |     +0.67R
+   XAGUSD                     | METALS |   3 | 0/3   |  0.0% | [0.0%, 56.1%]  |   0.00 | -1.0000R |    -3.00R |  0.00 |  2.00R |   -3.62R |     -4.12R
+   XAUUSD                     | METALS |   7 | 5/2   | 71.4% | [35.9%, 91.8%] |   1.90 | +1.0714R |    +7.50R |  4.75 |  2.00R |   +6.84R |     +6.25R
+   --> Distribuci├│n sobre 23 activos: Positivos=8/23 (34.8%), Negativos=3/23 (13.0%), Sin Trades=12/23 (52.2%)
+
+==================================================================================================================================
+REPORTE INTEGRAL DE VARIANTE: B. V4 EXCLUYENDO CRASH 1000 INDEX (Mismos Splits -> N=37)
+==================================================================================================================================
+1. M├ëTRICAS GLOBALES OOS (4 FOLDS COMBINADOS):
+   * Operaciones OOS ├Ünicas: N = 37 (Wins=21, Losses=16, BE=0)
+   * Win Rate Puntual      : 56.8% | IC Wilson 95%: [40.9%, 71.3%]
+   * Payoff (AvgW / AvgL)  : 1.81 (AvgWin=+1.810R, AvgLoss=-1.000R)
+   * Costos Base (MT5 Real): Exp=+0.5946 R/op | Net R=+22.00 R | PF=2.38 | MaxDD=4.00 R
+   * Costos Moderados      : Exp=+0.4765 R/op | Net R=+17.63 R | PF=1.91 | MaxDD=4.83 R (+0.05R slip, +15% gap SL)
+   * Costos Severos (20%g) : Exp=+0.3995 R/op | Net R=+14.78 R | PF=1.70 | MaxDD=5.28 R (+0.10R slip, +20% gap SL)
+   * Costos Severos (25%g) : Exp=+0.3757 R/op | Net R=+13.90 R | PF=1.63 | MaxDD=5.50 R (+0.10R slip, +25% gap SL)
+
+2. SEPARACI├ôN PNL EJECUTADO VS CONTRAFACTUALES:
+   * PnL Ejecutado (Aceptadas Cap=1)  : N=37 | Net R=+22.00 R
+   * Bloqueadas por Cap=1 (Contrafact): N=5 | Net R=-3.50 R (P├®rdidas evitadas: 4 ops [-4.00R], Ganancias no tomadas: 1 ops [+0.50R])
+   * Excluidas respecto a V4 por filtro: N=5 | PnL que habr├¡an generado en V4=+0.50 R (SL evitados: 3 ops [-3.00R], TP sacrificados: 2 ops [+3.50R])
+
+3. DESGLOSE POR VENTANA WALK-FORWARD (4 FOLDS):
+   Ventana / Fold                   | Purga | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   Fold 1 (2026-05-19..2026-06-23)  |     3 |  10 | 5/5   | 50.0% | [23.7%, 76.3%] |   2.20 | +0.6000R |    +6.00R |  2.20 |  4.00R |   +4.71R |   1.78 |     +3.62R |     1.53
+   Fold 2 (2026-06-24..2026-07-31)  |     1 |   8 | 4/4   | 50.0% | [21.5%, 78.5%] |   1.25 | +0.1250R |    +1.00R |  1.25 |  3.00R |   -0.03R |   0.99 |     -0.90R |     0.84
+   Fold 3 (2026-07-31..2026-09-04)  |     4 |   7 | 5/2   | 71.4% | [35.9%, 91.8%] |   1.50 | +0.7857R |    +5.50R |  3.75 |  1.00R |   +4.84R |   3.00 |     +4.25R |     2.55
+   Fold 4 (2026-09-04..2026-10-09)  |     2 |  12 | 7/5   | 58.3% | [32.0%, 80.7%] |   2.07 | +0.7917R |    +9.50R |  2.90 |  2.00R |   +8.11R |   2.34 |     +6.93R |     2.01
+
+4. DESGLOSE POR FAMILIA DE ACTIVOS:
+   Familia                | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   -----------------------------------------------------------------------------------------------------------------------------------------------------------
+   Sint├®ticos (SYNTH)     |  18 | 12/6  | 66.7% | [43.7%, 83.7%] |   1.67 | +0.7778R |   +14.00R |  3.33 |  3.50R |  +12.16R |   2.68 |    +10.55R |     2.28
+   Metales+WS30 (METALS)  |  15 | 7/8   | 46.7% | [24.8%, 69.9%] |   2.07 | +0.4333R |    +6.50R |  1.81 |  4.00R |   +4.49R |   1.46 |     +2.80R |     1.25
+   Forex (FOREX)          |   4 | 2/2   | 50.0% | [15.0%, 85.0%] |   1.75 | +0.3750R |    +1.50R |  1.75 |  2.00R |   +0.99R |   1.41 |     +0.55R |     1.20
+     -> Solo XAU/XAG      |  10 | 5/5   | 50.0% | [23.7%, 76.3%] |   1.90 | +0.4500R |    +4.50R |  1.90 |  2.00R |   +3.21R |   1.53 |     +2.12R |     1.31
+     -> Solo WS30         |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |   1.35 |     +0.67R |     1.16
+
+5. DESGLOSE POR ACTIVO (UNIVERSO CAN├ôNICO DE 23 ACTIVOS):
+   S├¡mbolo                    | Fam    | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | NetR Sev25
+   -------------------------------------------------------------------------------------------------------------------------------------------------
+   AUDNZD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Boom 1000 Index            | SYNTH  |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.75 | +0.6500R |    +6.50R |  2.62 |  3.00R |   +5.37R |     +4.40R
+   Boom 300 Index             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Crash 1000 Index           | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Crash 600 Index            | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURCHF                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURGBP                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURUSD                     | FOREX  |   2 | 2/0   | 100.0% | [34.2%, 100.0%] |  99.00 | +1.7500R |    +3.50R | 99.00 |  0.00R |   +3.40R |     +3.30R
+   GBPAUD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPJPY                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPUSD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Jump 10 Index              | SYNTH  |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   0.50 | -0.2500R |    -0.50R |  0.50 |  1.00R |   -0.76R |     -0.97R
+   Jump 25 Index              | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Step Index                 | SYNTH  |   4 | 3/1   | 75.0% | [30.1%, 95.4%] |   2.67 | +1.7500R |    +7.00R |  8.00 |  1.00R |   +6.64R |     +6.32R
+   Step Index 200             | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Step Index 400             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   USDJPY                     | FOREX  |   2 | 0/2   |  0.0% | [0.0%, 65.8%]  |   0.00 | -1.0000R |    -2.00R |  0.00 |  1.00R |   -2.42R |     -2.75R
+   Volatility 250 (1s) Index  | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Volatility 50 (1s) Index   | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Volatility 90 Index        | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Wall Street 30             | METALS |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |     +0.67R
+   XAGUSD                     | METALS |   3 | 0/3   |  0.0% | [0.0%, 56.1%]  |   0.00 | -1.0000R |    -3.00R |  0.00 |  2.00R |   -3.62R |     -4.12R
+   XAUUSD                     | METALS |   7 | 5/2   | 71.4% | [35.9%, 91.8%] |   1.90 | +1.0714R |    +7.50R |  4.75 |  2.00R |   +6.84R |     +6.25R
+   --> Distribuci├│n sobre 23 activos: Positivos=7/23 (30.4%), Negativos=3/23 (13.0%), Sin Trades=13/23 (56.5%)
+
+==================================================================================================================================
+REPORTE INTEGRAL DE VARIANTE: C1. V4 CON ATR <= 1.2 EN FOREX Y METALES/├ìNDICES (Incl. WS30, Reproducci├│n Script Local -> N=36)
+==================================================================================================================================
+1. M├ëTRICAS GLOBALES OOS (4 FOLDS COMBINADOS):
+   * Operaciones OOS ├Ünicas: N = 36 (Wins=21, Losses=15, BE=0)
+   * Win Rate Puntual      : 58.3% | IC Wilson 95%: [42.2%, 72.9%]
+   * Payoff (AvgW / AvgL)  : 1.81 (AvgWin=+1.810R, AvgLoss=-1.000R)
+   * Costos Base (MT5 Real): Exp=+0.6389 R/op | Net R=+23.00 R | PF=2.53 | MaxDD=3.00 R
+   * Costos Moderados      : Exp=+0.5233 R/op | Net R=+18.84 R | PF=2.04 | MaxDD=3.65 R (+0.05R slip, +15% gap SL)
+   * Costos Severos (20%g) : Exp=+0.4472 R/op | Net R=+16.10 R | PF=1.81 | MaxDD=4.64 R (+0.10R slip, +20% gap SL)
+   * Costos Severos (25%g) : Exp=+0.4243 R/op | Net R=+15.27 R | PF=1.74 | MaxDD=5.02 R (+0.10R slip, +25% gap SL)
+
+2. SEPARACI├ôN PNL EJECUTADO VS CONTRAFACTUALES:
+   * PnL Ejecutado (Aceptadas Cap=1)  : N=36 | Net R=+23.00 R
+   * Bloqueadas por Cap=1 (Contrafact): N=4 | Net R=-2.50 R (P├®rdidas evitadas: 3 ops [-3.00R], Ganancias no tomadas: 1 ops [+0.50R])
+   * Excluidas respecto a V4 por filtro: N=6 | PnL que habr├¡an generado en V4=-0.50 R (SL evitados: 4 ops [-4.00R], TP sacrificados: 2 ops [+3.50R])
+
+3. DESGLOSE POR VENTANA WALK-FORWARD (4 FOLDS):
+   Ventana / Fold                   | Purga | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   Fold 1 (2026-05-19..2026-06-23)  |     3 |   8 | 5/3   | 62.5% | [30.6%, 86.3%] |   2.20 | +1.0000R |    +8.00R |  3.67 |  3.00R |   +7.13R |   2.97 |     +6.37R |     2.55
+   Fold 2 (2026-06-24..2026-07-31)  |     1 |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.42 | +0.4500R |    +4.50R |  2.12 |  3.00R |   +3.37R |   1.70 |     +2.40R |     1.44
+   Fold 3 (2026-07-31..2026-09-04)  |     4 |   6 | 3/3   | 50.0% | [18.8%, 81.2%] |   1.33 | +0.1667R |    +1.00R |  1.33 |  2.00R |   +0.23R |   1.06 |     -0.43R |     0.90
+   Fold 4 (2026-09-04..2026-10-09)  |     2 |  12 | 7/5   | 58.3% | [32.0%, 80.7%] |   2.07 | +0.7917R |    +9.50R |  2.90 |  2.00R |   +8.11R |   2.34 |     +6.93R |     2.01
+
+4. DESGLOSE POR FAMILIA DE ACTIVOS:
+   Familia                | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   -----------------------------------------------------------------------------------------------------------------------------------------------------------
+   Sint├®ticos (SYNTH)     |  23 | 14/9  | 60.9% | [40.8%, 77.8%] |   1.68 | +0.6304R |   +14.50R |  2.61 |  4.00R |  +11.93R |   2.10 |     +9.72R |     1.79
+   Metales+WS30 (METALS)  |  11 | 6/5   | 54.5% | [28.0%, 78.7%] |   2.00 | +0.6364R |    +7.00R |  2.40 |  2.00R |   +5.66R |   1.94 |     +4.53R |     1.66
+   Forex (FOREX)          |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   2.50 | +0.7500R |    +1.50R |  2.50 |  1.00R |   +1.24R |   2.03 |     +1.02R |     1.75
+     -> Solo XAU/XAG      |   8 | 5/3   | 62.5% | [30.6%, 86.3%] |   1.90 | +0.8125R |    +6.50R |  3.17 |  1.00R |   +5.63R |   2.55 |     +4.87R |     2.18
+     -> Solo WS30         |   3 | 1/2   | 33.3% | [6.1%, 79.2%]  |   2.50 | +0.1667R |    +0.50R |  1.25 |  2.00R |   +0.04R |   1.01 |     -0.35R |     0.87
+
+5. DESGLOSE POR ACTIVO (UNIVERSO CAN├ôNICO DE 23 ACTIVOS):
+   S├¡mbolo                    | Fam    | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | NetR Sev25
+   -------------------------------------------------------------------------------------------------------------------------------------------------
+   AUDNZD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Boom 1000 Index            | SYNTH  |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.75 | +0.6500R |    +6.50R |  2.62 |  3.00R |   +5.37R |     +4.40R
+   Boom 300 Index             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Crash 1000 Index           | SYNTH  |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   1.75 | +0.1000R |    +0.50R |  1.17 |  2.00R |   -0.22R |     -0.83R
+   Crash 600 Index            | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURCHF                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURGBP                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURUSD                     | FOREX  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +2.5000R |    +2.50R | 99.00 |  0.00R |   +2.45R |     +2.40R
+   GBPAUD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPJPY                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPUSD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Jump 10 Index              | SYNTH  |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   0.50 | -0.2500R |    -0.50R |  0.50 |  1.00R |   -0.76R |     -0.97R
+   Jump 25 Index              | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Step Index                 | SYNTH  |   4 | 3/1   | 75.0% | [30.1%, 95.4%] |   2.67 | +1.7500R |    +7.00R |  8.00 |  1.00R |   +6.64R |     +6.32R
+   Step Index 200             | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Step Index 400             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   USDJPY                     | FOREX  |   1 | 0/1   |  0.0% | [0.0%, 79.3%]  |   0.00 | -1.0000R |    -1.00R |  0.00 |  0.00R |   -1.21R |     -1.38R
+   Volatility 250 (1s) Index  | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Volatility 50 (1s) Index   | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Volatility 90 Index        | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Wall Street 30             | METALS |   3 | 1/2   | 33.3% | [6.1%, 79.2%]  |   2.50 | +0.1667R |    +0.50R |  1.25 |  2.00R |   +0.04R |     -0.35R
+   XAGUSD                     | METALS |   2 | 0/2   |  0.0% | [0.0%, 65.8%]  |   0.00 | -1.0000R |    -2.00R |  0.00 |  1.00R |   -2.42R |     -2.75R
+   XAUUSD                     | METALS |   6 | 5/1   | 83.3% | [43.6%, 97.0%] |   1.90 | +1.4167R |    +8.50R |  9.50 |  1.00R |   +8.04R |     +7.62R
+   --> Distribuci├│n sobre 23 activos: Positivos=8/23 (34.8%), Negativos=3/23 (13.0%), Sin Trades=12/23 (52.2%)
+
+==================================================================================================================================
+REPORTE INTEGRAL DE VARIANTE: C2. V4 CON ATR <= 1.2 SOLO EN FOREX Y METALES PUROS (XAU/XAG; WS30 en ATR<=1.5 -> N=38)
+==================================================================================================================================
+1. M├ëTRICAS GLOBALES OOS (4 FOLDS COMBINADOS):
+   * Operaciones OOS ├Ünicas: N = 38 (Wins=22, Losses=16, BE=0)
+   * Win Rate Puntual      : 57.9% | IC Wilson 95%: [42.2%, 72.1%]
+   * Payoff (AvgW / AvgL)  : 1.84 (AvgWin=+1.841R, AvgLoss=-1.000R)
+   * Costos Base (MT5 Real): Exp=+0.6447 R/op | Net R=+24.50 R | PF=2.53 | MaxDD=4.00 R
+   * Costos Moderados      : Exp=+0.5284 R/op | Net R=+20.08 R | PF=2.04 | MaxDD=4.83 R (+0.05R slip, +15% gap SL)
+   * Costos Severos (20%g) : Exp=+0.4521 R/op | Net R=+17.18 R | PF=1.81 | MaxDD=5.28 R (+0.10R slip, +20% gap SL)
+   * Costos Severos (25%g) : Exp=+0.4289 R/op | Net R=+16.30 R | PF=1.74 | MaxDD=5.50 R (+0.10R slip, +25% gap SL)
+
+2. SEPARACI├ôN PNL EJECUTADO VS CONTRAFACTUALES:
+   * PnL Ejecutado (Aceptadas Cap=1)  : N=38 | Net R=+24.50 R
+   * Bloqueadas por Cap=1 (Contrafact): N=4 | Net R=-2.50 R (P├®rdidas evitadas: 3 ops [-3.00R], Ganancias no tomadas: 1 ops [+0.50R])
+   * Excluidas respecto a V4 por filtro: N=4 | PnL que habr├¡an generado en V4=-2.00 R (SL evitados: 3 ops [-3.00R], TP sacrificados: 1 ops [+1.00R])
+
+3. DESGLOSE POR VENTANA WALK-FORWARD (4 FOLDS):
+   Ventana / Fold                   | Purga | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   Fold 1 (2026-05-19..2026-06-23)  |     3 |   9 | 5/4   | 55.6% | [26.7%, 81.1%] |   2.20 | +0.7778R |    +7.00R |  2.75 |  4.00R |   +5.92R |   2.23 |     +5.00R |     1.91
+   Fold 2 (2026-06-24..2026-07-31)  |     1 |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.42 | +0.4500R |    +4.50R |  2.12 |  3.00R |   +3.37R |   1.70 |     +2.40R |     1.44
+   Fold 3 (2026-07-31..2026-09-04)  |     4 |   7 | 4/3   | 57.1% | [25.0%, 84.2%] |   1.62 | +0.5000R |    +3.50R |  2.17 |  2.00R |   +2.68R |   1.74 |     +1.97R |     1.48
+   Fold 4 (2026-09-04..2026-10-09)  |     2 |  12 | 7/5   | 58.3% | [32.0%, 80.7%] |   2.07 | +0.7917R |    +9.50R |  2.90 |  2.00R |   +8.11R |   2.34 |     +6.93R |     2.01
+
+4. DESGLOSE POR FAMILIA DE ACTIVOS:
+   Familia                | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | PF Mod | NetR Sev25 | PF Sev25
+   -----------------------------------------------------------------------------------------------------------------------------------------------------------
+   Sint├®ticos (SYNTH)     |  23 | 14/9  | 60.9% | [40.8%, 77.8%] |   1.68 | +0.6304R |   +14.50R |  2.61 |  4.00R |  +11.93R |   2.10 |     +9.72R |     1.79
+   Metales+WS30 (METALS)  |  13 | 7/6   | 53.8% | [29.1%, 76.8%] |   2.07 | +0.6538R |    +8.50R |  2.42 |  3.00R |   +6.91R |   1.95 |     +5.55R |     1.67
+   Forex (FOREX)          |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   2.50 | +0.7500R |    +1.50R |  2.50 |  1.00R |   +1.24R |   2.03 |     +1.02R |     1.75
+     -> Solo XAU/XAG      |   8 | 5/3   | 62.5% | [30.6%, 86.3%] |   1.90 | +0.8125R |    +6.50R |  3.17 |  1.00R |   +5.63R |   2.55 |     +4.87R |     2.18
+     -> Solo WS30         |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |   1.35 |     +0.67R |     1.16
+
+5. DESGLOSE POR ACTIVO (UNIVERSO CAN├ôNICO DE 23 ACTIVOS):
+   S├¡mbolo                    | Fam    | N   | W/L   | WR%   | Wilson 95%     | Payoff | Exp(R)   | NetR Base | PF    | MaxDD  | NetR Mod | NetR Sev25
+   -------------------------------------------------------------------------------------------------------------------------------------------------
+   AUDNZD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Boom 1000 Index            | SYNTH  |  10 | 6/4   | 60.0% | [31.3%, 83.2%] |   1.75 | +0.6500R |    +6.50R |  2.62 |  3.00R |   +5.37R |     +4.40R
+   Boom 300 Index             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Crash 1000 Index           | SYNTH  |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   1.75 | +0.1000R |    +0.50R |  1.17 |  2.00R |   -0.22R |     -0.83R
+   Crash 600 Index            | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURCHF                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURGBP                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   EURUSD                     | FOREX  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +2.5000R |    +2.50R | 99.00 |  0.00R |   +2.45R |     +2.40R
+   GBPAUD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPJPY                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   GBPUSD                     | FOREX  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Jump 10 Index              | SYNTH  |   2 | 1/1   | 50.0% | [9.5%, 90.5%]  |   0.50 | -0.2500R |    -0.50R |  0.50 |  1.00R |   -0.76R |     -0.97R
+   Jump 25 Index              | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Step Index                 | SYNTH  |   4 | 3/1   | 75.0% | [30.1%, 95.4%] |   2.67 | +1.7500R |    +7.00R |  8.00 |  1.00R |   +6.64R |     +6.32R
+   Step Index 200             | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Step Index 400             | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   USDJPY                     | FOREX  |   1 | 0/1   |  0.0% | [0.0%, 79.3%]  |   0.00 | -1.0000R |    -1.00R |  0.00 |  0.00R |   -1.21R |     -1.38R
+   Volatility 250 (1s) Index  | SYNTH  |   1 | 1/0   | 100.0% | [20.7%, 100.0%] |  99.00 | +0.5000R |    +0.50R | 99.00 |  0.00R |   +0.45R |     +0.40R
+   Volatility 50 (1s) Index   | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Volatility 90 Index        | SYNTH  |   0 | 0/0   |  0.0% | [0.0%, 0.0%]   |   0.00 | +0.0000R |    +0.00R |  0.00 |  0.00R |   +0.00R |     +0.00R
+   Wall Street 30             | METALS |   5 | 2/3   | 40.0% | [11.8%, 76.9%] |   2.50 | +0.4000R |    +2.00R |  1.67 |  2.00R |   +1.28R |     +0.67R
+   XAGUSD                     | METALS |   2 | 0/2   |  0.0% | [0.0%, 65.8%]  |   0.00 | -1.0000R |    -2.00R |  0.00 |  1.00R |   -2.42R |     -2.75R
+   XAUUSD                     | METALS |   6 | 5/1   | 83.3% | [43.6%, 97.0%] |   1.90 | +1.4167R |    +8.50R |  9.50 |  1.00R |   +8.04R |     +7.62R
+   --> Distribuci├│n sobre 23 activos: Positivos=8/23 (34.8%), Negativos=3/23 (13.0%), Sin Trades=12/23 (52.2%)
+
+==================================================================================================================================
+PARTE II: TABLA COMPARATIVA EN DATASET BASE DE 9 ACTIVOS (672 TRADES EN ALLOWLIST -> BENCHMARK HIST├ôRICO N=40)
+==================================================================================================================================
+A (Base N=40): V4 sin cambios          | N=40 (20W/20L) | WR=50.0% [35.2%, 64.8%] | Payoff=2.00 | Exp=+0.5000R | NetBase=+20.00R (PF 2.00, DD 4.00R) | NetMod=+14.85R (PF 1.61) | NetSev20=+11.60R (PF 1.44) | NetSev25=+10.50R (PF 1.38)
+B (Base N=35): V4 sin Crash 1000       | N=35 (18W/17L) | WR=51.4% [35.6%, 67.0%] | Payoff=2.03 | Exp=+0.5571R | NetBase=+19.50R (PF 2.15, DD 4.00R) | NetMod=+15.07R (PF 1.73) | NetSev20=+12.26R (PF 1.55) | NetSev25=+11.32R (PF 1.48)
+C1 (Base N=35): V4 ATR<=1.2 Fx+Met+WS30 | N=35 (19W/16L) | WR=54.3% [38.2%, 69.5%] | Payoff=1.97 | Exp=+0.6143R | NetBase=+21.50R (PF 2.34, DD 3.00R) | NetMod=+17.23R (PF 1.89) | NetSev20=+14.48R (PF 1.69) | NetSev25=+13.60R (PF 1.62)
+C2 (Base N=37): V4 ATR<=1.2 Fx+XAU/XAG | N=37 (20W/17L) | WR=54.1% [38.4%, 69.0%] | Payoff=2.00 | Exp=+0.6216R | NetBase=+23.00R (PF 2.35, DD 4.00R) | NetMod=+18.47R (PF 1.90) | NetSev20=+15.56R (PF 1.69) | NetSev25=+14.62R (PF 1.63)
+
+==================================================================================================================================
+PARTE III: VERIFICACI├ôN EN SOLO LECTURA (?mode=ro) DE COHORTE PROSPECTIVA SELLADA Y STAGING
+==================================================================================================================================
+
+[PROSPECTIVA SELLADA (shadow_research.sqlite3)]
+  * Total se├▒ales MSNR registradas                    : 15
+  * Se├▒ales aceptadas para ejecuci├│n (ACCEPTED)       : 6
+  * Cierres prospectivos EJECUTADOS (meta >= 100)     : 3 cierres | PnL Ejecutado = -0.8459 R
+      - ID  9 | 2026-10-15T14:00:00+00:00 | Jump 50 Index      (OTHER) | BUY  | TP1_WIN    | +1.0000 R
+      - ID 28 | 2026-10-15T08:00:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.9199 R
+      - ID 46 | 2026-10-15T13:00:00+00:00 | Crash 500 Index    (OTHER) | SELL | SL_LOSS    | -0.9260 R
+  * Cierres prospectivos EJECUTADOS en Forex/Metales  : 0 de 20 requeridos (Paso 4)
+  * Se├▒ales descartadas por filtro (DISCARDED)        : 9
+  * Descartadas con desenlace contrafactual medido    : 2 eventos | PnL Contrafactual = -1.4858 R
+      - ID 16 | 2026-10-15T01:20:00+00:00 | Step Index         (SYNTH) | SELL | SL_LOSS    | -0.5333 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+      - ID 26 | 2026-10-15T07:00:00+00:00 | XAUUSD             (METALS) | SELL | SL_LOSS    | -0.9525 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+
+[STAGING AISLADA (shadow_research_staging.sqlite3)]
+  * Total se├▒ales MSNR registradas                    : 44
+  * Se├▒ales aceptadas para ejecuci├│n (ACCEPTED)       : 21
+  * Cierres prospectivos EJECUTADOS (meta >= 100)     : 4 cierres | PnL Ejecutado = +0.8176 R
+      - ID 29 | 2026-10-15T21:05:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.9012 R
+      - ID 63 | 2026-10-16T05:05:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.8901 R
+      - ID 68 | 2026-10-16T08:15:00+00:00 | Step Index         (SYNTH) | SELL | TP1_WIN    | +1.7581 R
+      - ID 223 | 2026-10-17T12:45:00+00:00 | Boom 500 Index     (OTHER) | BUY  | TP1_WIN    | +0.8509 R
+  * Cierres prospectivos EJECUTADOS en Forex/Metales  : 0 de 20 requeridos (Paso 4)
+  * Se├▒ales descartadas por filtro (DISCARDED)        : 23
+  * Descartadas con desenlace contrafactual medido    : 5 eventos | PnL Contrafactual = -4.3073 R
+      - ID 78 | 2026-10-16T11:40:00+00:00 | Step Index 400     (SYNTH) | BUY  | SL_LOSS    | -0.9613 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+      - ID 101 | 2026-10-16T16:30:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.9276 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+      - ID 198 | 2026-10-17T06:45:00+00:00 | Step Index         (SYNTH) | BUY  | SL_LOSS    | -0.7440 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+      - ID 272 | 2026-10-17T22:00:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.7471 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+      - ID 274 | 2026-10-18T01:15:00+00:00 | Crash 600 Index    (SYNTH) | SELL | SL_LOSS    | -0.9273 R (Rechazo: MSNR_H4_LEVEL_STALE_MITIGATED)
+
+==================================================================================================================================
+PARTE IV: AUDITOR├ìA DE COBERTURA M15 REAL POR ACTIVO EN EL UNIVERSO CAN├ôNICO (23 ACTIVOS)
+==================================================================================================================================
+S├¡mbolo Can├│nico           | Familia  | Archivo M15 Local                | Barras M15 | Inicio M15 | Fin M15    | D├¡as   | A├▒os  | Trades Replay 180d
+---------------------------------------------------------------------------------------------------------------------------------------
+AUDNZD                     | FOREX    | AUDNZD_M15.pkl                   |     49,622 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    6 ops
+Boom 1000 Index            | SYNTH    | Boom_1000_Index_M15.pkl          |     70,012 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   71 ops
+Boom 300 Index             | SYNTH    | Boom_300_Index_M15.pkl           |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   11 ops
+Crash 1000 Index           | SYNTH    | Crash_1000_Index_M15.pkl         |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   84 ops
+Crash 600 Index            | SYNTH    | Crash_600_Index_M15.pkl          |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   10 ops
+EURCHF                     | FOREX    | EURCHF_M15.pkl                   |     49,597 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    2 ops
+EURGBP                     | FOREX    | EURGBP_M15.pkl                   |     49,623 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    2 ops
+EURUSD                     | FOREX    | EURUSD_M15.pkl                   |     49,622 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |   44 ops
+GBPAUD                     | FOREX    | GBPAUD_M15.pkl                   |     49,619 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    6 ops
+GBPJPY                     | FOREX    | GBPJPY_M15.pkl                   |     49,622 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    7 ops
+GBPUSD                     | FOREX    | GBPUSD_M15.pkl                   |     49,622 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |    2 ops
+Jump 10 Index              | SYNTH    | Jump_10_Index_M15.pkl            |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   38 ops
+Jump 25 Index              | SYNTH    | Jump_25_Index_M15.pkl            |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |  169 ops
+Step Index                 | SYNTH    | Step_Index_M15.pkl               |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |  128 ops
+Step Index 200             | SYNTH    | Step_Index_200_M15.pkl           |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   25 ops
+Step Index 400             | SYNTH    | Step_Index_400_M15.pkl           |     67,444 | 2024-11-07 | 2026-10-10 |  702.5 |  1.92 |   24 ops
+USDJPY                     | FOREX    | USDJPY_M15.pkl                   |     49,621 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |   60 ops
+Volatility 250 (1s) Index  | SYNTH    | Volatility_250_(1s)_Index_M15.pkl |     70,076 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   30 ops
+Volatility 50 (1s) Index   | SYNTH    | Volatility_50_(1s)_Index_M15.pkl |     70,079 | 2024-10-10 | 2026-10-10 |  730.0 |  2.00 |   32 ops
+Volatility 90 Index        | SYNTH    | Volatility_90_Index_M15.pkl      |     22,995 | 2026-02-13 | 2026-10-10 |  239.5 |  0.66 |   35 ops
+Wall Street 30             | METALS   | Wall_Street_30_M15.pkl           |     47,003 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |   59 ops
+XAGUSD                     | METALS   | XAGUSD_M15.pkl                   |     47,045 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |   48 ops
+XAUUSD                     | METALS   | XAUUSD_M15.pkl                   |     47,053 | 2024-10-10 | 2026-10-09 |  728.9 |  2.00 |   64 ops

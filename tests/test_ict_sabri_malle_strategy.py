@@ -77,7 +77,13 @@ class MockExecutor:
 def test_ict_config_defaults():
     config = ICTSabriMalleConfig()
     assert config.strategy_name == "ICT_SABRI_MALLE"
-    assert config.strategy_version == "ict-sabri-malle-v1"
+    assert config.strategy_version == "ict-sabri-malle-v2-fase1"
+    # Fase 1: sin NY Killzone / London Close y Silver Bullet sin la ventana NY AM 10-11.
+    assert config.ny_killzone_enabled is False
+    assert config.forex_ny_killzone_enabled is False
+    assert config.london_close_reversal_enabled is False
+    assert tuple(config.silver_bullet_hours_ny) == (3, 14)
+    assert {"Step Index", "Jump 25 Index", "Volatility 25 Index", "XAGUSD"} <= set(config.excluded_symbols)
     assert config.tp1_rr in (1.0, 2.0)
     assert config.runner_rr in (2.0, 4.0)
     assert config.be_trigger_rr in (1.0, 2.0)
@@ -269,11 +275,15 @@ def test_synthetic_and_forex_workers_route_to_ict_strategy(profile):
 
 
 def test_forex_ny_kz_and_london_close_and_silver_bullet_activation():
-    """Verify Forex pairs now activate during NY KZ, London Close, and Silver Bullet windows."""
+    """Verify Forex pairs activate during NY KZ, London Close, and Silver Bullet windows when enabled.
+
+    Fase 1 desactiva estas ventanas por defecto; aquí se activan explícitamente para probar la mecánica.
+    """
     from zoneinfo import ZoneInfo
     ny_tz = ZoneInfo("America/New_York")
 
-    strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(), config=ICTSabriMalleConfig())
+    strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(), config=ICTSabriMalleConfig(
+        ny_killzone_enabled=True, forex_ny_killzone_enabled=True, london_close_reversal_enabled=True))
 
     # Generar velas sintéticas para H1 y H4
     now_ny_kz = datetime(2026, 10, 14, 8, 30, tzinfo=ny_tz).astimezone(timezone.utc)
@@ -307,6 +317,10 @@ def test_forex_ny_kz_and_london_close_and_silver_bullet_activation():
     # No debe ser bloqueado por Killzone, continuará a evaluación de bias
     assert "OUTSIDE_INSTITUTIONAL_KILLZONE" not in res_ny["reason"]
 
+    # Con la configuración por defecto (Fase 1) la NY Killzone queda bloqueada para Forex
+    default_strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(df_h1=df_h1_ny), config=ICTSabriMalleConfig())
+    assert "OUTSIDE_INSTITUTIONAL_KILLZONE" in default_strat.analyze_symbol("EURUSD", now_utc=now_ny_kz)["reason"]
+
 
 def test_gold_worker_and_symbol_remains_exact_and_unaltered():
     """Verify GOLD worker and XAUUSD symbol preserve exact previous behavior and BE 2.0."""
@@ -320,8 +334,8 @@ def test_gold_worker_and_symbol_remains_exact_and_unaltered():
     assert cfg.second_target_rr in (2.0, 4.0)
 
     strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(), config=ICTSabriMalleConfig())
-    # Para XAUUSD, BE trigger debe ser 2.0 invariablemente
-    now_ny = datetime(2026, 10, 14, 8, 30, tzinfo=ny_tz).astimezone(timezone.utc)
+    # Para XAUUSD, BE trigger debe ser 2.0 invariablemente (London KZ 03:30 NY; NY KZ desactivada en Fase 1)
+    now_ny = datetime(2026, 10, 14, 3, 30, tzinfo=ny_tz).astimezone(timezone.utc)
     dates = [now_ny - timedelta(hours=i) for i in range(40, 0, -1)]
     df_h1 = pd.DataFrame({
         "time": dates,

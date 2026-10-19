@@ -6,6 +6,7 @@ from copy import deepcopy
 import pandas as pd
 
 ORB_STRATEGY_VERSION = "orb-ny-v4-asset-rules"
+ORB_SWEEP_STRATEGY_VERSION = "orb-ny-v5-sweep"
 
 
 def default_asset_profiles():
@@ -13,21 +14,40 @@ def default_asset_profiles():
             for key, value in ASSET_CONFIG.items()}
 
 
+# Fase 1 (18-oct-2026): ORB solo opera XAUUSD. Todos los demás activos tienen expectativa negativa
+# en ambas mitades del replay Núñez 2Y; allowed_modes=[] impide cualquier entrada.
 ASSET_CONFIG = {
-    "XAUUSD": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
-    "XAGUSD": dict(allowed_modes=["RETEST"], atr_buffer=0.10, max_range_atr_ratio=1.8, require_volume=True, pruned=True, reason="PRUNED_JONATHAN_NUNEZ"),
+    # XAUUSD: breakout/retest clásico pierde (-14.5R en 2Y); solo SWEEP (+0.17R/+0.21R por mitad).
+    "XAUUSD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
+    "XAGUSD": dict(allowed_modes=[], atr_buffer=0.10, max_range_atr_ratio=1.8, require_volume=True, pruned=True, reason="PRUNED_JONATHAN_NUNEZ"),
     "USOIL": dict(allowed_modes=[], atr_buffer=0.07, max_range_atr_ratio=2.0, require_volume=True, pruned=True, reason="PRUNED_JONATHAN_NUNEZ"),
-    "US500": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
-    "US30": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
-    "NAS100": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
-    "BTCUSD": dict(allowed_modes=["MOMENTUM"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
-    "EURUSD": dict(allowed_modes=["MOMENTUM", "RETEST"], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=False),
+    "US500": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "US30": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
+    "NAS100": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
+    "BTCUSD": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "EURUSD": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=False),
 }
 
 
 DEFAULT_ORB_PROFILE = dict(atr_buffer=0.05, max_range_atr_ratio=1.5,
                            allowed_modes=["MOMENTUM", "RETEST"], require_volume=True)
 ASSET_RULES = ASSET_CONFIG
+
+# Paso 1.3 (Staging / Tri-Motor), alineado con la Fase 1: en vivo solo XAUUSD opera (SWEEP).
+# Se conserva la evidencia de staging de XAUUSD; BTCUSD, XAGUSD y US Oil pasan a podados.
+ORB_SWEEP_OPTIMAL_MODES = {
+    "XAUUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=59.1, net_r_2y=14.92, pf_2y=1.22, trades_2y=88),
+}
+ORB_PROFITABLE_SWEEP_SYMBOLS = (
+    "XAUUSD", "XAUUSDmicro",
+)
+ORB_PRUNED_LOSING_SYMBOLS = (
+    "EURUSD", "EURUSDmicro",
+    "US SP 500", "Wall Street 30", "US Tech 100", "UK Brent Oil",
+    "BTCUSD", "BTCUSDmicro",
+    "XAGUSD", "XAGUSDmicro",
+    "US Oil",
+)
 
 
 def get_asset_rules(symbol):
@@ -46,7 +66,7 @@ def get_asset_rules(symbol):
 
 def execution_metadata(signal):
     """Evidence to persist on every filled leg, including its eventual close."""
-    if signal.get("orb_entry_mode") not in ("ORB_BREAKOUT_MOMENTUM", "ORB_BREAKOUT_RETEST"):
+    if signal.get("orb_entry_mode") not in ("ORB_BREAKOUT_MOMENTUM", "ORB_BREAKOUT_RETEST", "ORB_SWEEP_MSS"):
         return {}
     fields = {"strategy", "signal", "sl_price", "tp1_price", "tp2_price", "execution_policy", "audit_metadata", "strategy_name", "strategy_version", "retest_quality", "retest_quality_weight",
               "rejection_tail_ratio", "retest_candle_index", "asset_profile", "range_amplitude",

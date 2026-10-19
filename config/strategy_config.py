@@ -87,19 +87,23 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    # STEP: Step Index 400 es el único activo rentable en 2 años (+3.7 R, PF 1.04). Se conservan los demás para compatibilidad.
-    "STEP": ("Step Index 400", "Step Index", "Step Index 500", "Step Index 200", "Step Index 100"),
-    # JUMP: Jump 50 Index (+15.6 R, 35.5% WR, PF 1.16) y Jump 25 Index (+6.5 R) son los líderes absolutos de la familia.
-    "JUMP": ("Jump 50 Index", "Jump 25 Index", "Jump 75 Index", "Jump 10 Index"),
-    # VOLATILITY: Selección curada con los activos de menor drawdown histórico (Vol 90, 25, 15, 10, etc.)
+    # Fase 1 (18-oct-2026): Step Index, Jump 25 Index, Volatility 25 Index y XAGUSD quedan fuera de la
+    # Estrategia ICT (expectativa negativa en ambas mitades del replay fiel 365d; ver ICTSabriMalleConfig.excluded_symbols).
+    # STEP (Estrategia ICT): Step Index 400 (+44.50R) y Step Index 500 (+25.25R) son los líderes rentables en 2 años.
+    "STEP": ("Step Index 400", "Step Index 500", "Step Index 200", "Step Index 100"),
+    # JUMP (Estrategia ICT): Jump 75 (+37.75R) y Jump 10 (+13.00R) son los activos rentables de la familia.
+    "JUMP": ("Jump 75 Index", "Jump 10 Index", "Jump 50 Index"),
+    # VOLATILITY (Estrategia ICT): Selección curada liderada por Vol 10 (+61.25R), Vol 50 1s (+43.75R), Vol 25 (+20.75R), Vol 15 (+14.75R), Vol 75 1s (+13.75R), Vol 75 (+7.50R) y Vol 250 1s (+3.00R).
     "VOLATILITY": (
-        "Volatility 90 Index",
-        "Volatility 25 Index",
-        "Volatility 15 Index",
         "Volatility 10 Index",
+        "Volatility 50 (1s) Index",
+        "Volatility 15 Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 75 Index",
+        "Volatility 250 (1s) Index",
+        "Volatility 90 Index",
         "Volatility 50 Index",
         "Volatility 100 Index",
-        "Volatility 250 (1s) Index",
         "Volatility 5 Index",
         "Volatility 90 (1s) Index",
         "High Frequency Vol 100 Index",
@@ -107,41 +111,109 @@ PRUNED_ASSET_UNIVERSE = {
         "High Frequency Vol 50 Index",
         "Vol over Crash 550",
         "VolSwitch High Vol Index",
-        "Volatility 50 (1s) Index",
-        "Volatility 75 Index",
-        "Volatility 75 (1s) Index",
         "Volatility 150 (1s) Index",
         "Volatility 100 (1s) Index",
     ),
-    # BOOM: Boom 500 (+13.4 R), Boom 300 (+8.2 R), Boom 1000 (+7.6 R) y Boom 600 (+3.5 R) son rentables. Boom 900 podado (-29.3 R).
-    "BOOM": ("Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index"),
-    # CRASH: Crash 300 Index es el único líder rentable (+13.5 R, 36.1% WR, PF 1.20).
-    "CRASH": ("Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index", "Crash 1000 Index"),
-    # FOREX: Versiones normales y micro habilitables. EURUSD / EURUSDmicro es el líder rentable (+15.1 R con cierre intradía).
+    # BOOM (Estrategia ICT): Boom 500 (+13.00R), Boom 300 (+8.00R), Boom 900 (+2.75R) y Boom 600 (+0.50R).
+    "BOOM": ("Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 600 Index", "Boom 1000 Index"),
+    # CRASH (Estrategia ICT): Crash 600 Index (+17.25R, 31.8% WR, PF 1.16) es el líder rentable.
+    "CRASH": ("Crash 600 Index", "Crash 300 Index", "Crash 500 Index", "Crash 900 Index", "Crash 1000 Index"),
+    # FOREX (Estrategia ICT): Todos los pares rentables señalados en auditoría multi-anual (libres de poda).
     "FOREX": (
         "EURUSD", "EURUSDmicro",
+        "GBPUSD", "GBPUSDmicro",
         "USDCAD", "USDCADmicro",
         "USDCHF", "USDCHFmicro",
         "AUDUSD", "AUDUSDmicro",
-        "GBPUSD", "GBPUSDmicro",
         "USDJPY", "USDJPYmicro",
+        "AUDJPY", "AUDJPYmicro",
+        "AUDNZD", "AUDNZDmicro",
+        "CADCHF", "CADCHFmicro",
+        "CHFJPY", "CHFJPYmicro",
+        "EURCHF", "EURCHFmicro",
+        "GBPCAD", "GBPCADmicro",
+        "EURJPY", "EURJPYmicro",
+        "GBPJPY", "GBPJPYmicro",
     ),
     # GOLD: Conservado 100% intacto según requerimiento estricto.
     "GOLD": (
         "XAUUSD", "XAGUSD",
         "XAUUSDmicro", "XAGUSDmicro",
     ),
-    # ICT SABRI MALLE: Activos líderes del replay de 2 años (Metales, Cripto, Sintéticos y Forex con normal y micro).
+    # ICT SABRI MALLE (Metales, Cripto, Índices & Commodities): XAUUSD (+17.25R), BTCUSD (+10.25R), US Oil (+2.50R).
+    # Fase 1: sin XAGUSD, Jump 25 Index ni Step Index.
     "ICT": (
         "XAUUSD", "XAUUSDmicro",
         "BTCUSD", "BTCUSDmicro",
-        "Jump 50 Index",
+        "US Oil",
         "EURUSD", "EURUSDmicro",
-        "Crash 300 Index",
-        "Boom 500 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 600 Index",
-        "Jump 25 Index",
-        "Step Index 400",
-        "XAGUSD", "XAGUSDmicro",
+        "Jump 50 Index",
+        "Crash 300 Index", "Crash 600 Index",
+        "Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 600 Index", "Boom 1000 Index",
+        "Jump 75 Index", "Jump 10 Index",
+        "Step Index 400", "Step Index 500",
         "Wall Street 30", "US Tech 100", "US SP 500",
     ),
-}
+    # MALAYSIAN SNR (M15 Fresh/Break - Variante C2): 23 activos canónicos rentables/marginales (60.6% WR, +37.64R).
+    "MALAYSIAN_SNR": (
+        "Step Index 400", "XAGUSD", "AUDNZD", "Crash 1000 Index", "Jump 25 Index",
+        "GBPJPY", "USDJPY", "GBPUSD", "Boom 300 Index", "Volatility 250 (1s) Index",
+        "Step Index", "Jump 10 Index", "GBPAUD", "Wall Street 30", "EURUSD",
+        "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
+        "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
+    ),
+    # ORB NEW YORK (Fase 1): solo XAUUSD en modo SWEEP (+0.17R/+0.21R por mitad del replay Núñez 2Y).
+    "ORB": (
+        "XAUUSD", "XAUUSDmicro",
+    ),
+}
+
+# ========================================================
+# PORTAFOLIO TRI-MOTOR (PASOS 1 A 4): TIERS DE RIESGO Y ORQUESTACIÓN
+# ========================================================
+TRI_MOTOR_TIER_S_ASSETS = {
+    "MALAYSIAN_SNR": (
+        "Step Index 400", "XAGUSD", "AUDNZD", "Jump 25 Index", "GBPJPY",
+        "USDJPY", "GBPUSD", "Boom 300 Index", "Volatility 250 (1s) Index",
+        "Step Index", "Jump 10 Index", "GBPAUD", "Wall Street 30", "EURUSD",
+        "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
+        "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
+    ),
+    "ORB": (
+        "XAUUSD", "XAUUSDmicro",
+    ),
+    "ICT": (
+        "Volatility 10 Index",
+        "Step Index 400",
+        "Volatility 50 (1s) Index",
+        "Jump 75 Index",
+        "Step Index 500",
+    ),
+}
+
+TRI_MOTOR_TIER_A_ASSETS = {
+    "ICT": (
+        "Crash 600 Index", "XAUUSD", "XAUUSDmicro",
+        "GBPUSD", "GBPUSDmicro", "AUDJPY", "AUDJPYmicro", "Volatility 15 Index",
+        "Volatility 75 (1s) Index", "Boom 500 Index", "Jump 10 Index", "AUDNZD", "AUDNZDmicro",
+        "BTCUSD", "BTCUSDmicro", "Boom 300 Index", "Volatility 75 Index", "EURCHF", "EURCHFmicro",
+        "CADCHF", "CADCHFmicro", "EURUSD", "EURUSDmicro", "Volatility 250 (1s) Index",
+        "Boom 900 Index", "US Oil", "CHFJPY", "CHFJPYmicro", "Boom 600 Index",
+    ),
+    "MALAYSIAN_SNR": ("Crash 1000 Index",),
+}
+
+TRI_MOTOR_ORCHESTRATION_CONFIG = {
+    "cap_per_strategy_symbol": 1,
+    "anti_hedge_opposite_direction_guard": True,
+    "tier_s_risk_percent": 1.0,
+    "tier_a_risk_percent": 0.5,
+    "dual_leg_split_ratio": (0.5, 0.5),
+    "tp1_rr": 1.0,
+    "be_plus_spread_on_tp1": True,
+    "ict_gbdt_min_probability": 0.55,
+    "msnr_c2_fx_metals_max_atr": 1.2,
+    "msnr_c2_default_max_atr": 1.5,
+    "msnr_min_adx": 30.0,
+}
+

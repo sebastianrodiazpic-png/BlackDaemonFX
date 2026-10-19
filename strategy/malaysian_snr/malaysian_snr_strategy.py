@@ -74,6 +74,20 @@ def is_synthetic_symbol(symbol: str) -> bool:
     return any(kw in s for kw in synth_keywords)
 
 
+def is_fx_or_metal_symbol(symbol: str) -> bool:
+    """Identifica divisas Forex y Metales preciosos (XAUUSD, XAGUSD) excluyendo Sintéticos e Índices (Wall Street 30)."""
+    if is_synthetic_symbol(symbol):
+        return False
+    s = str(symbol).strip().upper().removesuffix("MICRO")
+    index_or_commodity_keywords = ("WALL STREET", "US TECH", "US SP", "US500", "US30", "NAS100", "OIL", "BRENT", "BTC", "ETH", "SOL")
+    if any(kw in s for kw in index_or_commodity_keywords):
+        return False
+    if s in ("XAUUSD", "XAGUSD"):
+        return True
+    fx_ccys = ("EUR", "GBP", "USD", "JPY", "AUD", "NZD", "CAD", "CHF")
+    return len(s) == 6 and s[:3] in fx_ccys and s[3:] in fx_ccys
+
+
 class MalaysianSNRStrategy:
     """Implementación de la estrategia Malaysian SNR para análisis en tiempo real."""
 
@@ -866,6 +880,17 @@ class MalaysianSNRStrategy:
             return reject("INVALID_STOP_OR_RISK_DISTANCE")
         if not is_direction_allowed(symbol, direction):
             return reject("DIRECTION_POLICY_BLOCKED")
+        # Variante C2 (walk-forward 180d): ADX(14) H1 >= min_adx en todos los escenarios.
+        if getattr(self.config, "enable_c2_fx_metals_atr_cap", False) and adx < float(getattr(self.config, "min_adx", 30.0)) - 1e-9:
+            return reject("C2_ADX_BELOW_MIN")
+        if getattr(self.config, "enable_c2_fx_metals_atr_cap", False) and current_atr > 0:
+            max_sl_atr = (
+                float(getattr(self.config, "c2_fx_metals_max_sl_atr", 1.2))
+                if is_fx_or_metal_symbol(symbol)
+                else float(getattr(self.config, "c2_default_max_sl_atr", 1.5))
+            )
+            if (risk_dist / current_atr) > max_sl_atr + 1e-9:
+                return reject("C2_STOP_ATR_CAP_EXCEEDED")
         # TP1 remains at least 2R; this version has no verified two-year edge.
         tp1_price = entry_price + (self.config.tp1_min_rr * risk_dist) if direction == "BUY" else entry_price - (self.config.tp1_min_rr * risk_dist)
 

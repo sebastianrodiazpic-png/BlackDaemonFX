@@ -1,0 +1,142 @@
+==============================================================================================================
+1. DISCREPANCIA DE UNIVERSOS: ALLOWLIST CANÓNICA (23) VS SHADOW RUNNER (19)
+==============================================================================================================
+Canónicos (23)         : ['AUDNZD', 'Boom 1000 Index', 'Boom 300 Index', 'Crash 1000 Index', 'Crash 600 Index', 'EURCHF', 'EURGBP', 'EURUSD', 'GBPAUD', 'GBPJPY', 'GBPUSD', 'Jump 10 Index', 'Jump 25 Index', 'Step Index', 'Step Index 200', 'Step Index 400', 'USDJPY', 'Volatility 250 (1s) Index', 'Volatility 50 (1s) Index', 'Volatility 90 Index', 'Wall Street 30', 'XAGUSD', 'XAUUSD']
+Runner ENABLED_19 (19) : ['BTCUSD', 'Boom 1000 Index', 'Boom 300 Index', 'Boom 500 Index', 'Crash 1000 Index', 'Crash 500 Index', 'Crash 600 Index', 'EURUSD', 'GBPAUD', 'GBPJPY', 'GBPUSD', 'Jump 10 Index', 'Jump 25 Index', 'Jump 50 Index', 'Step Index', 'Step Index 400', 'USDJPY', 'Wall Street 30', 'XAUUSD']
+Intersección (15)      : ['Boom 1000 Index', 'Boom 300 Index', 'Crash 1000 Index', 'Crash 600 Index', 'EURUSD', 'GBPAUD', 'GBPJPY', 'GBPUSD', 'Jump 10 Index', 'Jump 25 Index', 'Step Index', 'Step Index 400', 'USDJPY', 'Wall Street 30', 'XAUUSD']
+Omitidos por Runner (8): ['AUDNZD', 'EURCHF', 'EURGBP', 'Step Index 200', 'Volatility 250 (1s) Index', 'Volatility 50 (1s) Index', 'Volatility 90 Index', 'XAGUSD']
+Extra en Runner (4)    : ['BTCUSD', 'Boom 500 Index', 'Crash 500 Index', 'Jump 50 Index']
+
+Rango temporal exacto de los 957 eventos evaluados:
+  Min entry_time: 2026-04-13 08:15:00+00:00 | Max entry_time: 2026-10-10 12:00:00+00:00 | Max exit_time: 2026-10-10 13:00:00+00:00
+  Duración efectiva entre primera y última entrada: 180.16 días (~5.92 meses)
+
+Impacto de los 8 activos canónicos omitidos por el runner en el Replay de 180 días:
+  Eventos brutos en los 8 activos omitidos: 180 / 957 (18.8%)
+    - AUDNZD                    : Brutos=  6 | OOS V4(A)= 0 (+0.00R) | OOS C2= 0 (+0.00R)
+    - EURCHF                    : Brutos=  2 | OOS V4(A)= 0 (+0.00R) | OOS C2= 0 (+0.00R)
+    - EURGBP                    : Brutos=  2 | OOS V4(A)= 0 (+0.00R) | OOS C2= 0 (+0.00R)
+    - Step Index 200            : Brutos= 25 | OOS V4(A)= 1 (+0.50R) | OOS C2= 1 (+0.50R)
+    - Volatility 250 (1s) Index : Brutos= 30 | OOS V4(A)= 1 (+0.50R) | OOS C2= 1 (+0.50R)
+    - Volatility 50 (1s) Index  : Brutos= 32 | OOS V4(A)= 0 (+0.00R) | OOS C2= 0 (+0.00R)
+    - Volatility 90 Index       : Brutos= 35 | OOS V4(A)= 0 (+0.00R) | OOS C2= 0 (+0.00R)
+    - XAGUSD                    : Brutos= 48 | OOS V4(A)= 3 (-3.00R) | OOS C2= 2 (-2.00R)
+  Walk-Forward restringido a los 15 activos en común (23 ∩ 19):
+    - V4 (15 activos): N=40, WR=52.5%, NetR Base=+21.50R, PF=2.13
+    - C2 (15 activos): N=36, WR=55.6%, NetR Base=+23.50R, PF=2.47
+
+==============================================================================================================
+2. TRAZABILIDAD OPERACIÓN POR OPERACIÓN DE DIFERENCIAS ENTRE V4 (A), B, C1 Y C2
+==============================================================================================================
+
+Operaciones de V4 (A) excluidas en B (Sin Crash 1000) (Total=5, Suma R en V4=+0.50R):
+  Fold 2 | 2026-07-04 00:00:00+00:00 | Exit 2026-07-04 09:15:00+00:00 | Crash 1000 Index     | ADX=37.27 | ATR=0.805 | outcome=TP1+BE   | rr=+1.00R
+  Fold 2 | 2026-07-22 08:00:00+00:00 | Exit 2026-07-22 11:15:00+00:00 | Crash 1000 Index     | ADX=45.53 | ATR=1.455 | outcome=SL       | rr=-1.00R
+  Fold 2 | 2026-07-22 13:00:00+00:00 | Exit 2026-07-24 06:00:00+00:00 | Crash 1000 Index     | ADX=44.61 | ATR=1.468 | outcome=TP2      | rr=+2.50R
+  Fold 3 | 2026-07-31 19:00:00+00:00 | Exit 2026-07-31 22:00:00+00:00 | Crash 1000 Index     | ADX=36.77 | ATR=1.451 | outcome=SL       | rr=-1.00R
+  Fold 3 | 2026-08-29 22:00:00+00:00 | Exit 2026-08-30 00:00:00+00:00 | Crash 1000 Index     | ADX=30.96 | ATR=1.284 | outcome=SL       | rr=-1.00R
+
+Operaciones de V4 (A) excluidas en C1 (ATR<=1.2 FX+Met+WS30) (Total=6, Suma R en V4=-0.50R):
+  Fold 1 | 2026-06-08 15:00:00+00:00 | Exit 2026-06-08 15:45:00+00:00 | Wall Street 30       | ADX=42.52 | ATR=1.312 | outcome=SL       | rr=-1.00R
+  Fold 1 | 2026-06-23 14:00:00+00:00 | Exit 2026-06-23 14:45:00+00:00 | XAGUSD               | ADX=40.24 | ATR=1.229 | outcome=SL       | rr=-1.00R
+  Fold 2 | 2026-07-27 13:00:00+00:00 | Exit 2026-07-27 16:45:00+00:00 | USDJPY               | ADX=30.37 | ATR=1.284 | outcome=SL       | rr=-1.00R
+  Fold 3 | 2026-08-05 12:30:00+00:00 | Exit 2026-08-05 14:00:00+00:00 | Wall Street 30       | ADX=50.83 | ATR=1.376 | outcome=TP2      | rr=+2.50R
+  Fold 3 | 2026-08-20 07:15:00+00:00 | Exit 2026-08-20 12:00:00+00:00 | EURUSD               | ADX=58.95 | ATR=1.444 | outcome=TP1+BE   | rr=+1.00R
+  Fold 3 | 2026-09-02 10:00:00+00:00 | Exit 2026-09-02 12:15:00+00:00 | XAUUSD               | ADX=48.62 | ATR=1.430 | outcome=SL       | rr=-1.00R
+
+Operaciones de V4 (A) excluidas en C2 (ATR<=1.2 solo FX+XAU/XAG) (Total=4, Suma R en V4=-2.00R):
+  Fold 1 | 2026-06-23 14:00:00+00:00 | Exit 2026-06-23 14:45:00+00:00 | XAGUSD               | ADX=40.24 | ATR=1.229 | outcome=SL       | rr=-1.00R
+  Fold 2 | 2026-07-27 13:00:00+00:00 | Exit 2026-07-27 16:45:00+00:00 | USDJPY               | ADX=30.37 | ATR=1.284 | outcome=SL       | rr=-1.00R
+  Fold 3 | 2026-08-20 07:15:00+00:00 | Exit 2026-08-20 12:00:00+00:00 | EURUSD               | ADX=58.95 | ATR=1.444 | outcome=TP1+BE   | rr=+1.00R
+  Fold 3 | 2026-09-02 10:00:00+00:00 | Exit 2026-09-02 12:15:00+00:00 | XAUUSD               | ADX=48.62 | ATR=1.430 | outcome=SL       | rr=-1.00R
+
+Detalle completo de las 5 operaciones OOS de Wall Street 30 en V4 y C2 (vs C1):
+  Fold 1 | 2026-06-08 09:00:00+00:00 | Wall Street 30   | ADX=56.12 | ATR=0.565 | outcome=TP2      | rr=+2.50R | En C1: SÍ
+  Fold 1 | 2026-06-08 15:00:00+00:00 | Wall Street 30   | ADX=42.52 | ATR=1.312 | outcome=SL       | rr=-1.00R | En C1: NO (FILTRADA POR ATR>1.2)
+  Fold 3 | 2026-08-05 12:30:00+00:00 | Wall Street 30   | ADX=50.83 | ATR=1.376 | outcome=TP2      | rr=+2.50R | En C1: NO (FILTRADA POR ATR>1.2)
+  Fold 3 | 2026-08-24 09:30:00+00:00 | Wall Street 30   | ADX=32.68 | ATR=1.123 | outcome=SL       | rr=-1.00R | En C1: SÍ
+  Fold 4 | 2026-09-24 17:00:00+00:00 | Wall Street 30   | ADX=42.52 | ATR=0.494 | outcome=SL       | rr=-1.00R | En C1: SÍ
+
+==============================================================================================================
+3. CONCENTRACIÓN DE BENEFICIOS Y SENSIBILIDAD A COSTOS (V4 vs B vs C1 vs C2)
+==============================================================================================================
+
+[A (V4 Base)] Net R Total = +22.50R | Suma Activos Positivos = +28.00R | HHI (activos ganadores) = 0.210
+  * Top 1: XAUUSD             (+7.50R =  33.3% del Net R total |  26.8% del beneficio positivo)
+  * Top 2: Step Index         (+7.00R =  64.4% acumulado Top-2 |  51.8% del beneficio positivo)
+  * Top 3: Boom 1000 Index    (+6.50R =  93.3% acumulado Top-3 |  75.0% del beneficio positivo)
+  * Sin Top-1 (XAUUSD): N=35, WR=51.4%, NetR=+15.00R, PF=1.88, MaxDD=4.00R
+  * Sin Top-1 ni Top-2 (XAUUSD, Step Index): N=31, WR=48.4%, NetR=+8.00R, PF=1.50, MaxDD=4.00R
+
+[B (Sin Crash 1000)] Net R Total = +22.00R | Suma Activos Positivos = +27.50R | HHI (activos ganadores) = 0.217
+  * Top 1: XAUUSD             (+7.50R =  34.1% del Net R total |  27.3% del beneficio positivo)
+  * Top 2: Step Index         (+7.00R =  65.9% acumulado Top-2 |  52.7% del beneficio positivo)
+  * Top 3: Boom 1000 Index    (+6.50R =  95.5% acumulado Top-3 |  76.4% del beneficio positivo)
+  * Sin Top-1 (XAUUSD): N=30, WR=53.3%, NetR=+14.50R, PF=2.04, MaxDD=4.00R
+  * Sin Top-1 ni Top-2 (XAUUSD, Step Index): N=26, WR=50.0%, NetR=+7.50R, PF=1.58, MaxDD=4.00R
+
+[C1 (ATR<=1.2 FX+Met+WS30)] Net R Total = +23.00R | Suma Activos Positivos = +26.50R | HHI (activos ganadores) = 0.243
+  * Top 1: XAUUSD             (+8.50R =  37.0% del Net R total |  32.1% del beneficio positivo)
+  * Top 2: Step Index         (+7.00R =  67.4% acumulado Top-2 |  58.5% del beneficio positivo)
+  * Top 3: Boom 1000 Index    (+6.50R =  95.7% acumulado Top-3 |  83.0% del beneficio positivo)
+  * Sin Top-1 (XAUUSD): N=30, WR=53.3%, NetR=+14.50R, PF=2.04, MaxDD=6.00R
+  * Sin Top-1 ni Top-2 (XAUUSD, Step Index): N=26, WR=50.0%, NetR=+7.50R, PF=1.58, MaxDD=6.00R
+
+[C2 (ATR<=1.2 solo FX+Met)] Net R Total = +24.50R | Suma Activos Positivos = +28.00R | HHI (activos ganadores) = 0.223
+  * Top 1: XAUUSD             (+8.50R =  34.7% del Net R total |  30.4% del beneficio positivo)
+  * Top 2: Step Index         (+7.00R =  63.3% acumulado Top-2 |  55.4% del beneficio positivo)
+  * Top 3: Boom 1000 Index    (+6.50R =  89.8% acumulado Top-3 |  78.6% del beneficio positivo)
+  * Sin Top-1 (XAUUSD): N=32, WR=53.1%, NetR=+16.00R, PF=2.07, MaxDD=4.00R
+  * Sin Top-1 ni Top-2 (XAUUSD, Step Index): N=28, WR=50.0%, NetR=+9.00R, PF=1.64, MaxDD=4.00R
+
+ Curva de Sensibilidad a Fricción (V4 vs C2):
+  Escenario de Costo                 | V4 NetR  | V4 PF  | V4 DD  | C2 NetR  | C2 PF  | C2 DD 
+  --------------------------------------------------------------------------------------
+  Base (Spread MT5 incluido, +0.00R) |  +22.50R |   2.18 |  4.00R |  +24.50R |   2.53 |  4.00R
+  Leve (+0.03R slip, +10% gap SL)    |  +19.28R |   1.90 |  4.53R |  +21.71R |   2.20 |  4.53R
+  Moderado (+0.05R slip, +15% gap SL) |  +17.41R |   1.76 |  4.83R |  +20.08R |   2.04 |  4.83R
+  Severo 20% (+0.10R slip, +20% gap) |  +14.12R |   1.56 |  5.28R |  +17.18R |   1.81 |  5.28R
+  Severo 25% (+0.10R slip, +25% gap) |  +13.08R |   1.50 |  5.50R |  +16.30R |   1.74 |  5.50R
+  Extremo 35% (+0.15R slip, +35% gap) |   +8.55R |   1.29 |  6.33R |  +12.36R |   1.50 |  6.21R
+  Catastrófico (+0.20R slip, +50% gap) |   +2.70R |   1.08 |  9.90R |   +7.30R |   1.25 |  7.20R
+
+==============================================================================================================
+4. AUDITORÍA NO DESTRUCTIVA DE COHORTES SHADOW: EVENTOS BRUTOS VS ÚNICOS Y ALLOWLIST 23
+==============================================================================================================
+
+[PROSPECTIVA SELLADA (shadow_research.sqlite3)]
+  * Filas totales MSNR                      : 15
+  * Filas fixture sintético (--test-suite)  : 3
+  * Filas reales sincronizadas              : 12
+  * Filas reales en símbolos NO canónicos   : 1 (['Crash 500 Index'])
+  * Filas reales en allowlist canónica (23) : 11
+  * Eventos reales únicos (dedup nivel SL)  : 11 (de 12 filas reales)
+  * Eventos canónicos únicos (dedup SL)     : 10 (de 11 filas canónicas)
+  * Aceptados canónicos únicos (dedup SL)   : 4
+      - ID  17 | 2026-10-15T01:30:00+00:00 | Jump 25 Index      | BUY  | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID  27 | 2026-10-15T07:15:00+00:00 | Jump 25 Index      | BUY  | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID  28 | 2026-10-15T08:00:00+00:00 | Crash 600 Index    | SELL | sim=SL_LOSS            (-0.9199R) | mkt=SL_LOSS            (-0.9199R)
+      - ID  29 | 2026-10-15T09:05:00+00:00 | Step Index 400     | BUY  | sim=OPEN               (+0.0000R) | mkt=OPEN               (+0.0000R)
+
+[STAGING (shadow_research_staging.sqlite3)]
+  * Filas totales MSNR                      : 44
+  * Filas fixture sintético (--test-suite)  : 0
+  * Filas reales sincronizadas              : 44
+  * Filas reales en símbolos NO canónicos   : 4 (['Boom 500 Index', 'Jump 50 Index'])
+  * Filas reales en allowlist canónica (23) : 40
+  * Eventos reales únicos (dedup nivel SL)  : 35 (de 44 filas reales)
+  * Eventos canónicos únicos (dedup SL)     : 32 (de 40 filas canónicas)
+  * Aceptados canónicos únicos (dedup SL)   : 13
+      - ID  25 | 2026-10-15T20:15:00+00:00 | Jump 10 Index      | SELL | sim=TP1_WIN_RUNNER_BE  (+0.5000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID  26 | 2026-10-15T20:30:00+00:00 | Jump 10 Index      | SELL | sim=TP1_WIN_RUNNER_BE  (+0.5000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID  29 | 2026-10-15T21:05:00+00:00 | Crash 600 Index    | SELL | sim=SL_LOSS            (-1.0000R) | mkt=SL_LOSS            (-0.9012R)
+      - ID  63 | 2026-10-16T05:05:00+00:00 | Crash 600 Index    | SELL | sim=SL_LOSS            (-0.8901R) | mkt=SL_LOSS            (-0.8901R)
+      - ID  68 | 2026-10-16T08:15:00+00:00 | Step Index         | SELL | sim=TP1_WIN            (+1.7581R) | mkt=TP1_WIN            (+1.7581R)
+      - ID  80 | 2026-10-16T12:15:00+00:00 | Jump 25 Index      | SELL | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID  92 | 2026-10-16T14:15:00+00:00 | XAUUSD             | BUY  | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 217 | 2026-10-17T11:15:00+00:00 | Jump 10 Index      | SELL | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 225 | 2026-10-17T15:30:00+00:00 | Boom 300 Index     | BUY  | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 250 | 2026-10-17T18:15:00+00:00 | Jump 25 Index      | SELL | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 251 | 2026-10-17T18:30:00+00:00 | Jump 25 Index      | SELL | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 253 | 2026-10-17T20:05:00+00:00 | Crash 600 Index    | SELL | sim=PENDING_EVALUATION (+0.0000R) | mkt=PENDING_EVALUATION (+0.0000R)
+      - ID 273 | 2026-10-18T00:10:00+00:00 | Step Index         | BUY  | sim=CLOSED_OTHER       (+0.0000R) | mkt=CLOSED_OTHER       (+0.0000R)

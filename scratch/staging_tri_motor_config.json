@@ -1,0 +1,566 @@
+{
+  "schema_version": "tri-motor-staging-v1.0",
+  "environment": "STAGING_SHADOW_ONLY",
+  "production_untouched": true,
+  "mt5_order_send_enabled": false,
+  "step_1_strategy_reconfiguration": {
+    "1_1_ict_sabri_malle": {
+      "strategy_key": "ICT",
+      "strategy_label": "Estrategia ICT (Sabri Malle)",
+      "controlled_from_instruments_tabs": [
+        "SYNTHETICS",
+        "FOREX",
+        "ICT"
+      ],
+      "controlled_workers": [
+        "CRASH",
+        "BOOM",
+        "STEP",
+        "JUMP",
+        "VOLATILITY_1",
+        "VOLATILITY_2",
+        "VOLATILITY_3",
+        "VOLATILITY_4",
+        "FOREX_1",
+        "FOREX_2",
+        "FOREX_3",
+        "FOREX_4",
+        "ICT"
+      ],
+      "gbdt_min_probability": 0.55,
+      "active_22_csv_symbols": [
+        "Volatility 10 Index",
+        "Jump 25 Index",
+        "Step Index 400",
+        "Volatility 50 (1s) Index",
+        "Jump 75 Index",
+        "Step Index 500",
+        "Volatility 25 Index",
+        "Step Index",
+        "Crash 600 Index",
+        "XAUUSD",
+        "GBPUSD",
+        "AUDJPY",
+        "Volatility 15 Index",
+        "Volatility 75 (1s) Index",
+        "Boom 500 Index",
+        "Jump 10 Index",
+        "AUDNZD",
+        "BTCUSD",
+        "Boom 300 Index",
+        "Volatility 75 Index",
+        "EURCHF",
+        "CADCHF",
+        "EURUSD",
+        "Volatility 250 (1s) Index",
+        "Boom 900 Index",
+        "US Oil",
+        "CHFJPY",
+        "Boom 600 Index"
+      ],
+      "raw_2y_net_r": 486.25,
+      "raw_2y_trades": 3063,
+      "gbdt_055_filtered_2y_trades": 742,
+      "gbdt_055_filtered_2y_win_rate_pct": 63.61,
+      "gbdt_055_filtered_2y_net_r": 318.4
+    },
+    "1_2_malaysian_snr_c2": {
+      "strategy_key": "MALAYSIAN_SNR",
+      "strategy_label": "Malaysian SNR (M15 Fresh/Break)",
+      "controlled_from_instruments_tabs": [
+        "MALAYSIAN_SNR"
+      ],
+      "controlled_workers": [
+        "MALAYSIAN_SNR"
+      ],
+      "worker_display_name": "Malaysian SNR (M15 Fresh/Break)",
+      "min_adx": 30.0,
+      "enable_c2_fx_metals_atr_cap": true,
+      "c2_fx_metals_max_sl_atr": 1.2,
+      "c2_default_max_sl_atr": 1.5,
+      "max_open_trades_per_symbol": 1,
+      "active_23_canonical_symbols": [
+        "Step Index 400",
+        "XAGUSD",
+        "AUDNZD",
+        "Crash 1000 Index",
+        "Jump 25 Index",
+        "GBPJPY",
+        "USDJPY",
+        "GBPUSD",
+        "Boom 300 Index",
+        "Volatility 250 (1s) Index",
+        "Step Index",
+        "Jump 10 Index",
+        "GBPAUD",
+        "Wall Street 30",
+        "EURUSD",
+        "Volatility 50 (1s) Index",
+        "Volatility 90 Index",
+        "Boom 1000 Index",
+        "Step Index 200",
+        "EURCHF",
+        "EURGBP",
+        "XAUUSD",
+        "Crash 600 Index"
+      ],
+      "oos_180d_trades": 104,
+      "oos_180d_win_rate_pct": 60.58,
+      "oos_180d_net_r": 37.64,
+      "oos_180d_pf": 1.92,
+      "oos_180d_max_dd_r": 7.45,
+      "multiyear_2y_5y_trades": 281,
+      "multiyear_2y_5y_win_rate_pct": 64.41,
+      "multiyear_2y_5y_net_r": 125.8
+    },
+    "1_3_orb_new_york_sweep": {
+      "strategy_key": "ORB",
+      "strategy_label": "ORB New York (M5 SWEEP / HTF_SWEEP)",
+      "controlled_from_instruments_tabs": [
+        "ORB"
+      ],
+      "controlled_workers": [
+        "ORB"
+      ],
+      "optimal_modes_by_symbol": {
+        "XAUUSD": {
+          "optimal_mode": "HTF_SWEEP",
+          "expected_wr": 59.1,
+          "net_r_2y": 14.92,
+          "pf_2y": 1.22,
+          "trades_2y": 88
+        },
+        "BTCUSD": {
+          "optimal_mode": "SWEEP",
+          "expected_wr": 58.9,
+          "net_r_2y": 9.49,
+          "pf_2y": 1.18,
+          "trades_2y": 73
+        },
+        "XAGUSD": {
+          "optimal_mode": "SWEEP",
+          "expected_wr": 56.7,
+          "net_r_2y": 5.74,
+          "pf_2y": 1.19,
+          "trades_2y": 30
+        },
+        "US Oil": {
+          "optimal_mode": "HTF_SWEEP",
+          "expected_wr": 57.9,
+          "net_r_2y": 1.39,
+          "pf_2y": 1.08,
+          "trades_2y": 19
+        }
+      },
+      "active_4_sweep_symbols": [
+        "XAUUSD",
+        "XAUUSDmicro",
+        "BTCUSD",
+        "BTCUSDmicro",
+        "XAGUSD",
+        "XAGUSDmicro",
+        "US Oil"
+      ],
+      "pruned_losing_symbols": [
+        "EURUSD",
+        "EURUSDmicro",
+        "US SP 500",
+        "Wall Street 30",
+        "US Tech 100",
+        "UK Brent Oil"
+      ],
+      "multiyear_trades": 231,
+      "multiyear_win_rate_range_pct": [
+        56.7,
+        59.1
+      ],
+      "multiyear_net_r": 31.54
+    }
+  },
+  "step_2_orchestration_and_non_collision": {
+    "cap_per_strategy_symbol": 1,
+    "anti_hedge_opposite_direction_guard": true,
+    "tier_s_risk_percent": 1.0,
+    "tier_a_risk_percent": 0.5,
+    "dual_leg_split_ratio": [
+      0.5,
+      0.5
+    ],
+    "tp1_rr": 1.0,
+    "be_plus_spread_on_tp1": true,
+    "ict_gbdt_min_probability": 0.55,
+    "msnr_c2_fx_metals_max_atr": 1.2,
+    "msnr_c2_default_max_atr": 1.5,
+    "msnr_min_adx": 30.0
+  },
+  "step_3_risk_tier_scaling": {
+    "tier_s_risk_pct": 1.0,
+    "tier_a_risk_pct": 0.5,
+    "dual_leg_split": "50% TP1 @ 1.0R (BE + Spread Lock) / 50% Runner @ 2.0R-3.0R",
+    "tier_s_assets": {
+      "MALAYSIAN_SNR": [
+        "Step Index 400",
+        "XAGUSD",
+        "AUDNZD",
+        "Jump 25 Index",
+        "GBPJPY",
+        "USDJPY",
+        "GBPUSD",
+        "Boom 300 Index",
+        "Volatility 250 (1s) Index",
+        "Step Index",
+        "Jump 10 Index",
+        "GBPAUD",
+        "Wall Street 30",
+        "EURUSD",
+        "Volatility 50 (1s) Index",
+        "Volatility 90 Index",
+        "Boom 1000 Index",
+        "Step Index 200",
+        "EURCHF",
+        "EURGBP",
+        "XAUUSD",
+        "Crash 600 Index"
+      ],
+      "ORB": [
+        "XAUUSD",
+        "XAUUSDmicro",
+        "BTCUSD",
+        "BTCUSDmicro",
+        "XAGUSD",
+        "XAGUSDmicro",
+        "US Oil"
+      ],
+      "ICT": [
+        "Volatility 10 Index",
+        "Jump 25 Index",
+        "Step Index 400",
+        "Volatility 50 (1s) Index",
+        "Jump 75 Index",
+        "Step Index 500"
+      ]
+    },
+    "tier_a_assets": {
+      "ICT": [
+        "Volatility 25 Index",
+        "Step Index",
+        "Crash 600 Index",
+        "XAUUSD",
+        "XAUUSDmicro",
+        "GBPUSD",
+        "GBPUSDmicro",
+        "AUDJPY",
+        "AUDJPYmicro",
+        "Volatility 15 Index",
+        "Volatility 75 (1s) Index",
+        "Boom 500 Index",
+        "Jump 10 Index",
+        "AUDNZD",
+        "AUDNZDmicro",
+        "BTCUSD",
+        "BTCUSDmicro",
+        "Boom 300 Index",
+        "Volatility 75 Index",
+        "EURCHF",
+        "EURCHFmicro",
+        "CADCHF",
+        "CADCHFmicro",
+        "EURUSD",
+        "EURUSDmicro",
+        "Volatility 250 (1s) Index",
+        "Boom 900 Index",
+        "US Oil",
+        "CHFJPY",
+        "CHFJPYmicro",
+        "Boom 600 Index"
+      ],
+      "MALAYSIAN_SNR": [
+        "Crash 1000 Index"
+      ]
+    }
+  },
+  "step_4_staging_promotion_gates": {
+    "min_unique_closed_oos_trades": 100,
+    "min_fx_metals_prospective_closures_for_c2": 20,
+    "min_net_profit_factor_moderate_costs": 1.3,
+    "max_drawdown_r": 15.0,
+    "require_multi_asset_positive_breadth": true
+  },
+  "instruments_persistence_map": {
+    "SYNTHETICS": [
+      "Volatility 10 Index",
+      "Jump 25 Index",
+      "Step Index 400",
+      "Volatility 50 (1s) Index",
+      "Jump 75 Index",
+      "Step Index 500",
+      "Volatility 25 Index",
+      "Step Index",
+      "Crash 600 Index",
+      "Volatility 15 Index",
+      "Volatility 75 (1s) Index",
+      "Boom 500 Index",
+      "Jump 10 Index",
+      "Boom 300 Index",
+      "Volatility 75 Index",
+      "Volatility 250 (1s) Index",
+      "Boom 900 Index",
+      "Boom 600 Index",
+      "Boom 1000 Index",
+      "Crash 300 Index",
+      "Crash 500 Index",
+      "Jump 50 Index",
+      "High Frequency Vol 100 Index",
+      "High Frequency Vol 50 Index",
+      "Vol over Boom 550",
+      "Vol over Crash 550",
+      "VolSwitch High Vol Index",
+      "Volatility 100 (1s) Index",
+      "Volatility 150 (1s) Index",
+      "Volatility 5 Index",
+      "Volatility 90 (1s) Index",
+      "Volatility 90 Index"
+    ],
+    "FOREX": [
+      "EURUSD",
+      "EURUSDmicro",
+      "GBPUSD",
+      "GBPUSDmicro",
+      "USDCAD",
+      "USDCADmicro",
+      "USDCHF",
+      "USDCHFmicro",
+      "AUDUSD",
+      "AUDUSDmicro",
+      "USDJPY",
+      "USDJPYmicro",
+      "AUDJPY",
+      "AUDJPYmicro",
+      "AUDNZD",
+      "AUDNZDmicro",
+      "CADCHF",
+      "CADCHFmicro",
+      "CHFJPY",
+      "CHFJPYmicro",
+      "EURCHF",
+      "EURCHFmicro",
+      "GBPCAD",
+      "GBPCADmicro",
+      "EURJPY",
+      "EURJPYmicro",
+      "GBPJPY",
+      "GBPJPYmicro"
+    ],
+    "ORB": [
+      "XAUUSD",
+      "XAUUSDmicro",
+      "microXAUUSD",
+      "BTCUSD",
+      "BTCUSDmicro",
+      "microBTCUSD",
+      "XAGUSD",
+      "XAGUSDmicro",
+      "microXAGUSD",
+      "US Oil"
+    ],
+    "IDX_OPEN": [
+      "Wall Street 30",
+      "US Tech 100"
+    ],
+    "MALAYSIAN_SNR": [
+      "Step Index 400",
+      "XAGUSD",
+      "AUDNZD",
+      "Crash 1000 Index",
+      "Jump 25 Index",
+      "GBPJPY",
+      "USDJPY",
+      "GBPUSD",
+      "Boom 300 Index",
+      "Volatility 250 (1s) Index",
+      "Step Index",
+      "Jump 10 Index",
+      "GBPAUD",
+      "Wall Street 30",
+      "EURUSD",
+      "Volatility 50 (1s) Index",
+      "Volatility 90 Index",
+      "Boom 1000 Index",
+      "Step Index 200",
+      "EURCHF",
+      "EURGBP",
+      "XAUUSD",
+      "Crash 600 Index"
+    ],
+    "GOLD": [
+      "XAUUSD",
+      "XAUUSDmicro",
+      "microXAUUSD"
+    ],
+    "ICT": [
+      "XAUUSD",
+      "XAUUSDmicro",
+      "microXAUUSD",
+      "BTCUSD",
+      "BTCUSDmicro",
+      "microBTCUSD",
+      "US Oil",
+      "EURUSD",
+      "EURUSDmicro",
+      "Jump 25 Index",
+      "Jump 75 Index",
+      "Jump 10 Index",
+      "Jump 50 Index",
+      "Step Index 400",
+      "Step Index 500",
+      "Step Index",
+      "Crash 600 Index",
+      "Crash 300 Index",
+      "Boom 500 Index",
+      "Boom 300 Index",
+      "Boom 900 Index",
+      "Boom 600 Index",
+      "Boom 1000 Index"
+    ]
+  },
+  "workers_controlled_by_instruments_tab": {
+    "SYNTHETICS": [
+      {
+        "worker_profile": "CRASH",
+        "worker_label": "CRASH · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082102
+      },
+      {
+        "worker_profile": "BOOM",
+        "worker_label": "BOOM · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082101
+      },
+      {
+        "worker_profile": "STEP",
+        "worker_label": "STEP · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082104
+      },
+      {
+        "worker_profile": "JUMP",
+        "worker_label": "JUMP · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082105
+      },
+      {
+        "worker_profile": "VOLATILITY",
+        "worker_label": "VOLATILITY · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082103
+      },
+      {
+        "worker_profile": "VOLATILITY_1",
+        "worker_label": "VOLATILITY 1 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082401
+      },
+      {
+        "worker_profile": "VOLATILITY_2",
+        "worker_label": "VOLATILITY 2 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082402
+      },
+      {
+        "worker_profile": "VOLATILITY_3",
+        "worker_label": "VOLATILITY 3 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082403
+      },
+      {
+        "worker_profile": "VOLATILITY_4",
+        "worker_label": "VOLATILITY 4 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082404
+      }
+    ],
+    "FOREX": [
+      {
+        "worker_profile": "FOREX",
+        "worker_label": "FOREX · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082027
+      },
+      {
+        "worker_profile": "FOREX_1",
+        "worker_label": "FOREX 1 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082201
+      },
+      {
+        "worker_profile": "FOREX_2",
+        "worker_label": "FOREX 2 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082202
+      },
+      {
+        "worker_profile": "FOREX_3",
+        "worker_label": "FOREX 3 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082203
+      },
+      {
+        "worker_profile": "FOREX_4",
+        "worker_label": "FOREX 4 · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082204
+      }
+    ],
+    "ICT": [
+      {
+        "worker_profile": "ICT",
+        "worker_label": "ICT (Metales, Cripto & Índices) · Estrategia ICT",
+        "strategy_key": "ICT",
+        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "daemon_magic": 26082032
+      }
+    ],
+    "MALAYSIAN_SNR": [
+      {
+        "worker_profile": "MALAYSIAN_SNR",
+        "worker_label": "Malaysian SNR (M15 Fresh/Break)",
+        "strategy_key": "MALAYSIAN_SNR",
+        "strategy_label": "Malaysian SNR (M15 Fresh/Break · Variante C2)",
+        "daemon_magic": 26082031
+      }
+    ],
+    "ORB": [
+      {
+        "worker_profile": "ORB",
+        "worker_label": "ORB · Apertura New York (Sweep/HTF)",
+        "strategy_key": "ORB",
+        "strategy_label": "ORB New York (Sweep / HTF_Sweep)",
+        "daemon_magic": 26082028
+      }
+    ],
+    "GOLD": [
+      {
+        "worker_profile": "GOLD",
+        "worker_label": "Cuartos · Oro/Plata (XAUUSD / XAGUSD)",
+        "strategy_key": "GOLD_QUARTERS",
+        "strategy_label": "Gold Quarters (Cuartos Psicológicos)",
+        "daemon_magic": 26082029
+      }
+    ]
+  }
+}

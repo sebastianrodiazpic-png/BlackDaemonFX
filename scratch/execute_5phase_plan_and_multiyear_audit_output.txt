@@ -1,0 +1,358 @@
+=============================================================================================================================
+EJECUCIÓN DEL PLAN DE ACCIÓN EN 5 FASES (EN STAGING) Y AUDITORÍA MULTI-ANUAL POR ESTRATEGIA
+=============================================================================================================================
+
+[FASE 1 & 2 - VERIFICACIÓN EN REPLAY CAUSAL DE 2 AÑOS COMPLETOS (msnr_2year_audit/trades_augmented.csv)]
+  * Total operaciones en archivo: 987 | Rango: 2024-10-12 20:15:00 -> 2026-10-10 16:30:00
+
+  Desglose por Activo en Replay Causal 2 Años (MSNR Augmented, 2024-10 a 2026-10):
+  Símbolo                    | Trades | W/L     | WR%    | Exp(R)   | Net R (2Y) | PF     | Clasificación
+  --------------------------------------------------------------------------------------------------
+  Step Index 400             |     26 | 11/15   |  42.3% |  +0.372R |     +9.68R |   1.65 | RENTABLE
+  XAGUSD                     |     18 | 10/8    |  55.6% |  +0.401R |     +7.21R |   1.90 | RENTABLE
+  AUDNZD                     |     18 | 9/9     |  50.0% |  +0.320R |     +5.75R |   1.64 | RENTABLE
+  Crash 1000 Index           |     13 | 6/7     |  46.2% |  +0.421R |     +5.47R |   1.78 | RENTABLE
+  Jump 25 Index              |     31 | 12/19   |  38.7% |  +0.175R |     +5.42R |   1.30 | RENTABLE
+  GBPJPY                     |      8 | 5/3     |  62.5% |  +0.645R |     +5.16R |   2.72 | RENTABLE
+  USDJPY                     |     11 | 6/5     |  54.5% |  +0.466R |     +5.13R |   2.03 | RENTABLE
+  GBPUSD                     |      7 | 3/4     |  42.9% |  +0.714R |     +5.00R |   2.25 | RENTABLE
+  Boom 300 Index             |     15 | 6/9     |  40.0% |  +0.247R |     +3.71R |   1.41 | RENTABLE
+  Volatility 250 (1s) Index  |     13 | 6/7     |  46.2% |  +0.282R |     +3.66R |   1.52 | RENTABLE
+  Step Index                 |     31 | 13/18   |  41.9% |  +0.102R |     +3.16R |   1.18 | RENTABLE
+  Jump 10 Index              |     25 | 10/15   |  40.0% |  +0.111R |     +2.77R |   1.18 | RENTABLE
+  GBPAUD                     |     10 | 5/5     |  50.0% |  +0.276R |     +2.76R |   1.59 | RENTABLE
+  Wall Street 30             |     15 | 5/10    |  33.3% |  +0.171R |     +2.57R |   1.26 | RENTABLE
+  EURUSD                     |      9 | 5/4     |  55.6% |  +0.282R |     +2.54R |   1.63 | RENTABLE
+  Volatility 50 (1s) Index   |     29 | 11/18   |  37.9% |  +0.080R |     +2.31R |   1.13 | MARGINAL
+  Volatility 90 Index        |      7 | 4/3     |  57.1% |  +0.321R |     +2.25R |   1.75 | RENTABLE
+  Boom 1000 Index            |     15 | 6/9     |  40.0% |  +0.121R |     +1.81R |   1.20 | RENTABLE
+  Step Index 200             |     24 | 9/15    |  37.5% |  +0.075R |     +1.79R |   1.12 | MARGINAL
+  EURCHF                     |      4 | 2/2     |  50.0% |  +0.309R |     +1.23R |   1.62 | RENTABLE
+  EURGBP                     |      5 | 3/2     |  60.0% |  +0.200R |     +1.00R |   1.50 | RENTABLE
+  XAUUSD                     |     15 | 5/10    |  33.3% |  +0.058R |     +0.87R |   1.10 | MARGINAL
+  Crash 600 Index            |      8 | 4/4     |  50.0% |  +0.037R |     +0.29R |   1.07 | MARGINAL
+  USDCAD                     |      7 | 3/4     |  42.9% |  -0.031R |     -0.21R |   0.95 | NO RENTABLE
+  US Tech 100                |     18 | 6/12    |  33.3% |  -0.017R |     -0.31R |   0.97 | NO RENTABLE
+  Step Index 500             |     26 | 9/17    |  34.6% |  -0.017R |     -0.43R |   0.97 | NO RENTABLE
+  Jump 50 Index              |     27 | 9/18    |  33.3% |  -0.019R |     -0.51R |   0.97 | NO RENTABLE
+  GBPCAD                     |      5 | 2/3     |  40.0% |  -0.237R |     -1.18R |   0.61 | NO RENTABLE
+  Boom 900 Index             |      8 | 2/6     |  25.0% |  -0.162R |     -1.30R |   0.76 | NO RENTABLE
+  EURAUD                     |      9 | 3/6     |  33.3% |  -0.146R |     -1.31R |   0.78 | NO RENTABLE
+  EURCAD                     |      5 | 2/3     |  40.0% |  -0.348R |     -1.74R |   0.42 | NO RENTABLE
+  CADCHF                     |      6 | 1/5     |  16.7% |  -0.333R |     -2.00R |   0.60 | NO RENTABLE
+  Jump 75 Index              |     27 | 10/17   |  37.0% |  -0.086R |     -2.31R |   0.86 | NO RENTABLE
+  AUDCAD                     |      9 | 2/7     |  22.2% |  -0.261R |     -2.35R |   0.64 | NO RENTABLE
+  US SP 500                  |     17 | 5/12    |  29.4% |  -0.142R |     -2.41R |   0.80 | NO RENTABLE
+  Boom 600 Index             |     10 | 2/8     |  20.0% |  -0.264R |     -2.64R |   0.63 | NO RENTABLE
+  GBPNZD                     |      7 | 1/6     |  14.3% |  -0.500R |     -3.50R |   0.42 | NO RENTABLE
+  BTCUSD                     |     19 | 6/13    |  31.6% |  -0.187R |     -3.55R |   0.69 | NO RENTABLE
+  CHFJPY                     |     14 | 4/10    |  28.6% |  -0.283R |     -3.97R |   0.65 | NO RENTABLE
+  AUDCHF                     |      9 | 2/7     |  22.2% |  -0.469R |     -4.22R |   0.40 | NO RENTABLE
+  Volatility 75 Index        |     41 | 14/27   |  34.1% |  -0.104R |     -4.27R |   0.84 | NO RENTABLE
+  CADJPY                     |     11 | 2/9     |  18.2% |  -0.455R |     -5.00R |   0.44 | NO RENTABLE
+  AUDUSD                     |     13 | 3/10    |  23.1% |  -0.395R |     -5.14R |   0.44 | NO RENTABLE
+  Volatility 15 Index        |      9 | 1/8     |  11.1% |  -0.639R |     -5.75R |   0.28 | NO RENTABLE
+  GBPCHF                     |     11 | 2/9     |  18.2% |  -0.556R |     -6.11R |   0.25 | NO RENTABLE
+  AUDJPY                     |     10 | 2/8     |  20.0% |  -0.625R |     -6.25R |   0.22 | NO RENTABLE
+  US Oil                     |      8 | 1/7     |  12.5% |  -0.814R |     -6.51R |   0.07 | NO RENTABLE
+  USDCHF                     |     10 | 2/8     |  20.0% |  -0.666R |     -6.66R |   0.17 | NO RENTABLE
+  Volatility 25 Index        |     29 | 8/21    |  27.6% |  -0.234R |     -6.79R |   0.67 | NO RENTABLE
+  Crash 500 Index            |     14 | 4/10    |  28.6% |  -0.550R |     -7.70R |   0.23 | NO RENTABLE
+  Boom 500 Index             |     17 | 3/14    |  17.6% |  -0.467R |     -7.95R |   0.43 | NO RENTABLE
+  Volatility 75 (1s) Index   |     30 | 8/22    |  26.7% |  -0.279R |     -8.36R |   0.61 | NO RENTABLE
+  Jump 100 Index             |     36 | 9/27    |  25.0% |  -0.238R |     -8.55R |   0.68 | NO RENTABLE
+  Crash 300 Index            |     22 | 5/17    |  22.7% |  -0.396R |     -8.70R |   0.47 | NO RENTABLE
+  Crash 900 Index            |     15 | 2/13    |  13.3% |  -0.584R |     -8.76R |   0.33 | NO RENTABLE
+  EURNZD                     |     11 | 0/11    |   0.0% |  -1.009R |    -11.10R |   0.00 | NO RENTABLE
+  Volatility 10 Index        |     50 | 14/36   |  28.0% |  -0.236R |    -11.78R |   0.67 | NO RENTABLE
+  EURJPY                     |     19 | 3/16    |  15.8% |  -0.641R |    -12.18R |   0.24 | NO RENTABLE
+  Volatility 100 Index       |     26 | 5/21    |  19.2% |  -0.528R |    -13.73R |   0.30 | NO RENTABLE
+  Volatility 50 Index        |     25 | 2/23    |   8.0% |  -0.714R |    -17.85R |   0.08 | NO RENTABLE
+
+=============================================================================================================================
+PARTE B: SIMULACIÓN REPLAY MULTI-ANUAL EXTENDIDA (V4 ATR<=1.5 vs C2 ATR<=1.2 EN DATOS LARGOS DE DISCO)
+=============================================================================================================================
+  Símbolo            | Familia     | Periodo M15 Real        | Años  | V4 (ATR<=1.5) N / WR / NetR / PF   | C2 (ATR<=1.2) N / WR / NetR / PF  
+  ------------------------------------------------------------------------------------------------------------------------------------------
+  XAUUSD             | METALS      | 2022-07-07..2026-10-02  | 4.24y | N=496 | 43.8% |  -88.3R | PF 0.68  | N=315 | 43.2% |  -67.5R | PF 0.62 
+  XAGUSD             | METALS      | 2022-07-07..2026-10-02  | 4.24y | N=386 | 34.7% | -138.6R | PF 0.45  | N=237 | 37.6% |  -74.3R | PF 0.50 
+  BTCUSD             | CRYPTO      | 2023-11-25..2026-10-03  | 2.85y | N=622 | 44.9% | -111.7R | PF 0.67  | N=622 | 44.9% | -111.7R | PF 0.67 
+  ETHUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=490 | 45.7% |  -72.3R | PF 0.73  | N=490 | 45.7% |  -72.3R | PF 0.73 
+  SOLUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=427 | 36.8% | -139.5R | PF 0.48  | N=427 | 36.8% | -139.5R | PF 0.48 
+  BNBUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=420 | 36.2% | -138.3R | PF 0.48  | N=420 | 36.2% | -138.3R | PF 0.48 
+  XRPUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=425 | 34.6% | -153.3R | PF 0.45  | N=425 | 34.6% | -153.3R | PF 0.45 
+  ADAUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=350 | 31.4% | -143.0R | PF 0.40  | N=350 | 31.4% | -143.0R | PF 0.40 
+  LTCUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=325 | 32.0% | -127.1R | PF 0.42  | N=325 | 32.0% | -127.1R | PF 0.42 
+  DOGUSD             | CRYPTO      | 2024-08-01..2026-10-11  | 2.19y | N=379 | 34.3% | -140.5R | PF 0.44  | N=379 | 34.3% | -140.5R | PF 0.44 
+  Wall Street 30     | INDICES     | 2024-01-22..2026-10-02  | 2.70y | N=300 | 48.3% |  -27.4R | PF 0.82  | N=300 | 48.3% |  -27.4R | PF 0.82 
+  US Tech 100        | INDICES     | 2024-01-22..2026-10-02  | 2.70y | N=321 | 48.0% |  -41.1R | PF 0.75  | N=321 | 48.0% |  -41.1R | PF 0.75 
+  US SP 500          | INDICES     | 2024-01-22..2026-10-02  | 2.70y | N=311 | 50.8% |   -9.9R | PF 0.94  | N=311 | 50.8% |   -9.9R | PF 0.94 
+  US Oil             | COMMODITIES | 2024-01-22..2026-10-02  | 2.70y | N=263 | 43.3% |  -55.8R | PF 0.63  | N=263 | 43.3% |  -55.8R | PF 0.63 
+  EURUSD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=211 | 37.4% |  -64.0R | PF 0.52  | N=132 | 38.6% |  -40.5R | PF 0.50 
+  GBPUSD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=200 | 39.0% |  -62.0R | PF 0.49  | N=119 | 41.2% |  -24.5R | PF 0.65 
+  USDJPY             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=213 | 39.9% |  -70.5R | PF 0.45  | N=141 | 36.9% |  -57.0R | PF 0.36 
+  AUDNZD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=268 | 29.1% | -124.0R | PF 0.35  | N=191 | 28.8% |  -93.5R | PF 0.31 
+  GBPJPY             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=216 | 42.6% |  -52.5R | PF 0.58  | N=131 | 44.3% |  -27.5R | PF 0.62 
+  GBPAUD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=252 | 42.5% |  -58.5R | PF 0.60  | N=138 | 41.3% |  -36.0R | PF 0.56 
+  EURCHF             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=211 | 27.0% | -106.0R | PF 0.31  | N=139 | 23.0% |  -80.5R | PF 0.25 
+  EURGBP             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=180 | 33.3% |  -78.0R | PF 0.35  | N=116 | 25.9% |  -63.5R | PF 0.26 
+  AUDUSD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=231 | 44.2% |  -39.0R | PF 0.70  | N=122 | 44.3% |  -23.0R | PF 0.66 
+  USDCAD             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=181 | 38.1% |  -58.0R | PF 0.48  | N=106 | 38.7% |  -34.0R | PF 0.48 
+  USDCHF             | FOREX       | 2024-08-01..2026-10-09  | 2.19y | N=229 | 31.0% | -100.0R | PF 0.37  | N=133 | 30.1% |  -59.5R | PF 0.36 
+
+  [Estudio Complementario en Temporalidad H1 para Ventanas de 4.56 a 6.80 Años (XAUUSD, XAGUSD, BTCUSD)]:
+    * XAUUSD (6.79y H1)          (2019-12-17..2026-10-02, 6.79y): V4 [N=16, WR=87.5%, NetR=+15.5R, PF=8.75] | C2 [N=7, WR=85.7%, NetR=+6.5R, PF=7.50]
+    * XAUUSD (Últimos 5.0y H1)   (2021-10-03..2026-10-02, 5.00y): V4 [N=15, WR=86.7%, NetR=+15.0R, PF=8.50] | C2 [N=7, WR=85.7%, NetR=+6.5R, PF=7.50]
+    * XAGUSD (6.80y H1)          (2019-12-16..2026-10-02, 6.80y): V4 [N=13, WR=84.6%, NetR=+8.0R, PF=5.00] | C2 [N=5, WR=80.0%, NetR=+4.0R, PF=5.00]
+    * XAGUSD (Últimos 5.0y H1)   (2021-10-03..2026-10-02, 5.00y): V4 [N=11, WR=81.8%, NetR=+7.0R, PF=4.50] | C2 [N=5, WR=80.0%, NetR=+4.0R, PF=5.00]
+    * BTCUSD (4.56y H1)          (2022-03-11..2026-10-03, 4.56y): V4 [N=9, WR=88.9%, NetR=+7.5R, PF=8.50] | C2 [N=9, WR=88.9%, NetR=+7.5R, PF=8.50]
+
+=============================================================================================================================
+PARTE C: ENCASILLAMIENTO COMPLETO DE ACTIVOS RENTABLES Y NO RENTABLES POR ESTRATEGIA (2 AÑOS)
+=============================================================================================================================
+
+[ESTRATEGIA 1: MALAYSIAN SNR (MSNR) - 60 ACTIVOS EN 2 AÑOS (Baseline vs Augmented)]
+  Símbolo                      | Cat            | Base N / WR / NetR         | Aug N / WR / ExpR / NetR         | Veredicto (Augmented)
+  --------------------------------------------------------------------------------------------------------------------------
+  Step Index 400               | SYNTH_PODA     | N=210 | 32.9% |   -1.6R    | N= 26 | 42.3% | +0.37R |   +9.7R | RENTABLE
+  XAGUSD                       | METALS         | N=135 | 27.4% |  -33.6R    | N= 18 | 55.6% | +0.40R |   +7.2R | RENTABLE
+  AUDNZD                       | FOREX_PODA     | N=155 | 23.9% |  -51.1R    | N= 18 | 50.0% | +0.32R |   +5.8R | RENTABLE
+  Crash 1000 Index             | CRASH_CORE     | N= 86 | 31.4% |   -5.2R    | N= 13 | 46.2% | +0.42R |   +5.5R | RENTABLE
+  Jump 25 Index                | JUMP_CORE      | N=235 | 36.2% |  +20.3R    | N= 31 | 38.7% | +0.17R |   +5.4R | RENTABLE
+  GBPJPY                       | FOREX_PODA     | N=142 | 23.9% |  -52.3R    | N=  8 | 62.5% | +0.65R |   +5.2R | RENTABLE
+  USDJPY                       | FOREX_CORE     | N=131 | 30.5% |   -9.9R    | N= 11 | 54.5% | +0.47R |   +5.1R | RENTABLE
+  GBPUSD                       | FOREX_CORE     | N=145 | 23.4% |  -43.1R    | N=  7 | 42.9% | +0.71R |   +5.0R | RENTABLE
+  Boom 300 Index               | SYNTH_PODA     | N= 94 | 30.9% |   -5.8R    | N= 15 | 40.0% | +0.25R |   +3.7R | RENTABLE
+  Volatility 250 (1s) Index    | SYNTH_PODA     | N= 39 | 15.4% |  -19.5R    | N= 13 | 46.2% | +0.28R |   +3.7R | RENTABLE
+  Step Index                   | STEP_CORE      | N=229 | 32.8% |  -15.2R    | N= 31 | 41.9% | +0.10R |   +3.2R | MARGINAL
+  Jump 10 Index                | JUMP_CORE      | N=210 | 31.4% |  -15.9R    | N= 25 | 40.0% | +0.11R |   +2.8R | MARGINAL
+  GBPAUD                       | FOREX_PODA     | N=124 | 27.4% |  -30.5R    | N= 10 | 50.0% | +0.28R |   +2.8R | RENTABLE
+  Wall Street 30               | INDICES        | N=127 | 29.1% |  -15.0R    | N= 15 | 33.3% | +0.17R |   +2.6R | RENTABLE
+  EURUSD                       | FOREX_CORE     | N=146 | 27.4% |  -26.3R    | N=  9 | 55.6% | +0.28R |   +2.5R | RENTABLE
+  Volatility 50 (1s) Index     | SYNTH_PODA     | N=211 | 30.8% |  -18.2R    | N= 29 | 37.9% | +0.08R |   +2.3R | MARGINAL
+  Volatility 90 Index          | SYNTH_PODA     | N= 72 | 27.8% |  -13.5R    | N=  7 | 57.1% | +0.32R |   +2.2R | RENTABLE
+  Boom 1000 Index              | BOOM_CORE      | N= 83 | 21.7% |  -30.4R    | N= 15 | 40.0% | +0.12R |   +1.8R | MARGINAL
+  Step Index 200               | STEP_CORE      | N=235 | 33.2% |   +0.8R    | N= 24 | 37.5% | +0.07R |   +1.8R | MARGINAL
+  EURCHF                       | FOREX_PODA     | N=140 | 25.0% |  -50.0R    | N=  4 | 50.0% | +0.31R |   +1.2R | MARGINAL
+  EURGBP                       | FOREX_PODA     | N=133 | 18.8% |  -74.1R    | N=  5 | 60.0% | +0.20R |   +1.0R | MARGINAL
+  XAUUSD                       | METALS         | N=134 | 42.5% |  +38.6R    | N= 15 | 33.3% | +0.06R |   +0.9R | MARGINAL
+  Crash 600 Index              | CRASH_CORE     | N=105 | 31.4% |   -6.0R    | N=  8 | 50.0% | +0.04R |   +0.3R | MARGINAL
+  USDCAD                       | FOREX_CORE     | N=136 | 34.6% |   +3.9R    | N=  7 | 42.9% | -0.03R |   -0.2R | NO RENTABLE
+  US Tech 100                  | INDICES        | N=118 | 39.8% |  +19.4R    | N= 18 | 33.3% | -0.02R |   -0.3R | NO RENTABLE
+  Step Index 500               | STEP_CORE      | N=211 | 31.8% |  -10.8R    | N= 26 | 34.6% | -0.02R |   -0.4R | NO RENTABLE
+  Jump 50 Index                | JUMP_CORE      | N=212 | 38.2% |  +37.7R    | N= 27 | 33.3% | -0.02R |   -0.5R | NO RENTABLE
+  GBPCAD                       | FOREX_PODA     | N=137 | 29.2% |  -26.1R    | N=  5 | 40.0% | -0.24R |   -1.2R | NO RENTABLE
+  Boom 900 Index               | SYNTH_PODA     | N=106 | 18.9% |  -44.7R    | N=  8 | 25.0% | -0.16R |   -1.3R | NO RENTABLE
+  EURAUD                       | FOREX_PODA     | N=163 | 31.3% |  -25.9R    | N=  9 | 33.3% | -0.15R |   -1.3R | NO RENTABLE
+  EURCAD                       | FOREX_PODA     | N=128 | 32.0% |  -11.6R    | N=  5 | 40.0% | -0.35R |   -1.7R | NO RENTABLE
+  CADCHF                       | FOREX_PODA     | N=134 | 20.1% |  -65.2R    | N=  6 | 16.7% | -0.33R |   -2.0R | NO RENTABLE
+  Jump 75 Index                | SYNTH_PODA     | N=224 | 35.7% |  +19.4R    | N= 27 | 37.0% | -0.09R |   -2.3R | NO RENTABLE
+  AUDCAD                       | FOREX_PODA     | N=152 | 20.4% |  -62.2R    | N=  9 | 22.2% | -0.26R |   -2.4R | NO RENTABLE
+  US SP 500                    | INDICES        | N=128 | 34.4% |   +0.7R    | N= 17 | 29.4% | -0.14R |   -2.4R | NO RENTABLE
+  Boom 600 Index               | BOOM_CORE      | N=112 | 21.4% |  -40.8R    | N= 10 | 20.0% | -0.26R |   -2.6R | NO RENTABLE
+  GBPNZD                       | FOREX_PODA     | N=159 | 21.4% |  -67.2R    | N=  7 | 14.3% | -0.50R |   -3.5R | NO RENTABLE
+  BTCUSD                       | CRYPTO         | N=173 | 32.4% |  -17.2R    | N= 19 | 31.6% | -0.19R |   -3.6R | NO RENTABLE
+  CHFJPY                       | FOREX_PODA     | N=146 | 31.5% |  -16.7R    | N= 14 | 28.6% | -0.28R |   -4.0R | NO RENTABLE
+  AUDCHF                       | FOREX_PODA     | N=141 | 22.7% |  -60.1R    | N=  9 | 22.2% | -0.47R |   -4.2R | NO RENTABLE
+  Volatility 75 Index          | VOL_CORE       | N=236 | 26.7% |  -44.8R    | N= 41 | 34.1% | -0.10R |   -4.3R | NO RENTABLE
+  CADJPY                       | FOREX_PODA     | N=126 | 34.1% |   -1.2R    | N= 11 | 18.2% | -0.46R |   -5.0R | NO RENTABLE
+  AUDUSD                       | FOREX_CORE     | N=156 | 22.4% |  -50.8R    | N= 13 | 23.1% | -0.40R |   -5.1R | NO RENTABLE
+  Volatility 15 Index          | SYNTH_PODA     | N= 67 | 34.3% |   +3.9R    | N=  9 | 11.1% | -0.64R |   -5.8R | NO RENTABLE
+  GBPCHF                       | FOREX_PODA     | N=143 | 21.0% |  -70.5R    | N= 11 | 18.2% | -0.56R |   -6.1R | NO RENTABLE
+  AUDJPY                       | FOREX_PODA     | N=154 | 27.3% |  -34.8R    | N= 10 | 20.0% | -0.62R |   -6.2R | NO RENTABLE
+  US Oil                       | COMMODITIES    | N=117 | 29.1% |  -27.8R    | N=  8 | 12.5% | -0.81R |   -6.5R | NO RENTABLE
+  USDCHF                       | FOREX_CORE     | N=141 | 31.9% |  -20.2R    | N= 10 | 20.0% | -0.67R |   -6.7R | NO RENTABLE
+  Volatility 25 Index          | VOL_CORE       | N=215 | 29.3% |  -23.3R    | N= 29 | 27.6% | -0.23R |   -6.8R | NO RENTABLE
+  Crash 500 Index              | CRASH_CORE     | N=101 | 25.7% |  -21.2R    | N= 14 | 28.6% | -0.55R |   -7.7R | NO RENTABLE
+  Boom 500 Index               | BOOM_CORE      | N= 90 | 24.4% |  -25.2R    | N= 17 | 17.6% | -0.47R |   -8.0R | NO RENTABLE
+  Volatility 75 (1s) Index     | SYNTH_PODA     | N=202 | 28.2% |  -33.5R    | N= 30 | 26.7% | -0.28R |   -8.4R | NO RENTABLE
+  Jump 100 Index               | JUMP_CORE      | N=230 | 30.4% |  -14.2R    | N= 36 | 25.0% | -0.24R |   -8.6R | NO RENTABLE
+  Crash 300 Index              | SYNTH_PODA     | N=114 | 28.9% |  -12.6R    | N= 22 | 22.7% | -0.40R |   -8.7R | NO RENTABLE
+  Crash 900 Index              | SYNTH_PODA     | N= 89 | 30.3% |   -5.1R    | N= 15 | 13.3% | -0.58R |   -8.8R | NO RENTABLE
+  EURNZD                       | FOREX_PODA     | N=142 | 29.6% |  -24.8R    | N= 11 |  0.0% | -1.01R |  -11.1R | NO RENTABLE
+  Volatility 10 Index          | VOL_CORE       | N=210 | 28.6% |  -31.5R    | N= 50 | 28.0% | -0.24R |  -11.8R | NO RENTABLE
+  EURJPY                       | FOREX_PODA     | N=142 | 24.6% |  -51.0R    | N= 19 | 15.8% | -0.64R |  -12.2R | NO RENTABLE
+  Volatility 100 Index         | VOL_CORE       | N= 93 | 17.2% |  -60.4R    | N= 26 | 19.2% | -0.53R |  -13.7R | NO RENTABLE
+  Volatility 50 Index          | VOL_CORE       | N= 52 | 11.5% |  -35.1R    | N= 25 |  8.0% | -0.71R |  -17.9R | NO RENTABLE
+
+[ESTRATEGIA 2: ICT SABRI MALLE - 60 ACTIVOS EN 2 AÑOS (5,762 trades, Base vs Augmented)]
+  Símbolo                      | Cat            | Aug N  | WR TP1%  | WR TP2%  | Exp(R)   | Net R (2Y) | Recomendación Oficial
+  --------------------------------------------------------------------------------------------------------------------
+  Volatility 10 Index          | VOL_CORE       |    198 |    42.9% |    25.8% |  +0.309R |    +61.25R | ACTIVE
+  Jump 25 Index                | JUMP_CORE      |    170 |    42.9% |    26.5% |  +0.322R |    +54.75R | ACTIVE
+  Step Index 400               | SYNTH_PODA     |    175 |    41.7% |    24.0% |  +0.254R |    +44.50R | ACTIVE
+  Volatility 50 (1s) Index     | SYNTH_PODA     |    208 |    39.9% |    23.6% |  +0.210R |    +43.75R | ACTIVE
+  Jump 75 Index                | SYNTH_PODA     |    173 |    42.2% |    21.4% |  +0.218R |    +37.75R | ACTIVE
+  Step Index 500               | STEP_CORE      |    191 |    38.7% |    20.4% |  +0.132R |    +25.25R | ACTIVE
+  Volatility 25 Index          | VOL_CORE       |    186 |    38.2% |    19.9% |  +0.112R |    +20.75R | ACTIVE
+  Step Index                   | STEP_CORE      |    172 |    36.6% |    22.1% |  +0.119R |    +20.50R | ACTIVE
+  Crash 600 Index              | CRASH_CORE     |     73 |    43.8% |    20.5% |  +0.236R |    +17.25R | ACTIVE
+  XAUUSD                       | METALS         |    103 |    38.8% |    22.3% |  +0.167R |    +17.25R | ACTIVE
+  GBPUSD                       | FOREX_CORE     |     58 |    43.1% |    24.1% |  +0.284R |    +16.50R | ACTIVE
+  Wall Street 30               | INDICES        |    146 |    34.2% |    24.0% |  +0.104R |    +15.25R | PRUNED
+  AUDJPY                       | FOREX_PODA     |     37 |    54.1% |    18.9% |  +0.412R |    +15.25R | ACTIVE
+  Volatility 15 Index          | SYNTH_PODA     |     56 |    42.9% |    23.2% |  +0.263R |    +14.75R | ACTIVE
+  Volatility 75 (1s) Index     | SYNTH_PODA     |    176 |    37.5% |    18.8% |  +0.078R |    +13.75R | ACTIVE
+  Boom 500 Index               | BOOM_CORE      |     71 |    39.4% |    22.5% |  +0.183R |    +13.00R | ACTIVE
+  Jump 10 Index                | JUMP_CORE      |    156 |    38.5% |    17.9% |  +0.083R |    +13.00R | ACTIVE
+  AUDNZD                       | FOREX_PODA     |     24 |    45.8% |    29.2% |  +0.427R |    +10.25R | ACTIVE
+  BTCUSD                       | CRYPTO         |    110 |    36.4% |    20.9% |  +0.093R |    +10.25R | ACTIVE
+  US Tech 100                  | INDICES        |    142 |    34.5% |    21.8% |  +0.072R |    +10.25R | PRUNED
+  Boom 300 Index               | SYNTH_PODA     |     88 |    38.6% |    18.2% |  +0.091R |     +8.00R | ACTIVE
+  Volatility 75 Index          | VOL_CORE       |    205 |    35.6% |    18.5% |  +0.037R |     +7.50R | ACTIVE
+  GBPCAD                       | FOREX_PODA     |     66 |    34.8% |    22.7% |  +0.095R |     +6.25R | PRUNED
+  EURCHF                       | FOREX_PODA     |     63 |    38.1% |    19.0% |  +0.095R |     +6.00R | ACTIVE
+  Crash 500 Index              | CRASH_CORE     |    109 |    34.9% |    20.2% |  +0.050R |     +5.50R | PRUNED
+  CADCHF                       | FOREX_PODA     |     54 |    37.0% |    20.4% |  +0.097R |     +5.25R | ACTIVE
+  Volatility 90 Index          | SYNTH_PODA     |     52 |    34.6% |    21.2% |  +0.062R |     +3.25R | PRUNED
+  EURUSD                       | FOREX_CORE     |     48 |    33.3% |    22.9% |  +0.068R |     +3.25R | PRUNED
+  Volatility 250 (1s) Index    | SYNTH_PODA     |     49 |    38.8% |    16.3% |  +0.061R |     +3.00R | ACTIVE
+  Boom 900 Index               | SYNTH_PODA     |     68 |    35.3% |    19.1% |  +0.040R |     +2.75R | ACTIVE
+  US Oil                       | COMMODITIES    |     98 |    38.8% |    14.3% |  +0.026R |     +2.50R | ACTIVE
+  USDCAD                       | FOREX_CORE     |     47 |    34.0% |    21.3% |  +0.053R |     +2.50R | PRUNED
+  AUDUSD                       | FOREX_CORE     |     44 |    34.1% |    20.5% |  +0.040R |     +1.75R | PRUNED
+  CHFJPY                       | FOREX_PODA     |     34 |    41.2% |    11.8% |  +0.029R |     +1.00R | ACTIVE
+  Boom 600 Index               | BOOM_CORE      |     67 |    37.3% |    14.9% |  +0.007R |     +0.50R | ACTIVE
+  Step Index 200               | STEP_CORE      |    203 |    34.5% |    17.7% |  +0.000R |     +0.00R | PRUNED
+  XAGUSD                       | METALS         |     99 |    33.3% |    18.2% |  -0.015R |     -1.50R | PRUNED
+  Boom 1000 Index              | BOOM_CORE      |     81 |    34.6% |    16.0% |  -0.028R |     -2.25R | PRUNED
+  Jump 100 Index               | JUMP_CORE      |    163 |    35.6% |    15.3% |  -0.020R |     -3.25R | PRUNED
+  Crash 1000 Index             | CRASH_CORE     |     76 |    32.9% |    17.1% |  -0.043R |     -3.25R | PRUNED
+  GBPNZD                       | FOREX_PODA     |     36 |    30.6% |    16.7% |  -0.097R |     -3.50R | PRUNED
+  USDCHF                       | FOREX_CORE     |     74 |    33.8% |    14.9% |  -0.064R |     -4.75R | PRUNED
+  EURJPY                       | FOREX_PODA     |     34 |    35.3% |     8.8% |  -0.140R |     -4.75R | PRUNED
+  AUDCAD                       | FOREX_PODA     |     34 |    32.4% |    11.8% |  -0.147R |     -5.00R | PRUNED
+  GBPJPY                       | FOREX_PODA     |     48 |    33.3% |    12.5% |  -0.115R |     -5.50R | PRUNED
+  USDJPY                       | FOREX_CORE     |     31 |    35.5% |     3.2% |  -0.234R |     -7.25R | PRUNED
+  EURGBP                       | FOREX_PODA     |     61 |    31.1% |    14.8% |  -0.119R |     -7.25R | PRUNED
+  Jump 50 Index                | JUMP_CORE      |    184 |    33.7% |    16.3% |  -0.041R |     -7.50R | PRUNED
+  EURAUD                       | FOREX_PODA     |     42 |    23.8% |    16.7% |  -0.232R |     -9.75R | PRUNED
+  Crash 300 Index              | SYNTH_PODA     |    121 |    32.2% |    14.9% |  -0.095R |    -11.50R | PRUNED
+  CADJPY                       | FOREX_PODA     |     37 |    27.0% |     8.1% |  -0.318R |    -11.75R | PRUNED
+  EURNZD                       | FOREX_PODA     |     31 |    22.6% |     9.7% |  -0.379R |    -11.75R | PRUNED
+  Crash 900 Index              | SYNTH_PODA     |     92 |    29.3% |    15.2% |  -0.147R |    -13.50R | PRUNED
+  AUDCHF                       | FOREX_PODA     |     45 |    24.4% |    11.1% |  -0.317R |    -14.25R | PRUNED
+  GBPAUD                       | FOREX_PODA     |     42 |    19.0% |    11.9% |  -0.411R |    -17.25R | PRUNED
+  US SP 500                    | INDICES        |    148 |    30.4% |    15.5% |  -0.120R |    -17.75R | PRUNED
+  GBPCHF                       | FOREX_PODA     |     64 |    26.6% |    10.9% |  -0.277R |    -17.75R | PRUNED
+  EURCAD                       | FOREX_PODA     |     59 |    25.4% |     5.1% |  -0.403R |    -23.75R | PRUNED
+  Volatility 100 Index         | VOL_CORE       |    122 |    32.0% |     6.6% |  -0.246R |    -30.00R | PRUNED
+  Volatility 50 Index          | VOL_CORE       |    118 |    27.1% |     6.8% |  -0.339R |    -40.00R | PRUNED
+
+[ESTRATEGIA 3A: SMC STEP & JUMP WORKERS (2 Años: 2024-10 a 2026-10, 1,083 trades)]
+  * Jump 10 Index              | N=104 | WR Global(3R)= 27.9% (WR TP1= 27.9%) | NetR= -20.50R | PF= 0.72 | MaxDD=25.00R | NO RENTABLE
+  * Jump 100 Index             | N= 71 | WR Global(3R)= 29.6% (WR TP1= 29.6%) | NetR=  -7.50R | PF= 0.84 | MaxDD=19.50R | NO RENTABLE
+  * Jump 25 Index              | N=100 | WR Global(3R)= 30.0% (WR TP1= 30.0%) | NetR=  -4.00R | PF= 0.94 | MaxDD=18.00R | NO RENTABLE
+  * Jump 50 Index              | N= 88 | WR Global(3R)= 30.7% (WR TP1= 30.7%) | NetR=  -6.50R | PF= 0.89 | MaxDD=14.00R | NO RENTABLE
+  * Jump 75 Index              | N= 87 | WR Global(3R)= 39.1% (WR TP1= 39.1%) | NetR= +14.00R | PF= 1.28 | MaxDD=10.50R | RENTABLE
+  * Step Index                 | N=137 | WR Global(3R)= 38.7% (WR TP1= 38.7%) | NetR= +18.00R | PF= 1.22 | MaxDD=11.50R | RENTABLE
+  * Step Index 200             | N=142 | WR Global(3R)= 30.3% (WR TP1= 30.3%) | NetR= -25.00R | PF= 0.74 | MaxDD=31.50R | NO RENTABLE
+  * Step Index 300             | N=122 | WR Global(3R)= 24.6% (WR TP1= 24.6%) | NetR= -28.00R | PF= 0.69 | MaxDD=36.50R | NO RENTABLE
+  * Step Index 400             | N=111 | WR Global(3R)= 36.0% (WR TP1= 36.0%) | NetR= +10.00R | PF= 1.14 | MaxDD=15.00R | NO RENTABLE
+  * Step Index 500             | N=121 | WR Global(3R)= 41.3% (WR TP1= 41.3%) | NetR= +23.50R | PF= 1.34 | MaxDD=11.00R | RENTABLE
+
+[ESTRATEGIA 3B: SMC VOLATILITY WORKERS (2 Años: 2024-10 a 2026-10, 2,221 trades)]
+  * High Frequency Vol 10 Index  | N= 25 | WR Global(3R)= 28.0% (WR TP1= 28.0%) | NetR=  -4.00R | PF= 0.76 | MaxDD= 7.00R | NO RENTABLE
+  * High Frequency Vol 100 Index | N= 20 | WR Global(3R)= 30.0% (WR TP1= 30.0%) | NetR=  +1.00R | PF= 1.09 | MaxDD= 5.00R | MARGINAL
+  * High Frequency Vol 25 Index  | N= 24 | WR Global(3R)= 20.8% (WR TP1= 20.8%) | NetR=  -7.50R | PF= 0.56 | MaxDD= 9.00R | NO RENTABLE
+  * High Frequency Vol 50 Index  | N= 28 | WR Global(3R)= 35.7% (WR TP1= 35.7%) | NetR=  +7.50R | PF= 1.58 | MaxDD= 7.00R | RENTABLE
+  * High Frequency Vol 75 Index  | N= 28 | WR Global(3R)= 25.0% (WR TP1= 25.0%) | NetR=  -8.00R | PF= 0.62 | MaxDD=11.00R | NO RENTABLE
+  * Spot Up - Volatility Up Index | N= 48 | WR Global(3R)= 25.0% (WR TP1= 25.0%) | NetR= -13.00R | PF= 0.62 | MaxDD=17.00R | NO RENTABLE
+  * Vol over Boom 400            | N= 45 | WR Global(3R)= 31.1% (WR TP1= 31.1%) | NetR=  -3.50R | PF= 0.89 | MaxDD=14.50R | NO RENTABLE
+  * Vol over Boom 550            | N= 38 | WR Global(3R)= 36.8% (WR TP1= 36.8%) | NetR=  +0.50R | PF= 1.02 | MaxDD= 9.00R | MARGINAL
+  * Vol over Boom 750            | N= 39 | WR Global(3R)= 20.5% (WR TP1= 20.5%) | NetR= -13.00R | PF= 0.57 | MaxDD=17.00R | NO RENTABLE
+  * Vol over Crash 400           | N= 40 | WR Global(3R)= 15.0% (WR TP1= 15.0%) | NetR= -24.00R | PF= 0.27 | MaxDD=25.00R | NO RENTABLE
+  * Vol over Crash 550           | N= 30 | WR Global(3R)= 40.0% (WR TP1= 40.0%) | NetR=  +5.50R | PF= 1.32 | MaxDD= 4.50R | RENTABLE
+  * Vol over Crash 750           | N= 42 | WR Global(3R)= 23.8% (WR TP1= 23.8%) | NetR=  -8.00R | PF= 0.73 | MaxDD=10.50R | NO RENTABLE
+  * VolSwitch High Vol Index     | N= 66 | WR Global(3R)= 34.8% (WR TP1= 34.8%) | NetR=  +8.00R | PF= 1.19 | MaxDD=12.50R | RENTABLE
+  * VolSwitch Low Vol Index      | N= 64 | WR Global(3R)= 28.1% (WR TP1= 28.1%) | NetR=  -5.50R | PF= 0.87 | MaxDD=11.00R | NO RENTABLE
+  * VolSwitch Medium Vol Index   | N= 55 | WR Global(3R)= 29.1% (WR TP1= 29.1%) | NetR=  -7.00R | PF= 0.82 | MaxDD=15.50R | NO RENTABLE
+  * Volatility 10 (1s) Index     | N=102 | WR Global(3R)= 29.4% (WR TP1= 29.4%) | NetR=  -3.50R | PF= 0.95 | MaxDD=30.50R | NO RENTABLE
+  * Volatility 10 Index          | N=108 | WR Global(3R)= 31.5% (WR TP1= 31.5%) | NetR=  -4.00R | PF= 0.94 | MaxDD=16.50R | NO RENTABLE
+  * Volatility 100 (1s) Index    | N= 77 | WR Global(3R)= 31.2% (WR TP1= 31.2%) | NetR=  -8.50R | PF= 0.83 | MaxDD=17.00R | NO RENTABLE
+  * Volatility 100 Index         | N= 74 | WR Global(3R)= 24.3% (WR TP1= 24.3%) | NetR= -11.00R | PF= 0.79 | MaxDD=19.00R | NO RENTABLE
+  * Volatility 15 (1s) Index     | N= 91 | WR Global(3R)= 31.9% (WR TP1= 31.9%) | NetR=  -0.50R | PF= 0.99 | MaxDD=12.00R | NO RENTABLE
+  * Volatility 15 Index          | N= 46 | WR Global(3R)= 37.0% (WR TP1= 37.0%) | NetR=  +5.00R | PF= 1.19 | MaxDD= 6.50R | RENTABLE
+  * Volatility 150 (1s) Index    | N= 63 | WR Global(3R)= 34.9% (WR TP1= 34.9%) | NetR=  +3.50R | PF= 1.09 | MaxDD=11.00R | MARGINAL
+  * Volatility 25 (1s) Index     | N=121 | WR Global(3R)= 29.8% (WR TP1= 29.8%) | NetR=  -3.50R | PF= 0.95 | MaxDD=20.00R | NO RENTABLE
+  * Volatility 25 Index          | N=100 | WR Global(3R)= 34.0% (WR TP1= 34.0%) | NetR=  +0.00R | PF= 1.00 | MaxDD=13.50R | NO RENTABLE
+  * Volatility 250 (1s) Index    | N= 40 | WR Global(3R)= 40.0% (WR TP1= 40.0%) | NetR=  +3.00R | PF= 1.14 | MaxDD= 6.50R | MARGINAL
+  * Volatility 30 (1s) Index     | N= 93 | WR Global(3R)= 26.9% (WR TP1= 26.9%) | NetR=  -9.50R | PF= 0.84 | MaxDD=18.50R | NO RENTABLE
+  * Volatility 30 Index          | N= 50 | WR Global(3R)= 32.0% (WR TP1= 32.0%) | NetR=  -4.00R | PF= 0.88 | MaxDD= 7.00R | NO RENTABLE
+  * Volatility 5 (1s) Index      | N= 29 | WR Global(3R)= 31.0% (WR TP1= 31.0%) | NetR=  -4.50R | PF= 0.75 | MaxDD= 9.00R | NO RENTABLE
+  * Volatility 5 Index           | N= 54 | WR Global(3R)= 31.5% (WR TP1= 31.5%) | NetR=  +1.50R | PF= 1.04 | MaxDD= 9.00R | MARGINAL
+  * Volatility 50 (1s) Index     | N=115 | WR Global(3R)= 39.1% (WR TP1= 39.1%) | NetR= +26.00R | PF= 1.39 | MaxDD=10.00R | RENTABLE
+  * Volatility 50 Index          | N=111 | WR Global(3R)= 28.8% (WR TP1= 28.8%) | NetR=  -9.00R | PF= 0.87 | MaxDD=21.50R | NO RENTABLE
+  * Volatility 75 (1s) Index     | N= 82 | WR Global(3R)= 39.0% (WR TP1= 39.0%) | NetR= +10.00R | PF= 1.20 | MaxDD=14.50R | RENTABLE
+  * Volatility 75 Index          | N=104 | WR Global(3R)= 38.5% (WR TP1= 38.5%) | NetR= +15.00R | PF= 1.25 | MaxDD=10.00R | RENTABLE
+  * Volatility 90 (1s) Index     | N= 91 | WR Global(3R)= 33.0% (WR TP1= 33.0%) | NetR=  +0.50R | PF= 1.01 | MaxDD=12.00R | MARGINAL
+  * Volatility 90 Index          | N= 32 | WR Global(3R)= 37.5% (WR TP1= 37.5%) | NetR=  +1.50R | PF= 1.08 | MaxDD= 7.50R | MARGINAL
+  * Volatility Crash 750 Index   | N= 46 | WR Global(3R)= 26.1% (WR TP1= 26.1%) | NetR=  -9.00R | PF= 0.73 | MaxDD=13.00R | NO RENTABLE
+
+[ESTRATEGIA 3C: SMC TRADICIONAL EN FOREX/METALES/ÍNDICES/CRIPTO (2 Años: smc_replay_2years_summary.csv)]
+  * SMC_CON_FILTROS_TOTALES  | EURUSD           | N=  8 | WR= 50.0% | Exp=+0.50R | Net%= +3.98% | PF=2.00 | MaxDD%= 1.99% | RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | GBPUSD           | N=  5 | WR= 40.0% | Exp=-0.08R | Net%= -0.44% | PF=0.86 | MaxDD%= 1.99% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | USDJPY           | N= 18 | WR= 38.9% | Exp=+0.17R | Net%= +2.85% | PF=1.27 | MaxDD%= 6.82% | RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | USDCHF           | N=  3 | WR= 33.3% | Exp=+0.00R | Net%= -0.03% | PF=1.00 | MaxDD%= 1.99% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | XAUUSD           | N= 47 | WR= 21.3% | Exp=-0.35R | Net%=-15.67% | PF=0.55 | MaxDD%=19.73% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | XAGUSD           | N= 16 | WR= 31.2% | Exp=-0.06R | Net%= -1.15% | PF=0.91 | MaxDD%= 6.79% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | US_Oil           | N=  2 | WR=  0.0% | Exp=-1.00R | Net%= -1.99% | PF=0.00 | MaxDD%= 1.99% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | US_Tech_100      | N= 72 | WR= 27.8% | Exp=-0.17R | Net%=-11.89% | PF=0.77 | MaxDD%=19.91% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | US_SP_500        | N= 59 | WR= 30.5% | Exp=-0.08R | Net%= -5.41% | PF=0.88 | MaxDD%=12.61% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | Wall_Street_30   | N= 54 | WR= 27.8% | Exp=-0.17R | Net%= -9.06% | PF=0.77 | MaxDD%=13.38% | NO RENTABLE
+  * SMC_CON_FILTROS_TOTALES  | BTCUSD           | N= 35 | WR= 40.0% | Exp=+0.20R | Net%= +6.84% | PF=1.33 | MaxDD%= 7.78% | RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | EURUSD           | N=162 | WR= 27.2% | Exp=-0.19R | Net%=-26.99% | PF=0.75 | MaxDD%=30.51% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | GBPUSD           | N=175 | WR= 22.9% | Exp=-0.31R | Net%=-43.15% | PF=0.59 | MaxDD%=44.74% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | USDJPY           | N=178 | WR= 33.7% | Exp=+0.01R | Net%= +0.22% | PF=1.02 | MaxDD%=21.69% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | USDCHF           | N=184 | WR= 29.9% | Exp=-0.10R | Net%=-18.73% | PF=0.85 | MaxDD%=27.46% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | XAUUSD           | N=268 | WR= 34.3% | Exp=+0.03R | Net%= +5.44% | PF=1.05 | MaxDD%=20.83% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | XAGUSD           | N=241 | WR= 29.9% | Exp=-0.10R | Net%=-23.87% | PF=0.85 | MaxDD%=26.78% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | US_Oil           | N=159 | WR= 20.1% | Exp=-0.40R | Net%=-47.41% | PF=0.50 | MaxDD%=48.65% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | US_Tech_100      | N=275 | WR= 33.1% | Exp=-0.01R | Net%= -4.61% | PF=0.99 | MaxDD%=18.34% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | US_SP_500        | N=259 | WR= 27.8% | Exp=-0.17R | Net%=-36.47% | PF=0.77 | MaxDD%=40.64% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | Wall_Street_30   | N=262 | WR= 30.1% | Exp=-0.10R | Net%=-24.03% | PF=0.86 | MaxDD%=28.20% | NO RENTABLE
+  * SMC_CRUDA_SIN_FILTROS    | BTCUSD           | N=220 | WR= 33.2% | Exp=-0.00R | Net%= -3.13% | PF=0.99 | MaxDD%=20.97% | NO RENTABLE
+
+[ESTRATEGIA 4: ORB NEW YORK (Jonathan Núñez M5 - 2025-03 a 2026-10)]
+  * CURRENT            | BTCUSD             | N=  8 | WR= 75.0% | NetR=  +3.03R | PF= 2.51 | MaxDD= 1.00R | RENTABLE
+  * CURRENT            | US SP 500          | N= 42 | WR= 42.9% | NetR=  -7.78R | PF= 0.68 | MaxDD= 9.79R | NO RENTABLE
+  * CURRENT            | US Tech 100        | N= 38 | WR= 55.3% | NetR=  -1.39R | PF= 0.92 | MaxDD= 5.00R | NO RENTABLE
+  * CURRENT            | Wall Street 30     | N= 23 | WR= 47.8% | NetR=  -1.45R | PF= 0.88 | MaxDD= 6.00R | NO RENTABLE
+  * CURRENT            | XAGUSD             | N=183 | WR= 50.3% | NetR=  -9.56R | PF= 0.90 | MaxDD=14.24R | NO RENTABLE
+  * CURRENT            | XAUUSD             | N=130 | WR= 50.8% | NetR= -14.53R | PF= 0.77 | MaxDD=19.56R | NO RENTABLE
+  * EXPANDED           | BTCUSD             | N=  8 | WR= 75.0% | NetR=  +3.03R | PF= 2.51 | MaxDD= 1.00R | RENTABLE
+  * EXPANDED           | EURUSD             | N=187 | WR= 51.9% | NetR=  -6.14R | PF= 0.93 | MaxDD=20.86R | NO RENTABLE
+  * EXPANDED           | UK Brent Oil       | N=282 | WR= 45.4% | NetR= -42.23R | PF= 0.73 | MaxDD=44.34R | NO RENTABLE
+  * EXPANDED           | US Oil             | N=245 | WR= 42.4% | NetR= -42.87R | PF= 0.70 | MaxDD=44.04R | NO RENTABLE
+  * EXPANDED           | US SP 500          | N= 42 | WR= 42.9% | NetR=  -7.78R | PF= 0.68 | MaxDD= 9.79R | NO RENTABLE
+  * EXPANDED           | US Tech 100        | N= 38 | WR= 55.3% | NetR=  -1.39R | PF= 0.92 | MaxDD= 5.00R | NO RENTABLE
+  * EXPANDED           | Wall Street 30     | N= 23 | WR= 47.8% | NetR=  -1.45R | PF= 0.88 | MaxDD= 6.00R | NO RENTABLE
+  * EXPANDED           | XAGUSD             | N=183 | WR= 50.3% | NetR=  -9.56R | PF= 0.90 | MaxDD=14.24R | NO RENTABLE
+  * EXPANDED           | XAUUSD             | N=130 | WR= 50.8% | NetR= -14.53R | PF= 0.77 | MaxDD=19.56R | NO RENTABLE
+  * HTF                | BTCUSD             | N=  1 | WR=100.0% | NetR=  +0.51R | PF=99.00 | MaxDD= 0.00R | RENTABLE
+  * HTF                | EURUSD             | N= 36 | WR= 38.9% | NetR=  -9.96R | PF= 0.55 | MaxDD= 9.96R | NO RENTABLE
+  * HTF                | UK Brent Oil       | N= 51 | WR= 35.3% | NetR= -17.56R | PF= 0.47 | MaxDD=17.57R | NO RENTABLE
+  * HTF                | US Oil             | N= 42 | WR= 50.0% | NetR=  -2.88R | PF= 0.86 | MaxDD= 7.32R | NO RENTABLE
+  * HTF                | US SP 500          | N=  5 | WR= 20.0% | NetR=  -2.50R | PF= 0.38 | MaxDD= 2.00R | NO RENTABLE
+  * HTF                | US Tech 100        | N=  6 | WR= 16.7% | NetR=  -4.50R | PF= 0.10 | MaxDD= 3.50R | NO RENTABLE
+  * HTF                | Wall Street 30     | N=  4 | WR= 25.0% | NetR=  -1.50R | PF= 0.50 | MaxDD= 2.00R | NO RENTABLE
+  * HTF                | XAGUSD             | N= 33 | WR= 39.4% | NetR=  -6.36R | PF= 0.68 | MaxDD= 8.36R | NO RENTABLE
+  * HTF                | XAUUSD             | N= 26 | WR= 38.5% | NetR=  -6.95R | PF= 0.57 | MaxDD= 8.98R | NO RENTABLE
+  * HTF_SWEEP          | BTCUSD             | N= 10 | WR= 60.0% | NetR=  +3.01R | PF= 1.75 | MaxDD= 2.00R | RENTABLE
+  * HTF_SWEEP          | EURUSD             | N= 44 | WR= 40.9% | NetR= -10.08R | PF= 0.61 | MaxDD=10.08R | NO RENTABLE
+  * HTF_SWEEP          | UK Brent Oil       | N= 69 | WR= 40.6% | NetR= -16.55R | PF= 0.60 | MaxDD=20.10R | NO RENTABLE
+  * HTF_SWEEP          | US Oil             | N= 57 | WR= 54.4% | NetR=  +3.14R | PF= 1.12 | MaxDD=10.24R | MARGINAL
+  * HTF_SWEEP          | US SP 500          | N=  8 | WR= 50.0% | NetR=  +0.03R | PF= 1.01 | MaxDD= 2.00R | MARGINAL
+  * HTF_SWEEP          | US Tech 100        | N=  9 | WR= 44.4% | NetR=  +0.00R | PF= 1.00 | MaxDD= 1.50R | NO RENTABLE
+  * HTF_SWEEP          | Wall Street 30     | N=  6 | WR= 50.0% | NetR=  -0.49R | PF= 0.84 | MaxDD= 1.50R | NO RENTABLE
+  * HTF_SWEEP          | XAGUSD             | N= 42 | WR= 52.4% | NetR=  +3.16R | PF= 1.16 | MaxDD= 5.00R | RENTABLE
+  * HTF_SWEEP          | XAUUSD             | N= 30 | WR= 40.0% | NetR=  -4.96R | PF= 0.72 | MaxDD=10.47R | NO RENTABLE
+  * SWEEP              | BTCUSD             | N= 39 | WR= 59.0% | NetR=  +7.54R | PF= 1.47 | MaxDD= 5.50R | RENTABLE
+  * SWEEP              | EURUSD             | N=149 | WR= 47.0% | NetR= -19.57R | PF= 0.76 | MaxDD=33.21R | NO RENTABLE
+  * SWEEP              | UK Brent Oil       | N=208 | WR= 40.4% | NetR= -49.44R | PF= 0.61 | MaxDD=54.05R | NO RENTABLE
+  * SWEEP              | US Oil             | N=201 | WR= 42.3% | NetR= -36.35R | PF= 0.69 | MaxDD=43.69R | NO RENTABLE
+  * SWEEP              | US SP 500          | N= 40 | WR= 40.0% | NetR= -11.06R | PF= 0.58 | MaxDD=15.07R | NO RENTABLE
+  * SWEEP              | US Tech 100        | N= 31 | WR= 41.9% | NetR=  -2.49R | PF= 0.86 | MaxDD= 6.49R | NO RENTABLE
+  * SWEEP              | Wall Street 30     | N= 19 | WR= 31.6% | NetR=  -9.98R | PF= 0.23 | MaxDD= 9.49R | NO RENTABLE
+  * SWEEP              | XAGUSD             | N=113 | WR= 48.7% | NetR=  -0.88R | PF= 0.98 | MaxDD=10.00R | NO RENTABLE
+  * SWEEP              | XAUUSD             | N= 93 | WR= 59.1% | NetR= +17.71R | PF= 1.47 | MaxDD= 4.99R | RENTABLE

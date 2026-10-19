@@ -137,7 +137,8 @@ class ShadowSynchronizer:
         # Consultar trades ejecutados para cruzar estado de mercado
         cur.execute("""
             SELECT id, instrument, direction, entry_time, exit_time, entry_price, exit_price,
-                   net_pnl, realized_rr, result, exit_reason
+                   net_pnl, realized_rr, result, exit_reason,
+                   setup_reason, execution_key, risk_amount
             FROM trades
             WHERE entry_time >= ?
             ORDER BY id ASC
@@ -183,13 +184,14 @@ class ShadowSynchronizer:
                     setup = (t.get("setup_reason") or "").upper()
                     exec_k = (t.get("execution_key") or "").upper()
                     
-                    strat_match = True
-                    if strategy_family == "ICT":
-                        if "MSNR" in setup or "MSNR" in exec_k:
-                            strat_match = False
-                    elif strategy_family == "MSNR":
-                        if "ICT" in setup or "ICT" in exec_k:
-                            strat_match = False
+                    # El trade debe pertenecer a la MISMA estrategia (setup_reason empieza por su nombre).
+                    if setup.startswith("ICT_SABRI_MALLE"):
+                        trade_family = "ICT"
+                    elif setup.startswith("MALAYSIAN_SNR") or "MSNR" in setup:
+                        trade_family = "MSNR"
+                    else:
+                        trade_family = "OTHER"
+                    strat_match = strategy_family == "ALL" or trade_family == strategy_family
                     
                     if strat_match:
                         # Prioridad 1: Coincidencia explícita de timestamp o hash en execution_key

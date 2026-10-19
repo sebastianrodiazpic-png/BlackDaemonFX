@@ -145,7 +145,13 @@ class MalaysianSNRConfig:
     leg2_risk_ratio: float = 0.5     # 50% del riesgo (0.5%)
     be_spread_buffer_multiplier: float = 1.5
 
-    # Selección histórica conservada; no acredita ventaja en la versión actual.
+    # Variante C2 (Staging): Tope de Stop Loss en unidades ATR (<= 1.2 en Forex/Metales, <= 1.5 en Sintéticos y Wall Street 30)
+    min_adx: float = 30.0
+    enable_c2_fx_metals_atr_cap: bool = False
+    c2_fx_metals_max_sl_atr: float = 1.2
+    c2_default_max_sl_atr: float = 1.5
+
+    # Selección histórica conservada; 23 activos canónicos rentables/marginales.
     allowed_symbols: tuple = (
         # Sintéticos
         "Step Index 400", "Crash 1000 Index", "Jump 25 Index", "Boom 300 Index",
@@ -158,3 +164,17 @@ class MalaysianSNRConfig:
         "GBPJPY", "EURUSD", "USDJPY", "AUDNZD", "GBPUSD", "GBPAUD",
         "Wall Street 30", "EURCHF", "EURGBP",
     )
+
+
+def msnr_c2_staging_config(**overrides) -> MalaysianSNRConfig:
+    """Devuelve la configuración de Staging para Malaysian SNR Variante C2 (60.6% WR, +37.64R)."""
+    params = dict(
+        min_adx=30.0,
+        enable_c2_fx_metals_atr_cap=True,
+        c2_fx_metals_max_sl_atr=1.2,
+        c2_default_max_sl_atr=1.5,
+        continuation_min_adx=30.0,
+    )
+    params.update(overrides)
+    return MalaysianSNRConfig(**params)
+

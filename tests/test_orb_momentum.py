@@ -9,6 +9,9 @@ from strategy.orb.new_york_orb import NewYorkORBStrategy, ORBConfig
 from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradingConfig
 
 
+pytestmark = pytest.mark.usefixtures("orb_classic_modes")
+
+
 def evaluate(direction="BUY", change=None, enabled=True):
     candles = _session_candles(direction).iloc[:4].copy()
     if change:

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class ICTSabriMalleConfig:
     strategy_name: str = "ICT_SABRI_MALLE"
-    strategy_version: str = "ict-sabri-malle-v1"
+    strategy_version: str = "ict-sabri-malle-v2-fase1"  # v2: sin ventana NY 07-12:30 (no sintéticos) + exclusiones
     macro_timeframe: str = "H4"
     structure_timeframe: str = "H1"
     entry_timeframe: str = "M15"
@@ -19,10 +19,19 @@ class ICTSabriMalleConfig:
     ny_kz_start_ny: int = 7         # 07:00 NY
     ny_kz_end_ny: int = 11          # 11:00 NY
     # Replay fiel (365d, sin lookahead): Londres +0.18R/trade (n=238), NY 07-11 -0.16R/trade (n=434).
-    ny_killzone_enabled: bool = True
-    forex_ny_killzone_enabled: bool = True  # Permite a Forex operar también en New York Killzone
-    london_close_reversal_enabled: bool = True  # Ventana 11:00-12:30 NY (Toni Maura M15 FVG reversal)
-    silver_bullet_enabled: bool = True  # Ventanas Silver Bullet (03-04, 10-11, 14-15 NY)
+    # Fase 1 (18-oct-2026): replay fiel 365d, mercados reales NY 07-12 = -0.158R/trade (n=434, negativo
+    # en ambas mitades) vs resto +0.179R/trade (n=238, positivo en ambas). Sintéticos no se ven afectados (24/7).
+    ny_killzone_enabled: bool = False
+    forex_ny_killzone_enabled: bool = False  # NY Killzone desactivada también para Forex
+    london_close_reversal_enabled: bool = False  # Ventana 11:00-12:30 NY (horas 11-12 negativas en replay fiel)
+    silver_bullet_enabled: bool = True  # Ventanas Silver Bullet restringidas a silver_bullet_hours_ny
+    silver_bullet_hours_ny: tuple = (3, 14)  # Se retira la ventana NY AM 10-11
+
+    # Activos con expectativa negativa en AMBAS mitades del replay fiel (excluidos solo para ICT)
+    excluded_symbols: tuple = (
+        "Step Index", "Jump 25 Index", "Volatility 25 Index",
+        "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+    )
     
     # Cierre de Mercado y Guardias de Rollover (Forex, Metales, Índices)
     market_closure_filter_enabled: bool = True
@@ -85,4 +94,17 @@ class ICTSabriMalleConfig:
     ifvg_bpr_enabled: bool = True
     ifvg_lookback_bars: int = 24
     ifvg_bpr_require_gbdt_filter: bool = True
+
+    # Paso 1.1: Umbral calibrado GBDT LightGBM y activos ACTIVE (sin los excluidos de la Fase 1)
+    gbdt_min_probability: float = 0.55
+    active_22_symbols: tuple = (
+        "Volatility 10 Index", "Step Index 400", "Volatility 50 (1s) Index",
+        "Jump 75 Index", "Step Index 500",
+        "Crash 600 Index", "XAUUSD", "GBPUSD", "AUDJPY",
+        "Volatility 15 Index", "Volatility 75 (1s) Index", "Boom 500 Index", "Jump 10 Index",
+        "AUDNZD", "BTCUSD", "Boom 300 Index", "Volatility 75 Index",
+        "EURCHF", "CADCHF", "EURUSD", "Volatility 250 (1s) Index",
+        "Boom 900 Index", "US Oil", "CHFJPY", "Boom 600 Index",
+    )
+
 
