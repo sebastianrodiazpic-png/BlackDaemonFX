@@ -112,7 +112,10 @@ def test_one_percent_operation_is_split_into_two_half_percent_legs():
     assert runner["risk_percent"] == 0.5
     assert runner["risk_amount"] == 50.0
     assert runner["target_rr"] == 2.0
-    assert runner["take_profit"] == 120.0
+    # Contrato: objetivo lógico TP2; el TP del broker es el máximo de la extensión progresiva (4R) y el monitor
+    # cierra en 2R si no hay continuación (_manage_runner_extension).
+    assert runner["logical_target_rr"] == 2.0 and runner["broker_target_rr"] == 4.0
+    assert runner["take_profit"] == 140.0
 
 
 def test_daemon_pipeline_uses_harmonic_as_bonus_with_adaptive_75_gate_by_default():
@@ -130,7 +133,7 @@ def test_daemon_pipeline_uses_harmonic_as_bonus_with_adaptive_75_gate_by_default
     assert engine.pipeline_config.harmonic_minimum_score == 75.0
 
 
-def test_smc_management_keeps_2r_target_despite_legacy_extension_flag():
+def test_smc_management_keeps_2r_logical_target_with_extension_flag():
     engine = LiveTradingEngine(
         provider=Provider(),
         repository=Repo(),
@@ -158,6 +161,30 @@ def test_smc_management_keeps_2r_target_despite_legacy_extension_flag():
     assert result["actual_risk_percent"] == 1.0
     tp1, runner = result["legs"]
     assert tp1["target_rr"] == 1.0
-    assert runner["target_rr"] == 2.0
-    assert runner["take_profit"] == 120.0
+    assert runner["target_rr"] == 2.0 and runner["logical_target_rr"] == 2.0
+    assert runner["broker_target_rr"] == 4.0 and runner["take_profit"] == 140.0
     assert runner["risk_percent"] == 0.5
+
+
+def test_smc_runner_broker_target_is_tp2_when_extension_is_off():
+    engine = LiveTradingEngine(
+        provider=Provider(),
+        repository=Repo(),
+        config=LiveTradingConfig(
+            execution_enabled=False,
+            validate_order_in_dry_run=False,
+            max_entry_drift_r=None,
+            risk_percent=1.0,
+            split_entries_enabled=True,
+            split_entry_risk_fraction=0.50,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            runner_extension_enabled=False,
+        ),
+        executor=Executor(),
+    )
+    engine.multi_timeframe = Analyzer()
+    engine._smc_entry_preflight = lambda *args: {"valid": True}
+
+    runner = engine.process_symbol("Volatility 90 Index")["legs"][1]
+    assert runner["target_rr"] == 2.0 and runner["take_profit"] == 120.0

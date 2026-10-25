@@ -376,7 +376,9 @@ def test_all_strategies_move_runner_to_break_even_plus_spread_when_tp1_closes(st
 # -------------------------------------------------------------------------
 # Test 3: Runner Behavior at TP2 (No Continuation -> Closes with + $100 Profit)
 # -------------------------------------------------------------------------
-@pytest.mark.parametrize("strategy_name", ["ORB_NEW_YORK", "GOLD_QUARTERS", "SMC", "MALAYSIAN_SNR"])
+# MALAYSIAN_SNR no evalúa continuación: su runner sube el stop de forma progresiva hacia 4R (registro 19-oct-2026,
+# "runner TP3/TP4"); ver test_msnr_runner_locks_1r_at_tp2_and_keeps_running.
+@pytest.mark.parametrize("strategy_name", ["ORB_NEW_YORK", "GOLD_QUARTERS", "SMC"])
 def test_all_strategies_runner_closes_at_tp2_when_no_continuation(monkeypatch, strategy_name):
     """Verifies that at TP2 (2.0 R:R = + $100 USD profit):
     - First locks +1.0 R profit in broker.
@@ -458,6 +460,32 @@ def test_all_strategies_runner_closes_at_tp2_when_no_continuation(monkeypatch, s
     closed_ticket, close_reason = lifecycle_executor.closes[-1]
     assert closed_ticket == 2001
     assert "no_continuation" in close_reason
+
+
+def test_msnr_runner_locks_1r_at_tp2_and_keeps_running(monkeypatch):
+    """MSNR a 2R: bloquea +1R en el broker y sigue hacia su objetivo máximo sin cerrar (no evalúa continuación)."""
+    entry, initial_sl = 100.0, 90.0
+    runner_pos = SimpleNamespace(ticket=2002, price_open=entry, price_current=120.5, sl=100.06, tp=140.0)
+    positions = {2002: runner_pos}
+    lifecycle_executor = MockTradeLifecycleExecutor(positions)
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(execution_enabled=True, runner_extension_enabled=True,
+                                      runner_extension_max_target_rr=4.0, smc_runner_max_target_rr=4.0)
+    engine.repository = MockExecutionRepo()
+    engine.executor = MockPositionExecutor(positions)
+    engine.provider = MockDataProvider(current_price=120.5)
+    engine.lifecycle_manager = SimpleNamespace(trade_executor=lifecycle_executor)
+    monkeypatch.setattr(live_mod, "evaluate_runner_continuation",
+                        lambda *a, **k: pytest.fail("MSNR no debe evaluar continuación"))
+    metadata = {"trade_leg": "RUNNER", "strategy_name": "MALAYSIAN_SNR", "initial_stop_loss": initial_sl}
+    trade = {"id": 98, "broker_position_ticket": "2002", "instrument": "Volatility 75 Index", "direction": "BUY",
+             "details": {"metadata": dict(metadata)}}
+    result = engine._manage_runner_extension(trade=trade, position=runner_pos, metadata=metadata,
+                                             initial_stop_loss=initial_sl, current_rr=2.05,
+                                             move_stop=lifecycle_executor.move_stop_loss)
+    assert result["profit_lock_rr"] == 1.0 and runner_pos.sl == 110.0
+    assert result["closed"] is False and not lifecycle_executor.closes
+    assert metadata["runner_extension_stage"] == "EXTENDED_TO_3R"
 
 
 # -------------------------------------------------------------------------
@@ -654,9 +682,9 @@ def test_tp1_closes_immediately_when_crossing_target_rr_and_never_persists_open(
 
 
 
-@pytest.mark.parametrize("env_value,expected", [(None, 0.5), ("1.0", 1.0), ("0.01", 0.1), ("abc", 0.5)])
+@pytest.mark.parametrize("env_value,expected", [(None, 1.0), ("0.5", 0.5), ("0.01", 0.1), ("abc", 1.0)])
 def test_msnr_phase1_reduced_risk_multiplier(monkeypatch, env_value, expected):
-    """Fase 1: MSNR opera a 0.5x del riesgo base hasta acumular 50 trades reales con C2."""
+    """MSNR opera al 1% total por defecto; DAEMONBLACKFX_MSNR_RISK_MULT permite reducirlo (0.1-1.0)."""
     if env_value is None:
         monkeypatch.delenv("DAEMONBLACKFX_MSNR_RISK_MULT", raising=False)
     else:

@@ -102,6 +102,52 @@ from strategy.smc.exhaustion_reversal import (
 _QUARANTINE_PROCESS_LOCK = threading.RLock()
 
 
+# ICT: activos sintéticos antes podados por los workers ("tóxicos") liberados por evidencia del replay fiel
+# (límite + tope spread/SL 2%). DAEMONBLACKFX_ICT_UNPRUNE_SYNTHETICS=0 restaura las listas anteriores.
+_UNPRUNE_SYNTHETICS = os.getenv("DAEMONBLACKFX_ICT_UNPRUNE_SYNTHETICS", "1").strip().lower() not in ("0", "false", "off")
+# Detección de sintéticos alineada con el replay fiel (strategy.ict.ict_strategy.is_synthetic_asset): incluye
+# High Frequency Vol 50/100 y VolSwitch High Vol, que antes no recibían entrada limitada, tope spread/SL 2 % ni IA en
+# sombra. DAEMONBLACKFX_SYNTH_DETECTION_EXTENDED=0 vuelve a la detección anterior.
+_SYNTH_DETECTION_EXTENDED = os.getenv("DAEMONBLACKFX_SYNTH_DETECTION_EXTENDED", "1").strip().lower() not in ("0", "false", "off")
+# Posiciones físicas simultáneas (2 por operación): 16 = 8 operaciones. DAEMONBLACKFX_MAX_OPEN_POSITIONS lo ajusta.
+DEFAULT_MAX_OPEN_POSITIONS = int(os.getenv("DAEMONBLACKFX_MAX_OPEN_POSITIONS", "16"))
+from config.strategy_config import ICT_WR45_PRUNED as _ICT_WR45_PRUNED, MSNR_WR45_PRUNED as _MSNR_WR45_PRUNED
+from config.ict_instrument_policy import ICT_SYNTHETIC_FAMILIES as _ICT_FAMILIES, ICT_FOREX_ACTIVE as _ICT_FOREX_ACTIVE
+
+
+def _wr_keep(*symbols):
+    """Lista de un worker sin los instrumentos podados por acierto <= 45% (config/strategy_config.py)."""
+    return tuple(s for s in symbols if s not in set(_ICT_WR45_PRUNED))
+
+
+class _SymbolRoutedProvider:
+    """Proveedor que sirve velas y ticks de `symbols` desde el broker MT5 (la referencia del modo shadow) y el resto
+    desde el proveedor principal. Cualquier otro atributo se delega en el principal."""
+
+    def __init__(self, primary, broker, symbols):
+        self.primary, self.broker, self.symbols = primary, broker, frozenset(str(s) for s in symbols)
+
+    def _pick(self, symbol):
+        return self.broker if str(symbol) in self.symbols else self.primary
+
+    def get_candles(self, symbol, timeframe="M5", count=1000):
+        return self._pick(symbol).get_candles(symbol, timeframe=timeframe, count=count)
+
+    def get_current_tick(self, symbol):
+        return self._pick(symbol).get_current_tick(symbol)
+
+    def __getattr__(self, name):
+        return getattr(self.primary, name)
+
+
+def _symbol_routed_provider(provider, symbols):
+    """Envuelve `provider` si tiene referencia de broker (modo shadow) y hay símbolos que enrutar; si no, lo devuelve."""
+    broker = getattr(provider, "reference", None)
+    if not symbols or broker is None or not callable(getattr(broker, "get_candles", None)):
+        return provider
+    return _SymbolRoutedProvider(provider, broker, symbols)
+
+
 @dataclass
 class LiveTradingConfig:
     """Configuración completa del motor de trading en vivo.
@@ -221,7 +267,7 @@ class LiveTradingConfig:
     # Se mantiene max_open_positions por compatibilidad con configuraciones anteriores.
     # Cada setup se ejecuta en dos piernas (TP1 + RUNNER). Por eso 10 posiciones
     # equivalen a un máximo de 5 operaciones lógicas simultáneas (5 instrumentos).
-    max_open_positions: int = 10
+    max_open_positions: int = DEFAULT_MAX_OPEN_POSITIONS
     max_total_open_positions: int | None = None
     max_open_positions_per_symbol: int = 2
 
@@ -238,67 +284,20 @@ class LiveTradingConfig:
     single_entry_target_rr: float = 2.0
 
     # Priorización y poda de activos de bajo rendimiento (Replay histórico y auditoría)
+    # Listas por familia desde la política única de /Instruments (config/ict_instrument_policy.py): lo que el
+    # worker puede operar coincide con lo marcado como activo y el resto queda en PODA PREVENTIVA.
     step_prune_toxic_assets: bool = True
-    step_allowed_symbols: tuple[str, ...] = (
-        "Step Index",
-        "Step Index 500",
-        "Step Index 400",
-    )
-    # PODA: Se elimina Jump 50 Index (-9.6 R / 15% WR en replay 2Y). Se conservan Jump 10 y Jump 75.
+    step_allowed_symbols: tuple[str, ...] = _ICT_FAMILIES["STEP"]
     jump_prune_toxic_assets: bool = True
-    jump_allowed_symbols: tuple[str, ...] = (
-        "Jump 50 Index",
-        "Jump 10 Index",
-        "Jump 75 Index",
-    )
+    jump_allowed_symbols: tuple[str, ...] = _ICT_FAMILIES["JUMP"]
     volatility_prune_toxic_assets: bool = True
-    volatility_allowed_symbols: tuple[str, ...] = (
-        "Volatility 50 (1s) Index",
-        "Volatility 150 (1s) Index",
-        "Volatility 75 Index",
-        "Volatility 75 (1s) Index",
-        "VolSwitch High Vol Index",
-        "Volatility 15 Index",
-        "High Frequency Vol 50 Index",
-        "Volatility 250 (1s) Index",
-        "Volatility 90 Index",
-        "Volatility 5 Index",
-        "High Frequency Vol 100 Index",
-        "Vol over Boom 550",
-        "Volatility 90 (1s) Index",
-        "Volatility 25 Index",
-        "Vol over Crash 550",
-    )
+    volatility_allowed_symbols: tuple[str, ...] = _ICT_FAMILIES["VOLATILITY"]
     boom_prune_toxic_assets: bool = True
-    boom_allowed_symbols: tuple[str, ...] = (
-        "Boom 1000 Index",
-        "Boom 900 Index",
-        "Boom 300 Index",
-    )
-    # ACTIVACIÓN: Crash 1000 Index (+17.9 R en replay 2Y) se incorpora como líder.
+    boom_allowed_symbols: tuple[str, ...] = _ICT_FAMILIES["BOOM"]
     crash_prune_toxic_assets: bool = True
-    crash_allowed_symbols: tuple[str, ...] = (
-        "Crash 1000 Index",
-        "Crash 900 Index",
-        "Crash 500 Index",
-    )
+    crash_allowed_symbols: tuple[str, ...] = _ICT_FAMILIES["CRASH"]
     forex_prune_toxic_assets: bool = True
-    forex_allowed_symbols: tuple[str, ...] = (
-        "EURUSD",
-        "USDJPY",
-        "GBPUSD",
-        "USDCAD",
-        "USDCHF",
-        "GBPCAD",
-        "AUDUSD",
-        "EURUSDmicro",
-        "USDJPYmicro",
-        "GBPUSDmicro",
-        "USDCADmicro",
-        "USDCHFmicro",
-        "GBPCADmicro",
-        "AUDUSDmicro",
-    )
+    forex_allowed_symbols: tuple[str, ...] = _ICT_FOREX_ACTIVE
 
     # Los perfiles SMC sintéticos y forex permiten buscar TP3 o TP4 protegiendo ganancias de manera progresiva.
     runner_extension_enabled: bool = True
@@ -375,6 +374,10 @@ class LiveTradingConfig:
     market_regime_sentinel_enabled: bool = True
     market_regime_sentinel_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_MODE", "FILTER").upper()
     market_regime_forex_strict_filter: bool = True
+    # Replay fiel ICT (28 sintéticos, límite + tope 2 %, 365 d): el centinela bloquea el 18 % de las señales y esas
+    # rinden +0,067 R/t frente a +0,045 de las permitidas (ambas mitades positivas). Para ICT en sintéticos se
+    # registra sin vetar (OBSERVE). FILTER restaura el veto; el resto de estrategias y mercados no cambia.
+    market_regime_ict_synthetic_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_ICT_SYNTH_MODE", "OBSERVE").strip().upper()
     symbol_loss_cooldown_enabled: bool = True
     symbol_loss_cooldown_minutes: float = 60.0
     symbol_daily_strikes_enabled: bool = False
@@ -638,8 +641,158 @@ class LiveTradingConfig:
     forex_spread_baseline_samples: int = 20
     forex_spread_max_multiple: float = 2.0
     forex_spread_max_pips: float = 5.0
-    forex_spread_max_risk_ratio: float = 0.15
+    # Replay fiel ICT 2 años (Forex): con tope 15% -0.11/-0.06 R/trade; con 5% -0.09/-0.00 (mejora ambos años).
+    forex_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_FOREX_SPREAD_MAX_SL_RATIO", "0.05"))
     forex_spread_stable_samples: int = 5
+    # Sintéticos: tope de spread / distancia al SL. Replay fiel ICT 365d (21.409 trades): R/trade cae de forma
+    # monótona con spread/SL (<=1%: -0.015; 2-3%: -0.048; >8%: -0.17 a -0.27; p<0.002). 2% conserva ~54% de trades.
+    synthetic_spread_guard_enabled: bool = True
+    synthetic_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_SPREAD_MAX_SL_RATIO", "0.02"))
+    # Sintéticos: multiplicador de riesgo (contrato operativo: 1% total en 2 patas -> 1.0). Acotado a [0.1, 1.0].
+    synthetic_risk_multiplier: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_RISK_MULT", "1.0"))
+    # ICT en sintéticos: entrada LIMITADA virtual en signal["entry_price"] (50% FVG / nivel / mean threshold OB).
+    # Replay fiel 365d (tools/replay_ict_limit_entry.py): con tope spread/SL 2%, mercado -0.028 R/trade vs
+    # límite +0.032 R/trade (t=2.9, positivo en ambas mitades). Se envía a mercado al tocar el precio.
+    ict_virtual_limit_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT", "1").strip().lower() not in ("0", "false", "off")
+    ict_virtual_limit_bars: int = int(os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT_BARS", "8"))
+    # Una señal = un solo límite (como el replay): un límite caducado o invalidado (SL tocado antes del fill) no se
+    # vuelve a crear en el ciclo siguiente aunque la vela de señal siga siendo la última cerrada. Antes se recreaba y,
+    # si el precio volvía al límite, se llenaba una operación que el replay no hace (allí el límite se llena antes de
+    # llegar al SL y la operación pierde -1R).
+    ict_virtual_limit_one_shot: bool = os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT_ONE_SHOT", "1").strip().lower() not in ("0", "false", "off")
+    # Reparte el `volume_limit` del símbolo (posiciones + pendientes por sentido) entre las piernas de una entrada.
+    # Sin esto, en Volatility 250 (1s) (volume_max 30, volume_limit 50) la pierna RUNNER fallaba con retcode 10034 y
+    # todas las entradas quedaban con una sola pierna de 0,5 %.
+    leg_volume_limit_cap_enabled: bool = os.getenv("DAEMONBLACKFX_LEG_VOLUME_LIMIT_CAP", "1").strip().lower() not in ("0", "false", "off")
+    # Ocupación fantasma: una señal ICT en sintéticos descartada por spread/SL bloquea el símbolo hasta su resultado
+    # virtual (SL, TP2 o TP1+BE con la gestión 1R/2R). Replay fiel 2 años, 28 sintéticos: año previo (fuera de
+    # muestra) +0,004 -> +0,022 R/t y R total +39 -> +191; último año +0,015 -> +0,047 R/t. Las señales que se
+    # evitan pierden -0,11/-0,16 R/t. DAEMONBLACKFX_ICT_SPREAD_LOCK=0 lo desactiva.
+    ict_spread_block_lock_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_SPREAD_LOCK", "1").strip().lower() not in ("0", "false", "off")
+    ict_spread_block_lock_max_hours: float = float(os.getenv("DAEMONBLACKFX_ICT_SPREAD_LOCK_MAX_HOURS", "50"))
+    # ICT en metales: tope spread/SL 2% (solo ICT: ORB SWEEP y GOLD Quarters no se midieron con este tope).
+    ict_metals_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_ICT_METALS_SPREAD_MAX_SL_RATIO", "0.02"))
+    # ICT en cripto desactivado: replay fiel 2 años -0.23 / -0.19 R/trade (t -6.2 / -5.2), negativo con cualquier tope.
+    ict_crypto_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_CRYPTO", "0").strip().lower() in ("1", "true", "on")
+    # ORB SWEEP en prueba hacia delante (BTCUSD, USDCAD): tras N operaciones cerradas en DEMO, se bloquea
+    # el activo si su R/operación <= mínimo. Ver strategy/orb/asset_rules.py:ORB_SWEEP_FORWARD_TEST_SYMBOLS.
+    # MSNR: runner hacia TP3/TP4 con stop progresivo (2R->+1R, 3R->+2.5R, máx 4R) en vez de TP2 fijo.
+    msnr_runner_max_target_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_RUNNER_MAX_RR", "4.0"))
+    # ICT en sintéticos: el meta-etiquetado puntúa y registra pero no bloquea. El replay positivo (límite + tope 2%,
+    # +0.032 R/t) se midió sin este filtro; en vivo las rechazadas tenían el mismo acierto que las aceptadas.
+    ict_synthetic_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_ICT_SYNTH_META_SHADOW", "1").strip().lower() not in ("0", "false", "off")
+    # Estrategias propias validadas en replay SIN meta-etiquetado (MSNR vídeos, NIGHT, DRIFT, RSI2): la IA puntúa y
+    # registra pero no bloquea, también en mercados reales (22-oct-2026: bloqueaba NIGHT con PROBABILITY_BELOW_THRESHOLD).
+    native_strategy_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_NATIVE_META_SHADOW", "1").strip().lower() not in ("0", "false", "off")
+    # Límite de posiciones por símbolo contando solo las del propio worker para estos perfiles (NIGHT mantiene US SP 500
+    # / US Tech 100 de 20:00 a 13:30 UTC, justo la ventana de entrada de RSI2, y RSI2 los mantiene varios días). Los
+    # límites totales y de riesgo siguen siendo globales.
+    own_symbol_limit_profiles: tuple = tuple(p.strip().upper() for p in os.getenv(
+        "DAEMONBLACKFX_OWN_SYMBOL_LIMIT_PROFILES", "RSI2,NIGHT,CARRY").split(",") if p.strip())
+    # Huecos reservados para los workers validados en replay (decisión del usuario, 22-oct-2026): pueden abrir hasta
+    # `priority_extra_slots` posiciones físicas por encima del límite global cuando está lleno (16 -> 20, ≈ 10 % de
+    # riesgo abierto). El resto de workers sigue con el límite global.
+    priority_profiles: tuple = tuple(p.strip().upper() for p in os.getenv(
+        "DAEMONBLACKFX_PRIORITY_PROFILES", "DRIFT,RSI2,NIGHT,CARRY").split(",") if p.strip())
+    priority_extra_slots: int = int(os.getenv("DAEMONBLACKFX_PRIORITY_EXTRA_SLOTS", "4"))
+    # RSI2 y NIGHT se validaron con precios del broker MT5 (y Dukascopy, correlación 0,999). En modo de datos
+    # "shadow" el proveedor principal es Deriv, cuya serie de US Tech 100 / US SP 500 es otra (OTC: 63 % de días
+    # coincidentes, diferencias de cierre de hasta 699 puntos): el 23-oct RSI2 perdió así la señal de US Tech 100.
+    # Con este interruptor estas estrategias analizan las velas del broker donde ejecutan.
+    native_strategies_broker_candles: bool = os.getenv(
+        "DAEMONBLACKFX_NATIVE_BROKER_CANDLES", "1").strip().lower() not in ("0", "false", "off")
+    # ICT en estos símbolos analiza con las velas del broker MT5: en modo shadow Deriv sirve otra serie para los índices
+    # US (56 % de velas H1 coincidentes, desfase del 24–40 % de una vela H1) y el replay de ICT se hizo con MT5.
+    # Oro y petróleo no lo necesitan (Deriv ≈ MT5 / ya usa MT5). Vacío = todo con el proveedor normal.
+    # Workers sin ventaja demostrada en ningún replay y perdedores en demo (auditoría del 24-oct-2026,
+    # MEJORAS_ESTRATEGIAS_20261024.md): no analizan ni abren operaciones nuevas. El monitor de posiciones sigue
+    # gestionando las abiertas (BE, TP, cierres). Vacío = todos activos.
+    # Cada ciclo filtra los símbolos por la política de instrumentos (config/ict_instrument_policy.py) aunque la
+    # selección guardada en /Instruments aún incluya instrumentos en PODA PREVENTIVA (24-oct-2026: varios workers
+    # evaluaban podados; forex_3 el 99 % del tiempo). DAEMONBLACKFX_POLICY_CYCLE_FILTER=0 lo desactiva.
+    policy_cycle_filter: bool = os.getenv("DAEMONBLACKFX_POLICY_CYCLE_FILTER", "1").strip().lower() not in ("0", "false", "off")
+    disabled_entry_profiles: tuple = tuple(p.strip().upper() for p in os.getenv(
+        "DAEMONBLACKFX_DISABLED_WORKERS", "FOREX_1,FOREX_2,FOREX_3,FOREX_4,ICT,GOLD,IDX_OPEN").split(",") if p.strip())
+    ict_broker_candle_symbols: tuple = tuple(s.strip() for s in os.getenv(
+        "DAEMONBLACKFX_ICT_BROKER_CANDLE_SYMBOLS", "US SP 500,US Tech 100,Wall Street 30").split(",") if s.strip())
+    # Contrato operativo: la pata RUNNER solo puede mover su SL (BE+spread+swap, locks, extensión) después de que la
+    # pata TP1 hermana haya cerrado en ganancia. DAEMONBLACKFX_RUNNER_SL_REQUIRES_TP1=0 restaura el comportamiento anterior.
+    runner_sl_requires_tp1_close: bool = os.getenv("DAEMONBLACKFX_RUNNER_SL_REQUIRES_TP1", "1").strip().lower() not in ("0", "false", "off")
+    orb_sweep_forward_test_enabled: bool = os.getenv("DAEMONBLACKFX_ORB_FORWARD_TEST", "1").strip().lower() not in ("0", "false", "off")
+    orb_sweep_forward_test_min_trades: int = int(os.getenv("DAEMONBLACKFX_ORB_FORWARD_TEST_MIN_TRADES", "40"))
+    orb_sweep_forward_test_min_r: float = float(os.getenv("DAEMONBLACKFX_ORB_FORWARD_TEST_MIN_R", "0.0"))
+    # Filtro de régimen MSNR (replay fiel 2 años, 37 sintéticos, tope spread/SL 2 %): sin confirmación
+    # SNR_FAKEOUT_TRAP_SWEEP y sin ADX en (25, 40] pasa de -0,003 a +0,029 R/trade (4 de 5 semestres > 0, p azar 0,02).
+    # Modo: off | demo_test (solo en DEMO, con criterio de revisión) | live (DEMO y LIVE).
+    msnr_regime_filter_mode: str = os.getenv("DAEMONBLACKFX_MSNR_REGIME_FILTER", "demo_test").strip().lower()
+    msnr_regime_block_fakeout: bool = True
+    msnr_regime_adx_block_min: float = float(os.getenv("DAEMONBLACKFX_MSNR_REGIME_ADX_MIN", "25"))
+    msnr_regime_adx_block_max: float = float(os.getenv("DAEMONBLACKFX_MSNR_REGIME_ADX_MAX", "40"))
+    # Criterio fijado de la prueba demo: con >= 60 operaciones MSNR cerradas desde el inicio, se mantiene si
+    # R/operación > 0 y acierto >= 50 %; si no, queda NO_SUPERA (auditado) para decidir con datos.
+    msnr_regime_test_start: str = os.getenv("DAEMONBLACKFX_MSNR_REGIME_START", "2026-10-21T00:00:00+00:00")
+    msnr_regime_review_trades: int = int(os.getenv("DAEMONBLACKFX_MSNR_REGIME_REVIEW_TRADES", "60"))
+    msnr_regime_min_r: float = float(os.getenv("DAEMONBLACKFX_MSNR_REGIME_MIN_R", "0.0"))
+    msnr_regime_min_win_rate: float = float(os.getenv("DAEMONBLACKFX_MSNR_REGIME_MIN_WR", "0.50"))
+    # Escenario MSNR H4→H1 de los vídeos (replay fiel 2 años, 37 sintéticos: +0,029 R/t; con la política de dirección
+    # del bot +0,017, ambos años positivos). Modo: off | demo_test (solo DEMO) | live. Criterio fijado: desde el
+    # inicio, con >= 200 operaciones H4→H1 cerradas en DEMO se mantiene si R/op > 0; si no, se desactiva solo.
+    # 20-oct-2026: el escenario vive ahora en el worker MSNR (estrategia de los vídeos); en Malaysian SNR queda
+    # apagado por defecto para no duplicar operaciones (DAEMONBLACKFX_MSNR_H4H1=demo_test lo reactiva aquí).
+    msnr_h4h1_mode: str = os.getenv("DAEMONBLACKFX_MSNR_H4H1", "off").strip().lower()
+    # Worker MSNR (estrategia de los vídeos, strategy/malaysian_snr/video_strategy.py). Modo: off | demo_test (solo
+    # DEMO) | live. Criterio fijado: con >= 200 operaciones cerradas en DEMO desde el inicio, R/op > 0 para seguir;
+    # si no, se desactiva solo. Storyline: off | observe | filter.
+    msnr_video_mode: str = os.getenv("DAEMONBLACKFX_MSNR_VIDEO", "demo_test").strip().lower()
+    # Worker NIGHT: sesgo nocturno en US SP 500 / US Tech 100 (strategy/overnight/overnight_drift.py). Modo: off |
+    # demo_test (solo DEMO) | live. Criterio fijado: con >= 120 noches cerradas en DEMO desde el inicio, R/op > 0
+    # para seguir; si no, se desactiva solo. Entrada única al 1 % con stop 1 × ATR D1 y salida por tiempo (09:30 NY).
+    overnight_mode: str = os.getenv("DAEMONBLACKFX_OVERNIGHT", "demo_test").strip().lower()
+    overnight_test_start: str = os.getenv("DAEMONBLACKFX_OVERNIGHT_START", "2026-10-21T00:00:00+00:00")
+    overnight_review_trades: int = int(os.getenv("DAEMONBLACKFX_OVERNIGHT_REVIEW_TRADES", "120"))
+    overnight_min_r: float = float(os.getenv("DAEMONBLACKFX_OVERNIGHT_MIN_R", "0.0"))
+    # Worker DRIFT: ruptura tras compresión en Drift Switch Index 10/20/30 (strategy/drift_breakout). Modo: off |
+    # demo_test (solo DEMO) | live. Criterio fijado: con >= 200 operaciones cerradas en DEMO desde el inicio, R/op > 0
+    # para seguir; si no, se desactiva solo. Contrato TP1 1R + runner 2R con BE, sin extensión del runner (replay).
+    # DESACTIVADO por defecto (23-oct-2026): con el spread real de ticks (~12× el de las velas M15 usado en el replay)
+    # la ruptura en Drift Switch pierde −0,030 R/op y el tope de spread del 2 % no le deja entrar.
+    # DAEMONBLACKFX_DRIFT=demo_test lo reactiva.
+    drift_mode: str = os.getenv("DAEMONBLACKFX_DRIFT", "off").strip().lower()
+    # Worker RSI2: RSI(2) diario de Connors en los 5 índices US (strategy/connors_rsi2). Modo: off | demo_test (solo
+    # DEMO) | live. Criterio fijado: con >= 60 operaciones cerradas en DEMO desde el inicio, R/op > 0 para seguir; si
+    # no, se desactiva solo. Una posición al 1 % con stop 2 × ATR D1 y salida por regla (cierre D1 > SMA5 o 10 días).
+    rsi2_mode: str = os.getenv("DAEMONBLACKFX_RSI2", "demo_test").strip().lower()
+    rsi2_test_start: str = os.getenv("DAEMONBLACKFX_RSI2_START", "2026-10-22T00:00:00+00:00")
+    rsi2_review_trades: int = int(os.getenv("DAEMONBLACKFX_RSI2_REVIEW_TRADES", "60"))
+    rsi2_min_r: float = float(os.getenv("DAEMONBLACKFX_RSI2_MIN_R", "0.0"))
+    # Replay de gestión (tools/research_rsi2_management.py): dos entradas TP1 1R + runner 2R con BE y salida por
+    # regla +0,177 R/op = una posición con regla +0,175; el contrato puro sin regla cae a +0,108.
+    rsi2_split: bool = os.getenv("DAEMONBLACKFX_RSI2_SPLIT", "1").strip().lower() in {"1", "true", "yes", "on"}
+    # Worker CARRY: carry en Forex G10 con el swap real de MT5 (strategy/fx_carry). Modo: off | demo_test (solo DEMO)
+    # | live. Criterio fijado: con >= 36 operaciones cerradas en DEMO desde el inicio, R/op > 0 para seguir; si no, se
+    # desactiva solo. Contrato: 1 % en dos entradas (TP1 1R + runner TP2 2R con BE) con extensión progresiva TP3/TP4.
+    carry_mode: str = os.getenv("DAEMONBLACKFX_CARRY", "demo_test").strip().lower()
+    carry_test_start: str = os.getenv("DAEMONBLACKFX_CARRY_START", "2026-10-24T00:00:00+00:00")
+    carry_review_trades: int = int(os.getenv("DAEMONBLACKFX_CARRY_REVIEW_TRADES", "36"))
+    carry_min_r: float = float(os.getenv("DAEMONBLACKFX_CARRY_MIN_R", "0.0"))
+    carry_runner_extension: bool = os.getenv("DAEMONBLACKFX_CARRY_RUNNER_EXTENSION", "1").strip().lower() in {"1", "true", "yes", "on"}
+    drift_test_start: str = os.getenv("DAEMONBLACKFX_DRIFT_START", "2026-10-21T00:00:00+00:00")
+    drift_review_trades: int = int(os.getenv("DAEMONBLACKFX_DRIFT_REVIEW_TRADES", "200"))
+    drift_min_r: float = float(os.getenv("DAEMONBLACKFX_DRIFT_MIN_R", "0.0"))
+    drift_runner_extension: bool = os.getenv("DAEMONBLACKFX_DRIFT_RUNNER_EXTENSION", "0").strip().lower() in {"1", "true", "yes", "on"}
+    # Prueba demo por símbolo en Malaysian SNR (DEX 1500 UP Index; config/ict_instrument_policy.py). Criterio fijado:
+    # con >= 40 operaciones MSNR cerradas en DEMO en ese símbolo desde el inicio, se mantiene si R/op > 0; si no,
+    # el símbolo se bloquea solo para Malaysian SNR.
+    msnr_symbol_test_start: str = os.getenv("DAEMONBLACKFX_MSNR_SYMBOL_TEST_START", "2026-10-21T00:00:00+00:00")
+    msnr_symbol_test_review_trades: int = int(os.getenv("DAEMONBLACKFX_MSNR_SYMBOL_TEST_REVIEW_TRADES", "40"))
+    msnr_symbol_test_min_r: float = float(os.getenv("DAEMONBLACKFX_MSNR_SYMBOL_TEST_MIN_R", "0.0"))
+    msnr_video_storyline_mode: str = os.getenv("DAEMONBLACKFX_MSNR_VIDEO_STORYLINE", "observe").strip().lower()
+    msnr_video_test_start: str = os.getenv("DAEMONBLACKFX_MSNR_VIDEO_START", "2026-10-21T00:00:00+00:00")
+    msnr_video_review_trades: int = int(os.getenv("DAEMONBLACKFX_MSNR_VIDEO_REVIEW_TRADES", "200"))
+    msnr_video_min_r: float = float(os.getenv("DAEMONBLACKFX_MSNR_VIDEO_MIN_R", "0.0"))
+    msnr_h4h1_test_start: str = os.getenv("DAEMONBLACKFX_MSNR_H4H1_START", "2026-10-21T00:00:00+00:00")
+    msnr_h4h1_review_trades: int = int(os.getenv("DAEMONBLACKFX_MSNR_H4H1_REVIEW_TRADES", "200"))
+    msnr_h4h1_min_r: float = float(os.getenv("DAEMONBLACKFX_MSNR_H4H1_MIN_R", "0.0"))
     forex_rollover_guard_enabled: bool = False
     forex_rollover_timezone: str = "America/New_York"
     forex_new_entry_cutoff_hour: int = 14
@@ -760,6 +913,23 @@ class LiveTradingEngine:
         self.provider = provider
         self.repository = repository
         self.config = config or LiveTradingConfig()
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "NIGHT":
+            self.config.split_entries_enabled = False
+            self.config.break_even_enabled = False
+            self.config.runner_extension_enabled = False
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "RSI2":
+            # Contrato de dos entradas (TP1 1R + runner 2R con BE) y la regla diaria cierra lo que quede; con
+            # DAEMONBLACKFX_RSI2_SPLIT=0 vuelve a una sola posición. Sin extensión del runner (no validada).
+            if not bool(getattr(self.config, "rsi2_split", True)):
+                self.config.split_entries_enabled = False
+                self.config.break_even_enabled = False
+            self.config.runner_extension_enabled = False
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "CARRY":
+            # Dos entradas con BE tras TP1; el runner busca TP2 y se extiende de forma progresiva a TP3/TP4.
+            self.config.runner_extension_enabled = bool(getattr(self.config, "carry_runner_extension", True))
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "DRIFT":
+            # El replay validó el runner fijo en 2R; la extensión solo se activa con DAEMONBLACKFX_DRIFT_RUNNER_EXTENSION.
+            self.config.runner_extension_enabled = bool(getattr(self.config, "drift_runner_extension", False))
         self.pipeline_config = pipeline_config or PipelineConfig(
             telemetry_bot_name=str(self.config.bot_profile),
             retest_tolerance_mode=self.config.retest_tolerance_mode,
@@ -915,9 +1085,17 @@ class LiveTradingEngine:
                 structure_timeframe="H1",
                 tp1_min_rr=float(getattr(self.config, "malaysian_snr_tp1_rr", 1.0)),
                 tp2_runner_rr=float(getattr(self.config, "malaysian_snr_runner_rr", 2.0)),
-                # Variante C2: ADX>=30 + tope SL/ATR (1.2 FX/Metales, 1.5 resto). Desactivar con DAEMONBLACKFX_MSNR_C2=0.
-                enable_c2_fx_metals_atr_cap=os.getenv("DAEMONBLACKFX_MSNR_C2", "1").strip() not in ("0", "false", "False", "off"),
-                strategy_version=("msnr-v3.0-c2" if os.getenv("DAEMONBLACKFX_MSNR_C2", "1").strip() not in ("0", "false", "False", "off") else "msnr-v2.9-video-evidence"),
+                # Replay fiel 2 años (tools/replay_msnr_variants.py): lista 23 + C2 -0.126/-0.117 R/trade; todos los
+                # sintéticos sin C2 con tope spread/SL 2% -0.020/+0.015 R/trade y ~9x más trades. C2 se reactiva con
+                # DAEMONBLACKFX_MSNR_C2=1; la lista de 23 con DAEMONBLACKFX_MSNR_ALL_SYNTHETICS=0.
+                enable_c2_fx_metals_atr_cap=self._msnr_flag("DAEMONBLACKFX_MSNR_C2", False),
+                synthetics_only=self._msnr_flag("DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY", True),
+                enable_h4h1_confirmation=self._msnr_h4h1_active(),
+                excluded_symbols=tuple(_MSNR_WR45_PRUNED),
+                **({"allowed_symbols": ()} if self._msnr_flag("DAEMONBLACKFX_MSNR_ALL_SYNTHETICS", True) else {}),
+                strategy_version=("msnr-v3.0-c2" if self._msnr_flag("DAEMONBLACKFX_MSNR_C2", False)
+                                  else "msnr-v3.1-synthetics" if self._msnr_flag("DAEMONBLACKFX_MSNR_ALL_SYNTHETICS", True)
+                                  else "msnr-v2.9-video-evidence"),
                 min_adx=30.0,
                 c2_fx_metals_max_sl_atr=1.2,
                 c2_default_max_sl_atr=1.5,
@@ -929,7 +1107,7 @@ class LiveTradingEngine:
         from strategy.ict.ict_strategy import ICTSabriMalleStrategy
         from strategy.ict.config import ICTSabriMalleConfig
         self.ict_strategy = ICTSabriMalleStrategy(
-            data_provider=provider,
+            data_provider=_symbol_routed_provider(provider, getattr(self.config, "ict_broker_candle_symbols", ())),
             config=ICTSabriMalleConfig(),
         )
 
@@ -1882,12 +2060,11 @@ class LiveTradingEngine:
         """True si `bot_profile` es un perfil de Sintéticos (Boom/Crash/Volatility/Step/Jump/Flip).
 
         v107: se usa para omitir metadata de runner TP3/TP4
-        (`runner_max_target_rr`, `runner_tp3_guard_*`, `runner_tp4_guard_*`)
-        que nunca se usa en Sintéticos, porque `_manage_runner_extension`
-        siempre corta con `SYNTHETICS_FIXED_TP2_TARGET` antes de llegar a esa
-        lógica (ver esa función más abajo). Antes esos campos se calculaban
-        igual para todos los perfiles no-ORB, generando ruido en la
-        metadata/auditoría de trades de Sintéticos.
+        (`runner_max_target_rr`, `runner_tp3_guard_*`, `runner_tp4_guard_*`) en
+        Sintéticos. Ya no existe el corte `SYNTHETICS_FIXED_TP2_TARGET`: con la
+        extensión progresiva activada (contrato operativo), `_manage_runner_extension`
+        toma esos valores de `LiveTradingConfig` (`runner_extension_max_target_rr`,
+        `smc_runner_tp3_guard_*`, `smc_runner_tp4_guard_*`).
         """
         profile = LiveTradingEngine._canonical_bot_profile(bot_profile)
         return profile in {
@@ -2223,6 +2400,9 @@ class LiveTradingEngine:
             trade for trade in open_trades
             if str(trade.get("instrument", "")) == str(symbol)
         ]
+        if str(getattr(self.config, "bot_profile", "") or "").upper() in tuple(getattr(self.config, "own_symbol_limit_profiles", ()) or ()):
+            # El límite por símbolo solo cuenta las posiciones de este worker (ver own_symbol_limit_profiles).
+            same_symbol = [trade for trade in same_symbol if self._trade_owned_by_current_bot(trade)]
 
         counterpart_trades = []
         market = classify_orb_market(symbol)
@@ -2258,7 +2438,10 @@ class LiveTradingEngine:
             "source": source,
             "total_open": len(open_trades),
             "symbol_open": len(same_symbol),
-            "max_total": self._total_position_limit(),
+            "max_total": self._total_position_limit() + (
+                max(0, int(getattr(self.config, "priority_extra_slots", 0)))
+                if str(getattr(self.config, "bot_profile", "") or "").upper() in tuple(getattr(self.config, "priority_profiles", ()) or ())
+                else 0),
             "max_per_symbol": max(1, int(self.config.max_open_positions_per_symbol)),
             "open_trades": [compact(trade) for trade in open_trades],
             "symbol_open_trades": [compact(trade) for trade in same_symbol],
@@ -2557,7 +2740,9 @@ class LiveTradingEngine:
             return None
 
         try:
-            get_candles = getattr(self.provider, "get_candles", None)
+            # Índices US: régimen sobre las velas del broker MT5 (Deriv sirve otra serie con huecos: 23 de 40 H1).
+            regime_provider = _symbol_routed_provider(self.provider, getattr(self.config, "ict_broker_candle_symbols", ()))
+            get_candles = getattr(regime_provider, "get_candles", None)
             df_h1 = get_candles(symbol, timeframe="H1", count=40) if callable(get_candles) else None
         except Exception:
             df_h1 = None
@@ -2574,6 +2759,17 @@ class LiveTradingEngine:
             current_spread=current_spread,
             baseline_spread=spread_info.get("median_spread"),
         )
+
+        if mode == "FILTER" and decision.is_toxic and self._market_regime_observe_only(symbol):
+            if hasattr(self, "_persist_audit_event"):
+                self._persist_audit_event(
+                    "MARKET_REGIME_OBSERVED",
+                    instrument=str(symbol),
+                    action="REGIME_TOXIC_OBSERVED_NOT_BLOCKED",
+                    reason=decision.reason,
+                    payload={"regime": decision.to_dict(), "observe_scope": "ICT_SYNTHETIC"},
+                )
+            return None
 
         if mode == "FILTER" and decision.is_toxic:
             if hasattr(self, "_persist_audit_event"):
@@ -2592,6 +2788,20 @@ class LiveTradingEngine:
             }
 
         return None
+
+    # MSNR (estrategia de los vídeos) se validó en replay sin el centinela de régimen.
+    _ICT_SYNTHETIC_PROFILES = ("ICT", "STEP", "JUMP", "BOOM", "CRASH", "MSNR")
+    _NATIVE_META_SHADOW_STRATEGIES = frozenset({"MSNR_VIDEO", "OVERNIGHT_DRIFT", "DRIFT_BREAKOUT", "CONNORS_RSI2", "FX_CARRY"})
+
+    def _market_regime_observe_only(self, symbol: str) -> bool:
+        """El centinela solo registra (no veta) en workers de la Estrategia ICT sobre sintéticos."""
+        if str(getattr(self.config, "market_regime_ict_synthetic_mode", "FILTER") or "FILTER").upper() != "OBSERVE":
+            return False
+        profile = str(getattr(self.config, "bot_profile", "") or "").upper()
+        if profile in ("NIGHT", "DRIFT", "RSI2", "CARRY"):
+            return True  # sesgo nocturno, ruptura Drift y RSI2 validados en replay sin el centinela de régimen
+        ict_worker = profile in self._ICT_SYNTHETIC_PROFILES or profile.startswith("VOLATILITY")
+        return ict_worker and self._is_synthetic_symbol(symbol)
 
     def _symbol_loss_cooldown_gate(self, symbol: str) -> dict | None:
         """Puerta de enfriamiento y control de pérdidas consecutivas por símbolo.
@@ -3394,6 +3604,33 @@ class LiveTradingEngine:
         if current_sl > 0 and (target <= current_sl if direction == 'BUY' else target >= current_sl):
             return None
         return target, abs(target-entry)
+
+    def _runner_sl_locked_until_tp1(self, trade: dict, metadata: dict, trade_leg: str) -> dict | None:
+        """Devuelve el motivo del bloqueo si la pata RUNNER aún no puede mover su SL (TP1 no cerrado en ganancia).
+
+        None = no hay bloqueo (no es RUNNER, no hay split, regla desactivada o TP1 ya cerró en ganancia).
+        """
+        if not bool(getattr(self.config, "runner_sl_requires_tp1_close", False)):
+            return None
+        if not bool(self.config.split_entries_enabled) or str(trade_leg or "").upper() != "RUNNER":
+            return None
+        completion = self._break_even_tp1_completion(trade, metadata)
+        if completion.get("completed", False):
+            return None
+        return {"reason": "RUNNER_SL_LOCKED_UNTIL_TP1_CLOSED", "tp1_completion": completion}
+
+    @staticmethod
+    def _guarded_move_stop(base_move_stop, trade: dict, runner_locked: dict | None):
+        """move_stop que rechaza cualquier cambio de SL del RUNNER mientras su TP1 no haya cerrado en ganancia."""
+        if runner_locked is None:
+            return base_move_stop
+
+        def blocked(*args, **kwargs):
+            return {"modified": False, "skipped": True, "reason": runner_locked["reason"],
+                    "error": runner_locked["reason"], "trade_id": trade.get("id"),
+                    "tp1_completion": runner_locked.get("tp1_completion")}
+
+        return blocked
 
     def _break_even_tp1_completion(self, trade: dict, metadata: dict) -> dict:
         """
@@ -4229,7 +4466,9 @@ class LiveTradingEngine:
             if is_msnr_runner:
                 completed_stages.add(stage_name)
                 metadata["runner_extension_completed_stages"] = sorted(completed_stages)
-                metadata["runner_extension_stage"] = stage_name
+                # Misma etiqueta que el resto de estrategias (informes y dashboard): MSNR no evalúa continuación,
+                # solo sube el stop de forma progresiva hacia su objetivo máximo.
+                metadata["runner_extension_stage"] = "EXTENDED_TO_3R" if stage_name == "2R_TO_3R" else "EXTENDED_TO_4R"
                 result.update({
                     "managed": True,
                     "extended": True,
@@ -4779,7 +5018,8 @@ class LiveTradingEngine:
             return {"checked": 0, "activated": 0, "errors": ["INVALID_BREAK_EVEN_TRIGGER"], "skipped": False}
 
         trade_executor = getattr(self.lifecycle_manager, "trade_executor", None)
-        move_stop = getattr(trade_executor, "move_stop_loss", None)
+        base_move_stop = getattr(trade_executor, "move_stop_loss", None)
+        move_stop = base_move_stop
         close_position = getattr(trade_executor, "close_position", None)
         if not callable(move_stop):
             return {
@@ -4833,6 +5073,8 @@ class LiveTradingEngine:
                 # El Break Even protector corresponde al RUNNER, que busca 2R.
                 # Aun así TP1 también se publica en el monitor de salud.
                 trade_leg = str(metadata.get("trade_leg") or "").upper()
+                runner_locked = self._runner_sl_locked_until_tp1(trade, metadata, trade_leg)
+                move_stop = self._guarded_move_stop(base_move_stop, trade, runner_locked)
 
                 entry_price = float(getattr(position, "price_open", 0.0) or 0.0)
                 current_price = float(getattr(position, "price_current", 0.0) or 0.0)
@@ -5205,6 +5447,8 @@ class LiveTradingEngine:
                 crash_spike_be = bool(is_crash_sell and current_rr_snapshot is not None and current_rr_snapshot >= 0.40)
                 eligible = (gold_tp1["eligible"] if gold_tp1 is not None else
                             bool(crash_spike_be or price_reached_trigger or tp1_completion.get("completed", False)))
+                if runner_locked is not None:
+                    eligible = False  # RUNNER: BE solo tras el cierre en ganancia de la pata TP1
                 if not eligible:
                     continue
                 activation_reason = (
@@ -6061,7 +6305,7 @@ class LiveTradingEngine:
     @classmethod
     def _is_synthetic_symbol(cls, symbol: str) -> bool:
         s = str(symbol or "").lower()
-        return (
+        if (
             cls._is_volatility_symbol(s)
             or cls._is_crash_symbol(s)
             or cls._is_boom_symbol(s)
@@ -6069,7 +6313,12 @@ class LiveTradingEngine:
             or cls._is_jump_symbol(s)
             or "deriv" in s
             or "synthetic" in s
-        )
+        ):
+            return True
+        if _SYNTH_DETECTION_EXTENDED:
+            from strategy.ict.ict_strategy import is_synthetic_asset
+            return is_synthetic_asset(symbol)
+        return False
 
     @classmethod
     def _is_market_closing_symbol(cls, symbol: str) -> bool:
@@ -6171,13 +6420,815 @@ class LiveTradingEngine:
                 stable_samples=self.config.forex_spread_stable_samples)
         return self._forex_spread_tracker
 
-    def _forex_execution_gate(self, symbol, direction, stop):
+    def _broker_candle_provider(self):
+        """Proveedor de velas del broker de ejecución (MT5) para estrategias validadas con sus precios.
+
+        En modo "shadow" `self.provider` analiza con Deriv y guarda MT5 como `reference`; aquí se usa esa referencia.
+        Sin referencia (modo mt5 u otros) o con el interruptor apagado, se usa el proveedor normal.
+        """
+        if not bool(getattr(self.config, "native_strategies_broker_candles", True)):
+            return self.provider
+        reference = getattr(self.provider, "reference", None)
+        return reference if reference is not None and callable(getattr(reference, "get_candles", None)) else self.provider
+
+    @property
+    def carry_strategy(self):
+        """Carry en Forex G10 con el swap real del broker (solo el worker CARRY la usa)."""
+        strat = self.__dict__.get("_carry_strategy")
+        if strat is None:
+            from strategy.fx_carry.carry_strategy import FxCarryStrategy
+            strat = FxCarryStrategy(self._broker_candle_provider())
+            self.__dict__["_carry_strategy"] = strat
+        return strat
+
+    def _carry_active(self) -> bool:
+        mode = str(getattr(self.config, "carry_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _carry_status(self, force: bool = False) -> dict:
+        """Prueba demo del carry con criterio fijado (caché 5 min); NO_SUPERA la desactiva."""
+        from strategy.fx_carry.carry_strategy import CARRY_VERSION
+        cache = getattr(self, "_carry_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "carry_review_trades", 36))
+        min_r = float(getattr(self.config, "carry_min_r", 0.0))
+        status = {"start": self.config.carry_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.carry_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=CARRY_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("CARRY_DEMO_TEST", action=status["verdict"],
+                                      reason="CARRY_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._carry_status_cache = (time.monotonic(), status)
+        return status
+
+    def _carry_gate(self, symbol, signal, strategy_name):
+        if str(strategy_name or "").upper() != "FX_CARRY":
+            return None
+        if not self._carry_active():
+            return {"symbol": str(symbol), "action": "CARRY_DISABLED", "reason": "CARRY_MODE_OFF_FOR_SOURCE"}
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if str(trade.get("instrument") or "") == str(symbol) and self._trade_owned_by_current_bot(trade):
+                return {"symbol": str(symbol), "action": "CARRY_POSITION_ALREADY_OPEN",
+                        "reason": "CARRY_ONE_POSITION_PER_SYMBOL"}
+        status = self._carry_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("CARRY_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="CARRY_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "CARRY_DEMO_TEST_FAILED",
+                    "reason": f"CARRY_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "carry_demo_test": status}
+        if isinstance(signal, dict):
+            signal["carry_demo_test"] = status
+        return None
+
+    def _close_carry_positions_on_rebalance(self, now=None) -> dict:
+        """Cierra a mercado lo que siga abierto del worker CARRY al empezar el mes siguiente al de la entrada."""
+        result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
+        if str(getattr(self.config, "bot_profile", "") or "").upper() != "CARRY" or not bool(self.config.execution_enabled):
+            return result
+        from strategy.fx_carry.carry_strategy import exit_due
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+        close_position = getattr(trade_executor, "close_position", None)
+        if not callable(close_position):
+            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
+            return result
+        now = pd.Timestamp(now or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        seen = set()
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if not self._trade_owned_by_current_bot(trade):
+                continue
+            ticket = str(trade.get("broker_position_ticket") or "")
+            entry_time = trade.get("entry_time")
+            if not ticket or ticket in seen or not entry_time:
+                continue
+            seen.add(ticket)
+            result["checked"] += 1
+            reason = exit_due(entry_time, now)
+            if reason is None:
+                continue
+            try:
+                close_result = close_position(position_ticket=ticket, reason="carry_monthly_rebalance")
+            except Exception as exc:
+                close_result = {"closed": False, "error": str(exc)}
+            closed = bool((close_result or {}).get("closed", False))
+            result["closed"] += int(closed)
+            result["positions"].append({"ticket": ticket, "symbol": trade.get("instrument"), "closed": closed})
+            self._persist_audit_event("CARRY_REBALANCE_EXIT", instrument=trade.get("instrument"),
+                                      broker_position_ticket=ticket, action="CLOSED" if closed else "CLOSE_FAILED",
+                                      reason=reason, payload={"result": close_result})
+        return result
+
+    @property
+    def rsi2_strategy(self):
+        """RSI(2) diario de Connors (solo el worker RSI2 la usa)."""
+        strat = self.__dict__.get("_rsi2_strategy")
+        if strat is None:
+            from strategy.connors_rsi2.rsi2_daily import ConnorsRsi2Strategy
+            strat = ConnorsRsi2Strategy(self._broker_candle_provider())
+            self.__dict__["_rsi2_strategy"] = strat
+        return strat
+
+    def _rsi2_active(self) -> bool:
+        mode = str(getattr(self.config, "rsi2_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _rsi2_status(self, force: bool = False) -> dict:
+        """Prueba demo del RSI(2) diario con criterio fijado (caché 5 min); NO_SUPERA lo desactiva."""
+        from strategy.connors_rsi2.rsi2_daily import RSI2_VERSION
+        cache = getattr(self, "_rsi2_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "rsi2_review_trades", 60))
+        min_r = float(getattr(self.config, "rsi2_min_r", 0.0))
+        status = {"start": self.config.rsi2_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.rsi2_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=RSI2_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("RSI2_DEMO_TEST", action=status["verdict"],
+                                      reason="RSI2_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._rsi2_status_cache = (time.monotonic(), status)
+        return status
+
+    def _rsi2_gate(self, symbol, signal, strategy_name):
+        if str(strategy_name or "").upper() != "CONNORS_RSI2":
+            return None
+        if not self._rsi2_active():
+            return {"symbol": str(symbol), "action": "RSI2_DISABLED", "reason": "RSI2_MODE_OFF_FOR_SOURCE"}
+        # Igual que el replay: una sola posición RSI2 por índice (el límite global del motor admite 2).
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if str(trade.get("instrument") or "") == str(symbol) and self._trade_owned_by_current_bot(trade):
+                return {"symbol": str(symbol), "action": "RSI2_POSITION_ALREADY_OPEN",
+                        "reason": "RSI2_ONE_POSITION_PER_SYMBOL"}
+        status = self._rsi2_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("RSI2_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="RSI2_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "RSI2_DEMO_TEST_FAILED",
+                    "reason": f"RSI2_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "rsi2_demo_test": status}
+        if isinstance(signal, dict):
+            signal["rsi2_demo_test"] = status
+        return None
+
+    def _close_rsi2_positions_on_rule(self, now=None) -> dict:
+        """Cierra a mercado las posiciones del worker RSI2 tras un cierre D1 > SMA5 o 10 velas D1 (regla del replay)."""
+        result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
+        if str(getattr(self.config, "bot_profile", "") or "").upper() != "RSI2" or not bool(self.config.execution_enabled):
+            return result
+        from strategy.connors_rsi2.rsi2_daily import exit_due
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+        close_position = getattr(trade_executor, "close_position", None)
+        if not callable(close_position):
+            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
+            return result
+        now = pd.Timestamp(now or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        seen, daily = set(), {}
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if not self._trade_owned_by_current_bot(trade):
+                continue
+            ticket = str(trade.get("broker_position_ticket") or "")
+            symbol = str(trade.get("instrument") or "")
+            entry_time = trade.get("entry_time")
+            if not ticket or ticket in seen or not entry_time:
+                continue
+            seen.add(ticket)
+            result["checked"] += 1
+            try:
+                if symbol not in daily:
+                    daily[symbol] = self._broker_candle_provider().get_candles(symbol, "D1", count=400)
+                reason = exit_due(daily[symbol], entry_time, now)
+            except Exception as exc:
+                result["errors"].append(f"{symbol}: {exc}")
+                continue
+            if reason is None:
+                continue
+            try:
+                close_result = close_position(position_ticket=ticket, reason="rsi2_rule_exit")
+            except Exception as exc:
+                close_result = {"closed": False, "error": str(exc)}
+            closed = bool((close_result or {}).get("closed", False))
+            result["closed"] += int(closed)
+            result["positions"].append({"ticket": ticket, "symbol": symbol, "closed": closed, "reason": reason})
+            self._persist_audit_event("RSI2_RULE_EXIT", instrument=symbol, broker_position_ticket=ticket,
+                                      action="CLOSED" if closed else "CLOSE_FAILED", reason=reason,
+                                      payload={"result": close_result})
+        return result
+
+    @property
+    def drift_strategy(self):
+        """Ruptura tras compresión en Drift Switch (solo el worker DRIFT la usa)."""
+        strat = self.__dict__.get("_drift_strategy")
+        if strat is None:
+            from strategy.drift_breakout.compression_breakout import DriftBreakoutStrategy
+            strat = DriftBreakoutStrategy(self.provider)
+            self.__dict__["_drift_strategy"] = strat
+        return strat
+
+    def _drift_active(self) -> bool:
+        mode = str(getattr(self.config, "drift_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _drift_status(self, force: bool = False) -> dict:
+        """Prueba demo de la ruptura Drift con criterio fijado (caché 5 min); NO_SUPERA la desactiva."""
+        from strategy.drift_breakout.compression_breakout import DRIFT_VERSION
+        cache = getattr(self, "_drift_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "drift_review_trades", 200))
+        min_r = float(getattr(self.config, "drift_min_r", 0.0))
+        status = {"start": self.config.drift_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.drift_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=DRIFT_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("DRIFT_DEMO_TEST", action=status["verdict"],
+                                      reason="DRIFT_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._drift_status_cache = (time.monotonic(), status)
+        return status
+
+    def _drift_gate(self, symbol, signal, strategy_name):
+        if str(strategy_name or "").upper() != "DRIFT_BREAKOUT":
+            return None
+        if not self._drift_active():
+            return {"symbol": str(symbol), "action": "DRIFT_DISABLED", "reason": "DRIFT_MODE_OFF_FOR_SOURCE"}
+        status = self._drift_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("DRIFT_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="DRIFT_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "DRIFT_DEMO_TEST_FAILED",
+                    "reason": f"DRIFT_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "drift_demo_test": status}
+        if isinstance(signal, dict):
+            signal["drift_demo_test"] = status
+        return None
+
+    @property
+    def overnight_strategy(self):
+        """Estrategia de sesgo nocturno (solo el worker NIGHT la usa)."""
+        strat = self.__dict__.get("_overnight_strategy")
+        if strat is None:
+            from strategy.overnight.overnight_drift import OvernightDriftStrategy
+            strat = OvernightDriftStrategy(self._broker_candle_provider())
+            self.__dict__["_overnight_strategy"] = strat
+        return strat
+
+    def _overnight_active(self) -> bool:
+        mode = str(getattr(self.config, "overnight_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _overnight_status(self, force: bool = False) -> dict:
+        """Prueba demo del sesgo nocturno con criterio fijado (caché 5 min); NO_SUPERA lo desactiva."""
+        from strategy.overnight.overnight_drift import OVERNIGHT_VERSION
+        cache = getattr(self, "_overnight_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "overnight_review_trades", 120))
+        min_r = float(getattr(self.config, "overnight_min_r", 0.0))
+        status = {"start": self.config.overnight_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.overnight_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=OVERNIGHT_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("OVERNIGHT_DEMO_TEST", action=status["verdict"],
+                                      reason="OVERNIGHT_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._overnight_status_cache = (time.monotonic(), status)
+        return status
+
+    def _overnight_gate(self, symbol, signal, strategy_name):
+        if str(strategy_name or "").upper() != "OVERNIGHT_DRIFT":
+            return None
+        if not self._overnight_active():
+            return {"symbol": str(symbol), "action": "OVERNIGHT_DISABLED", "reason": "OVERNIGHT_MODE_OFF_FOR_SOURCE"}
+        status = self._overnight_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("OVERNIGHT_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="OVERNIGHT_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "OVERNIGHT_DEMO_TEST_FAILED",
+                    "reason": f"OVERNIGHT_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "overnight_demo_test": status}
+        if isinstance(signal, dict):
+            signal["overnight_demo_test"] = status
+        return None
+
+    def _close_overnight_positions_at_open(self, now=None) -> dict:
+        """Cierra a mercado las posiciones del worker NIGHT cuando llega la apertura de las 09:30 NY siguiente."""
+        result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
+        if str(getattr(self.config, "bot_profile", "") or "").upper() != "NIGHT" or not bool(self.config.execution_enabled):
+            return result
+        from strategy.overnight.overnight_drift import exit_time_for_entry
+        trade_executor = getattr(getattr(self, "lifecycle_manager", None), "trade_executor", None)
+        close_position = getattr(trade_executor, "close_position", None)
+        if not callable(close_position):
+            result["errors"].append("TRADE_EXECUTOR_DOES_NOT_SUPPORT_POSITION_CLOSE")
+            return result
+        now = pd.Timestamp(now or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        seen = set()
+        for trade in self.repository.open_trades(source=self.config.source) or []:
+            if not self._trade_owned_by_current_bot(trade):
+                continue
+            ticket = str(trade.get("broker_position_ticket") or "")
+            entry_time = trade.get("entry_time")
+            if not ticket or ticket in seen or not entry_time:
+                continue
+            seen.add(ticket)
+            result["checked"] += 1
+            due = exit_time_for_entry(entry_time)
+            if now < due:
+                continue
+            try:
+                close_result = close_position(position_ticket=ticket, reason="overnight_ny_open")
+            except Exception as exc:
+                close_result = {"closed": False, "error": str(exc)}
+            closed = bool((close_result or {}).get("closed", False))
+            result["closed"] += int(closed)
+            result["positions"].append({"ticket": ticket, "symbol": trade.get("instrument"), "closed": closed})
+            self._persist_audit_event("OVERNIGHT_TIME_EXIT", instrument=trade.get("instrument"),
+                                      broker_position_ticket=ticket, action="CLOSED" if closed else "CLOSE_FAILED",
+                                      reason="OVERNIGHT_NY_OPEN_EXIT", payload={"due": due.isoformat(), "result": close_result})
+        return result
+
+    @property
+    def msnr_video_strategy(self):
+        """Estrategia MSNR de los vídeos (se crea al primer uso; solo el worker MSNR la usa)."""
+        strat = self.__dict__.get("_msnr_video_strategy")
+        if strat is None:
+            from strategy.malaysian_snr.video_strategy import MSNRVideoConfig, MSNRVideoStrategy
+            strat = MSNRVideoStrategy(self.provider, MSNRVideoConfig(
+                storyline_mode=str(getattr(self.config, "msnr_video_storyline_mode", "observe"))))
+            self.__dict__["_msnr_video_strategy"] = strat
+        return strat
+
+    def _msnr_symbol_test_status(self, symbol: str, force: bool = False) -> dict:
+        """Prueba demo de un símbolo nuevo en Malaysian SNR con criterio fijado (caché 5 min por símbolo)."""
+        caches = self.__dict__.setdefault("_msnr_symbol_test_cache", {})
+        cache = caches.get(symbol)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "msnr_symbol_test_review_trades", 40))
+        min_r = float(getattr(self.config, "msnr_symbol_test_min_r", 0.0))
+        status = {"symbol": symbol, "start": self.config.msnr_symbol_test_start, "review_trades": need,
+                  "min_r": min_r, "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        version = getattr(getattr(getattr(self, "malaysian_snr_strategy", None), "config", None), "strategy_version", None)
+        if callable(reader) and version:
+            try:
+                since = pd.Timestamp(self.config.msnr_symbol_test_start).to_pydatetime()
+                results = list(reader(symbol, strategy_version=version, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("MSNR_SYMBOL_DEMO_TEST", instrument=symbol, action=status["verdict"],
+                                      reason="MSNR_SYMBOL_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        caches[symbol] = (time.monotonic(), status)
+        return status
+
+    def _msnr_symbol_test_gate(self, symbol, signal, strategy_name):
+        """Bloquea en Malaysian SNR un símbolo en prueba demo si no supera su criterio (o fuera de DEMO)."""
+        from config.ict_instrument_policy import MSNR_DEMO_TEST_CANDIDATES
+        if str(strategy_name or "").upper() != "MALAYSIAN_SNR" or str(symbol) not in MSNR_DEMO_TEST_CANDIDATES:
+            return None
+        if str(getattr(self.config, "source", "DEMO")).upper() != "DEMO":
+            return {"symbol": str(symbol), "action": "MSNR_SYMBOL_DEMO_TEST_ONLY", "reason": "MSNR_SYMBOL_IN_DEMO_TEST_ONLY_DEMO"}
+        status = self._msnr_symbol_test_status(str(symbol))
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("MSNR_SYMBOL_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="MSNR_SYMBOL_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "MSNR_SYMBOL_DEMO_TEST_FAILED",
+                    "reason": f"MSNR_SYMBOL_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "msnr_symbol_demo_test": status}
+        if isinstance(signal, dict):
+            signal["msnr_symbol_demo_test"] = status
+        return None
+
+    def _msnr_video_active(self) -> bool:
+        mode = str(getattr(self.config, "msnr_video_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _msnr_video_status(self, force: bool = False) -> dict:
+        """Prueba demo del worker MSNR con criterio fijado (caché 5 min); NO_SUPERA lo desactiva."""
+        from strategy.malaysian_snr.video_strategy import MSNR_VIDEO_VERSION
+        cache = getattr(self, "_msnr_video_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "msnr_video_review_trades", 200))
+        min_r = float(getattr(self.config, "msnr_video_min_r", 0.0))
+        status = {"start": self.config.msnr_video_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.msnr_video_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=MSNR_VIDEO_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("MSNR_VIDEO_DEMO_TEST", action=status["verdict"],
+                                      reason="MSNR_VIDEO_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._msnr_video_status_cache = (time.monotonic(), status)
+        return status
+
+    def _msnr_video_gate(self, symbol, signal, strategy_name):
+        if str(strategy_name or "").upper() != "MSNR_VIDEO":
+            return None
+        if not self._msnr_video_active():
+            return {"symbol": str(symbol), "action": "MSNR_VIDEO_DISABLED", "reason": "MSNR_VIDEO_MODE_OFF_FOR_SOURCE"}
+        status = self._msnr_video_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("MSNR_VIDEO_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="MSNR_VIDEO_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "MSNR_VIDEO_DEMO_TEST_FAILED",
+                    "reason": f"MSNR_VIDEO_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "msnr_video_demo_test": status}
+        if isinstance(signal, dict):
+            signal["msnr_video_demo_test"] = status
+        return None
+
+    def _msnr_h4h1_active(self) -> bool:
+        mode = str(getattr(self.config, "msnr_h4h1_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    @staticmethod
+    def _is_h4h1_signal(signal) -> bool:
+        from strategy.malaysian_snr.h4h1_confirmation import H4H1_SCENARIO
+        return isinstance(signal, dict) and signal.get("scenario") == H4H1_SCENARIO
+
+    def _msnr_h4h1_status(self, force: bool = False) -> dict:
+        """Prueba demo del escenario H4→H1 con criterio fijado (caché 5 min); NO_SUPERA lo desactiva."""
+        from strategy.malaysian_snr.h4h1_confirmation import H4H1_STRATEGY_VERSION
+        cache = getattr(self, "_msnr_h4h1_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "msnr_h4h1_review_trades", 200))
+        min_r = float(getattr(self.config, "msnr_h4h1_min_r", 0.0))
+        status = {"start": self.config.msnr_h4h1_test_start, "review_trades": need, "min_r": min_r,
+                  "operations": 0, "mean_r": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if callable(reader):
+            try:
+                since = pd.Timestamp(self.config.msnr_h4h1_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=H4H1_STRATEGY_VERSION, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results))
+            if len(results) >= need:
+                status["verdict"] = "SUPERA" if status["mean_r"] > min_r else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("MSNR_H4H1_DEMO_TEST", action=status["verdict"],
+                                      reason="MSNR_H4H1_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._msnr_h4h1_status_cache = (time.monotonic(), status)
+        return status
+
+    def _msnr_h4h1_gate(self, symbol, signal, strategy_name):
+        """Bloquea el escenario H4→H1 si no está activo o si su prueba demo no superó el criterio."""
+        if str(strategy_name or "").upper() != "MALAYSIAN_SNR" or not self._is_h4h1_signal(signal):
+            return None
+        if not self._msnr_h4h1_active():
+            return {"symbol": str(symbol), "action": "MSNR_H4H1_DISABLED", "reason": "MSNR_H4H1_MODE_OFF_FOR_SOURCE"}
+        status = self._msnr_h4h1_status()
+        if status["verdict"] == "NO_SUPERA":
+            self._persist_audit_event("MSNR_H4H1_DEMO_TEST", instrument=symbol, action="BLOCKED",
+                                      reason="MSNR_H4H1_DEMO_TEST_FAILED", payload=status)
+            return {"symbol": str(symbol), "action": "MSNR_H4H1_DEMO_TEST_FAILED",
+                    "reason": f"MSNR_H4H1_DEMO_TEST_FAILED ({status['operations']} ops, R/op {status['mean_r']:+.3f})",
+                    "h4h1_demo_test": status}
+        signal["h4h1_demo_test"] = status
+        return None
+
+    def _msnr_regime_filter_active(self) -> bool:
+        mode = str(getattr(self.config, "msnr_regime_filter_mode", "off") or "off").lower()
+        if mode == "live":
+            return True
+        return mode == "demo_test" and str(getattr(self.config, "source", "DEMO")).upper() == "DEMO"
+
+    def _msnr_regime_filter_gate(self, symbol, signal, strategy_name):
+        """Filtro de régimen MSNR: bloquea la confirmación fakeout-trap y el ADX en (min, max]."""
+        if str(strategy_name or "").upper() != "MALAYSIAN_SNR" or not self._msnr_regime_filter_active():
+            return None
+        signal = signal if isinstance(signal, dict) else {}
+        if self._is_h4h1_signal(signal):
+            return None  # el filtro de régimen se validó con las confirmaciones M15, no con H4→H1
+        confirmation = str(signal.get("entry_confirmation") or "")
+        raw_adx = signal.get("adx") if signal.get("adx") is not None else signal.get("momentum_adx")
+        try:
+            adx = float(raw_adx)
+            adx = adx if math.isfinite(adx) else None
+        except (TypeError, ValueError):
+            adx = None
+        lo = float(getattr(self.config, "msnr_regime_adx_block_min", 25.0))
+        hi = float(getattr(self.config, "msnr_regime_adx_block_max", 40.0))
+        report = {"symbol": str(symbol), "mode": self.config.msnr_regime_filter_mode, "entry_confirmation": confirmation,
+                  "adx": adx, "adx_block_range": [lo, hi], "demo_test": self._msnr_regime_filter_status()}
+        action = None
+        if bool(getattr(self.config, "msnr_regime_block_fakeout", True)) and confirmation == "SNR_FAKEOUT_TRAP_SWEEP":
+            action, reason = "MSNR_REGIME_FAKEOUT_BLOCKED", "MSNR_REGIME_BLOCKS_FAKEOUT_TRAP_SWEEP"
+        elif adx is not None and lo < adx <= hi:
+            action, reason = "MSNR_REGIME_ADX_BLOCKED", f"MSNR_REGIME_BLOCKS_ADX_{lo:g}_{hi:g}"
+        if action is None:
+            signal["msnr_regime_filter"] = {**report, "allowed": True}
+            return None
+        self._persist_audit_event("MSNR_REGIME_FILTER", instrument=symbol, action="BLOCKED", reason=reason, payload=report)
+        return {"symbol": str(symbol), "action": action, "reason": reason, "msnr_regime_filter": report}
+
+    def _msnr_regime_filter_status(self, force: bool = False) -> dict:
+        """Estado de la prueba demo del filtro MSNR con el criterio fijado (caché 5 min)."""
+        cache = getattr(self, "_msnr_regime_status_cache", None)
+        if not force and cache and time.monotonic() - cache[0] < 300:
+            return cache[1]
+        need = int(getattr(self.config, "msnr_regime_review_trades", 60))
+        min_r = float(getattr(self.config, "msnr_regime_min_r", 0.0))
+        min_wr = float(getattr(self.config, "msnr_regime_min_win_rate", 0.50))
+        status = {"start": self.config.msnr_regime_test_start, "review_trades": need, "min_r": min_r,
+                  "min_win_rate": min_wr, "operations": 0, "mean_r": None, "win_rate": None, "verdict": "EN_PRUEBA"}
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        msnr = getattr(self, "malaysian_snr_strategy", None)
+        version = getattr(getattr(msnr, "config", None), "strategy_version", None)
+        if callable(reader) and version:
+            try:
+                since = pd.Timestamp(self.config.msnr_regime_test_start).to_pydatetime()
+                results = list(reader(None, strategy_version=version, source="DEMO", since=since))
+            except Exception:
+                results = []
+            if results:
+                status.update(operations=len(results), mean_r=sum(results) / len(results),
+                              win_rate=sum(1 for r in results if r > 0) / len(results))
+            if len(results) >= need:
+                ok = status["mean_r"] > min_r and status["win_rate"] >= min_wr
+                status["verdict"] = "SUPERA" if ok else "NO_SUPERA"
+        previous = (cache[1] if cache else {}).get("verdict")
+        if previous is not None and previous != status["verdict"]:
+            self._persist_audit_event("MSNR_REGIME_DEMO_TEST", action=status["verdict"],
+                                      reason="MSNR_REGIME_DEMO_TEST_VERDICT_CHANGED", payload=status)
+        self._msnr_regime_status_cache = (time.monotonic(), status)
+        return status
+
+    def _orb_sweep_forward_test_gate(self, symbol, strategy_name):
+        """Desactiva SWEEP en un activo en prueba si, tras N operaciones cerradas en DEMO, su R/op <= mínimo."""
+        if str(strategy_name or "").upper() != "ORB_NEW_YORK" or not bool(getattr(self.config, "orb_sweep_forward_test_enabled", False)):
+            return None
+        from strategy.orb.asset_rules import ORB_SWEEP_FORWARD_TEST_SYMBOLS, ORB_SWEEP_STRATEGY_VERSION
+        if str(symbol) not in ORB_SWEEP_FORWARD_TEST_SYMBOLS:
+            return None
+        reader = getattr(getattr(self, "repository", None), "closed_operations_r", None)
+        if not callable(reader):
+            return None
+        try:
+            results = list(reader(str(symbol), strategy_version=ORB_SWEEP_STRATEGY_VERSION, source="DEMO"))
+        except Exception:
+            return None  # sin lectura fiable no se bloquea (la prueba sigue)
+        need = int(getattr(self.config, "orb_sweep_forward_test_min_trades", 40))
+        min_r = float(getattr(self.config, "orb_sweep_forward_test_min_r", 0.0))
+        mean_r = (sum(results) / len(results)) if results else None
+        if len(results) < need or mean_r is None or mean_r > min_r:
+            return None
+        report = {"symbol": str(symbol), "operations": len(results), "mean_r": mean_r, "min_trades": need, "min_r": min_r}
+        self._persist_audit_event("ORB_SWEEP_FORWARD_TEST", instrument=symbol, action="BLOCKED",
+                                  reason="FORWARD_TEST_FAILED", payload=report)
+        return {"symbol": symbol, "action": "ORB_SWEEP_FORWARD_TEST_FAILED",
+                "reason": f"ORB_SWEEP_FORWARD_TEST_FAILED ({len(results)} ops, R/op {mean_r:+.3f} <= {min_r:+.3f})",
+                "forward_test": report}
+
+    def _spread_ratio_check(self, symbol, direction, stop, max_ratio, event, blocked_action):
+        """Comprueba spread / distancia al SL con el bid/ask real; sin cotización válida no bloquea."""
+        quote = self._meta_execution_spread(symbol)
+        report = {"symbol": str(symbol), "direction": str(direction), "stop_loss": stop, "max_risk_ratio": max_ratio,
+                  "spread": quote.get("spread"), "spread_status": quote.get("spread_status")}
+        try:
+            entry = float(quote["execution_ask"] if str(direction).upper() == "BUY" else quote["execution_bid"])
+            distance = abs(entry - float(stop))
+            ratio = float(quote["spread"]) / distance if distance > 0 else float("inf")
+        except (KeyError, TypeError, ValueError):
+            report.update(allowed=True, reason="SPREAD_UNAVAILABLE_NOT_BLOCKING")
+            self._persist_audit_event(event, instrument=symbol, action="ALLOWED", reason=report["reason"], payload=report)
+            return None
+        report.update(entry_price=entry, stop_distance=distance, spread_risk_ratio=ratio, allowed=ratio <= max_ratio + 1e-12)
+        report["reason"] = "SPREAD_RISK_RATIO_OK" if report["allowed"] else "SPREAD_RISK_RATIO_EXCEEDED"
+        self._persist_audit_event(event, instrument=symbol, action="ALLOWED" if report["allowed"] else "BLOCKED",
+                                  reason=report["reason"], payload=report)
+        if report["allowed"]:
+            return None
+        return {"symbol": symbol, "action": blocked_action,
+                "reason": f"SPREAD_RISK_RATIO_EXCEEDED ({ratio:.2%} > {max_ratio:.2%})", "spread_audit": report}
+
+    def _ict_real_market_spread_gate(self, symbol, direction, stop, strategy_name):
+        """Topes de spread/SL de ICT en mercados reales: metales (2%) y Forex fuera de los workers FOREX/MSNR.
+
+        Los workers FOREX_* y MALAYSIAN_SNR ya pasan por el guard de Forex (forex_spread_max_risk_ratio).
+        """
+        if str(strategy_name or "").upper() not in {"ICT", "ICT_SABRI_MALLE"} or self._is_synthetic_symbol(symbol):
+            return None
+        if self._is_metal_symbol(symbol):
+            return self._spread_ratio_check(symbol, direction, stop, float(self.config.ict_metals_spread_max_risk_ratio),
+                                            "ICT_METALS_EXECUTION_SPREAD", "ICT_METALS_SPREAD_TO_SL_EXCEEDED")
+        profile = str(self.config.bot_profile).upper()
+        if self._is_forex_symbol(symbol) and not (profile.startswith("FOREX") or profile == "MALAYSIAN_SNR"):
+            return self._spread_ratio_check(symbol, direction, stop, float(self.config.forex_spread_max_risk_ratio),
+                                            "ICT_FOREX_EXECUTION_SPREAD", "ICT_FOREX_SPREAD_TO_SL_EXCEEDED")
+        return None
+
+    def _synthetic_spread_gate(self, symbol, direction, stop):
+        """Bloquea entradas en sintéticos cuyo spread consume demasiado del riesgo (spread / distancia al SL).
+
+        Usa el bid/ask real de ejecución: BUY entra al ask y SELL al bid. Si no hay cotización válida
+        no bloquea (comportamiento previo) y lo deja auditado.
+        """
+        if not bool(getattr(self.config, "synthetic_spread_guard_enabled", False)) or not self._is_synthetic_symbol(symbol):
+            return None
+        max_ratio = float(getattr(self.config, "synthetic_spread_max_risk_ratio", 0.02))
+        quote = self._meta_execution_spread(symbol)
+        report = {"symbol": str(symbol), "direction": str(direction), "stop_loss": stop,
+                  "max_risk_ratio": max_ratio, "spread": quote.get("spread"),
+                  "spread_status": quote.get("spread_status"), "spread_reason": quote.get("spread_reason")}
+        try:
+            entry = float(quote["execution_ask"] if str(direction).upper() == "BUY" else quote["execution_bid"])
+            distance = abs(entry - float(stop))
+            ratio = float(quote["spread"]) / distance if distance > 0 else float("inf")
+        except (KeyError, TypeError, ValueError):
+            report.update(allowed=True, reason="SYNTHETIC_SPREAD_UNAVAILABLE_NOT_BLOCKING")
+            self._persist_audit_event("SYNTHETIC_EXECUTION_SPREAD", instrument=symbol, action="ALLOWED",
+                                      reason=report["reason"], payload=report)
+            return None
+        report.update(entry_price=entry, stop_distance=distance, spread_risk_ratio=ratio,
+                      allowed=ratio <= max_ratio + 1e-12)
+        report["reason"] = "SPREAD_RISK_RATIO_OK" if report["allowed"] else "SYNTHETIC_SPREAD_RISK_RATIO_EXCEEDED"
+        self._persist_audit_event("SYNTHETIC_EXECUTION_SPREAD", instrument=symbol,
+                                  action="ALLOWED" if report["allowed"] else "BLOCKED", reason=report["reason"], payload=report)
+        if report["allowed"]:
+            return None
+        return {"symbol": symbol, "action": "SYNTHETIC_SPREAD_TO_SL_EXCEEDED",
+                "reason": f"SYNTHETIC_SPREAD_RISK_RATIO_EXCEEDED ({ratio:.2%} > {max_ratio:.2%})",
+                "spread_audit": report}
+
+    def _register_ict_spread_lock(self, symbol, direction, stop, strategy_name, audit):
+        """Ocupa el símbolo con la operación virtual de una señal ICT descartada por spread (sintéticos)."""
+        if (not bool(getattr(self.config, "ict_spread_block_lock_enabled", False))
+                or str(strategy_name or "").upper() not in {"ICT", "ICT_SABRI_MALLE"}
+                or not self._is_synthetic_symbol(symbol)):
+            return None
+        locks = self.__dict__.setdefault("_ict_spread_locks", {})
+        if str(symbol) in locks:
+            return locks[str(symbol)]
+        try:
+            entry, stop = float((audit or {})["entry_price"]), float(stop)
+        except (KeyError, TypeError, ValueError):
+            return None
+        risk = abs(entry - stop)
+        if risk <= 0:
+            return None
+        sign = 1.0 if str(direction).upper() == "BUY" else -1.0
+        now = pd.Timestamp(datetime.now(timezone.utc))
+        lock = {"symbol": str(symbol), "direction": str(direction).upper(), "entry": entry, "stop": stop,
+                "tp1": entry + sign * float(getattr(self.config, "first_target_rr", 1.0)) * risk,
+                "tp2": entry + sign * float(getattr(self.config, "second_target_rr", 2.0)) * risk,
+                "spread": float((audit or {}).get("spread") or 0.0), "tp1_hit": False,
+                "created_at": now.isoformat(),
+                "expires_at": (now + pd.Timedelta(hours=float(self.config.ict_spread_block_lock_max_hours))).isoformat()}
+        locks[str(symbol)] = lock
+        self._persist_audit_event("ICT_SPREAD_LOCK", instrument=symbol, action="LOCKED",
+                                  reason="ICT_SIGNAL_SPREAD_BLOCKED_VIRTUAL_TRADE_OCCUPIES_SYMBOL", payload=lock)
+        return lock
+
+    @staticmethod
+    def _resolve_virtual_trade(lock: dict, candles) -> str | None:
+        """Avanza la operación virtual sobre velas cerradas; devuelve el resultado o None si sigue abierta."""
+        if candles is None or len(candles) == 0:
+            return None
+        buy = lock["direction"] == "BUY"
+        shift = 0.0 if buy else float(lock.get("spread") or 0.0)  # las velas son bid; SELL cierra al ask
+        created = pd.Timestamp(lock["created_at"]).floor("15min")
+        for _, bar in candles.iterrows():
+            if pd.Timestamp(bar["time"]) < created:
+                continue
+            high, low = float(bar["high"]) + shift, float(bar["low"]) + shift
+            if not lock["tp1_hit"]:
+                if (low <= lock["stop"]) if buy else (high >= lock["stop"]):
+                    return "SL"
+                if (high >= lock["tp1"]) if buy else (low <= lock["tp1"]):
+                    lock["tp1_hit"] = True
+                    if (low <= lock["entry"]) if buy else (high >= lock["entry"]):
+                        return "TP1+BE"
+                    if (high >= lock["tp2"]) if buy else (low <= lock["tp2"]):
+                        return "TP2"
+            else:
+                if (low <= lock["entry"]) if buy else (high >= lock["entry"]):
+                    return "TP1+BE"
+                if (high >= lock["tp2"]) if buy else (low <= lock["tp2"]):
+                    return "TP2"
+        return None
+
+    def _ict_spread_lock_gate(self, symbol):
+        """Mientras la operación virtual de una señal descartada por spread siga abierta, el símbolo no se analiza."""
+        lock = self.__dict__.get("_ict_spread_locks", {}).get(str(symbol))
+        if lock is None:
+            return None
+        now = pd.Timestamp(datetime.now(timezone.utc))
+        outcome = None
+        if now >= pd.Timestamp(lock["expires_at"]):
+            outcome = "TIMEOUT"
+        else:
+            try:
+                created = pd.Timestamp(lock["created_at"])
+                bars = int((now - created) / pd.Timedelta(minutes=15)) + 3
+                candles = self.provider.get_candles(symbol, timeframe="M15", count=max(3, min(bars, 300)))
+                if candles is not None and len(candles):
+                    candles = candles[pd.to_datetime(candles["time"], utc=True) + pd.Timedelta(minutes=15) <= now]
+                outcome = self._resolve_virtual_trade(lock, candles)
+            except Exception:
+                outcome = None  # sin velas fiables el bloqueo sigue hasta la próxima lectura o su caducidad
+        if outcome is not None:
+            self._ict_spread_locks.pop(str(symbol), None)
+            self._persist_audit_event("ICT_SPREAD_LOCK", instrument=symbol, action="RELEASED",
+                                      reason=f"VIRTUAL_TRADE_{outcome.replace('+', '_')}", payload={**lock, "outcome": outcome})
+            return None
+        return {"symbol": str(symbol), "action": "ICT_SPREAD_LOCK_ACTIVE",
+                "reason": "ICT_SPREAD_BLOCKED_SIGNAL_VIRTUAL_TRADE_OPEN", "spread_lock": dict(lock)}
+
+    def _forex_execution_gate(self, symbol, direction, stop, strategy_name=None):
         blocked = self._forex_rollover_entry_gate(symbol)
         if blocked is not None:
             return blocked
         blocked_crypto = self._crypto_rollover_entry_gate(symbol)
         if blocked_crypto is not None:
             return blocked_crypto
+        blocked_synthetic = self._synthetic_spread_gate(symbol, direction, stop)
+        if blocked_synthetic is not None:
+            self._register_ict_spread_lock(symbol, direction, stop, strategy_name, blocked_synthetic.get("spread_audit"))
+            return blocked_synthetic
+        blocked_ict_real = self._ict_real_market_spread_gate(symbol, direction, stop, strategy_name)
+        if blocked_ict_real is not None:
+            return blocked_ict_real
+        blocked_forward = self._orb_sweep_forward_test_gate(symbol, strategy_name)
+        if blocked_forward is not None:
+            return blocked_forward
         if not (str(self.config.bot_profile).upper().startswith("FOREX") or str(self.config.bot_profile).upper() == "MALAYSIAN_SNR") or not self._is_forex_symbol(symbol):
             return None
         if bool(getattr(self.config, "forex_prune_toxic_assets", False)):
@@ -6290,6 +7341,8 @@ class LiveTradingEngine:
         result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
         if not bool(self.config.execution_enabled):
             return result
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "CARRY":
+            return result  # el carry se cobra manteniendo la posición de noche y en fin de semana
 
         forex_status = self._forex_rollover_status()
         crypto_status = self._crypto_rollover_status()
@@ -6378,6 +7431,8 @@ class LiveTradingEngine:
         result = {"checked": 0, "closed": 0, "errors": [], "positions": []}
         if not bool(self.config.execution_enabled):
             return result
+        if str(getattr(self.config, "bot_profile", "") or "").upper() == "CARRY":
+            return result  # el carry se cobra manteniendo la posición de noche y en fin de semana
 
         forex_status = self._forex_rollover_status()
         crypto_status = self._crypto_rollover_status()
@@ -6876,9 +7931,14 @@ class LiveTradingEngine:
         return report
 
     def _step_quality_gate(self, symbol: str, signal: dict, analysis: dict | None = None) -> dict | None:
-        """Aislamiento técnico de Step Index: confirmación en M15 y ADX > 25."""
+        """Aislamiento técnico de Step Index: confirmación en M15 y ADX >= step_min_adx (25).
+
+        El código de motivo histórico `STEP_REQUIRES_M15_ADX_ABOVE_25` se conserva para la auditoría y el dashboard.
+        """
         if not self._is_step_symbol(symbol) and str(self.config.bot_profile or "").upper() != "STEP":
             return None
+        if str(self.config.bot_profile or "").upper() == "MALAYSIAN_SNR" and self._is_h4h1_signal(signal):
+            return None  # el escenario H4→H1 se validó sin el ADX de ejecución Step ni la confirmación M15
 
         is_step_worker = str(self.config.bot_profile or "").upper() == "STEP"
         if bool(getattr(self.config, "step_prune_toxic_assets", False)) and is_step_worker:
@@ -7486,6 +8546,124 @@ class LiveTradingEngine:
             )
         return analysis
 
+    @staticmethod
+    def _msnr_flag(name: str, default: bool) -> bool:
+        raw = os.getenv(name)
+        if raw is None:
+            return bool(default)
+        return raw.strip().lower() not in ("0", "false", "off", "no")
+
+    def _virtual_limit_now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def _ict_analysis_with_virtual_limit(self, symbol: str) -> dict:
+        """ICT en sintéticos con entrada limitada virtual (réplica de tools/replay_ict_limit_entry.py).
+
+        Una señal válida queda pendiente en su `entry_price` hasta `ict_virtual_limit_bars` velas M15 tras el
+        cierre de la vela de señal. Se devuelve como válida (y sigue el camino normal de ejecución a mercado)
+        solo cuando el precio de ejecución toca el límite: BUY con ask <= límite, SELL con bid >= límite.
+        Se cancela si expira o si el precio toca el SL antes del fill. Vive en memoria del worker.
+        """
+        if self._is_crypto_symbol(symbol) and not bool(getattr(self.config, "ict_crypto_enabled", False)):
+            return {"valid": False, "symbol": symbol, "strategy_name": "ICT_SABRI_MALLE",
+                    "action": "ICT_CRYPTO_DISABLED", "reason": "ICT_CRYPTO_NEGATIVE_EXPECTANCY_REPLAY_2Y"}
+        fresh = self.ict_strategy.analyze_symbol(symbol)
+        if not bool(getattr(self.config, "ict_virtual_limit_enabled", False)) or not self._is_synthetic_symbol(symbol):
+            return fresh
+        pending_map = self.__dict__.setdefault("_ict_virtual_limits", {})
+        # Última señal ya consumida (disparada, caducada o invalidada) por símbolo: no se vuelve a crear.
+        consumed_map = self.__dict__.setdefault("_ict_virtual_limits_consumed", {})
+        one_shot = bool(getattr(self.config, "ict_virtual_limit_one_shot", True))
+        now = self._virtual_limit_now()
+        signal = (fresh.get("signal") or fresh.get("entry")) if fresh.get("valid") else None
+        if signal and signal.get("entry_price") is not None and signal.get("stop_loss") is not None:
+            try:
+                bar_open = pd.Timestamp(signal.get("entry_time"))
+                bar_open = bar_open.tz_localize("UTC") if bar_open.tzinfo is None else bar_open.tz_convert("UTC")
+            except (TypeError, ValueError):
+                bar_open = pd.Timestamp(now)
+            identity = (str(signal.get("direction")), bar_open.isoformat(), round(float(signal["entry_price"]), 8))
+            current = pending_map.get(symbol)
+            if one_shot and current is None and consumed_map.get(symbol) == identity:
+                return {"valid": False, "symbol": symbol, "strategy_name": "ICT_SABRI_MALLE",
+                        "strategy_version": fresh.get("strategy_version"),
+                        "action": "ICT_VIRTUAL_LIMIT_CONSUMED", "reason": "SIGNAL_LIMIT_ALREADY_CONSUMED"}
+            if current is None or current["identity"] != identity:
+                bars = max(1, int(getattr(self.config, "ict_virtual_limit_bars", 8)))
+                pending_map[symbol] = {
+                    "identity": identity, "analysis": fresh, "direction": str(signal["direction"]).upper(),
+                    "limit": float(signal["entry_price"]), "stop_loss": float(signal["stop_loss"]),
+                    "created_at": now.isoformat(),
+                    "expires_at": (bar_open + pd.Timedelta(minutes=15 * (bars + 1))).to_pydatetime(),
+                }
+                self._persist_audit_event("ICT_VIRTUAL_LIMIT", instrument=symbol, action="CREATED", reason="LIMIT_PENDING",
+                                          payload={k: str(v) for k, v in pending_map[symbol].items() if k != "analysis"})
+        pending = pending_map.get(symbol)
+        if pending is None:
+            return fresh
+        base = {"valid": False, "symbol": symbol, "strategy_name": "ICT_SABRI_MALLE",
+                "strategy_version": (pending["analysis"] or {}).get("strategy_version"),
+                "virtual_limit": {"direction": pending["direction"], "limit": pending["limit"],
+                                  "stop_loss": pending["stop_loss"], "expires_at": pending["expires_at"].isoformat()}}
+
+        def close(action, reason):
+            consumed_map[symbol] = pending["identity"]
+            pending_map.pop(symbol, None)
+            self._persist_audit_event("ICT_VIRTUAL_LIMIT", instrument=symbol, action=action, reason=reason, payload=base["virtual_limit"])
+            return {**base, "action": f"ICT_VIRTUAL_LIMIT_{action}", "reason": reason}
+
+        if now >= pending["expires_at"]:
+            return close("EXPIRED", "LIMIT_NOT_TOUCHED_IN_WINDOW")
+        quote = self._meta_execution_spread(symbol)
+        bid, ask = quote.get("execution_bid"), quote.get("execution_ask")
+        if bid is None or ask is None:
+            return {**base, "action": "ICT_VIRTUAL_LIMIT_WAITING", "reason": "QUOTE_UNAVAILABLE"}
+        buy = pending["direction"] == "BUY"
+        if (buy and bid <= pending["stop_loss"]) or (not buy and ask >= pending["stop_loss"]):
+            return close("INVALIDATED", "STOP_TOUCHED_BEFORE_FILL")
+        if (buy and ask <= pending["limit"]) or (not buy and bid >= pending["limit"]):
+            analysis = pending["analysis"]
+            # Una señal disparada NO se marca consumida: si el motor la bloquea por algo pasajero (huecos, ciclo de
+            # símbolo) puede reintentarse en esa vela; la clave de ejecución impide abrirla dos veces.
+            pending_map.pop(symbol, None)
+            fill_ref = ask if buy else bid
+            analysis["virtual_limit"] = {**base["virtual_limit"], "triggered_at": now.isoformat(), "trigger_price": fill_ref}
+            self._persist_audit_event("ICT_VIRTUAL_LIMIT", instrument=symbol, action="TRIGGERED", reason="LIMIT_TOUCHED",
+                                      payload=analysis["virtual_limit"])
+            return analysis
+        return {**base, "action": "ICT_VIRTUAL_LIMIT_WAITING",
+                "reason": f"WAITING_PRICE_{'ASK<=' if buy else 'BID>='}{pending['limit']}"}
+
+    def _leg_volume_cap(self, symbol: str, direction: str, leg_count: int) -> float | None:
+        """Volumen máximo por pierna para que todas quepan en el `volume_limit` del símbolo (None = sin tope).
+
+        Solo con ejecutores que informan el límite (`symbol_volume_headroom`, MT5). Si la consulta falla se sigue
+        sin tope: el broker sigue validando cada orden con order_check.
+        """
+        if not bool(getattr(self.config, "leg_volume_limit_cap_enabled", True)) or leg_count <= 0:
+            return None
+        headroom_fn = getattr(getattr(self, "executor", None), "symbol_volume_headroom", None)
+        if not callable(headroom_fn):
+            return None
+        try:
+            report = headroom_fn(symbol, direction)
+        except Exception:
+            return None
+        headroom = report.get("headroom") if isinstance(report, dict) else None
+        if isinstance(headroom, bool) or not isinstance(headroom, (int, float)) or not math.isfinite(headroom):
+            return None
+        return max(0.0, float(headroom)) / int(leg_count)
+
+    def _apply_synthetic_risk_multiplier(self, symbol: str, risk_percent: float) -> float:
+        """Escala el riesgo total de una entrada en sintéticos por `synthetic_risk_multiplier` (acotado a 0.1-1.0)."""
+        if not self._is_synthetic_symbol(symbol):
+            return float(risk_percent)
+        try:
+            mult = float(getattr(self.config, "synthetic_risk_multiplier", 1.0))
+        except (TypeError, ValueError):
+            mult = 1.0
+        return float(risk_percent) * min(1.0, max(0.1, mult))
+
     def _risk_percent_for_strategy(self, strategy_name: str) -> float:
         """Devuelve el riesgo lógico sin mezclar contratos de estrategia.
 
@@ -7496,11 +8674,11 @@ class LiveTradingEngine:
         if str(strategy_name or "").upper() == "ORB_NEW_YORK":
             return float(self.config.orb_risk_percent)
         if str(strategy_name or "").upper() == "MALAYSIAN_SNR":
-            # Fase 1: MSNR a riesgo reducido hasta acumular 50 trades reales con C2 (DAEMONBLACKFX_MSNR_RISK_MULT).
+            # Contrato operativo: 1% total en 2 patas. Reducible con DAEMONBLACKFX_MSNR_RISK_MULT (0.1-1.0).
             try:
-                mult = float(os.getenv("DAEMONBLACKFX_MSNR_RISK_MULT", "0.5"))
+                mult = float(os.getenv("DAEMONBLACKFX_MSNR_RISK_MULT", "1.0"))
             except ValueError:
-                mult = 0.5
+                mult = 1.0
             return float(self.config.risk_percent) * min(1.0, max(0.1, mult))
         return float(self.config.risk_percent)
 
@@ -7539,7 +8717,7 @@ class LiveTradingEngine:
         self._msnr_audit_local.analysis = None
         try:
             result = self._process_symbol_impl(symbol, sync_before_execution)
-            if str(getattr(self.config, 'bot_profile', '')).upper() == 'MALAYSIAN_SNR':
+            if str(getattr(getattr(self, 'config', None), 'bot_profile', '')).upper() == 'MALAYSIAN_SNR':
                 from strategy.malaysian_snr.candidate_audit import audit_result
                 audit_result(self, symbol, result)
             return result
@@ -7550,6 +8728,11 @@ class LiveTradingEngine:
         """Processes symbol execution. If strategy_name == "ORB_NEW_YORK", uses self.config.orb_risk_percent."""
         from strategy.execution.active_position_guard import symbol_cycle_lock
         exact_symbol = self.provider.resolve_symbol(symbol)
+        profile = str(getattr(getattr(self, "config", None), "bot_profile", "") or "").upper()
+        if profile in tuple(getattr(getattr(self, "config", None), "disabled_entry_profiles", ()) or ()):
+            # Worker desactivado para entradas nuevas (DAEMONBLACKFX_DISABLED_WORKERS); no se analiza el símbolo.
+            return {"symbol": exact_symbol, "action": "WORKER_DISABLED", "reason": "WORKER_DISABLED_BY_CONFIG",
+                    "bot_profile": profile}
         prepared_msnr = None
         config = getattr(self, 'config', None)
         if config is not None and (str(getattr(config,'bot_profile','')).upper() == 'MALAYSIAN_SNR' or getattr(config,'malaysian_snr_enabled',False)):
@@ -7684,7 +8867,7 @@ class LiveTradingEngine:
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
                     ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
                 ]
-            elif strategy_name in {"ICT", "ICT_SABRI_MALLE"}:
+            elif strategy_name in {"ICT", "ICT_SABRI_MALLE", "DRIFT_BREAKOUT", "CONNORS_RSI2", "FX_CARRY"}:
                 ict_tp1_rr = float(signal.get("tp1_rr") or getattr(self.config, "first_target_rr", 2.0))
                 ict_runner_rr = float(signal.get("runner_rr") or getattr(self.config, "second_target_rr", 4.0))
                 eff_first_rr = ict_tp1_rr
@@ -7822,6 +9005,10 @@ class LiveTradingEngine:
         if forex_news_gate is not None:
             return forex_news_gate
 
+        spread_lock_gate = self._ict_spread_lock_gate(exact_symbol)
+        if spread_lock_gate is not None:
+            return spread_lock_gate
+
         regime_gate = self._market_regime_entry_gate(exact_symbol)
         if regime_gate is not None:
             return regime_gate
@@ -7896,6 +9083,31 @@ class LiveTradingEngine:
             track_pending(self, exact_symbol, analysis)
             if analysis.get('shadow_only'):
                 return observation_result(exact_symbol, analysis)
+        elif str(self.config.bot_profile or "").upper() == "CARRY":
+            if not self._carry_active():
+                return {"symbol": exact_symbol, "action": "CARRY_DISABLED", "reason": "CARRY_MODE_OFF_FOR_SOURCE"}
+            analysis = self.carry_strategy.analyze_symbol(exact_symbol)
+            analysis["context_policy"] = "CARRY_NATIVE"
+        elif str(self.config.bot_profile or "").upper() == "RSI2":
+            if not self._rsi2_active():
+                return {"symbol": exact_symbol, "action": "RSI2_DISABLED", "reason": "RSI2_MODE_OFF_FOR_SOURCE"}
+            analysis = self.rsi2_strategy.analyze_symbol(exact_symbol)
+            analysis["context_policy"] = "RSI2_NATIVE"
+        elif str(self.config.bot_profile or "").upper() == "DRIFT":
+            if not self._drift_active():
+                return {"symbol": exact_symbol, "action": "DRIFT_DISABLED", "reason": "DRIFT_MODE_OFF_FOR_SOURCE"}
+            analysis = self.drift_strategy.analyze_symbol(exact_symbol)
+            analysis["context_policy"] = "DRIFT_NATIVE"
+        elif str(self.config.bot_profile or "").upper() == "NIGHT":
+            if not self._overnight_active():
+                return {"symbol": exact_symbol, "action": "OVERNIGHT_DISABLED", "reason": "OVERNIGHT_MODE_OFF_FOR_SOURCE"}
+            analysis = self.overnight_strategy.analyze_symbol(exact_symbol)
+            analysis["context_policy"] = "OVERNIGHT_NATIVE"
+        elif str(self.config.bot_profile or "").upper() == "MSNR":
+            if not self._msnr_video_active():
+                return {"symbol": exact_symbol, "action": "MSNR_VIDEO_DISABLED", "reason": "MSNR_VIDEO_MODE_OFF_FOR_SOURCE"}
+            analysis = self.msnr_video_strategy.analyze_symbol(exact_symbol)
+            analysis["context_policy"] = "MSNR_VIDEO_NATIVE"
         elif (
             str(self.config.bot_profile or "").upper() == "IDX_OPEN"
             and bool(self.config.idx_open_enabled)
@@ -7952,7 +9164,7 @@ class LiveTradingEngine:
                     exact_symbol, analysis
                 )
             else:
-                analysis = self.ict_strategy.analyze_symbol(exact_symbol)
+                analysis = self._ict_analysis_with_virtual_limit(exact_symbol)
                 analysis["context_policy"] = "ICT_NATIVE"
         else:
             analysis = self.multi_timeframe.analyze_symbol(exact_symbol)
@@ -8046,25 +9258,26 @@ class LiveTradingEngine:
         signal["direction"] = direction
         signal["valid"] = True
 
-        boom_crash_gate = self._boom_crash_quality_gate(exact_symbol, direction, signal, analysis)
+        family_gates = str(self.config.bot_profile or "").upper() not in {"MSNR", "DRIFT"}  # validados en replay sin ellas
+        boom_crash_gate = self._boom_crash_quality_gate(exact_symbol, direction, signal, analysis) if family_gates else None
         if boom_crash_gate is not None:
             if self.config.diagnostic_mode:
                 boom_crash_gate["analysis"] = analysis
             return boom_crash_gate
 
-        step_gate = self._step_quality_gate(exact_symbol, signal, analysis)
+        step_gate = self._step_quality_gate(exact_symbol, signal, analysis) if family_gates else None
         if step_gate is not None:
             if self.config.diagnostic_mode:
                 step_gate["analysis"] = analysis
             return step_gate
 
-        volatility_gate = self._volatility_quality_gate(exact_symbol, signal, analysis)
+        volatility_gate = self._volatility_quality_gate(exact_symbol, signal, analysis) if family_gates else None
         if volatility_gate is not None:
             if self.config.diagnostic_mode:
                 volatility_gate["analysis"] = analysis
             return volatility_gate
 
-        jump_gate = self._jump_quality_gate(exact_symbol, signal)
+        jump_gate = self._jump_quality_gate(exact_symbol, signal) if family_gates else None
         if jump_gate is not None:
             if self.config.diagnostic_mode:
                 jump_gate["analysis"] = analysis
@@ -8113,6 +9326,19 @@ class LiveTradingEngine:
             analysis=analysis,
             strategy_name=strategy_name,
         )
+        if (not meta_label.get("allowed", True)
+                and str(strategy_name or "").upper() in self._NATIVE_META_SHADOW_STRATEGIES
+                and bool(getattr(self.config, "native_strategy_meta_label_shadow", True))):
+            # Estrategias validadas sin la IA: sombra en cualquier tipo de símbolo.
+            meta_label = {**meta_label, "allowed": True, "shadow_override": "NATIVE_STRATEGY_META_SHADOW",
+                          "would_reject_reason": meta_label.get("reason")}
+        if (not meta_label.get("allowed", True)
+                and str(strategy_name or "").upper() in {"ICT", "ICT_SABRI_MALLE"}
+                and self._is_synthetic_symbol(exact_symbol)
+                and bool(getattr(self.config, "ict_synthetic_meta_label_shadow", False))):
+            # Modo sombra: se conserva la puntuación para aprendizaje, sin bloquear la entrada.
+            meta_label = {**meta_label, "allowed": True, "shadow_override": "ICT_SYNTHETIC_META_SHADOW",
+                          "would_reject_reason": meta_label.get("reason")}
         signal["meta_label"] = meta_label
         from strategy.ai.feature_extraction import FEATURE_NAMES, FEATURE_SCHEMA
         signal["entry_learning_snapshot"] = {
@@ -8350,6 +9576,7 @@ class LiveTradingEngine:
             total_risk_percent = float(self.config.orb_risk_percent)
             if is_orb_silver_symbol(exact_symbol):
                 total_risk_percent = min(total_risk_percent, 1.0)
+        total_risk_percent = self._apply_synthetic_risk_multiplier(exact_symbol, total_risk_percent)
         silver_risk_cap = strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol)
         if risk_base_value <= 0 or not (0 < total_risk_percent <= 100):
             return {"symbol": exact_symbol, "action": "INVALID_RISK_CONFIGURATION", "analysis": analysis, "risk_base": risk_base_value, "risk_percent": total_risk_percent}
@@ -8395,6 +9622,7 @@ class LiveTradingEngine:
                 a `None` y un dict de error con su codigo, en lugar de lanzar.
             """
             planned_legs = []
+            leg_volume_cap = self._leg_volume_cap(exact_symbol, direction, len(specs))
             for spec in specs:
                 if len(spec) == 4:
                     leg_name, fraction, target_rr, broker_target_rr = spec
@@ -8428,13 +9656,17 @@ class LiveTradingEngine:
                 try:
                     buffered_price = getattr(self.executor, "risk_buffered_entry_price", None)
                     sizing_entry = (buffered_price(exact_symbol, direction, entry, self.config.deviation) if silver_risk_cap else buffered_price(exact_symbol, direction, entry)) if callable(buffered_price) else entry
+                    cap_kwargs = {} if leg_volume_cap is None else {"max_volume_cap": leg_volume_cap}
                     sizing = self.executor.calculate_volume(
                         exact_symbol,
                         direction,
                         sizing_entry,
                         sl,
                         sizing_risk_amount,
+                        **cap_kwargs,
                     )
+                    if leg_volume_cap is not None:
+                        sizing["leg_volume_cap"] = leg_volume_cap
                     sizing["risk_sizing_entry"] = sizing_entry
                     sizing["market_entry"] = entry
                 except Exception as exc:
@@ -8722,7 +9954,31 @@ class LiveTradingEngine:
             if not preflight["valid"]:
                 return {"action":"GOLD_QUARTERS_ENTRY_BLOCKED", "reason":preflight["reason"], **base}
 
-        forex_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+        carry_gate = self._carry_gate(exact_symbol, signal, strategy_name)
+        if carry_gate is not None:
+            return carry_gate
+        rsi2_gate = self._rsi2_gate(exact_symbol, signal, strategy_name)
+        if rsi2_gate is not None:
+            return rsi2_gate
+        drift_gate = self._drift_gate(exact_symbol, signal, strategy_name)
+        if drift_gate is not None:
+            return drift_gate
+        overnight_gate = self._overnight_gate(exact_symbol, signal, strategy_name)
+        if overnight_gate is not None:
+            return overnight_gate
+        symbol_test_gate = self._msnr_symbol_test_gate(exact_symbol, signal, strategy_name)
+        if symbol_test_gate is not None:
+            return symbol_test_gate
+        video_gate = self._msnr_video_gate(exact_symbol, signal, strategy_name)
+        if video_gate is not None:
+            return video_gate
+        h4h1_gate = self._msnr_h4h1_gate(exact_symbol, signal, strategy_name)
+        if h4h1_gate is not None:
+            return h4h1_gate
+        regime_gate = self._msnr_regime_filter_gate(exact_symbol, signal, strategy_name)
+        if regime_gate is not None:
+            return regime_gate
+        forex_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
         if forex_gate is not None:
             return forex_gate
         # Re-read broker state after analysis, immediately before the logical entry batch.
@@ -8799,7 +10055,8 @@ class LiveTradingEngine:
                     "runner_logical_target_rr": float(leg.get("logical_target_rr", leg["target_rr"])),
                     "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                     "runner_max_target_rr": (
-                        float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if (strategy_name in {"MALAYSIAN_SNR", "ICT", "ICT_SABRI_MALLE"} and not is_orb_gold_symbol(exact_symbol) and str(self.config.bot_profile).upper() != "GOLD")
+                        float(self.config.msnr_runner_max_target_rr) if strategy_name == "MALAYSIAN_SNR"
+                        else float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if (strategy_name in {"ICT", "ICT_SABRI_MALLE"} and not is_orb_gold_symbol(exact_symbol) and str(self.config.bot_profile).upper() != "GOLD")
                         else float(self.config.forex_runner_max_target_rr)
                         if (is_forex_profile and is_forex_symbol)
                         else (
@@ -8915,7 +10172,7 @@ class LiveTradingEngine:
                 # La notificación EXECUTION_FILLED persiste el trade dentro de
                 # execute_with_executor. El lock impide que el monitor importe
                 # el ticket MT5 durante la pequeña ventana entre fill y commit.
-                final_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+                final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
                 if final_gate is not None:
                     final_gate["opened_legs"] = [{"leg":x["leg"],"position_ticket":x["position_ticket"]} for x in opened]
                     final_gate["partial_execution"] = bool(opened)
@@ -9213,7 +10470,7 @@ class LiveTradingEngine:
         # Compatibilidad sin lifecycle_manager. También respeta las dos piernas.
         opened = []
         for leg in legs:
-            final_gate = self._forex_execution_gate(exact_symbol, direction, sl)
+            final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
             if final_gate is not None:
                 final_gate["partial_execution"] = bool(opened)
                 return final_gate
@@ -9362,7 +10619,7 @@ class LiveTradingEngine:
                         "runner_logical_target_rr": float(leg.get("logical_target_rr", leg["target_rr"])),
                         "runner_broker_safety_target_rr": float(leg.get("broker_target_rr", leg["target_rr"])),
                         "runner_max_target_rr": (
-                            float(signal.get("runner_rr") or self.config.runner_extension_max_target_rr) if strategy_name == "MALAYSIAN_SNR"
+                            float(self.config.msnr_runner_max_target_rr) if strategy_name == "MALAYSIAN_SNR"
                             else float(self.config.forex_runner_max_target_rr)
                             if (is_forex_profile and is_forex_symbol)
                             else (
@@ -9759,6 +11016,9 @@ class LiveTradingEngine:
         # entre ciclos. En --once mantenemos una sola sincronización por compatibilidad;
         # el daemon continuo sincroniza en cada pasada del monitor.
         sync = self.sync_closed_trades()
+        self._close_overnight_positions_at_open()
+        self._close_rsi2_positions_on_rule()
+        self._close_carry_positions_on_rebalance()
         break_even_before = self._monitor_break_even_positions()
         results = self.process_symbols(symbols)
         break_even_after = self._monitor_break_even_positions()
@@ -9958,6 +11218,11 @@ class LiveTradingEngine:
         if profile == "ICT": return "ICT"
         if profile == "GOLD": return "GOLD"
         if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
+        if profile == "MSNR": return "MSNR"
+        if profile == "NIGHT": return "NIGHT"
+        if profile == "DRIFT": return "DRIFT"
+        if profile == "RSI2": return "RSI2"
+        if profile == "CARRY": return "CARRY"
         if profile.startswith("FOREX"): return "FOREX"
         if profile == "IDX_OPEN": return "IDX_OPEN"
         if profile == "ORB": return "ORB"
@@ -9985,6 +11250,18 @@ class LiveTradingEngine:
         return selected
 
     def _selected_base_cycle_symbols(self, base_symbols):
+        """Selección del usuario (ver `_selected_base_cycle_symbols_from_selection`) filtrada por la política única de
+        instrumentos: nunca se escanea un instrumento en PODA PREVENTIVA de su pestaña."""
+        symbols = self._selected_base_cycle_symbols_from_selection(base_symbols)
+        if not bool(getattr(self.config, "policy_cycle_filter", True)):
+            return symbols
+        from config.ict_instrument_policy import POLICY_SELECTION_PROFILES, sanitize_ict_selection
+        profile = self._selection_profile_for_bot(getattr(self.config, "bot_profile", None))
+        if str(profile or "").upper() not in POLICY_SELECTION_PROFILES:
+            return symbols
+        return sanitize_ict_selection(profile, symbols)
+
+    def _selected_base_cycle_symbols_from_selection(self, base_symbols):
         """Filtra los símbolos del ciclo según la selección vigente del usuario.
 
         El operador puede elegir desde el panel que instrumentos quedan
@@ -10563,6 +11840,15 @@ class LiveTradingEngine:
                 # Si se cerraron posiciones por rollover, sincronizamos inmediatamente
                 # antes de que Break Even intente administrarlas de nuevo.
                 if forex_rollover.get("closed"):
+                    sync += self.sync_closed_trades()
+                overnight_exit = self._close_overnight_positions_at_open()
+                if overnight_exit.get("closed"):
+                    sync += self.sync_closed_trades()
+                rsi2_exit = self._close_rsi2_positions_on_rule()
+                if rsi2_exit.get("closed"):
+                    sync += self.sync_closed_trades()
+                carry_exit = self._close_carry_positions_on_rebalance()
+                if carry_exit.get("closed"):
                     sync += self.sync_closed_trades()
                 break_even = self._monitor_break_even_positions()
                 break_even["forex_rollover"] = forex_rollover

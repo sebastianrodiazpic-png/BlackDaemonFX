@@ -65,6 +65,7 @@ def _engine(executor):
         provider=Provider(),
         repository=Repo(),
         config=LiveTradingConfig(
+            synthetic_risk_multiplier=1.0,  # prueba la mecánica de dimensionado a riesgo completo
             execution_enabled=False,
             validate_order_in_dry_run=False,
             max_entry_drift_r=None,

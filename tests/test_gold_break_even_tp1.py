@@ -4,6 +4,12 @@ from test_daemon_break_even_live import Repo,Provider,BrokerExecutor,TradeExecut
 from strategy.execution.live_trading_engine import LiveTradingEngine,LiveTradingConfig
 
 
+def closed_tp1(direction='BUY'):
+    """Pata TP1 hermana cerrada en ganancia en su objetivo (requisito para mover el SL del RUNNER)."""
+    return dict(instrument='XAUUSD',direction=direction,take_profit=110. if direction=='BUY' else 90.,
+                status='CLOSED',result='WIN',exit_price=110. if direction=='BUY' else 90.,realized_rr=1.0)
+
+
 def setup_engine(direction='BUY',price=105.,sibling=None):
     repo=Repo();repo.trade.update(instrument='XAUUSD',direction=direction)
     initial=90. if direction=='BUY' else 110.
@@ -37,7 +43,7 @@ def test_gold_keeps_initial_sl_before_tp1_even_at_new_york(direction,price):
 
 @pytest.mark.parametrize('direction,price',[('BUY',110.),('SELL',90.)])
 def test_tp1_touch_enables_spread_protected_be(direction,price):
-    engine,repo,broker,mover=setup_engine(direction,price)
+    engine,repo,broker,mover=setup_engine(direction,price,sibling=closed_tp1(direction))
     result=engine._monitor_break_even_positions()
     assert result['activated']==1,result
     stop=mover.calls[0][1]
@@ -70,7 +76,7 @@ def test_missing_quote_blocks_and_tp1_leg_never_moves():
 
 
 def test_invalid_stop_distance_defers_and_touch_survives_restart():
-    engine,repo,broker,mover=setup_engine(price=110.)
+    engine,repo,broker,mover=setup_engine(price=110.,sibling=closed_tp1())
     broker.get_symbol_constraints=lambda symbol:dict(point=.01,digits=2,min_stop_distance=20.)
     assert engine._monitor_break_even_positions()['activated']==0
     assert repo.trade['details']['metadata']['gold_tp1_evidence']['reached']
@@ -88,7 +94,7 @@ def test_previously_tightened_stop_is_not_widened():
 
 def test_runner_management_remains_available_after_tp1_and_be():
     from unittest.mock import Mock
-    engine,repo,broker,mover=setup_engine(price=110.)
+    engine,repo,broker,mover=setup_engine(price=110.,sibling=closed_tp1())
     assert engine._monitor_break_even_positions()['activated']==1
     engine._manage_runner_extension=Mock(return_value={'managed':False})
     engine._monitor_break_even_positions()
@@ -103,3 +109,13 @@ def test_single_legacy_trade_requires_at_least_virtual_tp1():
     meta.pop('gold_tp1_target_price')
     assert engine._monitor_break_even_positions()['activated']==0
     assert not mover.calls
+
+
+@pytest.mark.parametrize('direction,price',[('BUY',110.),('SELL',90.)])
+def test_tp1_touch_without_tp1_close_keeps_runner_sl(direction,price):
+    """Regla operativa: tocar TP1 no basta; el RUNNER solo pasa a BE cuando la pata TP1 cerró en ganancia."""
+    open_tp1=dict(closed_tp1(direction),status='OPEN',result='',exit_price=None,realized_rr=None)
+    for sibling in (None, open_tp1):
+        engine,repo,broker,mover=setup_engine(direction,price,sibling=sibling)
+        assert engine._monitor_break_even_positions()['activated']==0
+        assert not mover.calls and broker.sl==repo.trade['details']['metadata']['initial_stop_loss']

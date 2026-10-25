@@ -68,7 +68,7 @@ def test_instruments_tabs_highlight_ict_and_control_all_target_workers():
 def test_malaysian_snr_and_ict_parallel_worker_progress_reflects_active_and_pruned():
     """Verifica que el progreso de Malaysian SNR e ICT refleje en paralelo los activos y deje podados desactivados."""
     msnr_selected = list(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
-    assert len(msnr_selected) == 23
+    assert len(msnr_selected) == 30 - len(__import__('config.synth_wr45', fromlist=['x']).REAL_SPREAD_PRUNED) + len(__import__('config.ict_instrument_policy', fromlist=['x']).MSNR_DEMO_TEST_SYMBOLS)  # acierto > 45 % + sintéticos en prueba demo (DEX 1500 UP)
 
     state = {
         "selection_profiles": {
@@ -92,12 +92,13 @@ def test_malaysian_snr_and_ict_parallel_worker_progress_reflects_active_and_prun
         state,
     )
     assert msnr_worker["worker_label"] == "Malaysian SNR (M15 Fresh/Break)"
-    assert msnr_worker["symbols_total"] == 23
+    assert msnr_worker["symbols_total"] == 30 - len(__import__('config.synth_wr45', fromlist=['x']).REAL_SPREAD_PRUNED) + len(__import__('config.ict_instrument_policy', fromlist=['x']).MSNR_DEMO_TEST_SYMBOLS)
     assert msnr_worker["symbols_processed"] == 12
-    assert msnr_worker["active_symbols_count"] == 23
-    assert msnr_worker["pruned_symbols_count"] == 37
+    assert msnr_worker["active_symbols_count"] == 30 - len(__import__('config.synth_wr45', fromlist=['x']).REAL_SPREAD_PRUNED) + len(__import__('config.ict_instrument_policy', fromlist=['x']).MSNR_DEMO_TEST_SYMBOLS)
+    assert msnr_worker["pruned_symbols_count"] == 38 + len(__import__('config.synth_wr45', fromlist=['x']).REAL_SPREAD_PRUNED)  # mercados reales + 7 sintéticos con acierto <= 45% + poda por spread real
     assert "Step Index 400" in msnr_worker["active_symbols"]
-    assert "Volatility 10 Index" in msnr_worker["pruned_symbols"]
+    assert "Volatility 10 Index" in msnr_worker["active_symbols"]
+    assert "XAUUSD" in msnr_worker["pruned_symbols"]
 
     boom_worker = _enrich_worker_state_with_selection(
         {
@@ -186,7 +187,7 @@ def test_tri_motor_4_optimization_steps_configured():
 
     # Paso 1.3 (Fase 1): ORB New York solo XAUUSD en SWEEP; el resto queda podado
     assert set(ORB_PROFITABLE_SWEEP_SYMBOLS) == {"XAUUSD", "XAUUSDmicro"}
-    for sym in ("Wall Street 30", "BTCUSD", "XAGUSD", "US Oil"):
+    for sym in ("Wall Street 30", "XAGUSD", "US Oil"):
         assert sym in ORB_PRUNED_LOSING_SYMBOLS
         assert sym in ORB_PRUNED_INFO
 
@@ -196,7 +197,7 @@ def test_tri_motor_4_optimization_steps_configured():
     assert TRI_MOTOR_ORCHESTRATION_CONFIG["tier_s_risk_percent"] == 1.0
     assert TRI_MOTOR_ORCHESTRATION_CONFIG["tier_a_risk_percent"] == 0.5
     assert "Step Index 400" in TRI_MOTOR_TIER_S_ASSETS["MALAYSIAN_SNR"]
-    assert set(TRI_MOTOR_TIER_S_ASSETS["ORB"]) == {"XAUUSD", "XAUUSDmicro"}
+    assert set(TRI_MOTOR_TIER_S_ASSETS["ORB"]) == {"XAUUSD", "XAUUSDmicro", "BTCUSD", "USDCAD"}
 
 
 def test_all_14_signaled_forex_pairs_active_and_free_of_pruning_badge():
@@ -208,15 +209,11 @@ def test_all_14_signaled_forex_pairs_active_and_free_of_pruning_badge():
         "USDCHF",
         "AUDUSD",
         "USDJPY",
-        "AUDJPY",
-        "AUDNZD",
-        "CADCHF",
-        "CHFJPY",
-        "EURCHF",
         "GBPCAD",
-        "EURJPY",
-        "GBPJPY",
     ]
+    # Política única ICT (20-oct-2026): estos pares no los opera el worker Forex -> PODA PREVENTIVA.
+    preventive = ["AUDJPY", "AUDNZD", "CADCHF", "CHFJPY", "EURCHF", "EURJPY", "GBPJPY"]
+    assert not set(preventive) & set(DEFAULT_PRIORITIZED_SYMBOLS["FOREX"])
     prioritized_forex = set(DEFAULT_PRIORITIZED_SYMBOLS["FOREX"])
     pruned_universe_forex = set(PRUNED_ASSET_UNIVERSE["FOREX"])
 
@@ -270,12 +267,14 @@ def test_selection_lists_aligned_with_phase1_exclusions():
     for sym in ("Step Index", "Jump 25 Index", "Volatility 25 Index"):
         assert sym in PRUNED_INSTRUMENTS_INFO
 
-    # MSNR conserva sus 23 activos (las exclusiones son solo para ICT)
-    assert {"Step Index", "Jump 25 Index", "XAGUSD"} <= set(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
+    # MSNR opera todos los sintéticos (las exclusiones de Fase 1 son solo para ICT); sin mercados reales
+    assert {"Jump 25 Index", "Volatility 25 Index"} <= set(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
+    assert "XAGUSD" not in DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"]
 
     # ORB: solo perfiles de XAUUSD operan (SWEEP); selección y tiers coinciden
     tradable = {k for k, v in ASSET_CONFIG.items() if v.get("allowed_modes") or v.get("sweep_enabled")}
-    assert tradable == {"XAUUSD"}
-    assert set(PRUNED_ASSET_UNIVERSE["ORB"]) == {"XAUUSD", "XAUUSDmicro"}
-    assert set(DEFAULT_PRIORITIZED_SYMBOLS["ORB"]) == {"XAUUSD", "XAUUSDmicro", "microXAUUSD"}
+    # XAUUSD validado + BTCUSD/USDCAD en prueba hacia delante (demo)
+    assert tradable == {"XAUUSD", "BTCUSD", "USDCAD"}
+    assert set(PRUNED_ASSET_UNIVERSE["ORB"]) == {"XAUUSD", "XAUUSDmicro", "BTCUSD", "USDCAD"}
+    assert set(DEFAULT_PRIORITIZED_SYMBOLS["ORB"]) == {"XAUUSD", "XAUUSDmicro", "microXAUUSD", "BTCUSD", "USDCAD"}
     assert not set(DEFAULT_PRIORITIZED_SYMBOLS["ORB"]) & set(ORB_PRUNED_INFO)

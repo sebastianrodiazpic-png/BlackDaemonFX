@@ -8,7 +8,7 @@ from app.main import BOT_PROFILES, _resolve_universe_for_profile_provider
 
 def test_malaysian_snr_sentinel_matrix_contains_all_23_selected_instruments():
     expected_23 = list(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
-    assert len(expected_23) in (23, 25)
+    assert len(expected_23) == 30 - len(__import__('config.synth_wr45', fromlist=['x']).REAL_SPREAD_PRUNED) + len(__import__('config.ict_instrument_policy', fromlist=['x']).MSNR_DEMO_TEST_SYMBOLS)  # acierto > 45 % + sintéticos en prueba demo (DEX 1500 UP)
 
     # Estado con las selecciones activas tal como en la DB /instruments
     state = {
@@ -25,7 +25,7 @@ def test_malaysian_snr_sentinel_matrix_contains_all_23_selected_instruments():
         },
         "recent": [
             {
-                "symbol": "XAUUSD",
+                "symbol": "Volatility 75 Index",
                 "strategy_name": "MALAYSIAN_SNR",
                 "bot_profile": "MALAYSIAN_SNR",
                 "action": "ORDER_OPENED",
@@ -50,11 +50,11 @@ def test_malaysian_snr_sentinel_matrix_contains_all_23_selected_instruments():
     assert step_row["final_state"] == "🟡 ESPERANDO RETEST"
 
     # Verificar que el evento reciente preservó su estado
-    xau_row = next(m for m in msnr_rows if m["symbol"] == "XAUUSD")
+    xau_row = next(m for m in msnr_rows if m["symbol"] == "Volatility 75 Index")
     assert xau_row["final_state"] == "🟢 SEÑAL LISTA"
 
     # Verificar que los no procesados están en espera
-    boom_row = next(m for m in msnr_rows if m["symbol"] == "Boom 1000 Index")
+    boom_row = next(m for m in msnr_rows if m["symbol"] == "Boom 900 Index")
     assert boom_row["final_state"] == "⚪ EN ESPERA"
     assert boom_row["macro_context"] == "⚪ Contexto pendiente"
 
@@ -67,7 +67,7 @@ def test_malaysian_snr_universe_includes_pruned_catalog():
     universe = _resolve_universe_for_profile_provider(provider, "MALAYSIAN_SNR")
 
     # Universo completo debe contener los 23 rentables + los 37 podados = 60
-    assert len(universe) == 60
+    assert len(universe) == 68 + len(__import__('config.ict_instrument_policy', fromlist=['x']).MSNR_DEMO_TEST_SYMBOLS)  # 37 sintéticos + 31 mercados reales podados + prueba demo
     assert "Step Index 400" in universe
     assert "USDCAD" in universe  # Podado pero configurable
     assert "Boom 1000 Index" in universe

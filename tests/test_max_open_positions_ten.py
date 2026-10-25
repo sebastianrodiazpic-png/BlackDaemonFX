@@ -30,7 +30,7 @@ def _make_engine(repo=None, max_open_positions=10, max_per_symbol=2):
 
 def test_default_config_limits():
     cfg = LiveTradingConfig()
-    assert cfg.max_open_positions == 10
+    assert cfg.max_open_positions == 16  # 8 operaciones lógicas x 2 piernas (DAEMONBLACKFX_MAX_OPEN_POSITIONS)
     assert cfg.max_open_positions_per_symbol == 2
     assert cfg.split_entries_enabled is True
     assert cfg.forex_max_total_risk_percent == 5.0

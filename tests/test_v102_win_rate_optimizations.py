@@ -42,10 +42,9 @@ def test_step_blocks_adx_below_or_equal_25():
     assert gate["action"] == "STEP_ADX_LOW"
     assert gate["reason"] == "STEP_REQUIRES_M15_ADX_ABOVE_25"
 
+    # Desde f76caad (10-oct-2026) el mínimo es inclusivo (ADX >= step_min_adx), igual que en Malaysian SNR.
     signal_exact_25 = {"adx": 25.0, "confirmation_timeframe": "M15"}
-    gate2 = engine._step_quality_gate("Step Index 500", signal_exact_25)
-    assert gate2 is not None
-    assert gate2["action"] == "STEP_ADX_LOW"
+    assert engine._step_quality_gate("Step Index 500", signal_exact_25) is None
 
 
 def test_step_allows_m15_with_high_adx():

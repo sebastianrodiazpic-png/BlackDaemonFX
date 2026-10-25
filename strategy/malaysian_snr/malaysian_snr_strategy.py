@@ -7,9 +7,9 @@ Estrategia independiente enfocada en:
 4. Escenarios con causalidad temporal (rentabilidad pendiente de validación):
    - Escenario 1: Ruptura Clásica Fresh -> Retest al nivel Break en M15.
    - Escenario 3: Fractalidad (HCH / Quiebre estructural acelerado).
-5. Doble Pierna Asimétrica:
-   - Pierna 1: TP1 mínimo 1:2.0 RR (50% de la posición).
-   - Pierna 2: Corredora contextual (TP2 1:2.5, TP3 1:3.0, TP4 1:4.0) con Break-Even automático al tocar TP1.
+5. Doble pierna (valores de `MalaysianSNRConfig`):
+   - Pierna 1: TP1 a `tp1_min_rr` (hoy 1R, 50 % del riesgo).
+   - Pierna 2: corredora contextual (TP2 2R, TP3 3R, TP4 4R) con Break Even al cerrar TP1.
 """
 
 from __future__ import annotations
@@ -69,6 +69,15 @@ def compute_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
 
 def is_synthetic_symbol(symbol: str) -> bool:
+    """Misma detección que ICT y el motor (`strategy.ict.ict_strategy.is_synthetic_asset`).
+
+    Antes había una lista propia, distinta en V150/V250/"DRIFT". DAEMONBLACKFX_SYNTH_DETECTION_EXTENDED=0 restaura
+    la lista antigua.
+    """
+    import os
+    if os.getenv("DAEMONBLACKFX_SYNTH_DETECTION_EXTENDED", "1").strip().lower() not in ("0", "false", "off"):
+        from strategy.ict.ict_strategy import is_synthetic_asset
+        return is_synthetic_asset(symbol)
     s = str(symbol).upper()
     synth_keywords = ["JUMP", "CRASH", "BOOM", "STEP", "VOLATILITY", "RANGE BREAK", "DEX", "DRIFT SWITCHING", "DAILY RESET", "HYBRID", "FLIP", "VOL ", "VOLSWITCH", "SKEW", "MULTI STEP", "SPOT UP", "1HZ", "V10", "V25", "V50", "V75", "V100"]
     return any(kw in s for kw in synth_keywords)
@@ -173,9 +182,66 @@ class MalaysianSNRStrategy:
             allowed_symbols=tuple(dict.fromkeys((*allowed,*extra))) if allowed else ())
         from strategy.malaysian_snr.experiments import analyze_variants
         result = analyze_variants(context, symbol, now_utc)
+        if not result.get('valid') and getattr(self.config, 'enable_h4h1_confirmation', False):
+            h4h1 = self._h4h1_signal(symbol, now_utc)
+            if h4h1 is not None:
+                result = h4h1
         result['analysis_outside_entry_lock'] = settings['analysis_outside_entry_lock']
         result['runtime_controls'] = settings
         result['runtime_settings_version'] = settings['version']
+        return result
+
+    def _h4h1_signal(self, symbol: str, now_utc: datetime | None = None) -> dict | None:
+        """Escenario H4→H1: solo sintéticos no podados, una vez por configuración (setup_id)."""
+        from strategy.malaysian_snr.h4h1_confirmation import (H4H1_CONFIRMATION, H4H1_SCENARIO,
+                                                              H4H1_STRATEGY_VERSION, detect_h4h1)
+        if not is_synthetic_symbol(symbol):
+            return None
+        norm = str(symbol).strip().lower().removesuffix("micro")
+        if norm in {str(s).strip().lower().removesuffix("micro") for s in (getattr(self.config, "excluded_symbols", ()) or ())}:
+            return None
+        now = pd.Timestamp(now_utc or datetime.now(timezone.utc))
+        now = now.tz_localize("UTC") if now.tzinfo is None else now.tz_convert("UTC")
+        try:
+            h4 = closed_candles(self.provider.get_candles(symbol, "H4", count=420), "H4", now)
+            h1 = closed_candles(self.provider.get_candles(symbol, "H1", count=80), "H1", now)
+        except Exception:
+            return None
+        spread = 0.0
+        try:
+            tick = self.provider.get_current_tick(symbol)
+            spread = max(0.0, float(tick["ask"]) - float(tick["bid"]))
+        except Exception:
+            pass
+        setup = detect_h4h1(h4, h1, now, spread=spread)
+        if setup is None:
+            return None
+        fired = self.__dict__.setdefault("_h4h1_fired", set())
+        if setup["setup_id"] in fired:
+            return None
+        entry = setup["entry_reference"]
+        sign = 1 if setup["direction"] == "BUY" else -1
+        risk = sign * (entry - setup["stop_loss"])
+        if risk <= 0:
+            return None
+        adx = float(compute_adx(h1).iloc[-1]) if len(h1) >= 30 else 0.0
+        last = h1.iloc[-1]
+        span = float(last.high - last.low)
+        body = float(abs(last.close - last.open) / span) if span > 0 else 0.0
+        result = self._build_confirmed_signal(symbol, setup["direction"], H4H1_SCENARIO, entry, setup["stop_loss"], risk,
+                                              adx if math.isfinite(adx) else 0.0, body, setup["h4_level"],
+                                              setup["h1_open_close_level"], setup["atr_h1"], 0.0, now.to_pydatetime())
+        if not result.get("valid"):
+            return None
+        fired.add(setup["setup_id"])
+        runner_rr = float(getattr(self.config, "h4h1_runner_rr", 2.0))
+        signal = result["signal"]
+        signal.update(strategy_version=H4H1_STRATEGY_VERSION, entry_confirmation=H4H1_CONFIRMATION,
+                      setup_id=setup["setup_id"], runner_rr=runner_rr, risk_reward=runner_rr,
+                      risk_reward_ratio=runner_rr, risk_reward_ratio_tp2=runner_rr, runner_target_name="TP2",
+                      tp2_price=round(entry + sign * runner_rr * risk, 5), timeframe="H1", h4h1_setup=setup)
+        result.update(strategy_version=H4H1_STRATEGY_VERSION, action="MALAYSIAN_SNR_CONFIRMED",
+                      reason=f"{H4H1_SCENARIO} confirmed ({setup['direction']} on {symbol})")
         return result
 
     def _analyze_symbol_impl(self, symbol: str, now_utc: datetime | None = None) -> dict:
@@ -212,6 +278,10 @@ class MalaysianSNRStrategy:
         norm = str(symbol).strip().lower().removesuffix("micro")
         if allowed and norm not in {a.strip().lower().removesuffix("micro") for a in allowed}:
             return {**base, "reason": "SYMBOL_NOT_IN_MSNR_ALLOWLIST"}
+        if getattr(self.config, "synthetics_only", False) and not is_synthetic_symbol(symbol):
+            return {**base, "reason": "MSNR_SYNTHETICS_ONLY"}
+        if norm in {str(s).strip().lower().removesuffix("micro") for s in (getattr(self.config, "excluded_symbols", ()) or ())}:
+            return {**base, "reason": "MSNR_SYMBOL_PRUNED_WINRATE_LE_45"}
         if self.config.enable_session_killzones_filter and not is_synthetic_symbol(symbol):
             try:
                 in_session = session_allowed(symbol, now, self.config.session_policy)
@@ -891,7 +961,7 @@ class MalaysianSNRStrategy:
             )
             if (risk_dist / current_atr) > max_sl_atr + 1e-9:
                 return reject("C2_STOP_ATR_CAP_EXCEEDED")
-        # TP1 remains at least 2R; this version has no verified two-year edge.
+        # TP1 = tp1_min_rr (contrato: 1R).
         tp1_price = entry_price + (self.config.tp1_min_rr * risk_dist) if direction == "BUY" else entry_price - (self.config.tp1_min_rr * risk_dist)
 
         # 2. Asignación contextual de la corredora

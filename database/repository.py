@@ -1238,7 +1238,7 @@ class TradingRepository:
             session.refresh(row)
             return int(row.id)
 
-    def position_visual_audits(self, source: str = "DEMO"):
+    def position_visual_audits(self, source: str = "DEMO", symbols=None):
         """Recupera el contexto gráfico guardado de las posiciones abiertas.
 
         Incluye compatibilidad hacia atras: las versiones antiguas guardaban
@@ -1253,11 +1253,16 @@ class TradingRepository:
             Lista de dicts, del refresco mas reciente al mas antiguo.
         """
         source = str(source or "DEMO").upper()
+        if symbols is not None:
+            symbols = sorted({str(s) for s in symbols if s})
+            if not symbols:
+                return []
         with self.Session() as session:
             rows = (
                 session.execute(
                     select(PositionVisualAudit)
                     .where(PositionVisualAudit.source == source)
+                    .where(PositionVisualAudit.instrument.in_(symbols) if symbols is not None else True)
                     .order_by(PositionVisualAudit.updated_at.desc())
                 )
                 .scalars()
@@ -1369,7 +1374,7 @@ class TradingRepository:
             session.refresh(row)
             return int(row.id)
 
-    def trade_visual_audits(self, source: str = "DEMO"):
+    def trade_visual_audits(self, source: str = "DEMO", trade_ids=None):
         """Recupera la auditoría visual asociada a operaciones concretas.
 
         A diferencia de `position_visual_audits`, aqui se conserva la imagen
@@ -1379,21 +1384,27 @@ class TradingRepository:
 
         Args:
             source: entorno, `DEMO` por defecto.
+            trade_ids: si se indica, solo esas operaciones (el dashboard pide únicamente las abiertas:
+                decodificar las ~4.000 auditorías en cada refresco costaba ~18 s).
 
         Returns:
             Lista de dicts con los graficos y contextos ya decodificados.
         """
         source = str(source or "DEMO").upper()
+        wanted = None
+        if trade_ids is not None:
+            wanted = sorted({int(t) for t in trade_ids if t is not None})
+            if not wanted:
+                return []
         with self.Session() as session:
-            rows = (
-                session.execute(
-                    select(TradeVisualAudit)
-                    .where(TradeVisualAudit.source == source)
-                    .order_by(TradeVisualAudit.updated_at.desc())
-                )
-                .scalars()
-                .all()
+            stmt = (
+                select(TradeVisualAudit)
+                .where(TradeVisualAudit.source == source)
+                .order_by(TradeVisualAudit.updated_at.desc())
             )
+            if wanted is not None:
+                stmt = stmt.where(TradeVisualAudit.trade_id.in_(wanted))
+            rows = session.execute(stmt).scalars().all()
             def decode(value):
                 """Decodifica un campo JSON a dict, o `{}` si no es utilizable."""
                 if not value:
@@ -1539,24 +1550,38 @@ class TradingRepository:
             } for row in rows]
 
     def trade_visual_audit_entry_contexts(self, *, source: str = "DEMO") -> dict[str, dict]:
-        """Devuelve sólo el contexto inmutable de entrada para Cuenta activa."""
+        """Devuelve sólo el contexto inmutable de entrada para Cuenta activa.
+
+        El contexto de entrada se escribe una sola vez por operación, así que se cachea por trade_id y solo
+        se leen/decodifican los trades nuevos (antes se decodificaban todos en cada refresco: ~12 s).
+        """
         source = str(source or "DEMO").upper()
+        cache_all = self.__dict__.setdefault("_entry_context_cache", {})
+        cache = cache_all.setdefault(source, {})
         with self.Session() as session:
-            rows = session.execute(
-                select(TradeVisualAudit.trade_id, TradeVisualAudit.entry_context_json)
+            present = [tid for (tid,) in session.execute(
+                select(TradeVisualAudit.trade_id)
                 .where(TradeVisualAudit.source == source)
-            ).all()
-        contexts = {}
-        for trade_id, entry_context_json in rows:
-            if trade_id is None or not entry_context_json:
-                continue
-            try:
-                entry_context = json.loads(entry_context_json)
-            except (TypeError, ValueError):
-                continue
-            if isinstance(entry_context, dict):
-                contexts[str(trade_id)] = entry_context
-        return contexts
+                .where(TradeVisualAudit.entry_context_json.is_not(None))
+            ).all() if tid is not None]
+            missing = [tid for tid in present if str(tid) not in cache]
+            for start in range(0, len(missing), 500):
+                chunk = missing[start:start + 500]
+                rows = session.execute(
+                    select(TradeVisualAudit.trade_id, TradeVisualAudit.entry_context_json)
+                    .where(TradeVisualAudit.source == source)
+                    .where(TradeVisualAudit.trade_id.in_(chunk))
+                ).all()
+                for trade_id, entry_context_json in rows:
+                    try:
+                        entry_context = json.loads(entry_context_json) if entry_context_json else None
+                    except (TypeError, ValueError):
+                        entry_context = None
+                    cache[str(trade_id)] = entry_context if isinstance(entry_context, dict) else None
+        keep = {str(tid) for tid in present}
+        for key in [k for k in cache if k not in keep]:
+            cache.pop(key, None)
+        return {k: v for k, v in cache.items() if isinstance(v, dict)}
 
     def trade_audit_snapshot_summaries(self, *, source: str = "DEMO") -> dict[str, dict]:
         """Cuenta y fecha más reciente por trade sin cargar snapshots JSON."""
@@ -1724,6 +1749,11 @@ class TradingRepository:
             26082030: "IDX_OPEN",
             26082031: "MALAYSIAN_SNR",
             26082032: "ICT",
+            26082033: "MSNR",
+            26082034: "NIGHT",
+            26082035: "DRIFT",
+            26082036: "RSI2",
+            26082037: "CARRY",
             26082101: "BOOM",
             26082102: "CRASH",
             26082103: "VOLATILITY",
@@ -1750,6 +1780,16 @@ class TradingRepository:
             or (result or {}).get("strategy")
             or ""
         ).upper()
+        if "MSNR_VIDEO" in strat_name:
+            return "MSNR"
+        if "OVERNIGHT" in strat_name:
+            return "NIGHT"
+        if "DRIFT_BREAKOUT" in strat_name:
+            return "DRIFT"
+        if "CONNORS_RSI2" in strat_name:
+            return "RSI2"
+        if "FX_CARRY" in strat_name:
+            return "CARRY"
         if "MALAYSIAN" in strat_name:
             return "MALAYSIAN_SNR"
         if "ICT" in strat_name:
@@ -2273,7 +2313,7 @@ class TradingRepository:
             ValueError: si el perfil no es uno de los soportados.
         """
         value = str(profile or "SYNTHETICS").upper().strip()
-        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT"}:
+        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
         return value
 
@@ -2388,7 +2428,7 @@ class TradingRepository:
             Dict `perfil -> seleccion`, solo con los perfiles configurados.
         """
         result={}
-        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT"):
+        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT","MSNR","NIGHT","DRIFT","RSI2","CARRY"):
             row=self.latest_instrument_selection_profile(profile,source=source)
             if row is not None: result[profile]=row
         return result
@@ -3157,6 +3197,34 @@ class TradingRepository:
                 if not str(candidate.execution_key or "").startswith("mt5-open-position:")
             ), rows[0])
             return self._trade_dict(row)
+
+    def closed_operations_r(self, instrument: str | None, *, strategy_version: str, source: str = "DEMO",
+                            since=None) -> list[float]:
+        """R por operación (patas TP1+RUNNER unidas por execution_key) de las operaciones cerradas.
+
+        R = suma de net_pnl / suma de risk_amount de las patas. Lee `trade_journal` (sobrevive a reinicios
+        de estadísticas). Se usa para la prueba hacia delante de ORB SWEEP y la prueba demo del filtro MSNR.
+        instrument=None suma todos los instrumentos; since filtra por entry_time >= since.
+        """
+        with self.Session() as session:
+            query = (
+                select(TradeJournal.execution_key, TradeJournal.net_pnl, TradeJournal.risk_amount, TradeJournal.id)
+                .where(TradeJournal.strategy_version == str(strategy_version))
+                .where(TradeJournal.source == str(source).upper())
+                .where(TradeJournal.status == "CLOSED")
+            )
+            if instrument is not None:
+                query = query.where(TradeJournal.instrument == str(instrument))
+            if since is not None:
+                query = query.where(TradeJournal.entry_time >= since)
+            rows = session.execute(query).all()
+        ops: dict[str, list[float]] = {}
+        for key, pnl, risk, row_id in rows:
+            parent = str(key).rsplit(":", 1)[0] if key else f"id:{row_id}"
+            agg = ops.setdefault(parent, [0.0, 0.0])
+            agg[0] += float(pnl or 0.0)
+            agg[1] += float(risk or 0.0)
+        return [p / r for p, r in ops.values() if r > 0]
 
     def open_trades(
         self,

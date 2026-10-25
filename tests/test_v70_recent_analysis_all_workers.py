@@ -40,7 +40,9 @@ def test_dashboard_hides_superseded_but_keeps_db_history():
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
     assert 'upper() != "SUPERSEDED"' in text
     assert 'recent_symbol_process_results(' in text
-    assert 'limit=120' in text
+    # Los topes se subieron después (hoy limit=250); basta con que la vista esté acotada.
+    import re
+    assert re.search(r'recent_symbol_process_results\(\s*source="DEMO", limit=\d+', text)
     assert '<th>Bot</th><th>Instrumento</th>' in text
 
 

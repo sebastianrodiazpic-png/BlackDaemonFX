@@ -25,7 +25,9 @@ def test_empty_file_concurrent_processes(tmp_path):
     try:
         for process in processes:
             process.start()
-        assert [queue.get(timeout=20) for _ in processes] == [None] * 4
+        # 4 procesos "spawn" importan el proyecto entero: con la suite completa y los daemons en marcha, 20 s no
+        # siempre bastaban (fallo inestable el 24-oct-2026, pasa aislado).
+        assert [queue.get(timeout=60) for _ in processes] == [None] * 4
     finally:
         for process in processes:
             process.join(timeout=5)

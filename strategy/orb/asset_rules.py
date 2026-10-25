@@ -24,7 +24,11 @@ ASSET_CONFIG = {
     "US500": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
     "US30": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
     "NAS100": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False),
-    "BTCUSD": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    # Prueba hacia delante en DEMO (replay ampliado 17 meses, tools/replay_orb_sweep_expanded.py): SWEEP
+    # BTCUSD +0.29 R/trade (n=37) y USDCAD +0.15 R/trade (n=91), positivos en ambas mitades pero no concluyentes.
+    # Se mantienen si tras ORB_SWEEP_FORWARD_TEST_MIN_TRADES operaciones cerradas su R/trade > 0 (ver motor).
+    "BTCUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "USDCAD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=True),
     "EURUSD": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=False),
 }
 
@@ -41,10 +45,12 @@ ORB_SWEEP_OPTIMAL_MODES = {
 ORB_PROFITABLE_SWEEP_SYMBOLS = (
     "XAUUSD", "XAUUSDmicro",
 )
+# Activos SWEEP en prueba hacia delante (demo): se desactivan solos si fallan el criterio.
+ORB_SWEEP_FORWARD_TEST_SYMBOLS = ("BTCUSD", "USDCAD")
 ORB_PRUNED_LOSING_SYMBOLS = (
     "EURUSD", "EURUSDmicro",
     "US SP 500", "Wall Street 30", "US Tech 100", "UK Brent Oil",
-    "BTCUSD", "BTCUSDmicro",
+    "BTCUSDmicro",
     "XAGUSD", "XAGUSDmicro",
     "US Oil",
 )

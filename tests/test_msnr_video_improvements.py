@@ -363,10 +363,13 @@ def test_m15_micro_structural_stop_loss():
     assert sig['micro_stop_applied'] is True
     # Micro stop is tighter than the baseline H1 bound, yielding lower risk distance
     risk = abs(sig['entry_price'] - sig['stop_loss'])
-    assert sig['tp1_price'] == pytest.approx(sig['entry_price'] + 2.0 * risk if sig['direction'] == 'BUY' else sig['entry_price'] - 2.0 * risk)
+    # TP1 = tp1_min_rr (contrato: 1R).
+    tp1_rr = cfg.tp1_min_rr
+    assert tp1_rr == 1.0
+    assert sig['tp1_price'] == pytest.approx(sig['entry_price'] + tp1_rr * risk if sig['direction'] == 'BUY' else sig['entry_price'] - tp1_rr * risk)
 
 
-def test_msnr_runner_tiered_trailing_lock():
+def test_msnr_runner_follows_contract_progressive_lock():
     from unittest.mock import Mock
     from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradingConfig
 
@@ -400,43 +403,44 @@ def test_msnr_runner_tiered_trailing_lock():
     engine.lifecycle_manager = Mock()
     engine.lifecycle_manager.trade_executor = Mock()
 
-    # At current_rr = 2.5: should trigger stage MSNR_LOCK_1_5R and lock +1.5R (SL = 1015.0)
+    # Progresión del contrato (regla 2 del registro), la misma que el resto de estrategias. El trailing propio de MSNR
+    # que describía este test (2,5R -> +1,5R; 3,5R -> +3R) nunca se implementó ni se validó en replay.
+    # A 2R: bloquea +1R (SL = 1010) con TP del broker en 4R (1040).
     res_1 = engine._manage_runner_extension(
         trade=trade,
         position=position,
         metadata=metadata,
         initial_stop_loss=990.0,
-        current_rr=2.5,
+        current_rr=2.0,
         move_stop=move_stop_mock
     )
-    assert res_1['managed'] is True
-    assert res_1['stage'] == 'MSNR_LOCK_1_5R'
-    # Lock 1.5R -> entry 1000 + 1.5 * 10 = 1015.0
+    assert res_1['managed'] is True and res_1['closed'] is False
+    assert res_1['stage'] == '2R_TO_3R'
     move_stop_mock.assert_called_with(
         position_ticket='777888',
-        stop_loss=1015.0,
+        stop_loss=1010.0,
         take_profit=1040.0,
-        reason='runner_profit_lock_msnr_lock_1_5r'
+        reason='runner_profit_lock_2r_to_3r'
     )
-    assert 'MSNR_LOCK_1_5R' in metadata['runner_extension_completed_stages']
+    assert '2R_TO_3R' in metadata['runner_extension_completed_stages']
 
-    # At current_rr = 3.5: should trigger stage MSNR_LOCK_2_5R and lock +2.5R (SL = 1025.0)
+    # A 3R: bloquea +2,5R (SL = 1025).
     move_stop_mock.reset_mock()
     res_2 = engine._manage_runner_extension(
         trade=trade,
         position=position,
         metadata=metadata,
         initial_stop_loss=990.0,
-        current_rr=3.5,
+        current_rr=3.0,
         move_stop=move_stop_mock
     )
     assert res_2['managed'] is True
-    assert res_2['stage'] == 'MSNR_LOCK_TP3'
-    # Lock TP3 (3.0R) -> entry 1000 + 3.0 * 10 = 1030.0
+    assert res_2['stage'] == '3R_TO_4R'
     move_stop_mock.assert_called_with(
         position_ticket='777888',
-        stop_loss=1030.0,
+        stop_loss=1025.0,
         take_profit=1040.0,
-        reason='runner_profit_lock_msnr_lock_tp3'
+        reason='runner_profit_lock_3r_to_4r'
     )
-    assert 'MSNR_LOCK_TP3' in metadata['runner_extension_completed_stages']
+    assert '3R_TO_4R' in metadata['runner_extension_completed_stages']
+    assert metadata['runner_extension_stage'] == 'EXTENDED_TO_4R'

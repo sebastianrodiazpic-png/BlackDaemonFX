@@ -546,6 +546,13 @@ def _hot_sync_realtime_dashboard() -> None:
         pass
 
 
-_hot_sync_realtime_dashboard()
+def _dashboard_hot_sync_enabled() -> bool:
+    """Ver dashboard.strategy_bases_page.dashboard_hot_sync_enabled (DAEMONBLACKFX_DASHBOARD_HOT_SYNC, por defecto 0)."""
+    import os
+    return os.getenv("DAEMONBLACKFX_DASHBOARD_HOT_SYNC", "0").strip().lower() in ("1", "true", "on", "yes")
+
+
+if _dashboard_hot_sync_enabled():
+    _hot_sync_realtime_dashboard()
 
 

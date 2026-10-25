@@ -13,14 +13,15 @@ Implementa el ciclo completo de manipulación institucional con validación cuan
    - Market Structure Shift (MSS) estricto con vela de desplazamiento institucional (cuerpo >= 45%).
    - Entrada en el retroceso hacia el Fair Value Gap (Consequent Encroachment al 50% CE) o zona rota.
    - Stop Loss ceñido al extremo del Judas Swing (+ spread).
-5. Gestión Asimétrica Dual:
-   - Pierna 1: TP1 a 1:2.0 RR (50% de la posición) asegurando ganancias en liquidez interna.
-   - Pierna 2: Corredora a 1:3.5 RR (50% de la posición) con Break-Even automático al tocar TP1.
+5. Gestión dual (contrato operativo, valores de `ICTSabriMalleConfig`):
+   - Pierna 1: TP1 a 1R (`tp1_rr`, 50 % del riesgo).
+   - Pierna 2: corredora a 2R (`runner_rr`, 50 %) con Break Even al cerrar TP1 y extensión progresiva TP3/TP4.
 """
 
 from __future__ import annotations
 
 import math
+import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Any
@@ -267,15 +268,22 @@ def find_inversion_fvg_and_bpr_setups(
 
 
 def is_synthetic_asset(symbol: str) -> bool:
-    """Identifica si un símbolo pertenece al mercado de sintéticos algorítmicos 24/7."""
+    """Identifica si un símbolo pertenece al mercado de sintéticos algorítmicos 24/7.
+
+    Fuente única de la detección (la usan también Malaysian SNR y el motor). "DEX" se busca como palabra: como
+    subcadena coincidía con cualquier "INDEX" (un "Germany 40 Index" real habría pasado por sintético). Las familias
+    que solo entraban por esa coincidencia (Trek, Exponential Growth, Snap) se nombran explícitamente, así que la
+    clasificación de los 733 símbolos del broker no cambia (comprobado el 24-oct-2026).
+    """
     sym_u = str(symbol or "").upper()
     keywords = (
         "BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP", "1HZ",
         "V10", "V25", "V50", "V75", "V100", "V150", "V250",
-        "VOL ", "VOLSWITCH", "SKEW", "MULTI STEP", "SPOT UP", "DEX",
+        "VOL ", "VOLSWITCH", "SKEW", "MULTI STEP", "SPOT UP",
         "DRIFT", "DAILY RESET", "HYBRID", "RANGE BREAK",
+        "TREK UP", "TREK DOWN", "EXPONENTIAL GROWTH", "SNAP ",
     )
-    return any(k in sym_u for k in keywords)
+    return any(k in sym_u for k in keywords) or re.search(r"\bDEX\b", sym_u) is not None
 
 
 def check_order_block_five_stars(
@@ -406,6 +414,9 @@ class ICTSabriMalleStrategy:
         excluded = {str(s).strip().lower() for s in (getattr(self.config, "excluded_symbols", ()) or ())}
         if str(symbol).strip().lower() in excluded:
             return {**base_response, "reason": "ICT_SYMBOL_EXCLUDED_NEGATIVE_EXPECTANCY"}
+        wr_pruned = {str(s).strip().lower() for s in (getattr(self.config, "wr_pruned_symbols", ()) or ())}
+        if str(symbol).strip().lower() in wr_pruned:
+            return {**base_response, "reason": "ICT_SYMBOL_PRUNED_WINRATE_LE_45"}
 
         # 1. Obtener velas históricas H1
         try:
@@ -780,7 +791,7 @@ class ICTSabriMalleStrategy:
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):
             return {**base_response, "reason": "INVALID_RISK_SPREAD_RATIO"}
 
-        # 7. Proyección Asimétrica (TP1 1:2.0 RR / TP2 1:3.5 RR) y Validación Fibonacci
+        # 7. Objetivos (TP1 = tp1_rr, TP2 = runner_rr; hoy 1R / 2R) y validación Fibonacci
         if intended_direction == "SELL":
             swing_low_impulse = float(df_h1["low"].iloc[sweep_idx:].min())
             fibo_50 = (sweep_peak + swing_low_impulse) / 2.0

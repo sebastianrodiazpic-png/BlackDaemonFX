@@ -13,6 +13,15 @@ DISTANCE_SETTING = 'fractal_max_entry_distance_atr'
 
 def handle_strategy_settings_request(handler, service, method):
     path = urlparse(handler.path).path
+    if path in (PATH, '/api/strategies/malaysian-snr/candidates'):
+        # Las rutas instaladas en caliente (install_strategy_settings_routes) envuelven do_POST/do_GET y llegan aquí
+        # antes que la defensa del manejador: se repite la comprobación (ver dashboard/request_guard.py).
+        from dashboard.request_guard import unsafe_request_reason
+        reason = unsafe_request_reason(handler.headers, method, bind_host=getattr(service, 'host', None))
+        if reason is not None:
+            handler._send(json.dumps({'ok': False, 'error': 'Petición rechazada', 'error_code': reason}).encode('utf-8'),
+                          'application/json; charset=utf-8', HTTPStatus.FORBIDDEN)
+            return True
     if path == '/api/strategies/malaysian-snr/candidates' and method == 'GET':
         try:
             result = {'ok':True,'funnel':service.repository.msnr_candidate_funnel(source='DEMO')}

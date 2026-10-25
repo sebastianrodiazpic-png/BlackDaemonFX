@@ -56,6 +56,7 @@ import pandas as pd
 
 from config.instruments import InstrumentManager
 from config.strategy_config import TIMEFRAMES, PRUNED_ASSET_UNIVERSE
+from strategy.execution.live_trading_engine import DEFAULT_MAX_OPEN_POSITIONS
 from data.collector import update_historical_csv
 from database.repository import TradingRepository
 from database.reporting import export_trading_report
@@ -396,7 +397,7 @@ def run_demo_bot(
     hard_risk_tolerance: float = 0.035,
     recoverable_quarantine_extra_tolerance: float = 0.025,
     market_data_mode: str | None = None,
-    max_open_positions: int = 10,
+    max_open_positions: int | None = None,
 ):
     """Modo `demo`: ejecuta el bot completo contra una cuenta MT5 DEMO.
 
@@ -495,7 +496,7 @@ def run_demo_bot(
         source="DEMO",
         entry_timeframe=timeframe,
         risk_percent=risk_percent,
-        max_open_positions=int(max_open_positions),
+        max_open_positions=int(max_open_positions if max_open_positions is not None else DEFAULT_MAX_OPEN_POSITIONS),
         bot_profile=str(bot_profile).upper(),
         magic=int(magic),
         min_rr=min_rr,
@@ -1126,50 +1127,79 @@ BOT_PROFILES = {
         "magic": 26082031,
         "categories": [],
         "symbols": [
-            # Activos Rentables y Validados de Malaysian SNR (Replay 2 Años + Confirmaciones M5/M15)
-            "Step Index 400",
-            "Step Index 500",
-            "Step Index 200",
-            "Step Index",
-            "XAGUSD",
-            "AUDNZD",
+            # Malaysian SNR solo en sintéticos (replay fiel 2 años: sintéticos + tope spread/SL 2% -0.020/+0.015
+            # R/trade vs lista 23 + C2 -0.126/-0.117). Desactivable con DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY=0.
+            "Boom 1000 Index",
+            "Boom 300 Index",
+            "Boom 500 Index",
+            "Boom 600 Index",
+            "Boom 900 Index",
             "Crash 1000 Index",
-            "Crash 600 Index",
-            "Crash 500 Index",
             "Crash 300 Index",
+            "Crash 500 Index",
+            "Crash 600 Index",
+            "Crash 900 Index",
+            "High Frequency Vol 100 Index",
+            "High Frequency Vol 50 Index",
+            "Jump 10 Index",
             "Jump 25 Index",
             "Jump 50 Index",
-            "Jump 10 Index",
+            "Jump 75 Index",
+            "Step Index",
+            "Step Index 200",
+            "Step Index 400",
+            "Step Index 500",
+            "Vol over Boom 550",
+            "Vol over Crash 550",
+            "VolSwitch High Vol Index",
+            "Volatility 10 Index",
+            "Volatility 100 (1s) Index",
+            "Volatility 100 Index",
+            "Volatility 15 Index",
+            "Volatility 150 (1s) Index",
+            "Volatility 25 Index",
+            "Volatility 250 (1s) Index",
+            "Volatility 5 Index",
+            "Volatility 50 (1s) Index",
+            "Volatility 50 Index",
+            "Volatility 75 (1s) Index",
+            "Volatility 75 Index",
+            "Volatility 90 (1s) Index",
+            "Volatility 90 Index",
+        ],
+        "pruned_symbols": [
+            # Mercados reales: expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade)
+            "XAGUSD",
+            "AUDNZD",
             "GBPJPY",
             "USDJPY",
             "GBPUSD",
-            "Boom 1000 Index",
-            "Boom 600 Index",
-            "Boom 500 Index",
-            "Boom 300 Index",
-            "Volatility 250 (1s) Index",
             "GBPAUD",
             "Wall Street 30",
             "US Tech 100",
             "EURUSD",
-            "Volatility 50 (1s) Index",
-            "Volatility 90 Index",
             "EURCHF",
             "EURGBP",
             "XAUUSD",
             "BTCUSD",
-        ],
-        "pruned_symbols": [
-            # 29 Activos con Expectativa Negativa / Podados en Replay 2 Años de Malaysian SNR
-            "USDCAD", "GBPCAD",
-            "Boom 900 Index", "EURAUD", "EURCAD", "CADCHF", "Jump 75 Index",
-            "AUDCAD", "US SP 500", "GBPNZD",
-            "CHFJPY", "AUDCHF", "Volatility 75 Index", "CADJPY", "AUDUSD",
-            "Volatility 15 Index", "GBPCHF", "AUDJPY", "US Oil", "USDCHF",
-            "Volatility 25 Index",
-            "Volatility 75 (1s) Index", "Jump 100 Index",
-            "Crash 900 Index", "EURNZD", "Volatility 10 Index", "EURJPY",
-            "Volatility 100 Index", "Volatility 50 Index"
+            "USDCAD",
+            "GBPCAD",
+            "EURAUD",
+            "EURCAD",
+            "CADCHF",
+            "AUDCAD",
+            "US SP 500",
+            "GBPNZD",
+            "CHFJPY",
+            "AUDCHF",
+            "CADJPY",
+            "AUDUSD",
+            "GBPCHF",
+            "AUDJPY",
+            "US Oil",
+            "USDCHF",
+            "EURNZD",
+            "EURJPY",
         ],
     },
     "ICT": {
@@ -1236,7 +1266,7 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB", "MALAYSIAN_SNR", "ICT",
+    "GOLD", "ORB", "MALAYSIAN_SNR", "ICT", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY",
 )
 
 
@@ -1289,6 +1319,11 @@ def _selection_profile_for_bot(profile: str) -> str:
     if profile == "ICT": return "ICT"
     if profile == "GOLD": return "GOLD"
     if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
+    if profile == "MSNR": return "MSNR"
+    if profile == "NIGHT": return "NIGHT"
+    if profile == "DRIFT": return "DRIFT"
+    if profile == "RSI2": return "RSI2"
+    if profile == "CARRY": return "CARRY"
     if profile.startswith("FOREX"): return "FOREX"
     if profile == "IDX_OPEN": return "IDX_OPEN"
     if profile == "ORB": return "ORB"
@@ -1362,21 +1397,13 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             symbol for symbol in discover_orb_symbols(provider)
             if is_orb_index_symbol(symbol)
         })
-    elif profile == "MALAYSIAN_SNR":
+    elif profile in ("MALAYSIAN_SNR", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"):
         universe = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
     elif profile == "ICT":
-        candidates = [
-            "XAUUSD", "XAUUSDmicro", "microXAUUSD",
-            "BTCUSD", "BTCUSDmicro", "microBTCUSD",
-            "US Oil",
-            "Jump 50 Index", "EURUSD", "EURUSDmicro",
-            "Crash 300 Index", "Crash 600 Index",
-            "Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 1000 Index", "Boom 600 Index",
-            "Jump 25 Index", "Jump 75 Index", "Jump 10 Index",
-            "Step Index 400", "Step Index 500", "Step Index",
-            "XAGUSD", "XAGUSDmicro", "microXAGUSD",
-            "Wall Street 30", "US Tech 100", "US SP 500",
-        ]
+        # Política única de /Instruments: metales, índices y commodities; los sintéticos van a sus workers
+        # de familia y cripto/plata quedan en PODA PREVENTIVA (config/ict_instrument_policy.py).
+        from config.ict_instrument_policy import ict_active_symbols
+        candidates = list(ict_active_symbols("ICT"))
         universe = []
         for sym in candidates:
             try:
@@ -1531,25 +1558,42 @@ def _build_multi_bot_dashboard_catalog(profiles):
                     if is_orb_index_symbol(symbol):
                         categorized.setdefault("idx_open_indices", []).append(symbol)
                 continue
-            if profile == "MALAYSIAN_SNR":
+            if profile == "NIGHT":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("night_indices", []).append(sym)
+                continue
+            if profile == "DRIFT":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("drift_switch", []).append(sym)
+                continue
+            if profile == "RSI2":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("rsi2_us_indices", []).append(sym)
+                continue
+            if profile == "CARRY":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("carry_fx_g10", []).append(sym)
+                continue
+            if profile in ("MALAYSIAN_SNR", "MSNR"):
+                _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
                     if "jump" in sym_lower:
-                        categorized.setdefault("malaysian_snr_jump", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
-                        categorized.setdefault("malaysian_snr_step", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
                     elif "volatility" in sym_lower:
-                        categorized.setdefault("malaysian_snr_volatility", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
-                        categorized.setdefault("malaysian_snr_boom", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
-                        categorized.setdefault("malaysian_snr_crash", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
                     elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
-                        categorized.setdefault("malaysian_snr_forex", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
-                        categorized.setdefault("malaysian_snr_indices", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
                 for sym in spec.get("pruned_symbols", []):
-                    categorized.setdefault("malaysian_snr_pruned", []).append(sym)
+                    categorized.setdefault(f"{_msnr_prefix}_pruned", []).append(sym)
                 continue
 
             for category in spec.get("categories", []):
@@ -1779,25 +1823,38 @@ def run_unified_multibot_daemon(args, profiles=None):
                 for symbol in discover_orb_symbols(provider):
                     market = classify_orb_market(symbol) or "ORB"
                     categorized.setdefault(f"orb_ny_{str(market).lower()}", []).append(symbol)
-            elif profile == "MALAYSIAN_SNR":
+            elif profile == "NIGHT":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("night_indices", []).append(sym)
+            elif profile == "DRIFT":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("drift_switch", []).append(sym)
+            elif profile == "RSI2":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("rsi2_us_indices", []).append(sym)
+            elif profile == "CARRY":
+                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
+                    categorized.setdefault("carry_fx_g10", []).append(sym)
+            elif profile in ("MALAYSIAN_SNR", "MSNR"):
+                _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
                     if "jump" in sym_lower:
-                        categorized.setdefault("malaysian_snr_jump", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
-                        categorized.setdefault("malaysian_snr_step", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
                     elif "volatility" in sym_lower:
-                        categorized.setdefault("malaysian_snr_volatility", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
-                        categorized.setdefault("malaysian_snr_boom", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
-                        categorized.setdefault("malaysian_snr_crash", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
                     elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
-                        categorized.setdefault("malaysian_snr_forex", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
-                        categorized.setdefault("malaysian_snr_indices", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
                 for sym in spec.get("pruned_symbols", []):
-                    categorized.setdefault("malaysian_snr_pruned", []).append(sym)
+                    categorized.setdefault(f"{_msnr_prefix}_pruned", []).append(sym)
             elif profile.startswith("FOREX"):
                 if "forex" not in categorized:
                     try:
@@ -1843,7 +1900,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 source="DEMO",
                 entry_timeframe=args.timeframe,
                 risk_percent=args.risk_percent,
-                max_open_positions=int(getattr(args, "max_open_positions", 10)),
+                max_open_positions=int(getattr(args, "max_open_positions", DEFAULT_MAX_OPEN_POSITIONS)),
                 bot_profile=profile,
                 magic=int(spec["magic"]),
                 min_rr=args.min_rr,
@@ -3402,6 +3459,11 @@ def main():
             "idx-open-daemon",
             "malaysian-snr-daemon",
             "ict-daemon",
+            "msnr-daemon",
+            "night-daemon",
+            "drift-daemon",
+            "rsi2-daemon",
+            "carry-daemon",
             "synthetics-split-daemon",
             "multi-bot-daemon",
             "unified-multibot-daemon",
@@ -3571,7 +3633,7 @@ def main():
     parser.add_argument(
         "--max-open-positions",
         type=int,
-        default=10,
+        default=DEFAULT_MAX_OPEN_POSITIONS,
         help=(
             "Límite máximo de posiciones físicas abiertas simultáneas "
             "(por defecto: 10, correspondiente a 5 instrumentos x 2 piernas)."
@@ -3824,6 +3886,11 @@ def main():
         "idx-open-daemon": "IDX_OPEN",
         "malaysian-snr-daemon": "MALAYSIAN_SNR",
         "ict-daemon": "ICT",
+        "msnr-daemon": "MSNR",
+        "night-daemon": "NIGHT",
+        "drift-daemon": "DRIFT",
+        "rsi2-daemon": "RSI2",
+        "carry-daemon": "CARRY",
     }
     if args.mode in strategy_worker_modes:
         profile = strategy_worker_modes[args.mode]
@@ -3864,7 +3931,7 @@ def main():
             hard_risk_tolerance=args.hard_risk_tolerance,
             recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
             market_data_mode=args.market_data_mode,
-            max_open_positions=getattr(args, "max_open_positions", 10),
+            max_open_positions=getattr(args, "max_open_positions", DEFAULT_MAX_OPEN_POSITIONS),
         )
         return
 
@@ -3947,7 +4014,7 @@ def main():
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
                 market_data_mode=args.market_data_mode,
-                max_open_positions=getattr(args, "max_open_positions", 10),
+                max_open_positions=getattr(args, "max_open_positions", DEFAULT_MAX_OPEN_POSITIONS),
             )
 
         else:
@@ -3984,7 +4051,7 @@ def main():
                 hard_risk_tolerance=args.hard_risk_tolerance,
                 recoverable_quarantine_extra_tolerance=args.recoverable_quarantine_extra_tolerance,
                 market_data_mode=args.market_data_mode,
-                max_open_positions=getattr(args, "max_open_positions", 10),
+                max_open_positions=getattr(args, "max_open_positions", DEFAULT_MAX_OPEN_POSITIONS),
             )
 
         return
@@ -4070,6 +4137,66 @@ def main():
             args.timeframe,
             args.file,
         )
+
+
+# Poda por acierto <= 45% (config/strategy_config.py): fuera del universo activo de MSNR, a la lista de podados.
+def _apply_msnr_wr45_prune():
+    from config.strategy_config import MSNR_WR45_PRUNED
+    spec = BOT_PROFILES["MALAYSIAN_SNR"]
+    pruned = [s for s in spec["symbols"] if s in set(MSNR_WR45_PRUNED)]
+    spec["symbols"] = [s for s in spec["symbols"] if s not in set(MSNR_WR45_PRUNED)]
+    spec["pruned_symbols"] = list(dict.fromkeys([*spec.get("pruned_symbols", []), *pruned]))
+    # Prueba demo de sintéticos nuevos solo en Malaysian SNR (config/ict_instrument_policy.py).
+    from config.ict_instrument_policy import MSNR_DEMO_TEST_SYMBOLS
+    demo = [s for s in MSNR_DEMO_TEST_SYMBOLS if s not in spec["symbols"]]
+    spec["symbols"] = [*spec["symbols"], *demo]
+    # Worker MSNR (estrategia de los vídeos, 20-oct-2026): mismos instrumentos que la pestaña Malaysian SNR,
+    # pero controlado solo por la pestaña MSNR de /Instruments.
+    # Worker NIGHT (21-oct-2026): sesgo nocturno en índices US (strategy/overnight/overnight_drift.py).
+    # Worker DRIFT (21-oct-2026): ruptura tras compresión en Drift Switch (strategy/drift_breakout).
+    from strategy.drift_breakout.compression_breakout import DRIFT_DEFAULT_SYMBOLS
+    # Worker RSI2 (21-oct-2026): RSI(2) diario de Connors en los índices US (strategy/connors_rsi2).
+    from strategy.connors_rsi2.rsi2_daily import RSI2_DEFAULT_SYMBOLS
+    # Worker CARRY (24-oct-2026): carry en Forex G10 con el swap real de MT5 (strategy/fx_carry).
+    from strategy.fx_carry.carry_strategy import CARRY_DEFAULT_SYMBOLS
+    BOT_PROFILES["CARRY"] = {
+        "mode": "carry-daemon",
+        "magic": 26082037,
+        "categories": [],
+        "symbols": list(CARRY_DEFAULT_SYMBOLS),
+        "pruned_symbols": [],
+    }
+    BOT_PROFILES["RSI2"] = {
+        "mode": "rsi2-daemon",
+        "magic": 26082036,
+        "categories": [],
+        "symbols": list(RSI2_DEFAULT_SYMBOLS),
+        "pruned_symbols": [],
+    }
+    BOT_PROFILES["DRIFT"] = {
+        "mode": "drift-daemon",
+        "magic": 26082035,
+        "categories": [],
+        "symbols": list(DRIFT_DEFAULT_SYMBOLS),
+        "pruned_symbols": [],
+    }
+    BOT_PROFILES["NIGHT"] = {
+        "mode": "night-daemon",
+        "magic": 26082034,
+        "categories": [],
+        "symbols": ["US SP 500", "US Tech 100"],
+        "pruned_symbols": ["Wall Street 30"],
+    }
+    BOT_PROFILES["MSNR"] = {
+        "mode": "msnr-daemon",
+        "magic": 26082033,
+        "categories": [],
+        "symbols": [s for s in spec["symbols"] if s not in set(MSNR_DEMO_TEST_SYMBOLS)],
+        "pruned_symbols": list(spec["pruned_symbols"]),
+    }
+
+
+_apply_msnr_wr45_prune()
 
 
 if __name__ == "__main__":

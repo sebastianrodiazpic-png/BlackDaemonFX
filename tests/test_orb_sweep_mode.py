@@ -19,9 +19,13 @@ def test_xauusd_profile_is_sweep_only():
     assert ASSET_CONFIG["XAUUSD"]["sweep_enabled"] is True
     assert ASSET_CONFIG["XAUUSD"]["allowed_modes"] == []
     assert ORB_SWEEP_STRATEGY_VERSION == "orb-ny-v5-sweep"
+    forward = {"BTCUSD", "USDCAD"}  # prueba hacia delante en demo
     for key, profile in ASSET_CONFIG.items():
-        if key != "XAUUSD":
-            assert profile["allowed_modes"] == [] and not profile.get("sweep_enabled")
+        assert profile["allowed_modes"] == []
+        if key in forward:
+            assert profile.get("sweep_enabled") and profile.get("forward_test")
+        elif key != "XAUUSD":
+            assert not profile.get("sweep_enabled")
 
 
 @pytest.mark.skipif(not (OUT / "history" / "XAUUSD_M5.csv").exists() or not (OUT / "trades.csv").exists(),

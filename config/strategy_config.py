@@ -162,9 +162,10 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
         "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
     ),
-    # ORB NEW YORK (Fase 1): solo XAUUSD en modo SWEEP (+0.17R/+0.21R por mitad del replay Núñez 2Y).
+    # ORB NEW YORK: XAUUSD en modo SWEEP + BTCUSD y USDCAD en prueba hacia delante (demo, 40 operaciones).
     "ORB": (
         "XAUUSD", "XAUUSDmicro",
+        "BTCUSD", "USDCAD",
     ),
 }
 
@@ -181,6 +182,7 @@ TRI_MOTOR_TIER_S_ASSETS = {
     ),
     "ORB": (
         "XAUUSD", "XAUUSDmicro",
+        "BTCUSD", "USDCAD",
     ),
     "ICT": (
         "Volatility 10 Index",
@@ -217,3 +219,42 @@ TRI_MOTOR_ORCHESTRATION_CONFIG = {
     "msnr_min_adx": 30.0,
 }
 
+
+
+# ========================================================
+# PODA POR ACIERTO (WIN RATE) <= 45% EN SINTÉTICOS (replay fiel)
+# ========================================================
+# Criterio del usuario: solo se mantienen instrumentos con acierto > 45%.
+#   ICT  (límite + tope spread/SL 2%, 365d): Boom 300 42.5%, Crash 1000 37.8%, Vol over Boom 550 44.5%,
+#        Volatility 90 (1s) 41.7%.
+#   MSNR (tope spread/SL 2%, 2 años): Step Index 42.2%, Volatility 100 40.4%, Jump 50 41.1%, Crash 300 42.6%,
+#        Crash 600 41.7%, Boom 1000 36.7%, Volatility 90 (1s) 35.7%.
+# DAEMONBLACKFX_SYNTH_WR45_PRUNE=0 desactiva esta poda.
+# Definición en config/synth_wr45.py (la importa también config/ict_instrument_policy.py sin ciclos).
+from config.synth_wr45 import ICT_WR45_PRUNED, MSNR_WR45_PRUNED, SYNTH_WR45_PRUNE_ENABLED  # noqa: E402,F401
+
+
+def _without(symbols, pruned):
+    return tuple(s for s in symbols if s not in set(pruned))
+
+
+for _family in ("STEP", "JUMP", "VOLATILITY", "BOOM", "CRASH", "ICT"):
+    PRUNED_ASSET_UNIVERSE[_family] = _without(PRUNED_ASSET_UNIVERSE[_family], ICT_WR45_PRUNED)
+PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"] = _without(PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
+for _tier in (TRI_MOTOR_TIER_S_ASSETS, TRI_MOTOR_TIER_A_ASSETS):
+    if "ICT" in _tier:
+        _tier["ICT"] = _without(_tier["ICT"], ICT_WR45_PRUNED)
+    if "MALAYSIAN_SNR" in _tier:
+        _tier["MALAYSIAN_SNR"] = _without(_tier["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
+
+# Política única de /Instruments ICT (config/ict_instrument_policy.py, 20-oct-2026): los universos de familia
+# coinciden con lo que operan los workers; lo demás queda en PODA PREVENTIVA.
+from config.ict_instrument_policy import (  # noqa: E402
+    ICT_ACTIVE_BY_PROFILE as _ICT_ACTIVE_BY_PROFILE,
+    ICT_SYNTHETIC_FAMILIES as _ICT_SYNTHETIC_FAMILIES,
+)
+
+for _family, _symbols in _ICT_SYNTHETIC_FAMILIES.items():
+    PRUNED_ASSET_UNIVERSE[_family] = tuple(_symbols)
+PRUNED_ASSET_UNIVERSE["FOREX"] = tuple(_ICT_ACTIVE_BY_PROFILE["FOREX"])
+PRUNED_ASSET_UNIVERSE["ICT"] = tuple(_ICT_ACTIVE_BY_PROFILE["ICT"])

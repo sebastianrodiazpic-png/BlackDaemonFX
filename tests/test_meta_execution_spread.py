@@ -27,8 +27,11 @@ def test_broker_spread_and_invalid_quotes(ask, available):
         assert features['spread_ratio'] == 0
 
 
-@pytest.mark.parametrize('timestamp', [None, datetime.now(timezone.utc)-timedelta(minutes=4), datetime.now(timezone.utc)+timedelta(minutes=2)])
-def test_missing_or_stale_timestamp_is_unknown(timestamp):
+@pytest.mark.parametrize('offset_minutes', [None, -4, 2])
+def test_missing_or_stale_timestamp_is_unknown(offset_minutes):
+    # La hora se calcula al ejecutar (no al recoger los tests): en la suite completa, que tarda ~10 min,
+    # "dentro de 2 minutos" calculado al recoger ya era una hora pasada y el test fallaba.
+    timestamp = None if offset_minutes is None else datetime.now(timezone.utc) + timedelta(minutes=offset_minutes)
     market = engine(dict(bid=100., ask=101., time=timestamp))._meta_execution_spread('EURUSD')
     assert market['spread'] is None
     assert extract_meta_features(signal={'spread':5.}, market=market)['spread_available'] == 0

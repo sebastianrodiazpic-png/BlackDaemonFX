@@ -1701,7 +1701,8 @@ def _sync_runtime_dashboard_if_needed():
                 def _norm_safe(*args, **kwargs):
                     p = args[-1] if args else kwargs.get("profile", "SYNTHETICS")
                     value = str(p or "SYNTHETICS").upper().strip()
-                    if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT"}:
+                    # Debe coincidir con TradingRepository._normalize_selection_profile (MSNR: worker de los vídeos).
+                    if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"}:
                         raise ValueError(f"Perfil de selección no soportado: {value}")
                     return value
                 old_repo_mod.TradingRepository._normalize_selection_profile = _norm_safe
@@ -1784,4 +1785,16 @@ def _sync_runtime_dashboard_if_needed():
         pass
 
 
-_sync_runtime_dashboard_if_needed()
+def dashboard_hot_sync_enabled() -> bool:
+    """Parche en caliente al importar/recargar la página (DAEMONBLACKFX_DASHBOARD_HOT_SYNC, por defecto 0).
+
+    Apagado por defecto (24-oct-2026): ejecuta código del disco y sustituye métodos de TradingRepository, del servicio
+    del dashboard y el analizador Malaysian SNR de los motores vivos del proceso sin reinicio ni registro, de modo que
+    cambios sin commit entraban a operar con solo abrir /strategy-bases. Los cambios se cargan reiniciando los daemons.
+    """
+    import os
+    return os.getenv("DAEMONBLACKFX_DASHBOARD_HOT_SYNC", "0").strip().lower() in ("1", "true", "on", "yes")
+
+
+if dashboard_hot_sync_enabled():
+    _sync_runtime_dashboard_if_needed()

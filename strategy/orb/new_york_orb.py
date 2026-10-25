@@ -94,6 +94,10 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "btcusd":
         return "BTCUSD"
 
+    # Prueba hacia delante SWEEP (solo el contrato estándar; la versión micro no está validada).
+    if name == "usdcad":
+        return "USDCAD"
+
     if name in {"eurusd", "eur/usd", "eeurusd"} or (name.startswith("eur") and "usd" in name):
         return "EURUSD"
 
@@ -216,6 +220,7 @@ def discover_orb_symbols(data_provider) -> list[str]:
         "EURUSD",
         "EUR/USD",
         "BTCUSD",
+        "USDCAD",
         "US30",
         "NAS100",
         "Wall Street",

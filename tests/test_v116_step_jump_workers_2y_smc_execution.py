@@ -56,7 +56,8 @@ def test_live_trading_config_step_jump_allowed_symbols():
     """LiveTradingConfig debe contener Step Index 400 y Jump 75 Index en sus listas permitidas."""
     cfg = LiveTradingConfig()
     assert "Step Index 400" in cfg.step_allowed_symbols
-    assert "Step Index" in cfg.step_allowed_symbols
+    # Política única ICT (20-oct-2026): Step Index queda en PODA PREVENTIVA (Fase 1).
+    assert "Step Index" not in cfg.step_allowed_symbols
     assert "Step Index 500" in cfg.step_allowed_symbols
 
     assert "Jump 75 Index" in cfg.jump_allowed_symbols

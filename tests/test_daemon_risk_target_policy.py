@@ -77,6 +77,7 @@ def test_rejects_trade_when_broker_max_volume_cannot_reach_risk_target():
         provider=Provider(),
         repository=Repo(),
         config=LiveTradingConfig(
+            synthetic_risk_multiplier=1.0,  # prueba la mecánica de dimensionado a riesgo completo
             execution_enabled=False,
             max_entry_drift_r=None,
             min_actual_risk_ratio=0.95,

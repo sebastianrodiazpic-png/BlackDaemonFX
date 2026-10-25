@@ -1096,6 +1096,31 @@ class MT5ExecutionProvider:
             "risk_engine": "MT5_ORDER_CALC_PROFIT",
         }
 
+    def symbol_volume_headroom(self, symbol: str, direction: str) -> dict:
+        """Volumen que aún admite el símbolo en un sentido según `volume_limit` de MT5.
+
+        `volume_limit` es el máximo agregado de posiciones abiertas + órdenes pendientes
+        en un mismo sentido (0 = sin límite). Sin este dato, la segunda pierna de una
+        entrada partida puede rechazarse con `retcode 10034` (Volume limit reached),
+        como ocurre en Volatility 250 (1s): volume_max 30 por orden y volume_limit 50.
+        """
+        self._ensure()
+        info = self.symbol_spec(symbol)
+        limit = float(getattr(info, "volume_limit", 0.0) or 0.0)
+        if limit <= 0:
+            return {"volume_limit": 0.0, "used_volume": 0.0, "headroom": None}
+        is_buy = str(direction).upper() == "BUY"
+        buy_types = {mt5.ORDER_TYPE_BUY, mt5.ORDER_TYPE_BUY_LIMIT, mt5.ORDER_TYPE_BUY_STOP,
+                     getattr(mt5, "ORDER_TYPE_BUY_STOP_LIMIT", -1)}
+        used = 0.0
+        for position in mt5.positions_get(symbol=str(symbol)) or ():
+            if (int(position.type) == mt5.POSITION_TYPE_BUY) == is_buy:
+                used += float(position.volume)
+        for order in mt5.orders_get(symbol=str(symbol)) or ():
+            if (int(order.type) in buy_types) == is_buy:
+                used += float(getattr(order, "volume_current", 0.0) or 0.0)
+        return {"volume_limit": limit, "used_volume": used, "headroom": max(0.0, limit - used)}
+
     def calculate_volume(
         self,
         symbol: str,
@@ -1103,12 +1128,16 @@ class MT5ExecutionProvider:
         entry_price: float,
         stop_loss: float,
         risk_amount: float,
+        max_volume_cap: float | None = None,
     ) -> dict:
         """Calcula volumen con MT5 como fuente de verdad del riesgo.
 
         IMPORTANTE: se elimina la prioridad histórica de tick_value/tick_size.
         Primero se pregunta a MT5 cuánto perdería exactamente 1 lote al llegar al
         SL y se vuelve a validar el volumen normalizado con una segunda llamada.
+
+        `max_volume_cap` (opcional) acota el volumen por debajo de `volume_max`; el
+        motor lo usa para repartir `volume_limit` entre las piernas de una entrada.
         """
         self._ensure()
         info = self.symbol_spec(symbol)
@@ -1144,6 +1173,13 @@ class MT5ExecutionProvider:
 
         if min_volume <= 0 or max_volume <= 0 or step <= 0:
             raise MT5ExecutionError("El símbolo no informa límites de volumen válidos.")
+        if max_volume_cap is not None:
+            if float(max_volume_cap) + 1e-12 < min_volume:
+                raise MT5ExecutionError(
+                    f"El límite de volumen del símbolo ({float(max_volume_cap):g} por pierna) "
+                    f"queda por debajo del mínimo operable {min_volume} (VOLUME_LIMIT_HEADROOM)."
+                )
+            max_volume = min(max_volume, float(max_volume_cap))
 
         min_risk = self.calculate_risk_amount(
             symbol=symbol,

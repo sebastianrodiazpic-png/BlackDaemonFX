@@ -255,7 +255,12 @@ def test_active_daily_obstacle_caps_runner_as_well_as_tp1_room():
     signal = result['signal']
     assert signal['obstacle_level']==116.5
     assert signal['tp1_price'] <= signal['tp2_price'] < 116.5
-    assert signal['runner_rr'] < cfg.tp2_runner_rr
+    # El runner no pasa del obstáculo diario (menos el margen). Con el contrato 1R/2R el obstáculo ya no recorta el
+    # TP2 de 2R en este escenario, así que se comprueba el tope en lugar de exigir que recorte.
+    sign = 1 if signal['direction'] == 'BUY' else -1
+    risk = sign * (signal['entry_price'] - signal['stop_loss'])
+    room = sign * (116.5 - signal['entry_price']) - cfg.obstacle_buffer_atr * signal['atr']
+    assert signal['runner_rr'] <= room / risk + 1e-6
 
 
 @pytest.mark.parametrize('case',['far','wrong_side','expired','missing'])

@@ -155,7 +155,7 @@ def test_step_mandatory_adx_blocks_when_low():
     engine = _make_engine("STEP")
     
     signal = {"adx": 18.5}
-    gate = engine._step_quality_gate("Step Index", signal)
+    gate = engine._step_quality_gate("Step Index 400", signal)
     assert gate is not None
     assert gate["action"] == "STEP_ADX_LOW"
     assert "STEP_REQUIRES_M15_ADX_ABOVE_25" in gate["reason"]
@@ -165,7 +165,7 @@ def test_step_mandatory_adx_allows_when_high():
     engine = _make_engine("STEP")
     
     signal = {"adx": 28.5}
-    gate = engine._step_quality_gate("Step Index", signal)
+    gate = engine._step_quality_gate("Step Index 400", signal)
     assert gate is None
 
 
@@ -471,14 +471,14 @@ def test_step_toxic_asset_pruning():
     engine = _make_engine("STEP")
     signal = {"adx": 30.0, "confirmation_timeframe": "M15"}
 
-    # Allowed: Step Index and Step Index 500
-    assert engine._step_quality_gate("Step Index", signal) is None
+    # Allowed: Step Index 400 y 500; Step Index en PODA PREVENTIVA (Fase 1, política única ICT)
+    assert engine._step_quality_gate("Step Index 400", signal) is None
+    assert engine._step_quality_gate("Step Index", signal)["action"] == "STEP_ASSET_PRUNED_TOXIC"
     assert engine._step_quality_gate("Step Index 500", signal) is None
 
-    # Pruned toxic: Step Index 200, Step Index 100
+    # Step Index 200 liberado (replay ICT límite + tope 2%: +0.040 R/t); Step Index 100 sigue podado
     gate_200 = engine._step_quality_gate("Step Index 200", signal)
-    assert gate_200 is not None
-    assert gate_200["action"] == "STEP_ASSET_PRUNED_TOXIC"
+    assert gate_200 is None or gate_200["action"] != "STEP_ASSET_PRUNED_TOXIC"
 
     gate_100 = engine._step_quality_gate("Step Index 100", signal)
     assert gate_100 is not None
@@ -522,16 +522,16 @@ def test_volatility_toxic_asset_pruning():
     # Allowed: Volatility 50 (1s) Index and Volatility 75 Index (and Volatility 25 Index)
     assert engine._volatility_quality_gate("Volatility 50 (1s) Index", signal) is None
     assert engine._volatility_quality_gate("Volatility 75 Index", signal) is None
-    assert engine._volatility_quality_gate("Volatility 25 Index", signal) is None
+    assert engine._volatility_quality_gate("Volatility 25 Index", signal)["action"] == "VOLATILITY_ASSET_PRUNED_TOXIC"  # Fase 1
 
-    # Pruned toxic: Volatility 50 Index, Volatility 100 Index
+    # Volatility 50 Index sigue podado (negativo en ambas mitades del replay ICT con límite + tope 2%)
     gate_50 = engine._volatility_quality_gate("Volatility 50 Index", signal)
     assert gate_50 is not None
     assert gate_50["action"] == "VOLATILITY_ASSET_PRUNED_TOXIC"
 
+    # Volatility 100 Index liberado (+0.049 R/t en el mismo replay)
     gate_100 = engine._volatility_quality_gate("Volatility 100 Index", signal)
-    assert gate_100 is not None
-    assert gate_100["action"] == "VOLATILITY_ASSET_PRUNED_TOXIC"
+    assert gate_100 is None or gate_100["action"] != "VOLATILITY_ASSET_PRUNED_TOXIC"
 
 
 def test_split_entry_risk_and_asymmetric_target_configuration():

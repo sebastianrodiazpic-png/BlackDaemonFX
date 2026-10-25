@@ -3,13 +3,18 @@ from types import SimpleNamespace
 from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradingEngine
 
 
-def test_all_operational_runner_defaults_end_at_tp2():
+def test_runner_defaults_follow_progressive_extension_contract():
+    # Contrato operativo (REGISTRO_CAMBIOS_ESTRATEGIA.md, regla 2): el runner apunta a TP2 y, con continuación,
+    # sube el stop de forma progresiva hacia TP3/TP4 (máx. 4R). Sustituye a la política v101 de TP2 fijo.
     config = LiveTradingConfig()
-    assert config.runner_extension_enabled is False
-    assert config.runner_extension_max_target_rr in (2.0, 2.5, 4.0)
-    assert config.smc_runner_max_target_rr in (2.0, 2.5, 4.0)
-    assert config.forex_runner_max_target_rr in (2.0, 3.0)
-    assert config.forex_runner_broker_safety_target_rr in (2.0, 3.0)
+    assert config.runner_extension_enabled is True
+    assert config.runner_extension_first_trigger_rr == 2.0 and config.runner_extension_first_lock_rr == 1.0
+    assert config.runner_extension_second_trigger_rr == 3.0 and config.runner_extension_second_lock_rr == 2.5
+    # Máximo del contrato: 4R en todas las familias.
+    assert config.runner_extension_max_target_rr == 4.0
+    assert config.smc_runner_max_target_rr == 4.0
+    assert config.forex_runner_max_target_rr == 4.0
+    assert config.forex_runner_broker_safety_target_rr <= 4.0
 
 
 def test_runner_keeps_split_risk_at_half_percent_per_leg():
@@ -20,11 +25,11 @@ def test_runner_keeps_split_risk_at_half_percent_per_leg():
     assert config.second_target_rr in (2.0, 2.5)
 
 
-def test_synthetic_runner_cannot_extend_past_tp2_with_manual_configuration():
+def test_synthetic_runner_stays_at_tp2_when_extension_is_switched_off():
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(
         bot_profile="BOOM",
-        runner_extension_enabled=True,
+        runner_extension_enabled=False,
         runner_extension_max_target_rr=4.0,
     )
 
@@ -42,7 +47,7 @@ def test_synthetic_runner_cannot_extend_past_tp2_with_manual_configuration():
         move_stop=lambda **_: {"modified": True},
     )
 
-    assert result["reason"] == "SYNTHETICS_FIXED_TP2_TARGET"
+    assert result["managed"] is False and result["extended"] is False and result["closed"] is False
 
 
 def test_synthetic_break_even_adds_live_spread_to_protect_the_runner():

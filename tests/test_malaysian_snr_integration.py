@@ -27,8 +27,9 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         config = LiveTradingConfig(bot_profile="MALAYSIAN_SNR", magic=26082031)
         configured = configure_worker_rules(config)
         self.assertTrue(configured.malaysian_snr_enabled)
-        self.assertEqual(configured.malaysian_snr_tp1_rr, 2.0)
-        self.assertEqual(configured.malaysian_snr_runner_rr, 4.0)
+        # Contrato operativo: TP1 1R y runner 2R (la extensión progresiva lo lleva hasta 4R).
+        self.assertEqual(configured.malaysian_snr_tp1_rr, 1.0)
+        self.assertEqual(configured.malaysian_snr_runner_rr, 2.0)
         self.assertEqual(worker_poll_interval("MALAYSIAN_SNR", 5), 5)
 
     def test_ai_meta_labeling_model_loaded(self):
@@ -76,24 +77,19 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertIn("MALAYSIAN_SNR", pruned_by_profile)
         msnr_pruned = pruned_by_profile["MALAYSIAN_SNR"]
         
-        # Verify that Malaysian SNR profitable core assets are NOT pruned
-        self.assertNotIn("Jump 25 Index", msnr_pruned)
-        self.assertNotIn("Step Index 200", msnr_pruned)
-        self.assertNotIn("Step Index 400", msnr_pruned)
-        self.assertNotIn("Wall Street 30", msnr_pruned)
-        self.assertNotIn("Jump 10 Index", msnr_pruned)
-        self.assertNotIn("Boom 300 Index", msnr_pruned)
-        self.assertNotIn("Crash 600 Index", msnr_pruned)
-        self.assertNotIn("Crash 1000 Index", msnr_pruned)
-        self.assertNotIn("Crash 500 Index", msnr_pruned)
-        self.assertNotIn("Boom 500 Index", msnr_pruned)
+        # MSNR solo en sintéticos: ningún sintético podado
+        for sym in ("Jump 25 Index", "Step Index 200", "Step Index 400", "Jump 10 Index", "Boom 300 Index",
+                    "Crash 1000 Index", "Crash 500 Index", "Boom 500 Index",
+                    "Volatility 10 Index", "Volatility 50 Index"):
+            self.assertNotIn(sym, msnr_pruned)
+        # Podados por acierto <= 45% en el replay fiel
+        for sym in ("Crash 600 Index", "Step Index", "Boom 1000 Index", "Volatility 100 Index"):
+            self.assertIn(sym, msnr_pruned)
         
-        # Verify that actual losing assets ARE pruned
-        self.assertIn("Volatility 10 Index", msnr_pruned)
-        self.assertIn("Volatility 50 Index", msnr_pruned)
-        self.assertIn("CADCHF", msnr_pruned)
-        self.assertIn("US Oil", msnr_pruned)
-        self.assertIn("Boom 900 Index", msnr_pruned)
+        # Todos los mercados reales podados
+        for sym in ("Wall Street 30", "CADCHF", "US Oil", "XAUUSD", "EURUSD"):
+            self.assertIn(sym, msnr_pruned)
+        self.assertNotIn("Boom 900 Index", msnr_pruned)
 
 
 if __name__ == "__main__":

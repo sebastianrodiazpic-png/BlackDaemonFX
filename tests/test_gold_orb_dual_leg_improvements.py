@@ -13,11 +13,13 @@ def mock_build_plan_factory(entry, sl, direction, total_risk_amount):
             name, fraction, logical_rr, broker_rr = item[0], item[1], item[2], item[3]
             leg_risk = total_risk_amount * fraction
             tp = entry + risk_distance * broker_rr if direction == "BUY" else entry - risk_distance * broker_rr
+            # Igual que el build_plan real: target_rr es el objetivo lógico y el TP usa el del broker.
             legs.append({
                 "name": name,
                 "risk_fraction": fraction,
                 "risk_amount": leg_risk,
-                "target_rr": broker_rr,
+                "target_rr": logical_rr,
+                "broker_target_rr": broker_rr,
                 "take_profit": tp,
             })
         return legs, None
@@ -127,9 +129,31 @@ def test_orb_context_selects_tp2_5_and_tp3_runner_targets():
     assert legs_mod[1]["target_rr"] == 2.5
 
 
-def test_runner_step_lock_profit_protection_for_tp3_and_tp2_5():
+def test_orb_step_lock_defers_to_progressive_extension_when_enabled():
+    """Con la extensión progresiva activa (por defecto) el bloqueo lo hace _manage_runner_extension a 2R."""
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(bot_profile="ORB")
+    assert engine.config.runner_extension_enabled is True
+    engine.repository = SimpleNamespace(update_trade=Mock())
+    engine.provider = SimpleNamespace(get_current_tick=lambda _: {"bid": 31.90, "ask": 31.92})
+    engine.executor = SimpleNamespace(
+        get_position=lambda ticket: SimpleNamespace(price_open=30.00, sl=30.05, tp=33.00, price_current=31.90),
+        get_symbol_constraints=lambda s: {"digits": 2, "point": 0.01, "tick_size": 0.01},
+    )
+    trade = {"id": 10, "instrument": "XAGUSD", "direction": "BUY", "broker_position_ticket": 888,
+             "details": {}, "planned_rr": 3.0}
+    pos = SimpleNamespace(price_open=30.00, sl=30.05, tp=33.00, price_current=31.90)
+    metadata = {"trade_leg": "RUNNER", "break_even_confirmed": True, "break_even_price": 30.05, "target_rr": 3.0,
+                "runner_target_rr": 3.0, "initial_stop_loss": 29.00, "orb_tp1_target_price": 31.00}
+    res = engine.process_orb_break_even_management(trade, pos, metadata, lambda **kw: {"modified": True})
+    assert res["action"] == "ORB_BE_ALREADY_CONFIRMED"
+    assert pos.sl == 30.05
+
+
+def test_runner_step_lock_profit_protection_for_tp3_and_tp2_5():
+    engine = object.__new__(LiveTradingEngine)
+    # El bloqueo escalonado de ORB solo actúa sin la extensión progresiva del runner.
+    engine.config = LiveTradingConfig(bot_profile="ORB", runner_extension_enabled=False)
     engine.repository = SimpleNamespace(update_trade=Mock())
     engine.provider = SimpleNamespace(get_current_tick=lambda _: {"bid": 31.90, "ask": 31.92})
     engine.executor = SimpleNamespace(

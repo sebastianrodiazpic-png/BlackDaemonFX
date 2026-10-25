@@ -147,6 +147,14 @@ class MalaysianSNRConfig:
 
     # Variante C2 (Staging): Tope de Stop Loss en unidades ATR (<= 1.2 en Forex/Metales, <= 1.5 en Sintéticos y Wall Street 30)
     min_adx: float = 30.0
+    # Solo sintéticos: los mercados reales tienen expectativa negativa en el replay fiel de 2 años.
+    synthetics_only: bool = False
+    # Escenario H4→H1 (strategy/malaysian_snr/h4h1_confirmation.py). El motor lo activa según
+    # DAEMONBLACKFX_MSNR_H4H1 (demo_test = solo DEMO); runner a 2R como en el replay.
+    enable_h4h1_confirmation: bool = False
+    h4h1_runner_rr: float = 2.0
+    # Instrumentos podados (acierto <= 45% en el replay fiel); el motor pasa config/strategy_config.py:MSNR_WR45_PRUNED.
+    excluded_symbols: tuple = ()
     enable_c2_fx_metals_atr_cap: bool = False
     c2_fx_metals_max_sl_atr: float = 1.2
     c2_default_max_sl_atr: float = 1.5

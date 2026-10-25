@@ -42,9 +42,13 @@ def test_runner_can_extend_2r_to_3r_and_4r_with_profit_locks():
 
 
 def test_execute_signal_uses_orb_specific_risk_percent():
-    source=inspect.getsource(LiveTradingEngine.process_symbol)
-    assert 'self.config.orb_risk_percent' in source
-    assert 'strategy_name == "ORB_NEW_YORK"' in source
+    # La selección se centralizó en _risk_percent_for_strategy (la usa el plan de ejecución).
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(risk_percent=1.0, orb_risk_percent=0.7)
+    assert engine._risk_percent_for_strategy("ORB_NEW_YORK") == 0.7
+    assert engine._risk_percent_for_strategy("ICT_SABRI_MALLE") == 1.0
+    source = inspect.getsource(LiveTradingEngine._process_symbol_guarded)
+    assert "self._risk_percent_for_strategy(strategy_name)" in source
 
 
 def test_orb_signal_source_requires_retest():

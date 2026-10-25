@@ -1,6 +1,8 @@
 """Configuración para la estrategia institucional ICT (Sabri Malle - AMD & FVG Rejection v2)."""
 from dataclasses import dataclass
 
+from config.strategy_config import ICT_WR45_PRUNED
+
 
 @dataclass
 class ICTSabriMalleConfig:
@@ -32,6 +34,8 @@ class ICTSabriMalleConfig:
         "Step Index", "Jump 25 Index", "Volatility 25 Index",
         "XAGUSD", "XAGUSDmicro", "microXAGUSD",
     )
+    # Poda por acierto <= 45% en el replay fiel (config/strategy_config.py:ICT_WR45_PRUNED)
+    wr_pruned_symbols: tuple = ICT_WR45_PRUNED
     
     # Cierre de Mercado y Guardias de Rollover (Forex, Metales, Índices)
     market_closure_filter_enabled: bool = True

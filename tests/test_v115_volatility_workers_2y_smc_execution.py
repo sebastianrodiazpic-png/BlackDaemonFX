@@ -115,7 +115,9 @@ def test_volatility_worker_splits_entry_into_tp1_2r_and_runner_3r():
     assert runner["risk_percent"] == 0.5
     assert runner["risk_amount"] == 50.0
     assert runner["target_rr"] == 3.0
-    assert runner["take_profit"] == 130.0
+    # TP del broker = máximo de la extensión progresiva (runner_extension_max_target_rr = 4R).
+    assert runner["broker_target_rr"] == 4.0
+    assert runner["take_profit"] == 140.0
 
     assert result["break_even_trigger_rr"] == 2.0
 
@@ -195,13 +197,13 @@ def test_top_volatility_instruments_unpruned_and_prioritized():
         "Volatility 90 Index",
         "Volatility 5 Index",
         "High Frequency Vol 100 Index",
-        "Vol over Boom 550",
-        "Volatility 90 (1s) Index",
-    ]  # Volatility 25 Index excluido de Estrategia ICT en Fase 1 (18-oct-2026)
+    ]  # Volatility 25 Index excluido de ICT en Fase 1; Vol over Boom 550 y Volatility 90 (1s) podados por acierto <= 45%
 
     pruned_vol_universe = PRUNED_ASSET_UNIVERSE["VOLATILITY"]
     prioritized_synthetics = DEFAULT_PRIORITIZED_SYMBOLS["SYNTHETICS"]
 
+    from config.synth_wr45 import REAL_SPREAD_PRUNED  # 23-oct-2026: VolSwitch High Vol podado por spread real
+    expected_top_15 = [s for s in expected_top_15 if s not in REAL_SPREAD_PRUNED]
     for sym in expected_top_15:
         # Must be in strategy universe
         assert sym in pruned_vol_universe, f"{sym} missing from PRUNED_ASSET_UNIVERSE"

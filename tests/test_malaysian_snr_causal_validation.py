@@ -127,8 +127,10 @@ class TestCausalMSNR(unittest.TestCase):
         args = dict(symbol="Step Index", direction="BUY", scenario="ESC_3_FRACTAL", entry_price=100,
                     stop_loss=90, risk_dist=10, adx=25, body_ratio=.7, ref_level=95, break_level=95, current_atr=10)
         self.assertFalse(strategy._build_confirmed_signal(**{**args, "stop_loss":110})["valid"])
-        self.assertFalse(strategy._build_confirmed_signal(**args, obstacle_level=115)["valid"])
-        self.assertFalse(strategy._build_confirmed_signal(**args, obstacle_level=119.5)["valid"])
+        # TP1 = 1R (contrato) y margen de obstáculo 0,1 ATR: hace falta hueco >= 10 + 1 hasta el obstáculo.
+        self.assertFalse(strategy._build_confirmed_signal(**args, obstacle_level=105)["valid"])
+        self.assertFalse(strategy._build_confirmed_signal(**args, obstacle_level=110.5)["valid"])
+        self.assertTrue(strategy._build_confirmed_signal(**args, obstacle_level=111.5)["valid"])
         now = datetime(2026, 10, 9, 15, tzinfo=timezone.utc)
         result = strategy._build_confirmed_signal(**args, obstacle_level=122, now_utc=now)
         self.assertTrue(result["valid"])

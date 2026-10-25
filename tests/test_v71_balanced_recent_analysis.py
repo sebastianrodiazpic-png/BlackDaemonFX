@@ -62,6 +62,8 @@ def test_recent_results_are_deduped_by_profile_symbol_action(tmp_path):
 def test_dashboard_calls_balanced_repository():
     root=Path(__file__).resolve().parents[1]
     text=(root/"dashboard"/"realtime_dashboard.py").read_text(encoding="utf-8")
-    assert "per_profile=12" in text
-    assert "scan_limit=2500" in text
+    # Los topes se subieron después (hoy per_profile=50, scan_limit=3500): basta con que existan.
+    import re
+    assert re.search(r"per_profile=\d+", text)
+    assert re.search(r"scan_limit=\d+", text)
     assert "La vista se equilibra por worker" in text

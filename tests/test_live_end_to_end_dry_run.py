@@ -146,7 +146,8 @@ def test_live_engine_reaches_full_dry_run_validated_path_without_sending_order()
     assert result["direction"] == "BUY"
     assert result["entry_price"] == 101.0
     assert result["stop_loss"] == 95.0
-    assert result["take_profit"] == 113.0
+    # Objetivo lógico 2R (113); el TP enviado al broker es el máximo de la extensión progresiva, 4R (125).
+    assert result["take_profit"] == 125.0
     assert result["planned_rr"] == 2.0
     assert result["risk_amount"] == 100.0
     assert result["actual_risk_amount"] == 99.5
@@ -154,7 +155,8 @@ def test_live_engine_reaches_full_dry_run_validated_path_without_sending_order()
     assert result["legs"][0]["risk_amount"] == 50.0
     assert result["legs"][0]["take_profit"] == 107.0
     assert result["legs"][1]["risk_amount"] == 50.0
-    assert result["legs"][1]["take_profit"] == 113.0
+    assert result["legs"][1]["logical_target_rr"] == 2.0
+    assert result["legs"][1]["take_profit"] == 125.0
     assert all(leg["order_check"]["valid"] is True for leg in result["legs"])
     assert all(leg["order_check"]["retcode"] == 0 for leg in result["legs"])
     assert result["market_signal_diagnostics"]["market_invalidated_signal"] is False

@@ -85,6 +85,9 @@ def test_immediate_post_fill_emergency_close_when_rr_unfavorable():
         mark_signal_used=Mock(),
     )
     engine._enrich_learning_indicators = Mock()
+    # El test mide el cierre por deslizamiento, no la IA: sin ajustes MSNR guardados, ai_incompatible_policy
+    # vale 'block' por defecto (en la base viva es 'observe').
+    engine._meta_label_gate = lambda **kw: {'allowed': True, 'reason': 'TEST_AI_ISOLATED'}
 
     result = engine._process_symbol_guarded('US SP 500')
     assert result['action'] == 'EMERGENCY_SLIPPAGE_EXIT'
@@ -189,6 +192,9 @@ def test_direct_executor_fallback_pathway_closes_unfavorable_fill():
         mark_signal_used=Mock(),
     )
     engine._enrich_learning_indicators = Mock()
+    # El test mide el cierre por deslizamiento, no la IA: sin ajustes MSNR guardados, ai_incompatible_policy
+    # vale 'block' por defecto (en la base viva es 'observe').
+    engine._meta_label_gate = lambda **kw: {'allowed': True, 'reason': 'TEST_AI_ISOLATED'}
 
     result = engine._process_symbol_guarded('US SP 500')
     assert result['action'] == 'EMERGENCY_SLIPPAGE_EXIT'
