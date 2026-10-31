@@ -473,6 +473,7 @@ def run_demo_bot(
             ),
             auto_export=bool(auto_export),
             broker="Deriv-Demo",
+            async_export=True,
         ),
     )
     lifecycle_manager = TradeLifecycleManager(
@@ -1112,11 +1113,6 @@ BOT_PROFILES = {
         "magic": 26082028,
         "categories": [],
     },
-    "GOLD": {
-        "mode": "gold-session-daemon",
-        "magic": 26082029,
-        "categories": [],
-    },
     "IDX_OPEN": {
         "mode": "idx-open-daemon",
         "magic": 26082030,
@@ -1149,8 +1145,6 @@ BOT_PROFILES = {
             "Step Index 200",
             "Step Index 400",
             "Step Index 500",
-            "Vol over Boom 550",
-            "Vol over Crash 550",
             "VolSwitch High Vol Index",
             "Volatility 10 Index",
             "Volatility 100 (1s) Index",
@@ -1235,6 +1229,34 @@ BOT_PROFILES = {
             "US SP 500",
         ],
     },
+    "TREND_PULLBACK": {
+        "mode": "trend-pullback-daemon",
+        "magic": 26082038,
+        "categories": ["trend_pullback_synthetics"],
+        "symbols": [
+            "Crash 300 Index",
+            "Volatility 25 Index",
+            "Volatility 100 (1s) Index",
+            "Volatility 90 Index",
+            "Crash 500 Index",
+            "VolSwitch High Vol Index",
+            "Jump 75 Index",
+            "Jump 10 Index",
+            "Boom 900 Index",
+            "Jump 50 Index",
+            "Volatility 10 Index",
+            "Boom 600 Index",
+            "Volatility 250 (1s) Index",
+            "Step Index 200",
+            "Jump 25 Index",
+            "Volatility 5 Index",
+            "Crash 600 Index",
+            "Boom 300 Index",
+            "Volatility 75 Index",
+            "Step Index 400",
+            "Volatility 15 Index",
+        ],
+    },
 }
 
 # FLIP remains available for explicit manual launch, but is excluded from
@@ -1266,7 +1288,7 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "GOLD", "ORB", "MALAYSIAN_SNR", "ICT", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY",
+    "ORB", "MALAYSIAN_SNR", "ICT", "TREND_PULLBACK",
 )
 
 
@@ -1306,24 +1328,15 @@ def _assert_full_multibot_architecture(profiles):
     magics = [int(BOT_PROFILES[p]["magic"]) for p in profiles]
     if len(set(modes)) != len(modes) or len(set(magics)) != len(magics):
         raise RuntimeError("FULL_MULTIBOT_ARCHITECTURE_ERROR: mode o magic duplicado")
-    if BOT_PROFILES["GOLD"] != {
-        "mode": "gold-session-daemon", "magic": 26082029, "categories": []
-    }:
-        raise RuntimeError("FULL_MULTIBOT_ARCHITECTURE_ERROR: perfil GOLD alterado")
     return True
 
 
 def _selection_profile_for_bot(profile: str) -> str:
     """Traduce el perfil de un worker a su familia de instrumentos."""
     profile = str(profile or "").upper()
+    if profile == "TREND_PULLBACK": return "TREND_PULLBACK"
     if profile == "ICT": return "ICT"
-    if profile == "GOLD": return "GOLD"
     if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
-    if profile == "MSNR": return "MSNR"
-    if profile == "NIGHT": return "NIGHT"
-    if profile == "DRIFT": return "DRIFT"
-    if profile == "RSI2": return "RSI2"
-    if profile == "CARRY": return "CARRY"
     if profile.startswith("FOREX"): return "FOREX"
     if profile == "IDX_OPEN": return "IDX_OPEN"
     if profile == "ORB": return "ORB"
@@ -1397,8 +1410,19 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             symbol for symbol in discover_orb_symbols(provider)
             if is_orb_index_symbol(symbol)
         })
-    elif profile in ("MALAYSIAN_SNR", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"):
-        universe = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
+    elif profile == "MALAYSIAN_SNR":
+        candidates = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
+        unlisted = {"Vol over Boom 550", "Vol over Crash 550"}
+        universe = []
+        for sym in candidates:
+            if sym in unlisted:
+                continue
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or [s for s in candidates if s not in unlisted]))
     elif profile == "ICT":
         # Política única de /Instruments: metales, índices y commodities; los sintéticos van a sus workers
         # de familia y cripto/plata quedan en PODA PREVENTIVA (config/ict_instrument_policy.py).
@@ -1439,12 +1463,29 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             forex_syms = list(manager.get_active_symbols(categories=["forex"]))
         allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX", ("USDCAD", "EURUSD", "USDCHF", "AUDUSD")))
         universe = sorted(forex_syms or allowed)
+    elif profile == "TREND_PULLBACK":
+        from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
+        candidates = list(DEFAULT_PULLBACK_SYMBOLS or spec.get("symbols", []))
+        universe = []
+        for sym in candidates:
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or candidates))
     else:
         universe = []
         for category in spec.get("categories", []):
             universe.extend(manager.get_active_symbols(categories=[category]) or [])
 
     universe = sorted({str(s) for s in universe if s}, key=str.casefold)
+    from config.ict_instrument_policy import CONSOLIDATE_ACTIVE_PRUNED_WORKERS, resolve_active_pruned_worker_universe
+    if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and (
+        profile in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4")
+        or profile in ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
+    ):
+        return resolve_active_pruned_worker_universe(profile, universe)
     if spec.get("shard_count"):
         shard_args = (
             universe,
@@ -1558,23 +1599,12 @@ def _build_multi_bot_dashboard_catalog(profiles):
                     if is_orb_index_symbol(symbol):
                         categorized.setdefault("idx_open_indices", []).append(symbol)
                 continue
-            if profile == "NIGHT":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("night_indices", []).append(sym)
+            if profile == "TREND_PULLBACK":
+                from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
+                for sym in DEFAULT_PULLBACK_SYMBOLS:
+                    categorized.setdefault("trend_pullback_synthetics", []).append(sym)
                 continue
-            if profile == "DRIFT":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("drift_switch", []).append(sym)
-                continue
-            if profile == "RSI2":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("rsi2_us_indices", []).append(sym)
-                continue
-            if profile == "CARRY":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("carry_fx_g10", []).append(sym)
-                continue
-            if profile in ("MALAYSIAN_SNR", "MSNR"):
+            if profile == "MALAYSIAN_SNR":
                 _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
@@ -1588,6 +1618,8 @@ def _build_multi_bot_dashboard_catalog(profiles):
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
+                    elif sym_lower.startswith(("xau", "xag", "xpt")):
+                        categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
                     elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
                         categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
@@ -1610,66 +1642,88 @@ def _build_multi_bot_dashboard_catalog(profiles):
 
 
 def _recover_empty_synthetic_selection(repo, catalog, profiles):
-    """Restaura el catálogo sintético si su preferencia persistida quedó vacía."""
-    active_profiles = {str(profile or "").upper() for profile in (profiles or [])}
-    if not active_profiles.intersection(SYNTHETIC_SPLIT_PROFILES):
-        return None
+    """Restaura el catálogo sintético y perfiles dedicados si su preferencia persistida quedó vacía."""
     reader = getattr(repo, "latest_instrument_selection_profile", None)
     writer = getattr(repo, "save_instrument_selection_profile", None)
     if not callable(reader) or not callable(writer):
         return None
-    preference = reader("SYNTHETICS", source="DEMO")
-    if preference is None or preference.get("selected_symbols"):
-        return None
-    synthetic_symbols = sorted(
-        {
-            str(symbol)
-            for category, symbols in (catalog or {}).items()
-            if str(category).lower() != "forex"
-            and not str(category).lower().startswith("orb_ny_")
-            for symbol in (symbols or [])
-            if symbol
-        },
-        key=str.casefold,
-    )
-    if synthetic_symbols:
-        saved = writer(
-            synthetic_symbols, selection_profile="SYNTHETICS", source="DEMO"
-        )
-        try:
-            repo.save_audit_event(
-                "EMPTY_SYNTHETIC_SELECTION_RECOVERED",
-                source="DEMO",
-                action="RESTORED_ALL_SYNTHETIC_SYMBOLS",
-                reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacío",
-                payload={
-                    "symbols_restored": len(synthetic_symbols),
-                    "previous_version": preference.get("version"),
-                    "new_version": saved.get("version"),
-                    "version": DAEMONBLACKFX_VERSION,
+
+    active_profiles = {str(profile or "").upper() for profile in (profiles or [])}
+    saved = None
+
+    if active_profiles.intersection(SYNTHETIC_SPLIT_PROFILES) or "SYNTHETICS" in active_profiles:
+        preference = reader("SYNTHETICS", source="DEMO")
+        if preference is None or not preference.get("selected_symbols"):
+            synthetic_symbols = sorted(
+                {
+                    str(symbol)
+                    for category, symbols in (catalog or {}).items()
+                    if str(category).lower() != "forex"
+                    and not str(category).lower().startswith("orb_ny_")
+                    for symbol in (symbols or [])
+                    if symbol
                 },
+                key=str.casefold,
             )
-        except Exception:
-            pass
-        print(
-            "[RECUPERACIÓN] SYNTHETICS estaba vacío: "
-            f"se habilitaron {len(synthetic_symbols)} instrumentos del catálogo."
-        )
+            if synthetic_symbols:
+                saved = writer(
+                    synthetic_symbols, selection_profile="SYNTHETICS", source="DEMO"
+                )
+                try:
+                    repo.save_audit_event(
+                        "EMPTY_SYNTHETIC_SELECTION_RECOVERED",
+                        source="DEMO",
+                        action="RESTORED_ALL_SYNTHETIC_SYMBOLS",
+                        reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacío",
+                        payload={
+                            "symbols_restored": len(synthetic_symbols),
+                            "previous_version": (preference or {}).get("version"),
+                            "new_version": saved.get("version"),
+                            "version": DAEMONBLACKFX_VERSION,
+                        },
+                    )
+                except Exception:
+                    pass
+                print(
+                    "[RECUPERACIÓN] SYNTHETICS estaba vacío: "
+                    f"se habilitaron {len(synthetic_symbols)} instrumentos del catálogo."
+                )
 
     # v110: Garantizar que los workers GOLD y ORB cuenten con selección activa en DEMO
-    gold_pref = reader("GOLD", source="DEMO")
-    if gold_pref is None or not gold_pref.get("selected_symbols"):
-        gold_symbols = ["XAUUSD", "XAUUSDmicro", "microXAUUSD"]
-        writer(gold_symbols, selection_profile="GOLD", source="DEMO")
-        print("[RECUPERACIÓN] Perfil GOLD activado con instrumentos XAUUSD.")
+    if "GOLD" in active_profiles or not active_profiles:
+        gold_pref = reader("GOLD", source="DEMO")
+        if gold_pref is None or not gold_pref.get("selected_symbols"):
+            gold_symbols = ["XAUUSD", "XAUUSDmicro", "microXAUUSD"]
+            writer(gold_symbols, selection_profile="GOLD", source="DEMO")
+            print("[RECUPERACIÓN] Perfil GOLD activado con instrumentos XAUUSD.")
 
-    orb_pref = reader("ORB", source="DEMO")
-    if orb_pref is None or not orb_pref.get("selected_symbols"):
-        orb_symbols = ["Wall Street 30", "XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Tech 100", "BTCUSD"]
-        writer(orb_symbols, selection_profile="ORB", source="DEMO")
-        print("[RECUPERACIÓN] Perfil ORB activado con instrumentos principales NY.")
+    if "ORB" in active_profiles or not active_profiles:
+        orb_pref = reader("ORB", source="DEMO")
+        if orb_pref is None or not orb_pref.get("selected_symbols"):
+            orb_symbols = ["Wall Street 30", "XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Tech 100", "BTCUSD"]
+            writer(orb_symbols, selection_profile="ORB", source="DEMO")
+            print("[RECUPERACIÓN] Perfil ORB activado con instrumentos principales NY.")
 
-    return saved if 'saved' in locals() else None
+    # Saneamiento y recuperación de TREND_PULLBACK y MALAYSIAN_SNR
+    if "TREND_PULLBACK" in active_profiles or not active_profiles:
+        tp_pref = reader("TREND_PULLBACK", source="DEMO")
+        if tp_pref is None or not tp_pref.get("selected_symbols"):
+            from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
+            tp_symbols = list(DEFAULT_PULLBACK_SYMBOLS)
+            writer(tp_symbols, selection_profile="TREND_PULLBACK", source="DEMO")
+            print(f"[RECUPERACIÓN] Perfil TREND_PULLBACK activado con {len(tp_symbols)} instrumentos.")
+
+    if "MALAYSIAN_SNR" in active_profiles or not active_profiles:
+        msnr_pref = reader("MALAYSIAN_SNR", source="DEMO")
+        if msnr_pref and msnr_pref.get("selected_symbols"):
+            unlisted = {"Vol over Boom 550", "Vol over Crash 550"}
+            curr_syms = list(msnr_pref.get("selected_symbols"))
+            cleaned_syms = [s for s in curr_syms if s not in unlisted]
+            if len(cleaned_syms) != len(curr_syms):
+                writer(cleaned_syms, selection_profile="MALAYSIAN_SNR", source="DEMO")
+                print(f"[SANEAMIENTO] Perfil MALAYSIAN_SNR purgado de símbolos deslistados ({len(curr_syms)} -> {len(cleaned_syms)}).")
+
+    return saved
 
 
 def _assert_v53_runtime_compatibility(repo):
@@ -1797,6 +1851,7 @@ def run_unified_multibot_daemon(args, profiles=None):
             output_path=PROJECT_ROOT / "storage" / "exports" / "deriv_demo_trading_report.xlsx",
             auto_export=False,
             broker="Deriv-Demo",
+            async_export=True,
         ),
     )
     dashboard = RealtimeDashboardService(
@@ -1823,19 +1878,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 for symbol in discover_orb_symbols(provider):
                     market = classify_orb_market(symbol) or "ORB"
                     categorized.setdefault(f"orb_ny_{str(market).lower()}", []).append(symbol)
-            elif profile == "NIGHT":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("night_indices", []).append(sym)
-            elif profile == "DRIFT":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("drift_switch", []).append(sym)
-            elif profile == "RSI2":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("rsi2_us_indices", []).append(sym)
-            elif profile == "CARRY":
-                for sym in [*spec.get("symbols", []), *spec.get("pruned_symbols", [])]:
-                    categorized.setdefault("carry_fx_g10", []).append(sym)
-            elif profile in ("MALAYSIAN_SNR", "MSNR"):
+            elif profile == "MALAYSIAN_SNR":
                 _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
@@ -1849,6 +1892,8 @@ def run_unified_multibot_daemon(args, profiles=None):
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
+                    elif sym_lower.startswith(("xau", "xag", "xpt")):
+                        categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
                     elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
                         categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
@@ -2433,6 +2478,77 @@ def _filter_external_multibot_coordinators(rows, current_pid, parent_pid):
     return external
 
 
+def _worker_has_open_positions(profile: str, repo) -> bool:
+    """Devuelve True si el perfil tiene al menos una posición abierta en DEMO."""
+    if repo is None or not hasattr(repo, "open_trades"):
+        return False
+    prof = str(profile or "").strip().upper()
+    spec_magic = (BOT_PROFILES.get(prof) or {}).get("magic")
+    try:
+        open_trades = repo.open_trades(source="DEMO") or []
+    except Exception:
+        return False
+    for trade in open_trades:
+        if not isinstance(trade, dict):
+            continue
+        details = trade.get("details") if isinstance(trade.get("details"), dict) else {}
+        metadata = details.get("metadata") if isinstance(details.get("metadata"), dict) else {}
+        owner_prof = str(
+            trade.get("bot_profile") or metadata.get("bot_profile") or ""
+        ).strip().upper()
+        if owner_prof == prof:
+            return True
+        magic = trade.get("daemon_magic") or metadata.get("daemon_magic")
+        try:
+            if spec_magic is not None and magic is not None and int(magic) == int(spec_magic):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
+def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool, str | None]:
+    """Indica si el coordinador puede omitir lanzar el subproceso de un worker desactivado.
+
+    Salvaguarda crítica: NUNCA omite un worker si tiene posiciones abiertas en DEMO,
+    para que su hilo monitor siga gestionando Break Even, trailing y cierres.
+    Controlado por DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES (activo por defecto).
+    """
+    if os.getenv("DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES", "1").strip().lower() in {
+        "0", "false", "no", "off"
+    }:
+        return False, None
+    prof = str(profile or "").strip().upper()
+    disabled_set = {
+        item.strip().upper()
+        for item in os.getenv(
+            'DAEMONBLACKFX_DISABLED_WORKERS',
+            'FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN',
+        ).split(',')
+        if item.strip()
+    }
+    reason = None
+    if prof in disabled_set:
+        reason = "DAEMONBLACKFX_DISABLED_WORKERS"
+    elif prof == "DRIFT" and os.getenv("DAEMONBLACKFX_DRIFT", "off").strip().lower() in {
+        "0", "false", "no", "off", "disabled"
+    }:
+        reason = "DAEMONBLACKFX_DRIFT_OFF"
+    elif (
+        prof == "FLIP"
+        and not (BOT_PROFILES.get("FLIP") or {}).get("symbols")
+        and os.getenv("DAEMONBLACKFX_SPAWN_EMPTY_FLIP_WORKER", "0").strip().lower()
+        not in {"1", "true", "yes", "on"}
+    ):
+        reason = "FLIP_NO_PUBLISHED_SYMBOLS"
+
+    if not reason:
+        return False, None
+    if _worker_has_open_positions(prof, repo):
+        return False, None
+    return True, reason
+
+
 def run_multi_bot_daemon(args, profiles=None):
     """Orquesta perfiles como procesos independientes.
 
@@ -2455,6 +2571,7 @@ def run_multi_bot_daemon(args, profiles=None):
             output_path=PROJECT_ROOT / "storage" / "exports" / "deriv_demo_trading_report.xlsx",
             auto_export=False,
             broker="Deriv-Demo",
+            async_export=True,
         ),
     )
 
@@ -2557,13 +2674,14 @@ def run_multi_bot_daemon(args, profiles=None):
     worker_started_at = {}
     worker_progress_fingerprints = {}
     worker_last_progress_at = {}
+    worker_last_heartbeat_at = {}
     worker_stall_warning_at = {}
     disabled_profiles = set()
     blocked_profiles = set()
     worker_lock = threading.RLock()
     shared_db_path = str(Path(repo.db_path).resolve())
 
-    def start_worker(profile):
+    def start_worker(profile, *, force_enable=False):
         """Lanza (o revive) el subproceso worker de un perfil.
 
         Closure del daemon multibot: comparte `workers`, `worker_lock` y
@@ -2576,13 +2694,44 @@ def run_multi_bot_daemon(args, profiles=None):
         Returns:
             bool: `True` si el worker quedo en ejecucion.
         """
+        spec = BOT_PROFILES[profile]
+        if not force_enable:
+            skip_proc, skip_reason = _should_skip_disabled_worker_process(profile, repo)
+            if skip_proc:
+                with worker_lock:
+                    disabled_profiles.add(profile)
+                try:
+                    repo.upsert_worker_runtime_state(
+                        profile,
+                        spec["magic"],
+                        source="DEMO",
+                        status="DISABLED_BY_CONFIG",
+                        pid=None,
+                        cycle_number=0,
+                        symbols_total=0,
+                        symbols_processed=0,
+                        current_symbol=None,
+                        last_action="WORKER_PROCESS_SKIPPED_DISABLED",
+                        last_reason=skip_reason,
+                        details={
+                            "skipped_process": True,
+                            "reason": skip_reason,
+                            "version": DAEMONBLACKFX_VERSION,
+                        },
+                    )
+                except Exception:
+                    pass
+                print(
+                    f"{profile:<10} PID=SKIPPED MAGIC={spec['magic']} "
+                    f"STATUS=DISABLED_BY_CONFIG ({skip_reason})"
+                )
+                return False
         with worker_lock:
             if profile in disabled_profiles or profile in blocked_profiles:
                 return False
             existing = workers.get(profile)
             if existing is not None and existing.poll() is None:
                 return True
-        spec = BOT_PROFILES[profile]
         from strategy.execution.worker_rules import worker_poll_interval
         worker_interval = worker_poll_interval(profile, args.interval)
         cmd = [
@@ -2596,7 +2745,7 @@ def run_multi_bot_daemon(args, profiles=None):
         ]
         selected_market_data_mode = (
             getattr(args, "market_data_mode", None)
-            or os.getenv("DAEMON_MARKET_DATA_MODE", "shadow")
+            or os.getenv("DAEMON_MARKET_DATA_MODE", "external")
         )
         cmd.extend(["--market-data-mode", str(selected_market_data_mode)])
         if args.execute:
@@ -2612,6 +2761,13 @@ def run_multi_bot_daemon(args, profiles=None):
         # v88: todos los procesos reciben la misma ruta resuelta. Así no pueden
         # crear DB distintas por cwd, usuario o una variable heredada ambigua.
         worker_env["DAEMONBLACKFX_DB_PATH"] = shared_db_path
+        if force_enable:
+            raw_dis = worker_env.get(
+                "DAEMONBLACKFX_DISABLED_WORKERS",
+                "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN",
+            )
+            rem = [x.strip().upper() for x in raw_dis.split(",") if x.strip() and x.strip().upper() != profile.upper()]
+            worker_env["DAEMONBLACKFX_DISABLED_WORKERS"] = ",".join(rem)
         proc = subprocess.Popen(
             cmd,
             cwd=PROJECT_ROOT,
@@ -2688,7 +2844,7 @@ def run_multi_bot_daemon(args, profiles=None):
             if enabled:
                 disabled_profiles.discard(profile)
                 blocked_profiles.discard(profile)
-                started = start_worker(profile)
+                started = start_worker(profile, force_enable=True)
                 action = "WORKER_REACTIVATED" if started else "WORKER_ALREADY_RUNNING"
                 reason = "Reactivado desde el dashboard"
             else:
@@ -2750,8 +2906,8 @@ def run_multi_bot_daemon(args, profiles=None):
         float(os.getenv("DAEMON_WORKER_START_STAGGER_SECONDS", "1.0")),
     )
     for profile in profiles:
-        start_worker(profile)
-        if startup_stagger:
+        started_ok = start_worker(profile)
+        if started_ok and startup_stagger:
             time.sleep(startup_stagger)
 
     print(f"\nDAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
@@ -2763,17 +2919,22 @@ def run_multi_bot_daemon(args, profiles=None):
     if profiles == tuple(SYNTHETIC_SPLIT_PROFILES):
         print("ARQUITECTURA SINTETICOS: 6 PROCESOS INDEPENDIENTES · 1 FAMILIA POR PID")
         print("PID por familia: " + " | ".join(
-            f"{profile}={workers[profile].pid}" for profile in SYNTHETIC_SPLIT_PROFILES
+            f"{profile}={workers[profile].pid if profile in workers else 'SKIPPED'}"
+            for profile in SYNTHETIC_SPLIT_PROFILES
         ))
     print("Ctrl+C detiene coordinador y todos los workers.\n")
 
     last_export = 0.0
     last_worker_console = 0.0
     last_audit_maintenance = time.monotonic()
+    min_report_interval = max(
+        5,
+        int(os.getenv("DAEMONBLACKFX_MIN_REPORT_INTERVAL_SECONDS", "300")),
+    )
     try:
         while True:
             now = time.monotonic()
-            if now - last_export >= max(5, int(args.report_interval)):
+            if now - last_export >= max(min_report_interval, int(args.report_interval)):
                 try:
                     result = reporting.export_now()
                     print(
@@ -2829,14 +2990,22 @@ def run_multi_bot_daemon(args, profiles=None):
 
             with worker_lock:
                 active_workers = list(workers.items())
+            try:
+                runtime_states_snapshot = {
+                    row.get("bot_profile"): row
+                    for row in repo.worker_runtime_states(source="DEMO")
+                }
+            except Exception:
+                runtime_states_snapshot = {}
+            heartbeat_interval = max(
+                1.0,
+                float(os.getenv("DAEMON_COORDINATOR_HEARTBEAT_SECONDS", "15.0")),
+            )
             for profile, proc in active_workers:
                 code = proc.poll()
                 if code is None:
                     try:
-                        existing = {
-                            row.get("bot_profile"): row
-                            for row in repo.worker_runtime_states(source="DEMO")
-                        }.get(profile, {})
+                        existing = runtime_states_snapshot.get(profile, {})
 
                         # El progreso se mide con telemetría del propio worker,
                         # no con mtime del log: stdout se almacena en bloques en
@@ -2901,31 +3070,33 @@ def run_multi_bot_daemon(args, profiles=None):
                                 proc.terminate()
                                 continue
 
-                        repo.upsert_worker_runtime_state(
-                            profile,
-                            BOT_PROFILES[profile]["magic"],
-                            source="DEMO",
-                            status=(
-                                existing.get("status")
-                                if existing.get("status") in {
-                                    "DEGRADED_NO_SYMBOLS",
-                                    "WAITING_NEW_M5_BAR",
-                                    "WAITING_NEW_M1_BAR",
-                                    "WAITING_FOREX_DATA",
-                                    "OUTSIDE_SESSION",
-                                    "SESSION_WARMUP",
-                                }
-                                else "RUNNING"
-                            ),
-                            pid=proc.pid,
-                            cycle_number=existing.get("cycle_number"),
-                            symbols_total=existing.get("symbols_total"),
-                            symbols_processed=existing.get("symbols_processed"),
-                            current_symbol=existing.get("current_symbol"),
-                            last_action=existing.get("last_action") or "HEARTBEAT",
-                            last_reason=existing.get("last_reason") or "Proceso activo",
-                            details=existing.get("details") or {"version": DAEMONBLACKFX_VERSION},
-                        )
+                        if now - worker_last_heartbeat_at.get(profile, 0.0) >= heartbeat_interval:
+                            worker_last_heartbeat_at[profile] = now
+                            repo.upsert_worker_runtime_state(
+                                profile,
+                                BOT_PROFILES[profile]["magic"],
+                                source="DEMO",
+                                status=(
+                                    existing.get("status")
+                                    if existing.get("status") in {
+                                        "DEGRADED_NO_SYMBOLS",
+                                        "WAITING_NEW_M5_BAR",
+                                        "WAITING_NEW_M1_BAR",
+                                        "WAITING_FOREX_DATA",
+                                        "OUTSIDE_SESSION",
+                                        "SESSION_WARMUP",
+                                    }
+                                    else "RUNNING"
+                                ),
+                                pid=proc.pid,
+                                cycle_number=existing.get("cycle_number"),
+                                symbols_total=existing.get("symbols_total"),
+                                symbols_processed=existing.get("symbols_processed"),
+                                current_symbol=existing.get("current_symbol"),
+                                last_action=existing.get("last_action") or "HEARTBEAT",
+                                last_reason=existing.get("last_reason") or "Proceso activo",
+                                details=existing.get("details") or {"version": DAEMONBLACKFX_VERSION},
+                            )
                     except Exception as exc:
                         print(f"[RUNTIME HEARTBEAT ERROR] {profile}: {exc}", file=sys.stderr)
                     continue
@@ -3061,6 +3232,7 @@ def run_report_daemon(report_interval: int = 30):
             output_path=PROJECT_ROOT / "storage" / "exports" / "deriv_demo_trading_report.xlsx",
             auto_export=False,
             broker="Deriv-Demo",
+            async_export=True,
         ),
     )
 
@@ -3459,6 +3631,7 @@ def main():
             "idx-open-daemon",
             "malaysian-snr-daemon",
             "ict-daemon",
+            "trend-pullback-daemon",
             "msnr-daemon",
             "night-daemon",
             "drift-daemon",
@@ -3881,16 +4054,11 @@ def main():
         "forex-2-daemon": "FOREX_2",
         "forex-3-daemon": "FOREX_3",
         "forex-4-daemon": "FOREX_4",
-        "gold-session-daemon": "GOLD",
         "orb-daemon": "ORB",
         "idx-open-daemon": "IDX_OPEN",
         "malaysian-snr-daemon": "MALAYSIAN_SNR",
         "ict-daemon": "ICT",
-        "msnr-daemon": "MSNR",
-        "night-daemon": "NIGHT",
-        "drift-daemon": "DRIFT",
-        "rsi2-daemon": "RSI2",
-        "carry-daemon": "CARRY",
+        "trend-pullback-daemon": "TREND_PULLBACK",
     }
     if args.mode in strategy_worker_modes:
         profile = strategy_worker_modes[args.mode]
@@ -4143,57 +4311,18 @@ def main():
 def _apply_msnr_wr45_prune():
     from config.strategy_config import MSNR_WR45_PRUNED
     spec = BOT_PROFILES["MALAYSIAN_SNR"]
-    pruned = [s for s in spec["symbols"] if s in set(MSNR_WR45_PRUNED)]
-    spec["symbols"] = [s for s in spec["symbols"] if s not in set(MSNR_WR45_PRUNED)]
-    spec["pruned_symbols"] = list(dict.fromkeys([*spec.get("pruned_symbols", []), *pruned]))
-    # Prueba demo de sintéticos nuevos solo en Malaysian SNR (config/ict_instrument_policy.py).
-    from config.ict_instrument_policy import MSNR_DEMO_TEST_SYMBOLS
-    demo = [s for s in MSNR_DEMO_TEST_SYMBOLS if s not in spec["symbols"]]
-    spec["symbols"] = [*spec["symbols"], *demo]
+    # Universo del worker MSNR (vídeos): sintéticos sin los de acierto <= 45 %.
+    msnr_video_symbols = [s for s in spec["symbols"] if s not in set(MSNR_WR45_PRUNED)]
+    # Malaysian SNR (25-oct-2026): exactamente la política de /Instruments (sintéticos con acierto > 47 % + mercados
+    # reales en prueba demo); el resto del universo sintético pasa a podados.
+    from config.ict_instrument_policy import (MALAYSIAN_SNR_ACTIVE, MALAYSIAN_SNR_EXCLUDED, MSNR_DEMO_TEST_SYMBOLS,
+                                              MSNR_REAL_MARKET_SYMBOLS)
+    pruned = [s for s in (*spec["symbols"], *MALAYSIAN_SNR_EXCLUDED) if s not in set(MALAYSIAN_SNR_ACTIVE)]
+    spec["symbols"] = list(dict.fromkeys(MALAYSIAN_SNR_ACTIVE))
+    spec["pruned_symbols"] = [s for s in dict.fromkeys([*spec.get("pruned_symbols", []), *pruned])
+                              if s not in set(MALAYSIAN_SNR_ACTIVE)]
     # Worker MSNR (estrategia de los vídeos, 20-oct-2026): mismos instrumentos que la pestaña Malaysian SNR,
     # pero controlado solo por la pestaña MSNR de /Instruments.
-    # Worker NIGHT (21-oct-2026): sesgo nocturno en índices US (strategy/overnight/overnight_drift.py).
-    # Worker DRIFT (21-oct-2026): ruptura tras compresión en Drift Switch (strategy/drift_breakout).
-    from strategy.drift_breakout.compression_breakout import DRIFT_DEFAULT_SYMBOLS
-    # Worker RSI2 (21-oct-2026): RSI(2) diario de Connors en los índices US (strategy/connors_rsi2).
-    from strategy.connors_rsi2.rsi2_daily import RSI2_DEFAULT_SYMBOLS
-    # Worker CARRY (24-oct-2026): carry en Forex G10 con el swap real de MT5 (strategy/fx_carry).
-    from strategy.fx_carry.carry_strategy import CARRY_DEFAULT_SYMBOLS
-    BOT_PROFILES["CARRY"] = {
-        "mode": "carry-daemon",
-        "magic": 26082037,
-        "categories": [],
-        "symbols": list(CARRY_DEFAULT_SYMBOLS),
-        "pruned_symbols": [],
-    }
-    BOT_PROFILES["RSI2"] = {
-        "mode": "rsi2-daemon",
-        "magic": 26082036,
-        "categories": [],
-        "symbols": list(RSI2_DEFAULT_SYMBOLS),
-        "pruned_symbols": [],
-    }
-    BOT_PROFILES["DRIFT"] = {
-        "mode": "drift-daemon",
-        "magic": 26082035,
-        "categories": [],
-        "symbols": list(DRIFT_DEFAULT_SYMBOLS),
-        "pruned_symbols": [],
-    }
-    BOT_PROFILES["NIGHT"] = {
-        "mode": "night-daemon",
-        "magic": 26082034,
-        "categories": [],
-        "symbols": ["US SP 500", "US Tech 100"],
-        "pruned_symbols": ["Wall Street 30"],
-    }
-    BOT_PROFILES["MSNR"] = {
-        "mode": "msnr-daemon",
-        "magic": 26082033,
-        "categories": [],
-        "symbols": [s for s in spec["symbols"] if s not in set(MSNR_DEMO_TEST_SYMBOLS)],
-        "pruned_symbols": list(spec["pruned_symbols"]),
-    }
 
 
 _apply_msnr_wr45_prune()

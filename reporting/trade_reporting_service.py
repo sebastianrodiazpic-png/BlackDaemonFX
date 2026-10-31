@@ -46,6 +46,7 @@ class TradeReportingConfig:
     output_path: str | Path | None = None
     auto_export: bool = True
     broker: str | None = None
+    async_export: bool = False
 
 
 class TradeReportingService:
@@ -528,6 +529,34 @@ class TradeReportingService:
             if now - last < min_interval_seconds:
                 return None
         self._last_auto_export_at = now
+
+        import os
+        use_async = getattr(self.config, 'async_export', False) or (
+            os.getenv('DAEMONBLACKFX_ASYNC_REPORT_EXPORT', '0').strip().lower() in ('1', 'true', 'yes', 'on')
+        )
+        if use_async:
+            from reporting.async_notification_queue import get_async_notification_queue
+            async_queue = get_async_notification_queue()
+            if async_queue.enabled:
+                def safe_async_export():
+                    try:
+                        self.export_now()
+                    except Exception as exc:
+                        saver = getattr(self.repository, 'save_audit_event', None)
+                        if callable(saver):
+                            try:
+                                saver(
+                                    'REPORT_EXPORT_ERROR',
+                                    source=self.source,
+                                    action='XLSX_EXPORT_FAILED',
+                                    reason=str(exc),
+                                    payload={'output_path': str(self.exporter.output_path)},
+                                )
+                            except Exception:
+                                pass
+                enqueued = async_queue.enqueue_export(safe_async_export)
+                return {'exported': enqueued, 'async': True, 'path': str(self.exporter.output_path)}
+
         try:
             return self.export_now()
         except Exception as exc:

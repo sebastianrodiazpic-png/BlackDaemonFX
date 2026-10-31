@@ -30,6 +30,7 @@ Vinculaciones:
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -343,30 +344,17 @@ _CATEGORY_LABELS = {
     "malaysian_snr_boom": "Malaysian SNR · Boom Index (BUY Only)",
     "malaysian_snr_crash": "Malaysian SNR · Crash Index (SELL Only)",
     "malaysian_snr_forex": "Malaysian SNR · Forex & Cripto",
+    "malaysian_snr_metals": "Malaysian SNR · Metales",
     "malaysian_snr_pruned": "Malaysian SNR · Activos Podados (PODA)",
-    "night_indices": "Sesgo nocturno · Índices US (cierre → apertura NY)",
-    "drift_switch": "Ruptura Drift · Drift Switch Indices (compresión + Donchian)",
-    "rsi2_us_indices": "RSI(2) diario · Índices US (Connors)",
-    "carry_fx_g10": "Carry Forex G10 · swap real del broker (rebalanceo mensual)",
-    "msnr_jump": "MSNR · Jump Index",
-    "msnr_step": "MSNR · Step Index",
-    "msnr_volatility": "MSNR · Volatility Index",
-    "msnr_indices": "MSNR · Índices & Commodities",
-    "msnr_boom": "MSNR · Boom Index (BUY Only)",
-    "msnr_crash": "MSNR · Crash Index (SELL Only)",
-    "msnr_forex": "MSNR · Forex & Cripto",
-    "msnr_pruned": "MSNR · Activos Podados (PODA PREVENTIVA)",
-    "gold_cuartos_xauusd": "Oro Cuartos (XAUUSD)",
-    "gold_cuartos_micro_xauusd": "Oro Micro Cuartos (XAUUSDmicro)",
-    "gold_cuartos_xagusd": "Plata Cuartos (XAGUSD)",
-    "gold_cuartos_micro_xagusd": "Plata Micro Cuartos (XAGUSDmicro)",
+    # Categorías de workers retirados (NIGHT, DRIFT, RSI2, CARRY, MSNR viejo, GOLD CUARTOS) removidas.
     "ict_metals_xagusd": "ICT Metales · Plata (XAGUSD)",
     "ict_metals_xauusd": "ICT Metales · Oro (XAUUSD)",
     "ict_crypto_btcusd": "ICT Criptomonedas · Bitcoin (BTCUSD)",
     "ict_indices": "ICT Índices Bursátiles",
+    "trend_pullback_synthetics": "Trend Pullback · Sintéticos (>51% Win Rate)",
 }
 
-_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT","MSNR","NIGHT","DRIFT","RSI2","CARRY")
+_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","ICT","TREND_PULLBACK")
 
 
 def _build_confluence_matrix(state: dict) -> list[dict]:
@@ -1065,7 +1053,19 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
         "XAUUSDmicro",
         "microXAUUSD",
         "BTCUSD",
+        "BTCUSDmicro",
         "USDCAD",
+        "USDCADmicro",
+        "AUDUSD",
+        "AUDUSDmicro",
+        "GBPUSD",
+        "GBPUSDmicro",
+        "XAGUSD",
+        "XAGUSDmicro",
+        "microXAGUSD",
+        "US Oil",
+        "USDCHF",
+        "USDCHFmicro",
     ],
     "IDX_OPEN": [
         "Wall Street 30",
@@ -1294,20 +1294,23 @@ ICT_PRUNED_INFO = {
 }
 
 ORB_PRUNED_INFO = {
-    # Activos Podados en ORB New York (SWEEP activo en XAUUSD; BTCUSD y USDCAD en prueba hacia delante)
-    "EURUSD": "Poda confirmada en replay 2 años ORB NY: 43.2% WR, -3.17R netos (PF 0.93). Derivado a Estrategia ICT (+9.00R) y Malaysian SNR (+1.46R).",
-    "EURUSDmicro": "Poda confirmada en replay 2 años ORB NY: 43.2% WR, -3.17R netos (PF 0.93).",
-    "US SP 500": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -11.83R netos (PF 0.74). Falsos rompimientos en campana de apertura 09:30 NY.",
-    "US500": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -11.83R netos (PF 0.74).",
-    "Wall Street 30": "Poda confirmada en replay 2 años ORB NY: 48.6% WR, -12.16R netos (PF 0.74). Derivado a Malaysian SNR C2 (+1.48R, 63.6% WR).",
-    "US Tech 100": "Poda confirmada en replay 2 años ORB NY: 38.6% WR, -21.11R netos (PF 0.56). Barridos bidireccionales severos en apertura NY.",
-    "UK Brent Oil": "Poda confirmada en replay 2 años ORB NY: Baja correlación y costos de spread elevados.",
-    "BTCUSDmicro": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
-    "microBTCUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
-    "XAGUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
-    "XAGUSDmicro": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
-    "microXAGUSD": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
-    "US Oil": "Fase 1 (18-oct-2026): ORB solo opera XAUUSD en modo SWEEP; expectativa negativa en ambas mitades del replay Núñez 2Y.",
+    # Poda cuantitativa de activos perdedores con WR <= 47% y PnL negativo en Replay 5Y
+    "Wall Street 30": "PODA PREVENTIVA: WR = 28.57% (-7.99 R en replay), sin edge en campana de apertura 09:30 NY.",
+    "US30": "PODA PREVENTIVA: WR = 28.57% (-7.99 R en replay), sin edge en apertura cash NY.",
+    "UK Brent Oil": "PODA PREVENTIVA: WR = 40.64% (-39.63 R en replay), falsos quiebres continuos sin recuperación.",
+    "NZDUSD": "PODA PREVENTIVA: WR = 42.27% (-24.78 R en replay), recorrido intradía insuficiente en sesión NY.",
+    "NZDUSDmicro": "PODA PREVENTIVA: WR = 42.27% (-24.78 R en replay).",
+    "EURUSD": "PODA PREVENTIVA: WR = 47.14% (-17.92 R en replay), sesión NY en consolidación post-Londres; operado en ICT.",
+    "EURUSDmicro": "PODA PREVENTIVA: WR = 47.14% (-17.92 R en replay).",
+    "USDJPY": "PODA PREVENTIVA: Asimetría negativa (-7.09 R), stops mayores a los recorridos alcanzados.",
+    "USDJPYmicro": "PODA PREVENTIVA: Asimetría negativa (-7.09 R).",
+    "US SP 500": "PODA PREVENTIVA: WR = 44.12% (-7.48 R en replay), falsos rompimientos en campana 09:30 NY.",
+    "US500": "PODA PREVENTIVA: WR = 44.12% (-7.48 R en replay).",
+    "US Tech 100": "PODA PREVENTIVA: WR = 37.50% (-3.27 R en replay) en M5; operado con éxito en ICT Sabri Malle (75.0% WR).",
+    "NAS100": "PODA PREVENTIVA: WR = 37.50% (-3.27 R en replay) en M5; operado en ICT.",
+    "ETHUSD": "PODA PREVENTIVA: WR = 46.67% (-2.12 R en replay), falta de volumen relativo frente a BTCUSD.",
+    "US Small Cap 2000": "PODA PREVENTIVA: WR = 16.67% (-3.65 R en replay), liquidez deficiente en apertura M5.",
+    "US Mid Cap 400": "PODA PREVENTIVA: Liquidez deficiente en apertura cash M5.",
 }
 
 _WORKER_PROFILE_META = {
@@ -1356,7 +1359,7 @@ _WORKER_PROFILE_META = {
         "category": "volatility",
         "shard_index": 0,
         "shard_count": 4,
-        "label": "VOLATILITY 1 · Estrategia ICT",
+        "label": "VOLATILITY 1 (Activos) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082401,
@@ -1366,7 +1369,7 @@ _WORKER_PROFILE_META = {
         "category": "volatility",
         "shard_index": 1,
         "shard_count": 4,
-        "label": "VOLATILITY 2 · Estrategia ICT",
+        "label": "VOLATILITY 2 (Podados OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082402,
@@ -1376,7 +1379,8 @@ _WORKER_PROFILE_META = {
         "category": "volatility",
         "shard_index": 2,
         "shard_count": 4,
-        "label": "VOLATILITY 3 · Estrategia ICT",
+        "consolidated_hidden": True,
+        "label": "VOLATILITY 3 (Consolidado OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082403,
@@ -1386,7 +1390,8 @@ _WORKER_PROFILE_META = {
         "category": "volatility",
         "shard_index": 3,
         "shard_count": 4,
-        "label": "VOLATILITY 4 · Estrategia ICT",
+        "consolidated_hidden": True,
+        "label": "VOLATILITY 4 (Consolidado OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082404,
@@ -1405,7 +1410,7 @@ _WORKER_PROFILE_META = {
         "shard_index": 0,
         "shard_count": 4,
         "grouped_forex": True,
-        "label": "FOREX 1 · Estrategia ICT",
+        "label": "FOREX 1 (Activos) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082201,
@@ -1416,7 +1421,7 @@ _WORKER_PROFILE_META = {
         "shard_index": 1,
         "shard_count": 4,
         "grouped_forex": True,
-        "label": "FOREX 2 · Estrategia ICT",
+        "label": "FOREX 2 (Podados OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082202,
@@ -1427,7 +1432,8 @@ _WORKER_PROFILE_META = {
         "shard_index": 2,
         "shard_count": 4,
         "grouped_forex": True,
-        "label": "FOREX 3 · Estrategia ICT",
+        "consolidated_hidden": True,
+        "label": "FOREX 3 (Consolidado OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082203,
@@ -1438,7 +1444,8 @@ _WORKER_PROFILE_META = {
         "shard_index": 3,
         "shard_count": 4,
         "grouped_forex": True,
-        "label": "FOREX 4 · Estrategia ICT",
+        "consolidated_hidden": True,
+        "label": "FOREX 4 (Consolidado OFF) · Estrategia ICT",
         "strategy_key": "ICT",
         "strategy_label": "Estrategia ICT (Sabri Malle)",
         "magic": 26082204,
@@ -1459,46 +1466,6 @@ _WORKER_PROFILE_META = {
         "strategy_label": "Malaysian SNR (M15 Fresh/Break · Variante C2)",
         "magic": 26082031,
     },
-    "CARRY": {
-        "selection_profile": "CARRY",
-        "category": "carry",
-        "label": "Carry Forex G10",
-        "strategy_key": "FX_CARRY",
-        "strategy_label": "Carry · top 3 pares por swap real, rebalanceo mensual",
-        "magic": 26082037,
-    },
-    "RSI2": {
-        "selection_profile": "RSI2",
-        "category": "rsi2",
-        "label": "RSI(2) diario · Índices US",
-        "strategy_key": "CONNORS_RSI2",
-        "strategy_label": "RSI(2) de Connors · D1 sobre SMA200, salida cierre > SMA5",
-        "magic": 26082036,
-    },
-    "DRIFT": {
-        "selection_profile": "DRIFT",
-        "category": "drift",
-        "label": "Ruptura Drift Switch",
-        "strategy_key": "DRIFT_BREAKOUT",
-        "strategy_label": "Ruptura tras compresión · Bollinger + Donchian M15 / EMA50 H1",
-        "magic": 26082035,
-    },
-    "NIGHT": {
-        "selection_profile": "NIGHT",
-        "category": "night",
-        "label": "Sesgo nocturno (índices US)",
-        "strategy_key": "OVERNIGHT_DRIFT",
-        "strategy_label": "Sesgo nocturno · cierre 16:00 → apertura 09:30 NY",
-        "magic": 26082034,
-    },
-    "MSNR": {
-        "selection_profile": "MSNR",
-        "category": "msnr",
-        "label": "MSNR (estrategia de los vídeos · H4→H1)",
-        "strategy_key": "MSNR_VIDEO",
-        "strategy_label": "MSNR Vídeos (H4→H1 + storyline)",
-        "magic": 26082033,
-    },
     "ORB": {
         "selection_profile": "ORB",
         "category": "orb",
@@ -1507,13 +1474,13 @@ _WORKER_PROFILE_META = {
         "strategy_label": "ORB New York (Sweep / HTF_Sweep)",
         "magic": 26082028,
     },
-    "GOLD": {
-        "selection_profile": "GOLD",
-        "category": "gold",
-        "label": "Cuartos · Oro/Plata (XAUUSD / XAGUSD)",
-        "strategy_key": "GOLD_QUARTERS",
-        "strategy_label": "Gold Quarters (Cuartos Psicológicos)",
-        "magic": 26082029,
+    "TREND_PULLBACK": {
+        "selection_profile": "TREND_PULLBACK",
+        "category": "trend_pullback",
+        "label": "Trend Pullback [H1+M15] · Sintéticos (>51% WR)",
+        "strategy_key": "TREND_PULLBACK",
+        "strategy_label": "Trend Pullback H1+M15 (Seguimiento Tendencia Sintéticos)",
+        "magic": 26082038,
     },
 }
 
@@ -1564,7 +1531,10 @@ def _resolve_worker_universe_and_selection(
             elif cat == "volatility":
                 universe = [s for s in all_synth if ("Vol" in s or "Spot Up" in s)]
         universe = sorted(set(universe), key=str.casefold)
-        if meta.get("shard_count"):
+        from config.ict_instrument_policy import CONSOLIDATE_ACTIVE_PRUNED_WORKERS, resolve_active_pruned_worker_universe
+        if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and wp in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4"):
+            universe = resolve_active_pruned_worker_universe(wp, universe)
+        elif meta.get("shard_count"):
             ordered = sorted(set(universe), key=str.upper)
             sc = int(meta["shard_count"])
             si = int(meta.get("shard_index", 0))
@@ -1577,7 +1547,10 @@ def _resolve_worker_universe_and_selection(
             universe = sorted(set(DEFAULT_PRIORITIZED_SYMBOLS.get("FOREX", [])) | set(FOREX_PRUNED_INFO.keys()), key=str.casefold)
         else:
             universe = sorted(set(universe), key=str.casefold)
-        if meta.get("shard_count"):
+        from config.ict_instrument_policy import CONSOLIDATE_ACTIVE_PRUNED_WORKERS, resolve_active_pruned_worker_universe
+        if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and wp in ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4"):
+            universe = resolve_active_pruned_worker_universe(wp, universe)
+        elif meta.get("shard_count"):
             sc = int(meta["shard_count"])
             si = int(meta.get("shard_index", 0))
             groups: dict[str, list[str]] = {}
@@ -1603,7 +1576,7 @@ def _resolve_worker_universe_and_selection(
             )
         else:
             universe = sorted(set(universe), key=str.casefold)
-    elif sel_prof in ("MALAYSIAN_SNR", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"):
+    elif sel_prof == "MALAYSIAN_SNR":
         for g in catalog:
             if str(g.get("selection_profile") or "").upper() == sel_prof:
                 universe.extend(g.get("symbols") or [])
@@ -1634,6 +1607,15 @@ def _resolve_worker_universe_and_selection(
                 universe.extend(g.get("symbols") or [])
         if not universe:
             universe = ["XAUUSD", "XAUUSDmicro", "XAGUSD", "XAGUSDmicro"]
+        else:
+            universe = sorted(set(universe), key=str.casefold)
+    elif sel_prof == "TREND_PULLBACK":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "TREND_PULLBACK" or str(g.get("category") or "").lower() == "trend_pullback_synthetics":
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
+            universe = sorted(set(DEFAULT_PULLBACK_SYMBOLS), key=str.casefold)
         else:
             universe = sorted(set(universe), key=str.casefold)
 
@@ -1736,17 +1718,12 @@ def _enrich_worker_state_with_selection(
 def _selection_profile_for_category(category: str) -> str:
     """Mapea una categoria de instrumento a su perfil de worker."""
     value=str(category or "").lower()
+    if value.startswith("trend_pullback") or value == "trend_pullback": return "TREND_PULLBACK"
     if value.startswith("ict_") or value == "ict": return "ICT"
     if value.startswith("malaysian_snr_") or value == "malaysian_snr": return "MALAYSIAN_SNR"
-    if value.startswith("msnr_") or value == "msnr": return "MSNR"
-    if value.startswith("night_") or value == "night": return "NIGHT"
-    if value.startswith("drift_") or value == "drift": return "DRIFT"
-    if value.startswith("rsi2_") or value == "rsi2": return "RSI2"
-    if value.startswith("carry_") or value == "carry": return "CARRY"
     if value == "forex": return "FOREX"
     if value == "idx_open_indices": return "IDX_OPEN"
     if value.startswith("orb_ny_"): return "ORB"
-    if value.startswith("gold_") or value.startswith("cuartos_") or value in ("gold", "cuartos"): return "GOLD"
     return "SYNTHETICS"
 
 def _catalog_symbols_by_profile(catalog):
@@ -2252,9 +2229,30 @@ def _extract_quality(result: dict) -> dict:
     }
 
 
-def _is_retired_worker_profile(profile):
-   """Identifica perfiles cuya estrategia ya no forma parte del daemon."""
-   return str(profile or "").upper().startswith("SCALP_")
+_RETIRED_WORKER_PROFILES = {
+    "CARRY",
+    "DRIFT",
+    "GOLD",
+    "GOLD_QUARTERS",
+    "MSNR",
+    "NIGHT",
+    "RSI2",
+    "FLIP",
+    "IDX_OPEN",
+    "V53_PROBE",
+}
+
+
+def _is_retired_worker_profile(profile: str | None) -> bool:
+    """Identifica perfiles cuya estrategia ya no forma parte del daemon o fue retirada."""
+    if os.getenv("DAEMONBLACKFX_RETIRED_WORKERS_FILTER", "1").lower() in ("0", "false", "no"):
+        return False
+    prof = str(profile or "").strip().upper()
+    if not prof:
+        return False
+    if prof.startswith("SCALP_"):
+        return True
+    return prof in _RETIRED_WORKER_PROFILES
 
 
 
@@ -2309,7 +2307,34 @@ def _light_state_payload(state: dict) -> dict:
     account = light.get("account")
     if isinstance(account, dict):
         light["account"] = {k: account.get(k) for k in ("snapshot", "stats", "source", "error") if k in account}
+    if _lazy_position_charts_enabled() and isinstance(light.get("open_positions"), list):
+        # Cada posición traía dos gráficos de 5 marcos (~400 KB): 11 posiciones = 4,4 MB de los 6 MB por refresco.
+        # El front solo pinta la seleccionada y la pide a /api/open-positions/<id>/charts.
+        light["open_positions"] = [_without_position_charts(p) for p in light["open_positions"]]
     return light
+
+
+def _lazy_position_charts_enabled() -> bool:
+    import os
+    return os.getenv("DAEMONBLACKFX_DASHBOARD_LAZY_CHARTS", "1").strip().lower() not in ("0", "false", "off", "no")
+
+
+def _without_position_charts(position):
+    if not isinstance(position, dict):
+        return position
+    slim = dict(position)
+    slim["chart_available"] = bool(position.get("chart"))
+    slim["entry_chart_available"] = bool(position.get("entry_chart"))
+    slim["chart"], slim["entry_chart"], slim["charts_lazy"] = {}, {}, True
+    return slim
+
+
+def _position_charts_payload(state: dict, position_id: str) -> dict:
+    for position in (state or {}).get("open_positions") or []:
+        if isinstance(position, dict) and str(position.get("id")) == str(position_id):
+            return {"ok": True, "id": position.get("id"), "chart": position.get("chart") or {},
+                    "entry_chart": position.get("entry_chart") or {}}
+    return {"ok": False, "error": "Posición no encontrada", "id": position_id}
 
 
 class RealtimeDashboardService:
@@ -2437,9 +2462,21 @@ class RealtimeDashboardService:
         """
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
-            payload = _json_safe({**self._state, "recent": list(self._recent)})
+            compact_mode = os.getenv("DAEMONBLACKFX_COMPACT_PERSISTED_STATE", "1").strip().lower() not in {
+                "0", "false", "no", "off"
+            }
+            raw_state = {**self._state, "recent": list(self._recent)}
+            if compact_mode:
+                for heavy_key in ("account", "open_positions", "open_positions_summary", "financial_news"):
+                    raw_state.pop(heavy_key, None)
+            payload = _json_safe(raw_state)
             tmp = self.state_path.with_suffix(self.state_path.suffix + ".tmp")
-            tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            serialized = (
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+                if compact_mode
+                else json.dumps(payload, ensure_ascii=False, indent=2)
+            )
+            tmp.write_text(serialized, encoding="utf-8")
             tmp.replace(self.state_path)
         except Exception:
             return
@@ -2788,9 +2825,15 @@ class RealtimeDashboardService:
                 "MALAYSIAN_SNR": [],
                 "ORB": [],
                 "GOLD": [],
+                "TREND_PULLBACK": [],
             }
-            for wp in _WORKER_PROFILE_META:
-                row = by_prof.get(wp) or {"bot_profile": wp, "status": "STANDBY"}
+            from config.ict_instrument_policy import ALLOW_SELECTIVE_INSTRUMENT_ACTIVATION, CONSOLIDATE_ACTIVE_PRUNED_WORKERS
+            for wp, meta in _WORKER_PROFILE_META.items():
+                if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and (meta.get("consolidated_hidden") or wp in ("VOLATILITY", "FOREX")):
+                    continue
+                row = dict(by_prof.get(wp) or {"bot_profile": wp, "status": "STANDBY"})
+                if wp in ("VOLATILITY_2", "FOREX_2") and str(row.get("status") or "").upper() in ("STANDBY", "DISABLED_BY_CONFIG"):
+                    row["status"] = "DISABLED"
                 enriched = _enrich_worker_state_with_selection(
                     {
                         **dict(row),
@@ -2814,6 +2857,8 @@ class RealtimeDashboardService:
                 "updated_at": self._state.get("updated_at"),
                 "daemon_version": DAEMONBLACKFX_VERSION,
                 "financial_news": self.news_service.snapshot(),
+                "allow_selective_activation": bool(ALLOW_SELECTIVE_INSTRUMENT_ACTIVATION),
+                "consolidate_active_pruned_workers": bool(CONSOLIDATE_ACTIVE_PRUNED_WORKERS),
                 "pruned_instruments": dict(PRUNED_INSTRUMENTS_INFO),
                 "pruned_instruments_by_profile": {
                     "SYNTHETICS": _ict_preventive_prune_info("SYNTHETICS", self._state.get("instrument_catalog"), PRUNED_INSTRUMENTS_INFO),
@@ -2821,13 +2866,8 @@ class RealtimeDashboardService:
                     "ORB": dict(ORB_PRUNED_INFO),
                     "IDX_OPEN": dict(PRUNED_INSTRUMENTS_INFO),
                     "MALAYSIAN_SNR": _ict_preventive_prune_info("MALAYSIAN_SNR", self._state.get("instrument_catalog"), MALAYSIAN_SNR_PRUNED_INFO),
-                    "MSNR": _ict_preventive_prune_info("MSNR", self._state.get("instrument_catalog"), MALAYSIAN_SNR_PRUNED_INFO),
-                    "NIGHT": dict(NIGHT_PRUNED_INFO),
-                    "DRIFT": {},
-                    "RSI2": {},
-                    "CARRY": {},
-                    "GOLD": {},
                     "ICT": _ict_preventive_prune_info("ICT", self._state.get("instrument_catalog"), ICT_PRUNED_INFO),
+                    "TREND_PULLBACK": _ict_preventive_prune_info("TREND_PULLBACK", self._state.get("instrument_catalog"), {}),
                 },
                 "prioritized_symbols": dict(DEFAULT_PRIORITIZED_SYMBOLS),
                 "ict_policy_profiles": list(_ICT_POLICY_PROFILES),
@@ -3094,6 +3134,13 @@ class RealtimeDashboardService:
                     payload = json.dumps(_light_state_payload(service.snapshot()), ensure_ascii=False).encode("utf-8")
                     self._send(payload, "application/json; charset=utf-8")
                     return
+                charts_match = re.fullmatch(r"/api/open-positions/([A-Za-z0-9_.:-]+)/charts/?", path)
+                if charts_match:
+                    result = _position_charts_payload(service.snapshot(), charts_match.group(1))
+                    status = HTTPStatus.OK if result.get("ok") else HTTPStatus.NOT_FOUND
+                    self._send(json.dumps(result, ensure_ascii=False).encode("utf-8"),
+                               "application/json; charset=utf-8", status)
+                    return
                 self._send(b"Not found", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
 
             def do_POST(self):
@@ -3289,7 +3336,8 @@ class RealtimeDashboardService:
                     body = json.loads(self.rfile.read(length).decode("utf-8"))
                     selected = body.get("selected_symbols") if isinstance(body, dict) else None
                     profile = body.get("selection_profile", "SYNTHETICS") if isinstance(body, dict) else "SYNTHETICS"
-                    result = service.update_selected_symbols(selected, selection_profile=profile)
+                    allow_selective = bool(body.get("allow_selective")) if isinstance(body, dict) else False
+                    result = service.update_selected_symbols(selected, selection_profile=profile, allow_selective=allow_selective)
                     status = HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST
                 except Exception as exc:
                     result = {"ok": False, "error": str(exc)}
@@ -3510,7 +3558,7 @@ class RealtimeDashboardService:
                 catalog.append({"category":str(category),"selection_profile":_selection_profile_for_category(category),
                                 "label":_CATEGORY_LABELS.get(str(category),str(category).replace("_"," ").title()),
                                 "symbols":symbols})
-        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3,"MALAYSIAN_SNR":4,"GOLD":5,"ICT":6,"MSNR":7,"NIGHT":8,"DRIFT":9,"RSI2":10,"CARRY":11}.get(r["selection_profile"],12),r["label"].casefold()))
+        catalog.sort(key=lambda r: ({"SYNTHETICS":0,"FOREX":1,"ORB":2,"IDX_OPEN":3,"MALAYSIAN_SNR":4,"ICT":5,"TREND_PULLBACK":6}.get(r["selection_profile"],12),r["label"].casefold()))
         allowed=_catalog_symbols_by_profile(catalog); persisted={}
         explicit=_normalize_symbol_list(selected_symbols)
         if self.repository is not None and hasattr(self.repository,"latest_instrument_selection_profiles"):
@@ -3541,7 +3589,7 @@ class RealtimeDashboardService:
         self._invalidate_navigation_caches(instruments=True)
         return combined
 
-    def update_selected_symbols(self, selected_symbols, selection_profile=None):
+    def update_selected_symbols(self, selected_symbols, selection_profile=None, allow_selective: bool = False):
         """Guarda la seleccion de instrumentos de un perfil (o global).
 
         Rechaza simbolos fuera del catalogo y, al persistir por perfil,
@@ -3611,10 +3659,11 @@ class RealtimeDashboardService:
             allowed=set(_catalog_symbols_by_profile(self._state.get("instrument_catalog") or []).get(profile) or [])
             invalid=[x for x in requested if x not in allowed]
             if invalid: return {"ok":False,"error":f"Hay instrumentos fuera del catálogo {profile}","invalid":invalid}
-            # Pestañas ICT: un instrumento en PODA PREVENTIVA nunca se persiste como activo (config/ict_instrument_policy.py).
-            from config.ict_instrument_policy import sanitize_ict_selection
-            sanitized=sanitize_ict_selection(profile,requested)
+            # Pestañas ICT: por defecto quita PODA PREVENTIVA, salvo activación selectiva explícita desde /Instruments.
+            from config.ict_instrument_policy import ict_active_symbols as _ict_active_for_sel, sanitize_ict_selection
+            sanitized=sanitize_ict_selection(profile,requested,allow_selective=bool(allow_selective))
             preventive_dropped=[x for x in requested if x not in set(sanitized)]
+            selective_enabled=[x for x in sanitized if x not in set(_ict_active_for_sel(profile))] if allow_selective else []
             requested=sanitized
             persisted=None
             if self.repository is not None and hasattr(self.repository,"save_instrument_selection_profile"):
@@ -3656,6 +3705,8 @@ class RealtimeDashboardService:
             self._state["selection_message"]=f"{profile}: {len(requested)} instrumentos guardados de manera independiente. Se aplicará en el próximo ciclo de ese bot."
             if preventive_dropped:
                 self._state["selection_message"]+=f" Omitidos por PODA PREVENTIVA: {', '.join(preventive_dropped)}."
+            if selective_enabled:
+                self._state["selection_message"]+=f" Activación selectiva aplicada: {', '.join(selective_enabled)}."
             self._state["updated_at"]=_now_iso(); self._persist_state_locked()
             self._invalidate_navigation_caches(instruments=True)
             return {"ok":True,"selection_profile":profile,"selected_symbols":requested,"selection_profiles":profiles,
@@ -4369,10 +4420,7 @@ class RealtimeDashboardService:
             catalog.append({"category": "orb_ny_xagusd", "selection_profile": "ORB", "label": "Plata (XAGUSD)", "symbols": ["XAGUSD"]})
         if "orb_ny_micro_xagusd" not in cat_keys:
             catalog.append({"category": "orb_ny_micro_xagusd", "selection_profile": "ORB", "label": "Plata Micro (XAGUSD)", "symbols": ["XAGUSDmicro"]})
-        if "gold_cuartos_xauusd" not in cat_keys:
-            catalog.append({"category": "gold_cuartos_xauusd", "selection_profile": "GOLD", "label": "Oro Cuartos (XAUUSD)", "symbols": ["XAUUSD", "XAUUSDmicro"]})
-        if "gold_cuartos_xagusd" not in cat_keys:
-            catalog.append({"category": "gold_cuartos_xagusd", "selection_profile": "GOLD", "label": "Plata Cuartos (XAGUSD)", "symbols": ["XAGUSD", "XAGUSDmicro"]})
+        # Workers retirados: gold_cuartos eliminado del catálogo dinámico (cubierto activamente por ICT y ORB).
         if "ict_metals_xagusd" not in cat_keys:
             catalog.append({"category": "ict_metals_xagusd", "selection_profile": "ICT", "label": "ICT Metales · Plata (XAGUSD)", "symbols": ["XAGUSD", "XAGUSDmicro"]})
         if "ict_metals_xauusd" not in cat_keys:
@@ -4468,8 +4516,12 @@ class RealtimeDashboardService:
                 worker_candidates = {}
                 if self.repository is not None and hasattr(self.repository, "recent_symbol_process_results"):
                     try:
+                        scan_limit = max(
+                            250,
+                            int(os.getenv("DAEMONBLACKFX_DASHBOARD_RECENT_SCAN_LIMIT", "1200")),
+                        )
                         persisted_recent = self.repository.recent_symbol_process_results(
-                            source="DEMO", limit=250, per_profile=50, scan_limit=3500,
+                            source="DEMO", limit=250, per_profile=50, scan_limit=scan_limit,
                         )
                     except Exception:
                         persisted_recent = []
@@ -6123,9 +6175,9 @@ _HTML = r'''
           <div class="card full" id="confluenceMatrixCard">
             <div class="selectorHead">
               <div>
-                <div class="label" style="color: var(--gold2); font-weight: 800; font-size: 13px;">Matriz Centinela Multiestrategia (ICT · Malaysian SNR · ORB · Gold Quarters)</div>
+                <div class="label" style="color: var(--gold2); font-weight: 800; font-size: 13px;">Matriz Centinela Multiestrategia (ICT · Malaysian SNR · ORB · Trend Pullback)</div>
                 <div class="sub">
-                  Monitoreo centinela unificado en tiempo real: Estrategia ICT · Malaysian SNR (Break/Retest/ADX) · ORB (Apertura NY) · Gold Quarters
+                  Monitoreo centinela unificado en tiempo real: Estrategia ICT · Malaysian SNR (Break/Retest/ADX) · ORB (Apertura NY) · Trend Pullback (>51% WR)
                 </div>
               </div>
               <div id="confluenceSummaryChips" style="display: flex; gap: 8px; align-items: center; font-size: 11px; flex-wrap: wrap;"></div>
@@ -6136,7 +6188,7 @@ _HTML = r'''
               <button class="matrixTabBtn" data-filter="ICT" onclick="setMatrixFilter('ICT')" style="color: #38bdf8; font-weight: bold;">ESTRATEGIA ICT</button>
               <button class="matrixTabBtn" data-filter="MALAYSIAN_SNR" onclick="setMatrixFilter('MALAYSIAN_SNR')">MALAYSIAN SNR</button>
               <button class="matrixTabBtn" data-filter="ORB" onclick="setMatrixFilter('ORB')">ORB NY</button>
-              <button class="matrixTabBtn" data-filter="GOLD_QUARTERS" onclick="setMatrixFilter('GOLD_QUARTERS')">GOLD QUARTERS</button>
+              <button class="matrixTabBtn" data-filter="TREND_PULLBACK" onclick="setMatrixFilter('TREND_PULLBACK')" style="color: #c084fc;">TREND PULLBACK</button>
               <button class="matrixTabBtn" data-filter="ACTIVE" onclick="setMatrixFilter('ACTIVE')" style="color: #60a5fa;">🔵 ACTIVAS</button>
             </div>
             <div id="confluenceMatrixPanel" style="margin-top: 12px; overflow-x: auto;">
@@ -6510,6 +6562,43 @@ _HTML = r'''
           }
           let latestState = null;
           let selectedTradeId = null;
+          // /api/state ya no trae los gráficos de cada posición (charts_lazy): se piden solo para la seleccionada.
+          const positionChartCache = {};
+          let positionChartInFlight = null;
+          function hydratePositionCharts(rows) {
+            (rows || []).forEach((p) => {
+              const cached = p && p.charts_lazy ? positionChartCache[String(p.id)] : null;
+              if (cached) {
+                p.chart = cached.chart || {};
+                p.entry_chart = cached.entry_chart || {};
+              }
+            });
+          }
+          async function loadPositionCharts(id) {
+            const key = String(id);
+            if (!key || positionChartInFlight === key) return;
+            positionChartInFlight = key;
+            try {
+              const r = await fetch('/api/open-positions/' + encodeURIComponent(key) + '/charts?ts=' + Date.now(),
+                                    { cache: 'no-store' });
+              if (!r.ok) return;
+              const data = await r.json();
+              positionChartCache[key] = { chart: data.chart || {}, entry_chart: data.entry_chart || {} };
+              const t = (latestState?.open_positions || []).find((x) => String(x.id) === key);
+              if (t) {
+                t.chart = positionChartCache[key].chart;
+                t.entry_chart = positionChartCache[key].entry_chart;
+                if (String(selectedTradeId) === key) {
+                  renderPositionChart(t);
+                  renderOpenRows(latestState?.open_positions || []);
+                }
+              }
+            } catch (e) {
+              /* el gráfico se reintenta en el siguiente refresco */
+            } finally {
+              if (positionChartInFlight === key) positionChartInFlight = null;
+            }
+          }
           let selectedCandidateBot = 'TODOS';
           function priceFmt(v) {
             if (v == null || !Number.isFinite(Number(v))) return '—';
@@ -7513,6 +7602,7 @@ _HTML = r'''
             );
             renderPositionChart(t);
             renderOpenRows(latestState?.open_positions || []);
+            if (t && t.charts_lazy) loadPositionCharts(selectedTradeId);
           }
           function renderOpenRows(rows) {
             $('openBody').innerHTML =
@@ -7542,7 +7632,7 @@ _HTML = r'''
                   const owner = t.owner_profile || 'NO IDENTIFICADO';
                   const ownerStatus = t.ownership_status || '—';
                   const ownerCls = t.managed_by_daemon ? 'good' : 'warn';
-                  const chartAvailable = t.chart && Object.keys(t.chart).length;
+                  const chartAvailable = (t.chart && Object.keys(t.chart).length) || t.chart_available;
                   const durationPill = t.duration_str && t.duration_str !== '—'
                     ? `<span class="pill neutral" style="font-size:10px; padding:1px 6px; margin-left:4px; font-weight:600;" title="Tiempo transcurrido en posición">⏱ ${esc(t.duration_str)}</span>`
                     : '';
@@ -7634,9 +7724,12 @@ _HTML = r'''
             }
             box.innerHTML = `<span class="pill good">BOT ${esc(last._worker_profile)}</span><span class="pill">Magic ${esc(last._worker_magic || '—')}</span><span class="pill">Ciclo ${esc(last._worker_cycle || 0)}</span><span class="pill">${esc(last._worker_action || 'En espera')}</span><span class="pill">${last._worker_time ? 'Actualizado ' + new Date(last._worker_time).toLocaleTimeString() : 'Sin timestamp'}</span>`;
           }
+          const RETIRED_WORKER_PROFILES = new Set([
+            'FLIP', 'IDX_OPEN', 'CARRY', 'DRIFT', 'GOLD', 'GOLD_QUARTERS', 'MSNR', 'NIGHT', 'RSI2', 'V53_PROBE'
+          ]);
           function visibleWorkers(s) {
             return (s.worker_states || []).filter(
-              (w) => !['FLIP', 'IDX_OPEN'].includes(String(w.bot_profile || '').toUpperCase()),
+              (w) => !RETIRED_WORKER_PROFILES.has(String(w.bot_profile || '').toUpperCase()),
             );
           }
           function renderLearningAudit(s) {
@@ -7869,18 +7962,12 @@ _HTML = r'''
               'BOOM', 'CRASH', 'STEP', 'JUMP',
               'VOLATILITY', 'VOLATILITY_1', 'VOLATILITY_2', 'VOLATILITY_3', 'VOLATILITY_4',
               'FOREX', 'FOREX_1', 'FOREX_2', 'FOREX_3', 'FOREX_4',
-              'ICT', 'MALAYSIAN_SNR', 'MSNR', 'NIGHT', 'DRIFT', 'RSI2', 'CARRY', 'ORB', 'GOLD'
+              'ICT', 'MALAYSIAN_SNR', 'ORB', 'TREND_PULLBACK'
             ];
             const workerLabels = {
               IDX_OPEN: 'Apertura Bursátiles',
-              GOLD: 'Oro · Cuartos & Niveles Psicológicos (XAUUSD)',
               ORB: 'ORB · Apertura New York',
               MALAYSIAN_SNR: 'Malaysian SNR (M15 Fresh/Break)',
-              MSNR: 'MSNR (estrategia de los vídeos · H4→H1)',
-              NIGHT: 'Sesgo nocturno (índices US)',
-              DRIFT: 'Ruptura Drift Switch',
-              RSI2: 'RSI(2) diario (índices US)',
-              CARRY: 'Carry Forex G10',
               ICT: 'ICT (Metales, Cripto & Índices)',
               VOLATILITY_1: 'VOLATILITY (1)',
               VOLATILITY_2: 'VOLATILITY (2)',
@@ -7952,8 +8039,6 @@ _HTML = r'''
                       ? 'ORB New York M5 (SWEEP)'
                       : prof === 'MALAYSIAN_SNR'
                         ? 'Malaysian SNR (M15 Fresh/Break · C2)'
-                        : prof === 'MSNR'
-                          ? 'MSNR Vídeos (H4→H1)'
                           : prof === 'NIGHT'
                           ? 'Sesgo nocturno (cierre → apertura NY)'
                           : prof === 'DRIFT'
@@ -8270,7 +8355,11 @@ _HTML = r'''
           };
 
           function render(s) {
+            hydratePositionCharts(s && s.open_positions);
             latestState = s;
+            if (selectedTradeId && (s?.open_positions || []).some((x) => String(x.id) === String(selectedTradeId) && x.charts_lazy)) {
+              loadPositionCharts(selectedTradeId);  // mantiene vivo solo el gráfico seleccionado
+            }
             renderDailyProfitTarget(s);
             renderConfluenceMatrix(s);
             renderDashboardNews(s);
@@ -8716,19 +8805,10 @@ _INSTRUMENTS_HTML = r'''
               ICT (METALES, CRIPTO & ÍNDICES) <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
             ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">
               MALAYSIAN SNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#fbbf24;">[M15 Fresh/Break]</span></button
-            ><button class="btn profileTab" data-profile="MSNR" type="button">
-              MSNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#f472b6;">[Vídeos · H4→H1]</span></button
-            ><button class="btn profileTab" data-profile="NIGHT" type="button">
-              SESGO NOCTURNO <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#a78bfa;">[Índices US]</span></button
-            ><button class="btn profileTab" data-profile="DRIFT" type="button">
-              RUPTURA DRIFT <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#22d3ee;">[Drift Switch]</span></button
-            ><button class="btn profileTab" data-profile="RSI2" type="button">
-              RSI(2) EE. UU. <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#f59e0b;">[Diario]</span></button
-            ><button class="btn profileTab" data-profile="CARRY" type="button">
-              CARRY FOREX <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#10b981;">[G10 · swap]</span></button
             ><button class="btn profileTab" data-profile="ORB" type="button">
               ORB NEW YORK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#34d399;">[SWEEP]</span></button
-            ><button class="btn profileTab" data-profile="GOLD" type="button">CUARTOS (GOLD)</button>
+            ><button class="btn profileTab" data-profile="TREND_PULLBACK" type="button">
+              TREND PULLBACK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#c084fc;">[H1+M15 &gt;51% WR]</span></button>
           </div>
           <div class="actions">
             <button class="btn" id="selectProfitable" type="button" style="border-color:rgba(16,185,129,0.55);color:#34d399;font-weight:700;">
@@ -8776,7 +8856,7 @@ _INSTRUMENTS_HTML = r'''
           <div id="newsList" class="msg">Cargando noticias…</div>
         </section>
         <div class="note" id="profileNote">
-          <b>Persistencia independiente:</b> Sintéticos, Forex, ORB, Malaysian SNR, Cuartos (Gold) e ICT (Metales & Cripto) se guardan por separado.
+          <b>Persistencia independiente:</b> Sintéticos, Forex, ICT, Malaysian SNR y ORB se guardan por separado.
         </div>
         <div class="note">
           <b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el
@@ -8819,47 +8899,17 @@ _INSTRUMENTS_HTML = r'''
           workersText: 'Malaysian SNR (M15 Fresh/Break)',
           desc: 'Controla el worker Malaysian SNR (M15 Fresh/Break) con configuración C2 (ADX >= 30, ATR <= 1.2 en Forex/Metales, ATR <= 1.5 en Sintéticos y Wall Street 30, Cap=1). Muestra en paralelo los 23 activos rentables activos y mantiene los 37 podados desactivados.',
         },
-        CARRY: {
-          badge: 'CARRY FOREX G10 (SWAP REAL DEL BROKER · REBALANCEO MENSUAL)',
-          color: '#10b981',
-          workersText: 'CARRY (carry Forex G10)',
-          desc: 'Controla únicamente el worker CARRY: cada mes abre los 3 pares G10 con mayor swap neto positivo (comprando la divisa de tipo alto), con stop de 3 ATR diarios y 1 % en dos entradas (TP1 1R + runner TP2 2R con BE y extensión progresiva TP3/TP4); lo que siga abierto se cierra al cambiar de mes. Exento del cierre forzado de Forex antes del cierre de NY y del fin de semana. Prueba demo con criterio fijado (36 operaciones, R/op > 0).',
-        },
-        RSI2: {
-          badge: 'RSI(2) DIARIO DE CONNORS (ÍNDICES EE. UU.)',
-          color: '#f59e0b',
-          workersText: 'RSI2 (reversión diaria · índices US)',
-          desc: 'Controla únicamente el worker RSI2: compra US SP 500, US Tech 100, Wall Street 30, US Small Cap 2000 y US Mid Cap 400 tras un cierre diario con RSI(2) < 10 sobre la SMA200, con stop de protección de 2 ATR diarios (riesgo 1 %), y sale tras el primer cierre diario sobre la SMA5 o a los 10 días. Prueba demo con criterio fijado (60 operaciones, R/op > 0).',
-        },
-        DRIFT: {
-          badge: 'RUPTURA TRAS COMPRESIÓN (DRIFT SWITCH · BOLLINGER + DONCHIAN)',
-          color: '#22d3ee',
-          workersText: 'DRIFT (ruptura · Drift Switch 10/20/30)',
-          desc: 'Controla únicamente el worker DRIFT: tras una compresión de Bollinger en M15, entra en la ruptura del canal Donchian(20) a favor de la EMA50 H1, con stop 1,5 ATR H1 y el contrato TP1 1R + runner 2R con BE. Prueba demo con criterio fijado (200 operaciones, R/op > 0).',
-        },
-        NIGHT: {
-          badge: 'SESGO NOCTURNO (CIERRE 16:00 → APERTURA 09:30 NY)',
-          color: '#a78bfa',
-          workersText: 'NIGHT (sesgo nocturno · índices US)',
-          desc: 'Controla únicamente el worker NIGHT: compra US SP 500 / US Tech 100 al cierre de Nueva York con stop de protección de 1 ATR diario (riesgo 1 %) y sale en la apertura siguiente. Prueba demo con criterio fijado (120 noches, R/op > 0).',
-        },
-        MSNR: {
-          badge: 'ESTRATEGIA MSNR DE LOS VÍDEOS (H4→H1 · STORYLINE D1+H4)',
-          color: '#f472b6',
-          workersText: 'MSNR (estrategia de los vídeos)',
-          desc: 'Controla únicamente el worker MSNR: entrada de confirmación H4→H1 del curso (H4 rechaza un nivel A/V y H1 rompe un open-close), storyline D1+H4 registrada, gestión 1R/2R del contrato y prueba demo con criterio fijado. Mismos instrumentos que Malaysian SNR, con selección independiente.',
-        },
         ORB: {
           badge: 'ESTRATEGIA ORB NEW YORK (M5 SWEEP / HTF_SWEEP)',
           color: '#34d399',
           workersText: 'ORB · Apertura New York',
           desc: 'Controla el worker ORB New York enfocado en los 4 activos rentables en modo SWEEP / HTF_SWEEP (XAUUSD, BTCUSD, XAGUSD, US Oil -> 231 trades, 56.7%-59.1% WR, +31.54R) manteniendo podados los índices perdedores.',
         },
-        GOLD: {
-          badge: 'ESTRATEGIA CUARTOS ($25) · ORO Y PLATA',
-          color: '#facc15',
-          workersText: 'GOLD (Cuartos & Niveles Psicológicos)',
-          desc: 'Controla el worker especializado de niveles psicológicos de cuartos en XAUUSD / XAGUSD.',
+        TREND_PULLBACK: {
+          badge: 'ESTRATEGIA TREND PULLBACK (H1+M15 · SINTÉTICOS >51% WR)',
+          color: '#c084fc',
+          workersText: 'Trend Pullback [H1+M15]',
+          desc: 'Esta pestaña opera bajo la Estrategia Cuantitativa Trend Pullback H1+M15 (EMA50/200 + ADX>=20 en H1, pullback EMA21 + RSI en M15, 2 patas TP1/TP2 con BE automático). Controla el worker dedicado TREND_PULLBACK con los 21 activos que superan el 51% de Win Rate y R neto > 0 en el replay multianual 5Y.',
         },
       };
       function visibleInstrumentGroups(s) {
@@ -8872,7 +8922,7 @@ _INSTRUMENTS_HTML = r'''
           .map((g) => ({
             ...g,
             symbols: (g.symbols || []).filter((sym) => {
-              if (['MALAYSIAN_SNR', 'MSNR'].includes(String(g.selection_profile || '').toUpperCase())) return true;
+              if (String(g.selection_profile || '').toUpperCase() === 'MALAYSIAN_SNR') return true;
               return !(/boom/i.test(sym) && /crash/i.test(sym));
             }),
           }))
@@ -8885,7 +8935,7 @@ _INSTRUMENTS_HTML = r'''
       }
       function selectionSummary(s) {
         return (
-          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR', 'GOLD', 'ICT', 'MSNR', 'NIGHT', 'DRIFT', 'RSI2', 'CARRY']
+          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR', 'ICT', 'TREND_PULLBACK']
             .map((p, i) => {
               const allowed = new Set(
                 visibleInstrumentGroups(s)
@@ -8893,7 +8943,7 @@ _INSTRUMENTS_HTML = r'''
                   .flatMap((g) => g.symbols),
               );
               return (
-                ['Sintéticos [ICT]', 'Forex [ICT]', 'ORB', 'Malaysian SNR', 'Cuartos (Gold)', 'ICT (Metales, Cripto & Índices)', 'MSNR (vídeos)', 'Sesgo nocturno', 'Ruptura Drift', 'RSI(2) EE. UU.', 'Carry Forex'][i] +
+                ['Sintéticos [ICT]', 'Forex [ICT]', 'ORB', 'Malaysian SNR', 'ICT (Metales, Cripto & Índices)', 'Trend Pullback (>51% WR)'][i] +
                 ': ' +
                 ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
               );
@@ -8923,7 +8973,11 @@ _INSTRUMENTS_HTML = r'''
         if (l.includes('crash')) return 'Crash (solo SELL)';
         if (l.includes('step')) return 'Step';
         if (l.includes('jump')) return 'Jump';
-        return 'Volatility';
+        if (l.includes('volatility') || l.includes('vol ') || l.includes('volswitch')) return 'Volatility';
+        // Resto = mercados reales de bajo coste en prueba demo (sesión Asia → NY, 25-oct-2026).
+        if (/^xa[ug]|^xpt/.test(l)) return 'Metal (prueba demo · Asia→NY)';
+        if (/^[a-z]{6}$/.test(l)) return 'Forex (prueba demo · Asia→NY)';
+        return 'Índice (prueba demo · Asia→NY)';
       }
       function selected() {
         return [...document.querySelectorAll('input[data-symbol]:checked')]
@@ -9063,11 +9117,11 @@ _INSTRUMENTS_HTML = r'''
                 ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(56,189,248,0.14);color:#38bdf8;border:1px solid rgba(56,189,248,0.35);margin-left:6px;">ICT Sabri Malle</span>`
                 : activeProfile === 'MALAYSIAN_SNR'
                   ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(251,191,36,0.14);color:#fbbf24;border:1px solid rgba(251,191,36,0.35);margin-left:6px;">Malaysian SNR (M15 Fresh/Break)</span>`
-                  : activeProfile === 'MSNR'
-                  ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(244,114,182,0.14);color:#f472b6;border:1px solid rgba(244,114,182,0.35);margin-left:6px;">MSNR Vídeos (H4→H1)</span>`
                   : activeProfile === 'ORB'
                     ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.35);margin-left:6px;">ORB SWEEP</span>`
-                    : '';
+                    : activeProfile === 'TREND_PULLBACK'
+                      ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(192,132,252,0.14);color:#c084fc;border:1px solid rgba(192,132,252,0.35);margin-left:6px;">Trend Pullback H1+M15</span>`
+                      : '';
               return items.length
                 ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span>${stratTag}</h3>${items.map((sym) => {
                     const isChecked = chosen.has(sym);
@@ -9084,14 +9138,15 @@ _INSTRUMENTS_HTML = r'''
                         ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ PODA PREVENTIVA</span>`
                         : activeProfile === 'MALAYSIAN_SNR'
                           ? `<span class="activeBadge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);">✓ MSNR Activo · ${esc(msnrFamilyLabel(sym))}</span>`
-                          : activeProfile === 'MSNR'
-                          ? `<span class="activeBadge" style="background: rgba(244, 114, 182, 0.15); color: #f472b6; border-color: rgba(244, 114, 182, 0.4);">✓ MSNR Vídeos Activo · ${esc(msnrFamilyLabel(sym))}</span>`
-                          : `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Activo · ${esc(family)}</span>`;
+                          : activeProfile === 'TREND_PULLBACK'
+                            ? `<span class="activeBadge" style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border-color: rgba(192, 132, 252, 0.4);">✓ Pullback Rentable Activo (&gt;51% WR)</span>`
+                            : `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Activo · ${esc(family)}</span>`;
                     } else if (activeProfile === 'ORB' && !isPruned) {
                       badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">✓ ORB Tier S · SWEEP Rentable (56.7%–59.1% WR)</span>`;
                     }
-                    const locked = isPolicyTab && isPruned;
-                    return `<label class="item ${isPruned ? 'prunedItem' : ''}" ${locked ? `title="${esc(warning)}"` : ''}><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked && !locked ? 'checked' : ''} ${locked ? 'disabled data-locked="true"' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
+                    const selectiveAllowed = Boolean(s.allow_selective_activation ?? true) && ['FOREX', 'SYNTHETICS', 'ICT'].includes(activeProfile);
+                    const locked = isPolicyTab && isPruned && !selectiveAllowed;
+                    return `<label class="item ${isPruned ? 'prunedItem' : ''}" ${locked || isPruned ? `title="${esc(warning)}"` : ''}><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked && !locked ? 'checked' : ''} ${locked ? 'disabled data-locked="true"' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
                   }).join('')}</section>`
                 : '';
             })
@@ -9100,7 +9155,7 @@ _INSTRUMENTS_HTML = r'''
         $('msg').textContent = selectionSummary(s);
         $('profileNote').innerHTML =
           (new Set(s.ict_policy_profiles || []).has(activeProfile)
-            ? `<b>${activeProfile}:</b> esta pestaña controla ${activeProfile === 'MSNR' ? 'solo el worker MSNR (estrategia de los vídeos, H4→H1)' : activeProfile === 'MALAYSIAN_SNR' ? 'el worker Malaysian SNR (solo sintéticos)' : `los workers ICT (${activeProfile === 'SYNTHETICS' ? 'Step, Jump, Volatility 1-4, Boom y Crash' : activeProfile === 'FOREX' ? 'Forex 1-4' : 'ICT: metales, índices y commodities'})`}. Marcado = el worker lo escanea en el próximo ciclo; PODA PREVENTIVA = bloqueado por el motor (no se puede activar). La selección se guarda en la base y persiste tras reiniciar.`
+            ? `<b>${activeProfile}:</b> esta pestaña controla ${activeProfile === 'TREND_PULLBACK' ? 'el worker Trend Pullback (sintéticos >51% WR)' : activeProfile === 'MALAYSIAN_SNR' ? 'el worker Malaysian SNR (solo sintéticos)' : `los workers ICT (${activeProfile === 'SYNTHETICS' ? 'Step, Jump, Volatility 1 (Activos) + Volatility 2 (Podados OFF), Boom y Crash' : activeProfile === 'FOREX' ? 'Forex 1 (Activos) + Forex 2 (Podados OFF)' : 'ICT: metales, índices y commodities'})`}. Marcado = el worker lo escanea en el próximo ciclo; PODA PREVENTIVA = desactivado por defecto (activable de manera selectiva con confirmación). La selección se guarda en la base y persiste tras reiniciar.`
             : `<b>${activeProfile}:</b> selección persistente independiente sincronizada con Modo Centinela, Análisis Recientes y progreso de Workers en paralelo. Los instrumentos rentables están activos y los podados desactivados.`);
         document
           .querySelectorAll('.profileTab')
@@ -9153,12 +9208,13 @@ _INSTRUMENTS_HTML = r'''
       }
       async function save() {
         const values = selected();
+        const selectiveCount = [...document.querySelectorAll('input[data-symbol]:checked')].filter((x) => x.dataset.pruned === 'true').length;
         $('save').disabled = true;
         try {
           const r = await fetch('/api/instruments/selection', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values }),
+            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values, allow_selective: selectiveCount > 0 }),
           });
           const data = await r.json();
           if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar');
@@ -9194,7 +9250,7 @@ _INSTRUMENTS_HTML = r'''
         });
       }
       $('selectAll').addEventListener('click', () => {
-        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = x.dataset.locked !== 'true'));
+        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = x.dataset.locked !== 'true' && x.dataset.pruned !== 'true'));
         dirty = true;
         updateCount();
         if (state) renderTabWorkers(state);
@@ -9236,9 +9292,13 @@ def _apply_synth_wr45_prune():
     for sym in ICT_WR45_PRUNED:
         PRUNED_INSTRUMENTS_INFO.setdefault(sym, reason_ict)
         ICT_PRUNED_INFO.setdefault(sym, reason_ict)
-    DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"] = [s for s in DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"] if s not in set(MSNR_WR45_PRUNED)]
+    # Malaysian SNR (25-oct-2026): sintéticos con acierto > 47 % (config/ict_instrument_policy.py); VolSwitch queda activo.
+    from config.ict_instrument_policy import MALAYSIAN_SNR_EXCLUDED
+    DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"] = [s for s in DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"] if s not in set(MALAYSIAN_SNR_EXCLUDED)]
     for sym in MSNR_WR45_PRUNED:
         MALAYSIAN_SNR_PRUNED_INFO.setdefault(sym, reason_msnr)
+    for sym in MALAYSIAN_SNR_EXCLUDED:
+        MALAYSIAN_SNR_PRUNED_INFO.setdefault(sym, "Poda por acierto <= 47% en el replay fiel de Malaysian SNR (dic-2023 a oct-2026).")
 
 
 _apply_synth_wr45_prune()
@@ -9272,20 +9332,47 @@ def _ict_preventive_prune_info(profile, catalog=None, base_info=None):
 
 
 def _apply_ict_instrument_policy():
+    from config.ict_instrument_policy import (
+        ICT_5Y_MARKETS_PRUNED,
+        ICT_5Y_SYNTH_PRUNED,
+        ICT_FOREX_PRUNED_SYMBOLS,
+        ICT_PHASE1_EXCLUDED,
+        ICT_VOLATILITY_PRUNED_SYMBOLS,
+    )
     for profile in _ICT_POLICY_PROFILES:
         DEFAULT_PRIORITIZED_SYMBOLS[profile] = list(_ict_active_symbols(profile))
+    # Limpiar de los diccionarios de poda los instrumentos activos rescatados o validados en la auditoría de 5 años
+    for sym in _ict_active_symbols("SYNTHETICS"):
+        PRUNED_INSTRUMENTS_INFO.pop(sym, None)
+        ICT_PRUNED_INFO.pop(sym, None)
+    for sym in _ict_active_symbols("FOREX"):
+        FOREX_PRUNED_INFO.pop(sym, None)
+        PRUNED_INSTRUMENTS_INFO.pop(sym, None)
+        ICT_PRUNED_INFO.pop(sym, None)
+    for sym in _ict_active_symbols("ICT"):
+        ICT_PRUNED_INFO.pop(sym, None)
+        PRUNED_INSTRUMENTS_INFO.pop(sym, None)
+    # Asegurar que todos los instrumentos podados en la auditoría de 5 años tengan su descripción en los diccionarios
+    for sym in (*ICT_5Y_SYNTH_PRUNED, *ICT_VOLATILITY_PRUNED_SYMBOLS, "Step Index"):
+        if sym not in set(_ict_active_symbols("SYNTHETICS")):
+            reason = _preventive_prune_reason(sym, "SYNTHETICS")
+            PRUNED_INSTRUMENTS_INFO[sym] = reason
+            ICT_PRUNED_INFO.setdefault(sym, reason)
+    for sym in ICT_FOREX_PRUNED_SYMBOLS:
+        if sym not in set(_ict_active_symbols("FOREX")):
+            reason = _preventive_prune_reason(sym, "FOREX")
+            FOREX_PRUNED_INFO[sym] = reason
+            PRUNED_INSTRUMENTS_INFO[sym] = reason
+    for sym in (*ICT_PHASE1_EXCLUDED, *ICT_5Y_MARKETS_PRUNED, "BTCUSD", "BTCUSDmicro", "microBTCUSD", "ETHUSD", "ETHUSDmicro"):
+        if sym not in set(_ict_active_symbols("ICT")) and sym not in set(_ict_active_symbols("SYNTHETICS")):
+            reason = _preventive_prune_reason(sym, "ICT")
+            ICT_PRUNED_INFO[sym] = reason
+            PRUNED_INSTRUMENTS_INFO[sym] = reason
 
 
 _apply_ict_instrument_policy()
 
-# Worker NIGHT (sesgo nocturno, 21-oct-2026): activos validados y podados.
-DEFAULT_PRIORITIZED_SYMBOLS["NIGHT"] = ["US SP 500", "US Tech 100"]
-# Worker DRIFT (ruptura tras compresión, 21-oct-2026): los tres Drift Switch validados en el replay.
-# Worker RSI2 (RSI(2) diario de Connors, 21-oct-2026): los 5 índices US validados en el replay.
-# Worker CARRY (carry Forex G10, 24-oct-2026): los 28 pares G10; la estrategia elige cada mes los 3 de mayor carry.
-DEFAULT_PRIORITIZED_SYMBOLS["CARRY"] = list(__import__("strategy.fx_carry.carry_strategy", fromlist=["x"]).CARRY_DEFAULT_SYMBOLS)
-DEFAULT_PRIORITIZED_SYMBOLS["RSI2"] = ["US SP 500", "US Tech 100", "Wall Street 30", "US Small Cap 2000", "US Mid Cap 400"]
-DEFAULT_PRIORITIZED_SYMBOLS["DRIFT"] = ["Drift Switch Index 10", "Drift Switch Index 20", "Drift Switch Index 30"]
+# Workers retirados (NIGHT, DRIFT, RSI2, CARRY): removidos de DEFAULT_PRIORITIZED_SYMBOLS activos.
 NIGHT_PRUNED_INFO = {
     "Wall Street 30": "PODA PREVENTIVA: sesgo nocturno neto ≈ 0 en el replay (spread y swap se lo comen).",
 }

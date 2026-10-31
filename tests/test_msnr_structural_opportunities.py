@@ -187,12 +187,12 @@ def test_macro_structure_shadow_recovers_only_observation_and_live_fails_closed_
     settings=controls(macro_structure_mode='shadow')
     strategy=MalaysianSNRStrategy(provider,cfg,lambda:settings)
     with patch('strategy.malaysian_snr.malaysian_snr_strategy.structural_bias',return_value='BUY'):
-        result=strategy.analyze_symbol('EURUSD',now)
+        result=strategy.analyze_symbol('USDCAD',now)
         assert result['valid'] and result['shadow_only']
         assert result['signal']['macro_structure_observation'] is True
         settings['macro_structure_mode']='live'
-        assert strategy.analyze_symbol('EURUSD',now)['shadow_only'] is False
-    assert strategy.analyze_symbol('EURUSD',now)['reason']=='MACRO_STRUCTURE_UNAVAILABLE_OR_NEUTRAL'
+        assert strategy.analyze_symbol('USDCAD',now)['shadow_only'] is False
+    assert strategy.analyze_symbol('USDCAD',now)['reason']=='MACRO_STRUCTURE_UNAVAILABLE_OR_NEUTRAL'
     # Disabled synthetic veto remains disabled even with neutral structural mode.
     assert strategy.analyze_symbol('Step Index',now)['valid']
     assert structural_bias(frames['D1'],2) is None
@@ -204,9 +204,9 @@ def test_h4_macro_alignment_requires_both_confirmed_directions():
     strategy=MalaysianSNRStrategy(provider,MalaysianSNRConfig(allowed_symbols=()),
         lambda:controls(macro_structure_mode='live',macro_bias_method='d1_h4_structure'))
     with patch('strategy.malaysian_snr.malaysian_snr_strategy.structural_bias',side_effect=['BUY','SELL']):
-        assert strategy.analyze_symbol('EURUSD',now)['reason']=='MACRO_STRUCTURE_UNAVAILABLE_OR_NEUTRAL'
+        assert strategy.analyze_symbol('USDCAD',now)['reason']=='MACRO_STRUCTURE_UNAVAILABLE_OR_NEUTRAL'
     with patch('strategy.malaysian_snr.malaysian_snr_strategy.structural_bias',return_value='BUY'):
-        assert strategy.analyze_symbol('EURUSD',now)['valid']
+        assert strategy.analyze_symbol('USDCAD',now)['valid']
 
 
 @pytest.mark.parametrize('tf',['H1','H4'])

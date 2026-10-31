@@ -87,15 +87,15 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    # Fase 1 (18-oct-2026): Step Index, Jump 25 Index, Volatility 25 Index y XAGUSD quedan fuera de la
-    # Estrategia ICT (expectativa negativa en ambas mitades del replay fiel 365d; ver ICTSabriMalleConfig.excluded_symbols).
-    # STEP (Estrategia ICT): Step Index 400 (+44.50R) y Step Index 500 (+25.25R) son los líderes rentables en 2 años.
+    # Fase 1 (18-oct-2026) + Auditoría 5 años (26-oct-2026):
+    # STEP (Estrategia ICT): Step Index 200 (+55.1R), Step Index 500 (+32.2R) y Step Index 400 (+26.9R).
     "STEP": ("Step Index 400", "Step Index 500", "Step Index 200", "Step Index 100"),
-    # JUMP (Estrategia ICT): Jump 75 (+37.75R) y Jump 10 (+13.00R) son los activos rentables de la familia.
-    "JUMP": ("Jump 75 Index", "Jump 10 Index", "Jump 50 Index"),
-    # VOLATILITY (Estrategia ICT): Selección curada liderada por Vol 10 (+61.25R), Vol 50 1s (+43.75R), Vol 25 (+20.75R), Vol 15 (+14.75R), Vol 75 1s (+13.75R), Vol 75 (+7.50R) y Vol 250 1s (+3.00R).
+    # JUMP (Estrategia ICT): Jump 25 (+61.2R rescatado), Jump 75 (+35.9R), Jump 10 (+34.6R) y Jump 50 (+11.0R).
+    "JUMP": ("Jump 75 Index", "Jump 25 Index", "Jump 10 Index", "Jump 50 Index"),
+    # VOLATILITY (Estrategia ICT): 13 activos rentables operados por VOLATILITY_1.
     "VOLATILITY": (
         "Volatility 10 Index",
+        "Volatility 25 Index",
         "Volatility 50 (1s) Index",
         "Volatility 15 Index",
         "Volatility 75 (1s) Index",
@@ -114,45 +114,27 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 150 (1s) Index",
         "Volatility 100 (1s) Index",
     ),
-    # BOOM (Estrategia ICT): Boom 500 (+13.00R), Boom 300 (+8.00R), Boom 900 (+2.75R) y Boom 600 (+0.50R).
+    # BOOM (Estrategia ICT): Boom 900 (+65.1R), Boom 500 (+24.7R) y Boom 600 (+6.5R).
     "BOOM": ("Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 600 Index", "Boom 1000 Index"),
-    # CRASH (Estrategia ICT): Crash 600 Index (+17.25R, 31.8% WR, PF 1.16) es el líder rentable.
+    # CRASH (Estrategia ICT): Crash 900 (+67.8R) y Crash 500 (+9.1R).
     "CRASH": ("Crash 600 Index", "Crash 300 Index", "Crash 500 Index", "Crash 900 Index", "Crash 1000 Index"),
-    # FOREX (Estrategia ICT): Todos los pares rentables señalados en auditoría multi-anual (libres de poda).
+    # FOREX (Estrategia ICT): Pares con WR > 47% y R/op > 0 en auditoría multi-anual de 4 años (FOREX_1).
     "FOREX": (
-        "EURUSD", "EURUSDmicro",
-        "GBPUSD", "GBPUSDmicro",
-        "USDCAD", "USDCADmicro",
-        "USDCHF", "USDCHFmicro",
-        "AUDUSD", "AUDUSDmicro",
-        "USDJPY", "USDJPYmicro",
-        "AUDJPY", "AUDJPYmicro",
-        "AUDNZD", "AUDNZDmicro",
-        "CADCHF", "CADCHFmicro",
         "CHFJPY", "CHFJPYmicro",
-        "EURCHF", "EURCHFmicro",
-        "GBPCAD", "GBPCADmicro",
-        "EURJPY", "EURJPYmicro",
         "GBPJPY", "GBPJPYmicro",
+        "EURCAD", "EURCADmicro",
+        "GBPAUD", "GBPAUDmicro",
+        "EURCHF", "EURCHFmicro",
     ),
     # GOLD: Conservado 100% intacto según requerimiento estricto.
     "GOLD": (
         "XAUUSD", "XAGUSD",
         "XAUUSDmicro", "XAGUSDmicro",
     ),
-    # ICT SABRI MALLE (Metales, Cripto, Índices & Commodities): XAUUSD (+17.25R), BTCUSD (+10.25R), US Oil (+2.50R).
-    # Fase 1: sin XAGUSD, Jump 25 Index ni Step Index.
+    # ICT SABRI MALLE (Metales, Índices & Commodities): US Oil (+54.1R), US Tech 100 (+14.6R), XAUUSD (+4.0R).
     "ICT": (
-        "XAUUSD", "XAUUSDmicro",
-        "BTCUSD", "BTCUSDmicro",
-        "US Oil",
-        "EURUSD", "EURUSDmicro",
-        "Jump 50 Index",
-        "Crash 300 Index", "Crash 600 Index",
-        "Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 600 Index", "Boom 1000 Index",
-        "Jump 75 Index", "Jump 10 Index",
-        "Step Index 400", "Step Index 500",
-        "Wall Street 30", "US Tech 100", "US SP 500",
+        "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+        "US Oil", "US Tech 100",
     ),
     # MALAYSIAN SNR (M15 Fresh/Break - Variante C2): 23 activos canónicos rentables/marginales (60.6% WR, +37.64R).
     "MALAYSIAN_SNR": (
@@ -162,10 +144,12 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
         "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
     ),
-    # ORB NEW YORK: XAUUSD en modo SWEEP + BTCUSD y USDCAD en prueba hacia delante (demo, 40 operaciones).
+    # ORB NEW YORK: 8 Activos Rentables con modo SWEEP (WR > 47% y R > 0 en Replay 5Y).
     "ORB": (
         "XAUUSD", "XAUUSDmicro",
         "BTCUSD", "USDCAD",
+        "AUDUSD", "GBPUSD",
+        "XAGUSD", "US Oil", "USDCHF",
     ),
 }
 
@@ -183,24 +167,35 @@ TRI_MOTOR_TIER_S_ASSETS = {
     "ORB": (
         "XAUUSD", "XAUUSDmicro",
         "BTCUSD", "USDCAD",
+        "AUDUSD", "GBPUSD",
+        "XAGUSD", "US Oil", "USDCHF",
     ),
     "ICT": (
-        "Volatility 10 Index",
-        "Step Index 400",
+        "Crash 900 Index",
         "Volatility 50 (1s) Index",
+        "Boom 900 Index",
+        "Volatility 25 Index",
+        "Jump 25 Index",
+        "Step Index 200",
+        "US Oil",
+        "Step Index 400",
         "Jump 75 Index",
         "Step Index 500",
+        "Volatility 10 Index",
     ),
 }
 
 TRI_MOTOR_TIER_A_ASSETS = {
     "ICT": (
-        "Crash 600 Index", "XAUUSD", "XAUUSDmicro",
-        "GBPUSD", "GBPUSDmicro", "AUDJPY", "AUDJPYmicro", "Volatility 15 Index",
-        "Volatility 75 (1s) Index", "Boom 500 Index", "Jump 10 Index", "AUDNZD", "AUDNZDmicro",
-        "BTCUSD", "BTCUSDmicro", "Boom 300 Index", "Volatility 75 Index", "EURCHF", "EURCHFmicro",
-        "CADCHF", "CADCHFmicro", "EURUSD", "EURUSDmicro", "Volatility 250 (1s) Index",
-        "Boom 900 Index", "US Oil", "CHFJPY", "CHFJPYmicro", "Boom 600 Index",
+        "XAUUSD", "XAUUSDmicro",
+        "US Tech 100",
+        "Volatility 150 (1s) Index", "Volatility 75 Index",
+        "Volatility 75 (1s) Index", "Volatility 15 Index", "Boom 500 Index", "Jump 10 Index",
+        "EURCHF", "EURCHFmicro", "EURCAD", "EURCADmicro", "GBPAUD", "GBPAUDmicro",
+        "Volatility 250 (1s) Index", "Volatility 90 Index", "Volatility 5 Index",
+        "High Frequency Vol 100 Index", "Volatility 100 Index", "Volatility 100 (1s) Index",
+        "Boom 900 Index", "US Oil", "CHFJPY", "CHFJPYmicro", "GBPJPY", "GBPJPYmicro",
+        "Boom 600 Index", "Crash 500 Index", "Jump 50 Index",
     ),
     "MALAYSIAN_SNR": ("Crash 1000 Index",),
 }
@@ -218,7 +213,7 @@ TRI_MOTOR_ORCHESTRATION_CONFIG = {
     "msnr_c2_default_max_atr": 1.5,
     "msnr_min_adx": 30.0,
 }
-
+
 
 
 # ========================================================
@@ -241,18 +236,21 @@ def _without(symbols, pruned):
 for _family in ("STEP", "JUMP", "VOLATILITY", "BOOM", "CRASH", "ICT"):
     PRUNED_ASSET_UNIVERSE[_family] = _without(PRUNED_ASSET_UNIVERSE[_family], ICT_WR45_PRUNED)
 PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"] = _without(PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
-for _tier in (TRI_MOTOR_TIER_S_ASSETS, TRI_MOTOR_TIER_A_ASSETS):
-    if "ICT" in _tier:
-        _tier["ICT"] = _without(_tier["ICT"], ICT_WR45_PRUNED)
-    if "MALAYSIAN_SNR" in _tier:
-        _tier["MALAYSIAN_SNR"] = _without(_tier["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
 
-# Política única de /Instruments ICT (config/ict_instrument_policy.py, 20-oct-2026): los universos de familia
+# Política única de /Instruments ICT (config/ict_instrument_policy.py, 26-oct-2026): los universos de familia
 # coinciden con lo que operan los workers; lo demás queda en PODA PREVENTIVA.
 from config.ict_instrument_policy import (  # noqa: E402
+    ICT_5Y_SYNTH_PRUNED as _ICT_5Y_SYNTH_PRUNED,
     ICT_ACTIVE_BY_PROFILE as _ICT_ACTIVE_BY_PROFILE,
+    ICT_PHASE1_EXCLUDED as _ICT_PHASE1_EXCLUDED,
     ICT_SYNTHETIC_FAMILIES as _ICT_SYNTHETIC_FAMILIES,
 )
+
+for _tier in (TRI_MOTOR_TIER_S_ASSETS, TRI_MOTOR_TIER_A_ASSETS):
+    if "ICT" in _tier:
+        _tier["ICT"] = _without(_tier["ICT"], (*ICT_WR45_PRUNED, *_ICT_PHASE1_EXCLUDED, *_ICT_5Y_SYNTH_PRUNED))
+    if "MALAYSIAN_SNR" in _tier:
+        _tier["MALAYSIAN_SNR"] = _without(_tier["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
 
 for _family, _symbols in _ICT_SYNTHETIC_FAMILIES.items():
     PRUNED_ASSET_UNIVERSE[_family] = tuple(_symbols)

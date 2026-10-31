@@ -82,8 +82,15 @@ def test_ict_config_defaults():
     assert config.ny_killzone_enabled is False
     assert config.forex_ny_killzone_enabled is False
     assert config.london_close_reversal_enabled is False
-    assert tuple(config.silver_bullet_hours_ny) == (3, 14)
-    assert {"Step Index", "Jump 25 Index", "Volatility 25 Index", "XAGUSD"} <= set(config.excluded_symbols)
+    assert config.london_kz_start_ny == 3
+    assert config.london_kz_end_ny == 5
+    assert tuple(config.silver_bullet_hours_ny) == (3,)
+    assert config.macro_h4_candles == 300
+    assert config.min_sl_atr_h1 == 1.0
+    assert config.max_signed_pullback_r == 0.45
+    assert config.min_adx_h1 == 20.0
+    assert {"XAGUSD", "US SP 500"} <= set(config.excluded_symbols)
+    assert {"Jump 25 Index", "Volatility 25 Index"} <= set(config.active_22_symbols)
     assert config.tp1_rr in (1.0, 2.0)
     assert config.runner_rr in (2.0, 4.0)
     assert config.be_trigger_rr in (1.0, 2.0)

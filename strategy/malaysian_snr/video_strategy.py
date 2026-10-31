@@ -42,6 +42,7 @@ class MSNRVideoStrategy:
         self._engine = MalaysianSNRStrategy(data_provider, MalaysianSNRConfig(
             enabled=True, strategy_name=self.config.strategy_name, strategy_version=self.config.strategy_version,
             enable_h4h1_confirmation=True, h4h1_runner_rr=self.config.runner_rr,
+            h4h1_synthetics_only=self.config.synthetics_only,
             excluded_symbols=tuple(self.config.excluded_symbols)))
 
     def _base(self, symbol, reason):

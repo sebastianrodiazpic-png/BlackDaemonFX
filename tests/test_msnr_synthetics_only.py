@@ -33,7 +33,8 @@ def test_env_restores_previous_behaviour(monkeypatch):
     assert tuple(cfg.allowed_symbols) == tuple(MalaysianSNRConfig().allowed_symbols)
 
 
-@pytest.mark.parametrize("symbol,blocked", [("EURUSD", True), ("XAUUSD", True), ("Wall Street 30", True),
+# Mercados reales fuera de la prueba demo del 25-oct-2026 (real_market_symbols): siguen rechazados.
+@pytest.mark.parametrize("symbol,blocked", [("AUDJPY", True), ("XAGUSD", True), ("UK 100", True),
                                             ("Volatility 75 Index", False), ("Boom 900 Index", False)])
 def test_strategy_rejects_real_markets(symbol, blocked):
     provider = SimpleNamespace(get_candles=lambda *a, **k: None)
@@ -41,6 +42,17 @@ def test_strategy_rejects_real_markets(symbol, blocked):
                                                               enable_session_killzones_filter=False))
     res = strat.analyze_symbol(symbol)
     assert (res.get("reason") == "MSNR_SYNTHETICS_ONLY") is blocked
+
+
+@pytest.mark.parametrize("symbol", ["GBPUSD", "XAUUSD", "Germany 40"])
+@pytest.mark.parametrize("enabled", [True, False])
+def test_real_market_demo_symbols_pass_only_when_enabled(symbol, enabled):
+    provider = SimpleNamespace(get_candles=lambda *a, **k: None)
+    strat = MalaysianSNRStrategy(provider, MalaysianSNRConfig(synthetics_only=True, allowed_symbols=(),
+                                                              enable_session_killzones_filter=False,
+                                                              real_markets_enabled=enabled))
+    res = strat.analyze_symbol(symbol)
+    assert (res.get("reason") == "MSNR_SYNTHETICS_ONLY") is (not enabled)
 
 
 def test_msnr_runner_extends_to_tp4():

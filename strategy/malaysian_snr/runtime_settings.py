@@ -1,9 +1,15 @@
 """Validation shared by persisted preferences, HTTP controls and live analysis."""
 import math
+import os
 from copy import deepcopy
 from .universe import CATALOG_SYMBOLS
 
 DEFAULT_FRACTAL_MIN_BODY_RATIO = 0.50
+# IA incompatible: 'observe' (solo DEMO; en cuenta real sigue bloqueando). Antes 'block': si los ajustes guardados se
+# perdían, MSNR dejaba de operar sin avisar (la base viva usa 'observe'). DAEMONBLACKFX_MSNR_AI_INCOMPATIBLE_DEFAULT.
+DEFAULT_AI_INCOMPATIBLE_POLICY = os.getenv('DAEMONBLACKFX_MSNR_AI_INCOMPATIBLE_DEFAULT', 'observe').strip().lower()
+if DEFAULT_AI_INCOMPATIBLE_POLICY not in ('block', 'observe'):
+    DEFAULT_AI_INCOMPATIBLE_POLICY = 'observe'
 DEFAULT_FRACTAL_MAX_ENTRY_DISTANCE_ATR = 0.50
 
 ADDITIONAL_SYMBOLS = ('Jump 50 Index', 'Jump 100 Index', 'Jump 75 Index', 'Volatility 75 (1s) Index')
@@ -71,7 +77,7 @@ MSNR_DEFAULT_SETTINGS = {
     'recovery_min_body_ratio': 0.35,
     'h4_neutral_fallback_mode': 'shadow',
     'ai_mode': 'filter',
-    'ai_incompatible_policy': 'block',
+    'ai_incompatible_policy': DEFAULT_AI_INCOMPATIBLE_POLICY,
     'ai_min_probability': 0.47,
     'ai_min_probability_forex': 0.55,
     'ai_min_probability_gold': 0.55,

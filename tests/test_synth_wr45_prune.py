@@ -18,8 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_pruned_sets():
-    from config.synth_wr45 import REAL_SPREAD_PRUNED  # 23-oct-2026: poda por spread real, sumada a ambas listas
-    assert set(ICT_WR45_PRUNED) == {"Boom 300 Index", "Crash 1000 Index", "Vol over Boom 550", "Volatility 90 (1s) Index"} | set(REAL_SPREAD_PRUNED)
+    from config.synth_wr45 import REAL_SPREAD_PRUNED, _ICT_5Y_AUDIT  # 23-oct-2026: poda por spread real, sumada a ambas listas
+    if _ICT_5Y_AUDIT:
+        assert set(ICT_WR45_PRUNED) == {"Crash 1000 Index", "Volatility 90 (1s) Index", "High Frequency Vol 50 Index"} | set(REAL_SPREAD_PRUNED)
+    else:
+        assert set(ICT_WR45_PRUNED) == {"Boom 300 Index", "Crash 1000 Index", "Vol over Boom 550", "Volatility 90 (1s) Index"} | set(REAL_SPREAD_PRUNED)
     assert set(MSNR_WR45_PRUNED) == {"Step Index", "Volatility 100 Index", "Jump 50 Index", "Crash 300 Index",
                                      "Crash 600 Index", "Boom 1000 Index", "Volatility 90 (1s) Index"} | set(REAL_SPREAD_PRUNED)
 
@@ -35,7 +38,7 @@ def test_ict_pruned_everywhere():
     assert set(ICT_WR45_PRUNED) <= set(PRUNED_INSTRUMENTS_INFO) and set(ICT_WR45_PRUNED) <= set(ICT_PRUNED_INFO)
 
 
-@pytest.mark.parametrize("symbol,pruned", [("Boom 300 Index", True), ("Crash 1000 Index", True),
+@pytest.mark.parametrize("symbol,pruned", [("Crash 1000 Index", True), ("Volatility 90 (1s) Index", True),
                                            ("Boom 500 Index", False), ("Volatility 10 Index", False)])
 def test_ict_strategy_rejects_pruned(symbol, pruned):
     provider = SimpleNamespace(get_candles=lambda *a, **k: None)
@@ -46,12 +49,16 @@ def test_ict_strategy_rejects_pruned(symbol, pruned):
 def test_msnr_pruned_everywhere():
     engine = LiveTradingEngine(provider=SimpleNamespace(), repository=SimpleNamespace(), executor=SimpleNamespace(),
                                config=LiveTradingConfig(bot_profile="MALAYSIAN_SNR"))
-    assert set(engine.malaysian_snr_strategy.config.excluded_symbols) == set(MSNR_WR45_PRUNED)
+    # 25-oct-2026: Malaysian SNR poda por acierto <= 47 % (incluye los <= 45 % salvo VolSwitch, que el usuario activa).
+    from config.ict_instrument_policy import MALAYSIAN_SNR_EXCLUDED
+    excluded = set(MALAYSIAN_SNR_EXCLUDED)
+    assert set(engine.malaysian_snr_strategy.config.excluded_symbols) == excluded
+    assert set(MSNR_WR45_PRUNED) - {"VolSwitch High Vol Index"} <= excluded
     from app.main import BOT_PROFILES
     spec = BOT_PROFILES["MALAYSIAN_SNR"]
-    assert not set(MSNR_WR45_PRUNED) & set(spec["symbols"]) and set(MSNR_WR45_PRUNED) <= set(spec["pruned_symbols"])
+    assert not excluded & set(spec["symbols"]) and excluded <= set(spec["pruned_symbols"])
     from dashboard.realtime_dashboard import DEFAULT_PRIORITIZED_SYMBOLS, MALAYSIAN_SNR_PRUNED_INFO
-    assert not set(MSNR_WR45_PRUNED) & set(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
+    assert not excluded & set(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
     assert set(MSNR_WR45_PRUNED) <= set(MALAYSIAN_SNR_PRUNED_INFO)
 
 

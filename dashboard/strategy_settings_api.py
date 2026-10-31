@@ -24,12 +24,21 @@ def handle_strategy_settings_request(handler, service, method):
             return True
     if path == '/api/strategies/malaysian-snr/candidates' and method == 'GET':
         try:
-            result = {'ok':True,'funnel':service.repository.msnr_candidate_funnel(source='DEMO')}
+            funnel_data = service.repository.msnr_candidate_funnel(source='DEMO')
+            result = {
+                'ok': True,
+                'funnel': funnel_data,
+            }
             status = HTTPStatus.OK
         except Exception:
-            result, status = {'ok':False,'error':'Auditoria de candidatos no disponible'}, HTTPStatus.SERVICE_UNAVAILABLE
-        handler._send(json.dumps(result,ensure_ascii=False).encode('utf-8'),
-                      'application/json; charset=utf-8',status)
+            result = {
+                'ok': False,
+                'error': 'Auditoria de candidatos no disponible',
+            }
+            status = HTTPStatus.SERVICE_UNAVAILABLE
+
+        response_bytes = json.dumps(result, ensure_ascii=False).encode('utf-8')
+        handler._send(response_bytes, 'application/json; charset=utf-8', status)
         return True
     if path != PATH:
         return False

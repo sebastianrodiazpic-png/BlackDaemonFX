@@ -33,7 +33,7 @@ def _json_mapping(raw):
 
 @dataclass(frozen=True)
 class ExternalMarketDataSettings:
-    mode: str = "shadow"
+    mode: str = "external"
     provider: str = "deriv"
     deriv_endpoint: str = "wss://api.derivws.com/trading/v1/options/ws/public"
     deriv_symbol_map_json: str | None = None
@@ -46,7 +46,7 @@ class ExternalMarketDataSettings:
     def from_environment(cls, mode=None):
         _load_project_dotenv()
         return cls(
-            mode=str(mode or os.getenv("DAEMON_MARKET_DATA_MODE", "shadow")).casefold(),
+            mode=str(mode or os.getenv("DAEMON_MARKET_DATA_MODE", "external")).casefold(),
             provider=str(os.getenv("DAEMON_MARKET_DATA_PROVIDER", "deriv")).casefold(),
             deriv_endpoint=os.getenv(
                 "DERIV_WEBSOCKET_ENDPOINT",
@@ -73,8 +73,14 @@ def build_market_data_provider(metadata_provider, *, settings=None):
     if mode in {"feeder", "zmq"}:
         from .zmq_provider import ZMQMarketDataProvider
         return ZMQMarketDataProvider(fallback_provider=metadata_provider)
+    from .circular_candle_buffer import BufferedCandleProvider
+
+    buffer_enabled = os.getenv(
+        "DAEMONBLACKFX_CANDLE_BUFFER_ENABLED", "1"
+    ).strip().lower() not in ("0", "false", "no", "off")
+
     if mode == "mt5":
-        return metadata_provider
+        return BufferedCandleProvider(metadata_provider) if buffer_enabled else metadata_provider
     if str(settings.provider).casefold() != "deriv":
         raise MarketDataConfigurationError(
             "v113.1 sólo admite DAEMON_MARKET_DATA_PROVIDER=deriv"
@@ -91,10 +97,12 @@ def build_market_data_provider(metadata_provider, *, settings=None):
         tick_cache_ttl_seconds=settings.tick_cache_ttl_seconds,
     )
     if mode == "shadow":
-        return ShadowMarketDataProvider(
+        shadow_provider = ShadowMarketDataProvider(
             router,
             metadata_provider,
             output_path=settings.shadow_output_path,
             maximum_close_divergence_atr=settings.shadow_maximum_close_divergence_atr,
         )
-    return router
+        return BufferedCandleProvider(shadow_provider) if buffer_enabled else shadow_provider
+
+    return BufferedCandleProvider(router) if buffer_enabled else router

@@ -53,9 +53,9 @@ class TestMalaysianSNRAugmentedRules(unittest.TestCase):
         provider = MockDataProvider(pd.DataFrame(), pd.DataFrame())
         strat = MalaysianSNRStrategy(provider, config=config)
 
-        # 03:00 UTC (Fuera de Killzone en Forex)
+        # 03:00 UTC (Fuera de Killzone en Forex). AUDUSD: EURUSD está en la prueba de mercados reales (sesión Asia → NY).
         t_out = datetime(2026, 10, 9, 3, 0, tzinfo=timezone.utc)
-        res_forex = strat.analyze_symbol("EURUSD", now_utc=t_out)
+        res_forex = strat.analyze_symbol("AUDUSD", now_utc=t_out)
         self.assertFalse(res_forex["valid"])
         self.assertEqual(res_forex["reason"], "SESSION_FILTER_OUTSIDE_KILLZONE")
 

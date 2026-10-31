@@ -16,22 +16,23 @@ def _engine(profile, selected, enabled=True):
 
 
 def test_pruned_symbols_are_not_scanned():
-    base = ["Step Index", "Step Index 200", "Step Index 400"]
-    assert _engine("STEP", base)._selected_base_cycle_symbols(base) == ["Step Index 200", "Step Index 400"]
-    base = ["Volatility 10 Index", "Vol over Boom 550", "VolSwitch High Vol Index"]
+    base = ["Crash 1000 Index", "Crash 300 Index", "Crash 500 Index"]
+    assert _engine("CRASH", base)._selected_base_cycle_symbols(base) == ["Crash 300 Index", "Crash 500 Index"]
+    base = ["Volatility 10 Index", "Volatility 90 (1s) Index", "High Frequency Vol 50 Index"]
     assert _engine("VOLATILITY_1", base)._selected_base_cycle_symbols(base) == ["Volatility 10 Index"]
 
 
 def test_msnr_scans_only_its_synthetics_and_forex_only_active_pairs():
-    base = ["Volatility 25 Index", "XAUUSD", "US SP 500"]
-    assert _engine("MSNR", base)._selected_base_cycle_symbols(base) == ["Volatility 25 Index"]
-    base = ["EURUSD", "NZDUSD", "AUDCAD"]
-    assert _engine("FOREX_3", base)._selected_base_cycle_symbols(base) == ["EURUSD"]
+    base = ["Volatility 25 Index", "Boom 1000 Index", "US SP 500"]
+    assert _engine("MALAYSIAN_SNR", base)._selected_base_cycle_symbols(base) == ["Volatility 25 Index"]
+    base = ["GBPUSD", "EURUSD", "AUDCAD"]
+    assert _engine("FOREX_1", base)._selected_base_cycle_symbols(base) == ["GBPUSD"]
+    assert _engine("FOREX_2", base)._selected_base_cycle_symbols(base) == ["EURUSD", "AUDCAD"]
 
 
 def test_profiles_outside_policy_and_switch_off_keep_selection():
     base = ["US SP 500", "US Tech 100"]
-    assert _engine("RSI2", base)._selected_base_cycle_symbols(base) == base
+    assert _engine("FLIP", base)._selected_base_cycle_symbols(base) == base
     base = ["Step Index", "Step Index 200"]
     assert _engine("STEP", base, enabled=False)._selected_base_cycle_symbols(base) == base
 

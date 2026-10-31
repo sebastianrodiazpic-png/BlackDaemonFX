@@ -9,8 +9,8 @@ from strategy.orb.new_york_orb import classify_orb_market, is_orb_eligible_symbo
 
 
 def test_forward_test_profiles_and_market():
-    assert set(ORB_SWEEP_FORWARD_TEST_SYMBOLS) == {"BTCUSD", "USDCAD"}
-    for key in ("BTCUSD", "USDCAD"):
+    assert set(ORB_SWEEP_FORWARD_TEST_SYMBOLS) == {"BTCUSD", "USDCAD", "AUDUSD", "GBPUSD"}
+    for key in ("BTCUSD", "USDCAD", "AUDUSD", "GBPUSD"):
         assert ASSET_CONFIG[key]["sweep_enabled"] is True and ASSET_CONFIG[key]["allowed_modes"] == []
     # USDCAD replica el perfil del replay ampliado (perfil genérico de investigación)
     assert ASSET_CONFIG["USDCAD"]["max_range_atr_ratio"] == 1.5 and ASSET_CONFIG["USDCAD"]["require_volume"] is True

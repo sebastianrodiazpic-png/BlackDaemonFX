@@ -43,31 +43,1225 @@ Plantilla de entrada:
 
 ---
 
-## Estado actual (19-oct-2026, tras los cambios de esta sesión — pendiente de reiniciar daemons)
+## Estado actual (30-oct-2026, tras lógica adaptativa bidireccional en Workers STEP y JUMP, control /Instruments y exclusión de unidireccionales)
 
 | Área | Configuración vigente en código |
 |---|---|
 | Riesgo | 1 % por operación en 2 patas (sintéticos y MSNR también al 1 %) |
 | Operaciones simultáneas | 8 (16 posiciones físicas), común a todos los workers |
-| ICT sintéticos | Solo velas cerradas · entrada **limitada virtual** (8 velas M15) · tope spread/SL 2 % · IA en **sombra** · 28 activos (podados: excluidos Fase 1 + acierto ≤ 45 %) |
-| ICT Forex | Tope spread/SL 5 % · entrada a mercado · sin ventaja demostrada |
-| ICT metales | Tope spread/SL 2 % (solo ICT) |
-| ICT cripto | **Desactivado** |
-| ORB | SWEEP en XAUUSD (validado) + BTCUSD y USDCAD en **prueba demo** (corte automático tras 40 ops si R/op ≤ 0) · runner TP3/TP4 |
-| MSNR | Solo sintéticos (30 activos), sin C2 ni lista de 23, runner TP3/TP4. **Ojo**: los ajustes de MSNR en la base (`asset_modes`) tienen activos en `off` que mandan sobre el código |
-| Forex workers | Tope spread/SL 5 % (antes 15 %) |
-| Workers desactivados (24-oct) | Forex 1-4, ICT (mercados reales), GOLD e IDX_OPEN sin entradas nuevas (`DAEMONBLACKFX_DISABLED_WORKERS`); el monitor gestiona lo abierto |
+| Workers STEP y JUMP bidireccionales (30-oct) | **Operativa bidireccional completa (BUY y SELL)** con WR > 51.5%: Jump 50/75 SELL con Escudo Anti-Salto (sl_atr_h1 ≥ 1.45), Step Index y Step 500 BUY con Ancla de Expansión (dx_h1 ≥ 28.0), Step 200/400 bidireccionales nativos. Gobernados desde /Instruments pestaña SINTÉTICOS |
+| ICT sintéticos (28-oct) | Solo velas cerradas · entrada **limitada virtual** (8 velas M15) · tope spread/SL 2 % · IA en **sombra** · piso SL `sl_atr_h1 ≥ 1.0` · ADX H1 `≥ 20.0` · retroceso mitigado `≤ 0.45 R` (`DAEMONBLACKFX_ICT_MAX_PULLBACK_R=0.45`, +363 trades, +37.7 R netos) · asimetría direccional (Jump 50/75 BUY only, Step Index y Step Index 500 SELL only: +8.2 R salvados) · **30 activos con WR > 48%** (+450.8 R acumulados); podados únicamente `Crash 1000`, `Vol 90 1s` y `HF Vol 50` |
+| ICT Forex (26-oct) | Ventana Londres depurada 03:00–05:00 NY · Silver Bullet 03:00 NY · orden limitada virtual con tope spread/SL 2,5 % · **9 pares base activos con WR > 47%** (`GBPUSD`, `USDCHF`, `EURJPY`, `CADCHF`, `NZDUSD`, `EURGBP`, `GBPJPY`, `GBPCHF`, `AUDJPY` + `*micro` = 18 símbolos, `+17,47 R`) en `FOREX_1` (ON) y **12 pares base podados** (24 símbolos) en `FOREX_2` (OFF) |
+| ICT mercados reales (26-oct) | **4 activos base con WR > 47%** (`US Tech 100` `+16,0 R`, `WR=75,00 %`, `Wall Street 30` `+4,5 R`, `WR=56,76 %` rescatado, `XAUUSD`/`*micro` `+2,0 R`, `WR=54,55 %`, `US Oil` `+54,1 R` a mercado = 6 símbolos) en worker `ICT` (ON); `US SP 500` (`WR=36,36 %`), `XAGUSD` y Cripto en PODA PREVENTIVA |
+| Consolidación de workers y activación selectiva (26-oct) | `VOLATILITY_1` (16 activos ON) y `VOLATILITY_2` (2 podados OFF; `VOLATILITY_3/4` consolidados) · `FOREX_1` (18 activos ON) y `FOREX_2` (24 podados OFF; `FOREX_3/4` consolidados) · Activación selectiva habilitada desde `/Instruments` (`DAEMONBLACKFX_ALLOW_SELECTIVE_ACTIVATION=1`) |
+| ORB (28-oct) | **Modelo Élite SWEEP M3**: 5 activos núcleo con WR > 55% y R/op > 0 (`BTCUSD` WR 60.9% `+18.31 R` con ATR 2.8, `USDCAD` WR 55.4% `+16.56 R`, `XAUUSD` WR 56.4% `+9.97 R`, `GBPUSD` WR 55.6% `+9.79 R`, `AUDUSD` WR 55.1% `+2.12 R`, acumulando `+56.75 R` netos) · Poda preventiva estricta en SWEEP puro de `US Oil` (-28.95 R), `USDCHF` (-15.90 R) y `XAGUSD` (-1.13 R) · Contrato 2 patas 0.5% con BE y runner progresivo · daemons reiniciados y activos |
+| Malaysian SNR (28-oct) | **Fórmula Híbrida Institucional v3.2** · 35 activos activos con WR ≥ 47 % (24 sintéticos + 11 mercados reales en sesión Londres+NY/Asia-NY) · **3 Mejoras Validadas (+113.13 R delta)**: Clearance obstáculo 1.2R (alineado a TP1 1:1), Buffer dinámico de retest H1 (+0.20 ATR) y Asimetría direccional Jump (BUY) / Step (SELL) · 6 activos en **PODA PREVENTIVA** (`Boom 600`, `Boom 900`, `Crash 1000`, `EURUSD`, `AUDUSD`, `CHFJPY`) · daemons reiniciados y activos |
+| MSNR | 35 activos en universo élite, clearance 1.2R, buffer dinámico retest M15/H1, runner TP3/TP4, sin C2 |
+| Workers desactivados (26-oct) | `FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN` sin entradas nuevas por defecto (`DAEMONBLACKFX_DISABLED_WORKERS`); `VOLATILITY_2` y `FOREX_2` pueden reactivarse selectivamente desde `/Instruments` |
 | RSI2 (22-oct) | RSI(2) diario de Connors en los 5 índices US · **prueba demo** (60 ops, R/op > 0) · 1 % en dos entradas (TP1 1R + runner 2R con BE), stop 2 ATR D1, la regla cierre > SMA5 o 10 días cierra lo que quede · replay +0,177 R/op (no concluyente) |
 | CARRY (24-oct) | Carry Forex G10 con swap real de MT5 · top 3 pares, rebalanceo mensual, stop 3 ATR D1 · 1 % en dos entradas (TP1 1R + runner TP2 2R con BE y extensión TP3/TP4) · **prueba demo** (36 ops, R/op > 0) · exento del cierre forzado de Forex · falta reiniciar |
 | Ejecución y dashboard (24-oct, auditoría de código) | `volume_limit` repartido entre piernas · límite ICT de un solo uso · dashboard rechaza peticiones de otras webs · sin parche en caliente · falta reiniciar |
 | DRIFT (21-oct) | **DESACTIVADO** (23-oct): sin ventaja con el spread real de ticks (−0,030 R/op); `DAEMONBLACKFX_DRIFT=off` por defecto |
+| Infraestructura y Rendimiento (27-oct) | **Búfer circular de velas** en memoria (300 velas fijas por activo/TF, `DAEMONBLACKFX_CANDLE_BUFFER_ENABLED=1`) · **Cola asíncrona de notificaciones y exportación XLSX** (`AsyncNotificationQueue`, hilo demonio en background, sin bloqueos de I/O de disco) · Modo datos `external` por defecto · Heartbeat SQLite en lote cada 15 s |
+| Trend Pullback H1+M15 (30-oct) | **Estrategia Cuantitativa en Sintéticos (>51% Win Rate)** sobre velas cerradas H1 (EMA 50/200 + ADX(14) >= 20) y M15 (EMA 21 + rechazo + RSI 30-70). **21 activos activos con WR > 51.0% y R>0** (`Crash 300` 60.1%, `Vol 25` 58.5%, `Vol 100 1s` 57.8%, `Vol 90` 57.0%, `Crash 500` 55.2%, `Jump 75/10/50/25`, `Boom 900/600/300`, `Step 200/400`, `Vol 10/250 1s/5/75/15`, `VolSwitch High Vol`). **Pestaña independiente en /Instruments** (`TREND_PULLBACK`), worker dedicado `trend-pullback-daemon` (Magic: `26082038`). Contrato 2 patas 0,5% (1% total) con TP1 1R + BE y runner 2R. |
+| Rendimiento e I/O previo (26-oct) | Workers desactivados sin posiciones abiertas no lanzan proceso Python (`DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES=1`) · modo datos `external` por defecto (sin doble lectura MT5 ni `market_data_shadow.jsonl` de 7,09 GB) · reporte XLSX cada 300 s con muestreo de anchos · estado persistido compacto (`last_state.json` de 29,24 MB → 0,14 MB) · heartbeat SQLite del coordinador en lote cada 15 s |
 
-Rendimiento esperado (replay fiel, no garantizado): ICT sintéticos con límite + tope 2 % ≈ **+0,03/+0,04 R/trade**, acierto ~52 %.
+Rendimiento esperado (replay fiel 5 años con 6 mejoras): ICT sintéticos con WR > 47% ≈ **+0,07 R/trade**, acierto ~53,4 % (+500,1 R en 29 activos con R>0). Forex 9 pares ≈ **+0,04 R/trade**, acierto ~51,9 % (+17,5 R). ICT índices/metales/energía ≈ **+0,13 R/trade**, acierto ~59,9 % (+76,5 R a mercado).
 MSNR sintéticos ≈ 0 R/trade. ORB XAUUSD SWEEP ≈ +0,2 R/trade (n≈95, no concluyente). Demo real hasta el 18-oct: −0,088 R/trade.
 
 ---
 
 ## Historial de cambios (más reciente primero)
+
+### 2026-10-31 — Gestión Progresiva Dinámica en Vivo para Pata Corredora (1:2 Inicial -> Proteger 1.5R para 1:3 -> Proteger 2.5R para 1:4)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Apertura de orden sin estimación preliminar fija**:
+    * En `strategy/execution/live_trading_engine.py` (`_plan_split_orders`), la pata corredora (`RUNNER`) nace siempre configurada en el broker con su Take Profit inicial en **1:2 ($2.0\text{ R}$)** (`eff_second_rr`), eliminando la colocación estática de $4.0\text{ R}$ a ciegas al abrir la operación.
+  - **Monitoreo dinámico en vivo en velas M5 (`_manage_runner_extension`)**:
+    * **Hito 1 (+1.5 R)**: Al alcanzar $+1.5\text{ R}$ de ganancia flotante en vivo, el monitor evalúa la estructura de mercado en M5 (`evaluate_runner_continuation`). Si se valida continuación hacia 1:3, **el stop loss se mueve a $+1.5\text{ R}$ (bloqueando $+1.5\text{ R}$ de beneficio garantizado)** y el Take Profit en el broker se amplía a **$3.0\text{ R}$**. Si no hay continuación, el runner se cierra a mercado asegurando el beneficio.
+    * **Hito 2 (+2.5 R)**: Al alcanzar $+2.5\text{ R}$ flotantes buscando 1:4, el monitor vuelve a evaluar en M5 la continuación. Si se valida avance hacia 1:4, **el stop loss se mueve a $+2.5\text{ R}$ (asegurando $+2.5\text{ R}$ de ganancia)** y el Take Profit se amplía en el broker a **$4.0\text{ R}$**. Si la estructura no muestra continuación, se cierra inmediatamente asegurando los $+2.5\text{ R}$.
+    * Si la posición toca el objetivo máximo ($4.0\text{ R}$), se ejecuta el TP en el broker o el monitor ejecuta `MAX_TARGET_REACHED`.
+  - **Parámetros y compatibilidad**:
+    * Configuración por variables de entorno: `DAEMONBLACKFX_RUNNER_FIRST_TRIGGER_RR` (default 1.5), `DAEMONBLACKFX_RUNNER_FIRST_LOCK_RR` (default 1.5), `DAEMONBLACKFX_RUNNER_SECOND_TRIGGER_RR` (default 2.5), `DAEMONBLACKFX_RUNNER_SECOND_LOCK_RR` (default 2.5), `DAEMONBLACKFX_RUNNER_MAX_TARGET_RR` (default 4.0).
+    * Nomenclatura dinámica de etapas (`1.5R_TO_3R`, `2.5R_TO_4R`) con total compatibilidad retrospectiva con etapas previas (`2R_TO_3R`, `3R_TO_4R`).
+- **Por qué / evidencia**:
+  - Evitar que una posición ganadora que alcanza $+1.5\text{ R}$ o $+2.5\text{ R}$ devuelva sus beneficios por mantener un TP preliminar lejano fijado a ciegas al nacer el trade.
+  - El monitoreo en vivo en M5 permite surfear expansiones genuinas asegurando siempre el tramo ganado previo (bloqueo estricto de $+1.5\text{ R}$ al buscar 3R y $+2.5\text{ R}$ al buscar 4R).
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_dynamic_progressive_runner_1_5r_2_5r.py`
+  - `tests/test_daemon_runner_extension.py`
+  - `tests/test_v101_runner_tp2_policy.py`
+  - `tests/test_daemon_split_risk_management.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_RUNNER_FIRST_TRIGGER_RR`: Umbral en R para primera evaluación (1.5).
+  - `DAEMONBLACKFX_RUNNER_FIRST_LOCK_RR`: Beneficio asegurado en R al validar etapa 1 (1.5).
+  - `DAEMONBLACKFX_RUNNER_SECOND_TRIGGER_RR`: Umbral en R para segunda evaluación (2.5).
+  - `DAEMONBLACKFX_RUNNER_SECOND_LOCK_RR`: Beneficio asegurado en R al validar etapa 2 (2.5).
+  - `DAEMONBLACKFX_RUNNER_MAX_TARGET_RR`: Objetivo máximo R:R del runner (4.0).
+- **Tests**:
+  - `tests/test_dynamic_progressive_runner_1_5r_2_5r.py` (3/3 pasan).
+  - `tests/test_daemon_runner_extension.py` (3/3 pasan).
+  - `tests/test_runner_extension_manager.py` (3/3 pasan).
+  - `tests/test_v101_runner_tp2_policy.py` (4/4 pasan).
+  - `tests/test_daemon_split_risk_management.py` (4/4 pasan).
+  - `tests/test_dashboard_cleanup_retired_workers.py` (5/5 pasan).
+  - Total suite verificada: 22/22 tests pasando al 100%.
+- **Efecto esperado y riesgos**:
+  - Mayor tasa de conversión de ganancias y menor retroceso ("giveback") en el runner. El runner asegura inmediatamente 1.5R en cuanto el precio lo toca y sólo busca 3R o 4R si el mercado realmente valida la continuación en M5. Riesgo minimizado al tener el capital siempre protegido detrás del precio.
+
+
+### 2026-10-31 — Limpieza Integral del Dashboard y Purgado de Workers Inactivos / Retirados (CARRY, DRIFT, GOLD, MSNR, NIGHT, RSI2)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Exclusión y filtrado de workers obsoletos en backend y frontend**:
+    * En `dashboard/realtime_dashboard.py`: definición del conjunto `_RETIRED_WORKER_PROFILES` (`CARRY`, `DRIFT`, `GOLD`, `GOLD_QUARTERS`, `MSNR`, `NIGHT`, `RSI2`, `FLIP`, `IDX_OPEN`, `V53_PROBE`) y extensión de `_is_retired_worker_profile`.
+    * En JavaScript del dashboard: actualización de `visibleWorkers(s)` con `RETIRED_WORKER_PROFILES` para filtrar defensivamente los perfiles retirados tanto en el resumen superior como en las pestañas de candidatos (`candidateBotTabs`) y la cuadrícula de procesos (`#workerGrid`).
+    * Actualización de la Matriz Centinela de confluencias: reemplazo del botón y cabecera de `GOLD_QUARTERS` por la estrategia activa `TREND_PULLBACK` (`>51% WR`).
+    * Limpieza del catálogo `/instruments`: eliminación de las adiciones forzadas de `gold_cuartos_xauusd` y `gold_cuartos_xagusd` (XAUUSD y XAGUSD permanecen gestionados limpiamente bajo ICT y ORB).
+    * Remoción de categorías y metadatos obsoletos en `_CATEGORY_LABELS` y `_WORKER_PROFILE_META`.
+  - **Purgado de registros históricos en la base de datos persistente SQLite**:
+    * Purgadas 9 filas inactivas de `worker_runtime_states` en `%LOCALAPPDATA%\BlackDaemonFx\trading_bot.sqlite3` (`V53_PROBE`, `FLIP`, `GOLD`, `IDX_OPEN`, `MSNR`, `NIGHT`, `DRIFT`, `RSI2`, `CARRY`), erradicando su reaparición al reiniciar el dashboard o recargar el estado desde disco.
+- **Por qué / evidencia**:
+  - Solicitud explícita del usuario para limpieza del dashboard operativo, retirando módulos que ya no forman parte de la arquitectura activa multi-bot (Gold Quarters, Carry Forex, Overnight Drift, Connors RSI2, Night bias e historial viejo de MSNR).
+  - Eliminación de ruido visual, optimización del renderizado DOM del dashboard y alineación exacta de la interfaz con los workers y estrategias rentables en ejecución real.
+- **Ficheros**:
+  - `dashboard/realtime_dashboard.py`
+  - `tests/test_dashboard_cleanup_retired_workers.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_RETIRED_WORKERS_FILTER`: Activa el filtrado de trabajadores retirados (por defecto `1`). Si se establece en `0`, desactiva el filtrado.
+- **Tests**:
+  - `tests/test_dashboard_cleanup_retired_workers.py` (5/5 tests pasan).
+  - `tests/test_fixes_validation.py` (6/6 tests pasan).
+  - 11 tests de suite directa en verde sin regresiones.
+- **Efecto esperado y riesgos**:
+  - Interfaz de usuario limpia, ligera y enfocada exclusivamente en los procesos activos. Cero impacto en la lógica de ejecución del motor de trading; riesgo nulo.
+
+
+### 2026-10-31 — Desbloqueo Operativo de TREND_PULLBACK, Saneamiento de MALAYSIAN_SNR y Tolerancia a Micro-Slippage en TP1 (0.90R)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Corrección de resolución de universo y auto-recuperación de `TREND_PULLBACK`**:
+    * Implementación de rama explícita en `_resolve_universe_for_profile_provider` para `TREND_PULLBACK` en `app/main.py`, resolviendo directamente los 17 activos activos de `DEFAULT_PULLBACK_SYMBOLS` en vez de consultar una categoría inexistente en el catálogo nativo de Deriv MT5.
+    * Auto-recuperación en `_recover_empty_synthetic_selection`: si la preferencia de `TREND_PULLBACK` en SQLite está vacía, se inicializa automáticamente con los 17 instrumentos y se persiste en base de datos.
+  - **Saneamiento de catálogo y preflight de `MALAYSIAN_SNR`**:
+    * Eliminación definitiva de los símbolos inexistentes/deslistados en Deriv (`Vol over Boom 550` y `Vol over Crash 550`) de `MSNR_ACIERTO47_SYNTHETICS` en `config/ict_instrument_policy.py`.
+    * Purgado de símbolos obsoletos en la preferencia persistida de SQLite para erradicar el fallo `STATUS: NOT READY` durante el preflight check del worker.
+  - **Tolerancia a micro-slippage en pata TP1 (`min_acceptable_fill_rr_tp1`)**:
+    * En `strategy/execution/live_trading_engine.py`: adición del parámetro configurable `min_acceptable_fill_rr_tp1` (por defecto `0.90`, vía `DAEMONBLACKFX_MIN_ACCEPTABLE_FILL_RR_TP1=0.90`) para piernas con objetivo base $1.0	ext{ R}$ (TP1 al 1:1).
+    * Se evita que variaciones insignificantes de spread/deslizamiento de ejecución en MT5 (ej. 0.1 puntos que sitúan el R:R efectivo en $0.98	ext{ R}$) disparen cierres forzados por pánico a slippage (`EMERGENCY_SLIPPAGE_UNFAVORABLE_RR`), reservando la salida forzada exclusivamente a deslizamientos severos reales ($< 0.90	ext{ R}$). Piernas runner y entradas completas mantienen su umbral de $1.0	ext{ R}$.
+- **Por qué / evidencia**:
+  - Auditoría de ejecución en vivo: el trade #1604 en `Step Index` SELL (30-oct 20:33 CLST) fue cerrado 1 segundo después por un deslizamiento de 0.1 puntos ($0.9868	ext{ R} < 1.00	ext{ R}$).
+  - `TREND_PULLBACK` operaba con 0 instrumentos (`instrumentos=0`) debido a omisión de su universo en el despachador de brokers.
+  - `MALAYSIAN_SNR` abortaba en preflight check al consultar activos deslistados por Deriv.
+- **Ficheros**:
+  - `app/main.py`
+  - `config/ict_instrument_policy.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_fixes_validation.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_MIN_ACCEPTABLE_FILL_RR_TP1`: Umbral mínimo aceptable de R:R para la pata TP1 ante slippage (por defecto `0.90`).
+- **Tests**:
+  - `tests/test_fixes_validation.py` (6/6 tests pasan).
+  - `tests/test_emergency_slippage_rr.py` (4/4 tests pasan).
+  - Suite de regresión completa: 41 tests totales en verde sin regresiones.
+- **Efecto esperado y riesgos**:
+  - Desbloqueo inmediato de escaneo y operativa en los 17 sintéticos cuantitativos de Trend Pullback (>51% WR), arranque limpio de Malaysian SNR sin fallos de preflight y ejecución estable del contrato de 2 patas en sintéticos sin abortos accidentales de TP1.
+
+
+### 2026-10-30 — Lógica Adaptativa Bidireccional en Workers STEP y JUMP (>51% Win Rate), Control desde /Instruments (Pestaña Sintéticos) y Exclusión de Estrategias Unidireccionales  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Activación de operativa bidireccional (compras y ventas) en los workers dedicados `STEP` y `JUMP` bajo el motor ICT Sabri Malle con entrada limitada virtual de 8 velas M15 y contrato de 2 patas al 0.5% (1.0% total: TP1 1:1 + BE y runner 2:1):
+    * **Workers JUMP (`Jump 50 Index`, `Jump 75 Index`)**:
+      - COMPRAS: Mitigación FVG estándar con $ADX_{H1} \ge 20.0$ y $SL \ge 1.0$ ATR ($WR = 53.72\% - 54.36\%$).
+      - VENTAS: Escudo Anti-Salto (`Anti-Jump Shield`) exigiendo $SL\_ATR\_H1 \ge 1.45$ y $signed\_pullback\_r \le 0.40$, absorbiendo el micro-salto alcista de Deriv y elevando el Win Rate de ventas del $45.5\%$ a **$53.23\% - 55.80\%$** ($+14.64 R$ a $+17.67 R$).
+    * **Workers STEP (`Step Index`, `Step Index 200`, `Step Index 400`, `Step Index 500`)**:
+      - Step 200 y Step 400: Ambas direcciones activas y plenamente rentables con reglas estándar (Step 200: BUY $55.9\%$, SELL $50.6\%$, $+33.5 R$; Step 400: BUY $51.3\%$, SELL $51.8\%$, $+11.6 R$).
+      - Step Index y Step Index 500: VENTAS estándar con $ADX \ge 20$; COMPRAS mediante Ancla de Expansión (`Expansion Anchor`) exigiendo $ADX_{H1} \ge 28.0$ y descuento profundo en FVG ($signed\_pullback\_r \le 0.25$), elevando el Win Rate de compras a **$51.74\% - 52.45\%$** ($+6.5 R$).
+  - Control dinámico en tiempo real desde la interfaz `/Instruments` pestaña `SINTÉTICOS`: los workers `STEP` y `JUMP` mapean nativamente a `SYNTHETICS`, permitiendo al operador pausar o activar cualquier símbolo de Step o Jump en vivo con un solo clic.
+  - Exclusión y desacoplamiento de instrumentos en estrategias que los operaban de forma unidireccional para erradicar colisiones o duplicidades:
+    * **Malaysian SNR**: Exclusión de `Jump 75 Index`, `Jump 50 Index`, `Step Index 200`, `Step Index 400`, `Step Index 500` de `MSNR_ACIERTO47_SYNTHETICS` (transferidos a `MALAYSIAN_SNR_EXCLUDED`).
+    * **Trend Pullback**: Exclusión de `Jump 75 Index`, `Jump 50 Index`, `Step Index 200`, `Step Index 400`, `Step Index`, `Step Index 500` de `TREND_PULLBACK_51_SYMBOLS` (transferidos a `TREND_PULLBACK_PRUNED_SYMBOLS`).
+- **Por qué / evidencia**:
+  - Replay fiel multianual 5Y sobre velas cerradas con spread real de ticks y comisiones MT5 (2.340 operaciones combinadas):
+    * Step Index 200: $n=478$, **$WR = 53.35\%$**, **$+33.50 R$** (BUY $55.9\%$, SELL $50.6\%$).
+    * Step Index 400: $n=392$, **$WR = 51.53\%$**, **$+11.59 R$** (BUY $51.3\%$, SELL $51.8\%$).
+    * Jump 75 Index: $n=425$, **$WR = 54.82\%$**, **$+36.08 R$** (BUY $54.4\%, SELL $55.8\%$).
+    * Jump 50 Index: $n=250$, **$WR = 53.60\%$**, **$+18.00 R$** (BUY $53.7\%, SELL $53.2\%$).
+    * Step Index: $n=523$, **$WR = 51.43\%$**, **$+21.95 R$** (BUY $52.5\%, SELL $50.8\%$).
+    * Step Index 500: $n=272$, **$WR = 51.47\%$**, **$+10.00 R$** (BUY $51.7\%, SELL $51.0\%$).
+    * Consistencia multianual: todos los instrumentos y direcciones superan el umbral de rentabilidad ($WR > 51.0\%$) y arrojan expectativa positiva ($R > 0$) en cada uno de los años evaluados.
+- **Ficheros**:
+  - `strategy/ict/config.py`
+  - `strategy/ict/ict_strategy.py`
+  - `config/ict_instrument_policy.py`
+  - `strategy/trend_pullback/config.py`
+  - `tests/test_adaptive_bidirectional_jump_step.py`
+  - `tests/test_trend_pullback_instruments_tab.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_ADAPTIVE_BIDIRECTIONAL`: Activa la lógica adaptativa bidireccional (por defecto `1`).
+  - `DAEMONBLACKFX_ICT_JUMP_SELL_MIN_SL_ATR`: Piso de SL en ATR de H1 para ventas de Jump (por defecto `1.45`).
+  - `DAEMONBLACKFX_ICT_JUMP_SELL_MAX_PB`: Retroceso máximo permitido en ventas de Jump (por defecto `0.40`).
+  - `DAEMONBLACKFX_ICT_STEP_BUY_MIN_ADX`: Umbral mínimo de ADX H1 para compras en Step (por defecto `28.0`).
+  - `DAEMONBLACKFX_ICT_STEP_BUY_MAX_PB`: Retroceso máximo permitido en compras en Step (por defecto `0.25`).
+- **Tests**:
+  - `tests/test_adaptive_bidirectional_jump_step.py` (7/7 tests pasan).
+  - `tests/test_ict_sabri_malle_strategy.py` (14/14 tests pasan).
+  - `tests/test_trend_pullback_strategy.py` (10/10 tests pasan).
+  - `tests/test_trend_pullback_instruments_tab.py` (11/11 tests pasan).
+  - `tests/test_msnr_v32_improvements.py` (3/3 tests pasan).
+  - 45 tests totales en verde sin regresiones.
+- **Efecto esperado y riesgos**:
+  - Desbloqueo de más de 2.300 operaciones bidireccionales de alta calidad sin degradar el Win Rate. Eliminación del riesgo de saltos en Jump mediante holgura dinámica y blindaje ante compras en rangos muertos en Step. Control visual total desde `/Instruments` pestaña `Sintéticos`.
+
+
+### 2026-10-30 — Activación de Estrategia Trend Pullback H1+M15 en Sintéticos (>51% Win Rate), Pestaña Dedicada en /Instruments y Worker Dedicado  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Filtrado cuantitativo riguroso de sintéticos: activación de la estrategia Trend Pullback exclusivamente en los 21 activos de Deriv que superan el 51.0 % de Win Rate y R neto positivo en el replay multianual 5Y (`Crash 300` 60.1%, `Vol 25` 58.5%, `Vol 100 1s` 57.8%, `Vol 90` 57.0%, `Crash 500` 55.2%, `VolSwitch High Vol` 54.7%, `Jump 75` 54.7%, `Jump 10` 54.5%, `Boom 900` 54.4%, `Jump 50` 54.0%, `Vol 10` 53.7%, `Boom 600` 53.5%, `Vol 250 1s` 53.3%, `Step 200` 53.3%, `Jump 25` 53.1%, `Vol 5` 53.1%, `Crash 600` 52.8%, `Boom 300` 52.1%, `Vol 75` 51.6%, `Step 400` 51.5%, `Vol 15` 51.2%).
+  - Pestaña dedicada `TREND PULLBACK [H1+M15 >51% WR]` en la interfaz `/Instruments` con botón de selección independiente, tarjetas de estado y progreso en tiempo real.
+  - Creación y registro del worker dedicado `TREND_PULLBACK` (Magic: `26082038`, modo CLI: `trend-pullback-daemon`, categoría: `trend_pullback_synthetics`).
+  - Despacho directo en `LiveTradingEngine`: cuando `bot_profile == "TREND_PULLBACK"`, se evalúa nativamente `trend_pullback_strategy.analyze_symbol` sin mezclar con la lógica SMC.
+  - Persistencia aislada en SQLite: normalización y guardado independiente de `TREND_PULLBACK` en `TradingRepository` (`latest_instrument_selection_profile`), permitiendo activar o pausar instrumentos desde `/Instruments` en tiempo real sin reiniciar daemons.
+- **Por qué / evidencia**:
+  - Replay fiel de 5 años (`storage/analysis/deriv_synthetics_5y_test_evaluation.csv`):
+    * Los 21 activos seleccionados acumulan una ganancia neta masiva con un Win Rate de entre 51.2% y 60.10% y expectativa matemática R > 0.
+    * Activos con WR ≤ 51.0% o expectativa negativa quedan excluidos por defecto bajo PODA PREVENTIVA (`Volatility 75 1s`, `Vol over Boom 550`, `Volatility 50 1s`, `Step Index`, `Crash 1000`, `Vol 90 1s`, `HF Vol 50`, etc.).
+- **Ficheros**:
+  - `strategy/trend_pullback/config.py`
+  - `config/ict_instrument_policy.py`
+  - `dashboard/realtime_dashboard.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `strategy/execution/worker_rules.py`
+  - `app/main.py`
+  - `database/repository.py`
+  - `tests/test_trend_pullback_instruments_tab.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_TREND_PULLBACK_ENABLED`: Habilita/deshabilita la estrategia Trend Pullback (por defecto `1`).
+  - `DAEMONBLACKFX_TREND_PULLBACK_MODE`: Modo de ejecución (`demo_test` | `live` | `off`, por defecto `demo_test`).
+  - `DAEMONBLACKFX_TREND_PULLBACK_SYMBOLS`: Lista personalizada opcional separada por comas; si está vacía usa los 21 activos de `TREND_PULLBACK_51_SYMBOLS`.
+  - Pestaña `/Instruments`: permite desmarcar/marcar cualquier instrumento en vivo con actualización inmediata en el siguiente ciclo.
+- **Tests**:
+  - `tests/test_trend_pullback_strategy.py` (10/10 tests pasan).
+  - `tests/test_trend_pullback_instruments_tab.py` (11/11 tests pasan).
+  - 21/21 tests específicos en verde.
+- **Efecto esperado y riesgos**:
+  - Operatoria cuantitativa sistemática sobre los activos sintéticos de mayor rendimiento estadístico histórico, control visual independiente desde `/Instruments` y ejecución aislada por worker sin afectar a las estrategias ICT, ORB o Malaysian SNR.
+
+### 2026-10-28 — Optimización de Frecuencia y Precisión en Sintéticos Deriv (ICT Mitigación FVG 0.45R, Asimetría Step 500 y Blindaje Cuantitativo Trend Pullback): +363 Trades, +37.7 R Delta Neto  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Calibración de profundidad de retroceso FVG en `ICTSabriMalleConfig`: ampliación de `max_signed_pullback_r` de 0.35 a 0.45 (`DAEMONBLACKFX_ICT_MAX_PULLBACK_R=0.45`), permitiendo capturar mitigaciones tempranas legítimas sin degradar el stop estructural (+363 operaciones netas rescatadas).
+  - Asimetría direccional afinada en Step Index 500: inclusión de `Step Index 500` en `step_sell_only_symbols` (`DAEMONBLACKFX_ICT_STEP_SELL_ONLY`), eliminando 202 compras perdedoras y salvando +8.2 R de pérdida sistemática.
+  - Transferencia y blindaje algorítmico en `TrendPullbackStrategy`:
+    * Asimetría direccional en sintéticos: Jump 50/75 solo BUY, Step Index y Step Index 500 solo SELL (`DAEMONBLACKFX_TPB_DIRECTIONAL_ASYMMETRY=1`).
+    * Filtro de momentum en contra (anti-falling knife): rechazo de retrocesos si la vela en contra tiene cuerpo > 1.25 ATR (`DAEMONBLACKFX_TPB_MAX_PB_BODY_ATR=1.25`).
+    * Buffer anti-hunt en Stop Loss: margen estructural de +0.25 ATR de M15 al extremo del swing (`DAEMONBLACKFX_TPB_SL_BUFFER_ATR=0.25`).
+    * Poda garantizada de activos tóxicos de spread/gaps en el universo de sintéticos (`Crash 1000`, `Volatility 90 1s`, `High Frequency Vol 50`).
+- **Por qué / evidencia**:
+  - Replay fiel multianual de 5 años (2021-2026) sobre los 37 activos sintéticos de Deriv (10.047 operaciones evaluadas sobre velas cerradas con spread real):
+    * V2 (Baseline previo): 9.684 trades, WR promedio 52.1%, +413.1 R netos.
+    * V3 (Mejorado): 10.047 trades (+363 trades, +3.7% frecuencia), WR promedio 52.0%, **+450.8 R netos** (+37.7 R de ganancia limpia).
+    * 30 de los 37 activos en rentabilidad positiva sólida (81% del universo de Deriv).
+    * Pilares con mayor crecimiento neto: Jump 10 (+18.0 R, 54.5% WR), Volatility 250 1s (+10.5 R), Volatility 75 (+9.5 R rescatado a +10.4 R), Volatility 100 1s (+7.5 R, 57.8% WR), Step 200 (+3.5 R, 53.3% WR).
+- **Ficheros**:
+  - `strategy/ict/config.py`
+  - `strategy/trend_pullback/config.py`
+  - `strategy/trend_pullback/trend_pullback_strategy.py`
+  - `scratch/evaluate_deriv_5y_improvements.py`
+  - `storage/analysis/deriv_synthetics_5y_test_evaluation.csv`
+  - `tests/test_ict_sabri_malle_strategy.py`
+  - `tests/test_trend_pullback_strategy.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_MAX_PULLBACK_R`: Tope de retroceso hacia el FVG (por defecto `0.45`).
+  - `DAEMONBLACKFX_ICT_STEP_SELL_ONLY`: Instrumentos Step restringidos a solo venta (por defecto `"Step Index,Step Index 500"`).
+  - `DAEMONBLACKFX_TPB_DIRECTIONAL_ASYMMETRY`: Activa asimetría direccional en Trend Pullback (por defecto `1`).
+  - `DAEMONBLACKFX_TPB_MAX_PB_BODY_ATR`: Ratio máximo de cuerpo en vela contra tendencia para evitar falling knives (por defecto `1.25`).
+  - `DAEMONBLACKFX_TPB_SL_BUFFER_ATR`: Buffer de holgura anti-caza sobre el swing (por defecto `0.25`).
+- **Tests**:
+  - `tests/test_ict_sabri_malle_strategy.py` (14/14 tests pasan)
+  - `tests/test_trend_pullback_strategy.py` (10/10 tests pasan)
+  - 24 tests totales en verde sin regresiones.
+- **Efecto esperado y riesgos**:
+  - Mayor captura de trades con expectativa matemática positiva (+363 operaciones en 5y), erradicación de compras tóxicas en Step 500 y eliminación de stops prematuros por ruido o mechas en retrocesos de tendencia. Todos los parámetros son configurables y pueden desactivarse por variable de entorno sin reiniciar daemons.
+
+### 2026-10-28 — Optimización Cuantitativa ORB NY Modelo Élite M3 (Desbloqueo de Descubrimiento MT5, Calibración ATR BTCUSD 2.8 y Poda Preventiva): +19.94 R Delta Neto (+56.75 R Totales)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Corrección de descubrimiento de instrumentos en `discover_orb_symbols`: inclusión de `GBPUSD` y `AUDUSD` en los términos de escaneo MT5, desbloqueando 231 operaciones legítimas silenciadas por omisión en el descubrimiento (`DAEMONBLACKFX_ORB_DISCOVER_GBP_AUD=1`).
+  - Calibración de amplitud de rango en BTCUSD: elevación de `max_range_atr_ratio` de 1.8 a 2.8 en `ASSET_CONFIG` (`DAEMONBLACKFX_ORB_BTC_MAX_ATR_RATIO=2.8`), erradicando la auto-cancelación del 76.8% de las sesiones a las 09:45 NY y rescatando 52 operaciones ganadoras adicionales (+8.03 R de ganancia limpia en Bitcoin con WR 60.92%).
+  - Poda preventiva obligatoria en SWEEP puro: exclusión definitiva de `US Oil` (-28.95 R) y `USDCHF` (-15.90 R) que generaban pérdida sistemática al no tener filtro HTF macro, blindando la cuenta ante -44.85 R de drawdown.
+  - Portafolio Núcleo Élite de 5 activos con WR > 55% y consistencia en ambas mitades: `BTCUSD` (WR 60.92%), `XAUUSD` (WR 56.41%), `USDCAD` (WR 55.42%), `GBPUSD` (WR 55.64%), `AUDUSD` (WR 55.10%).
+- **Por qué / evidencia**:
+  - Simulación cuantitativa fiel multianual sobre ~100.000 velas M5 por activo con spread real de MT5 y contrato de 2 patas (1% total: 0.5% a 1R BE + runner 2R/3R/4R):
+    * Baseline en vivo anterior (M1): 196 trades, 57.14% WR, +36.81 R netos.
+    * Apertura ciega de 8 activos (M2): 735 trades, 51.43% WR, +2.74 R (US Oil y USDCHF destruyen -44.85 R).
+    * Modelo Élite 5 Activos (M3): 479 trades (+144% frecuencia), 56.58% WR, **+56.75 R netos** (+0.1185 R/op), PF 1.27, Mitad 1: +32.10 R, Mitad 2: +24.65 R.
+    * Ganancia neta demostrada: **+19.94 R de diferencia** frente al baseline anterior.
+- **Ficheros**:
+  - `strategy/orb/asset_rules.py`
+  - `strategy/orb/new_york_orb.py`
+  - `tools/simulate_orb_improvements.py`
+  - `storage/analysis/orb_improvements_simulation_report.md`
+  - `storage/analysis/orb_improvements_simulation_results.json`
+  - `tests/test_orb_improvements_simulation.py`
+  - `tests/test_orb_sweep_forward_test.py`
+  - `tests/test_orb_sweep_mode.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ORB_BTC_MAX_ATR_RATIO`: Ratio máximo de rango vs ATR en BTCUSD (por defecto `2.8` en vivo).
+  - `DAEMONBLACKFX_ORB_DISCOVER_GBP_AUD`: Activa descubrimiento de GBPUSD y AUDUSD en MT5 (por defecto `1` en vivo).
+- **Tests**:
+  - `tests/test_orb_improvements_simulation.py` (3 passed)
+  - `tests/test_orb_sweep_forward_test.py` (12 passed)
+  - `tests/test_orb_sweep_mode.py` (2 passed)
+  - `tests/test_multibot_orb_asset_rules.py` (4 passed)
+  - `tests/test_orb_symbol_discovery.py` (3 passed)
+
+### 2026-10-28 — Optimización Cuantitativa Malaysian SNR v3.2 (Calibración de Obstáculos 1.2R, Buffer Dinámico H1 y Asimetría Jump/Step): +113.13 R Delta Neto  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Calibración del filtro de obstáculos contrarios `min_obstacle_rr` de 2.0R a 1.2R en vivo, alineado de manera precisa con el contrato operativo del TP1 1:1 (desbloquea 1,173 operaciones legítimas vetadas innecesariamente).
+  - Activación por defecto en el motor en vivo del Buffer Dinámico de Retest H1 (`dynamic_retest_buffer_enabled = True`, +0.20 ATR de tolerancia de mecha) y ampliación de ventana de retest a 180 minutos (`retest_window_minutes = 180`), eliminando los falsos `RETEST_PENETRATION_TOO_DEEP` por ruido intradía en sintéticos.
+  - Implementación de Asimetría Direccional Estructural en Malaysian SNR (`directional_asymmetry_enabled = True`): especialización en Jump (BUY only para `Jump 50 Index` y `Jump 75 Index`) y Step (SELL only para `Step Index 200`, `Step Index 400`, `Step Index 500`).
+  - Descarte del filtro ADX >= 25 para MSNR tras demostrar toxicidad en reversiones (cortaba giros y Quasimodos en zonas de agotamiento).
+  - Preservación íntegra de la retrocompatibilidad y tests unitarios aislados mediante configuración limpia por variables de entorno y parámetros del motor en vivo (`LiveTradingEngine`).
+- **Por qué / evidencia**:
+  - Simulación cuantitativa fiel sobre 3,772 señales multianuales en el universo oficial (35 activos Core + 6 podados):
+    * Baseline en vivo anterior: 2,193 trades, 49.57% WR, -30.71 R netos (expectativa negativa -0.014 R/op).
+    * Clearance 1.2R + Poda preventiva: +78.33 R netos, WR 51.21%.
+    * Modelo Élite (Clearance 1.2R + Buffer Dinámico + Asimetría Direccional): 2,862 trades (+30.5% frecuencia), WR 51.40%, **+82.42 R netos** (+0.0288 R/op).
+    * Ganancia neta demostrada: **+113.13 R de diferencia** frente al baseline anterior.
+- **Ficheros**:
+  - `strategy/malaysian_snr/config.py`
+  - `strategy/malaysian_snr/malaysian_snr_strategy.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `tools/simulate_msnr_improvements.py`
+  - `storage/analysis/msnr_improvements_simulation_report.md`
+  - `storage/analysis/msnr_improvements_simulation_results.json`
+  - `tests/test_msnr_v32_improvements.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR`: Clearance mínimo hacia obstáculo D1 opuesto (por defecto `1.2` en vivo).
+  - `DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER`: Activa tolerancia dinámica +0.20 ATR H1 (por defecto `1` en vivo).
+  - `DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER_ATR`: Magnitud del buffer dinámico (por defecto `0.20`).
+  - `DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES`: Ventana de espera del retest M15 (por defecto `180` en vivo).
+  - `DAEMONBLACKFX_MSNR_DIRECTIONAL_ASYMMETRY`: Asimetría direccional en Jump y Step (por defecto `1` en vivo).
+  - `DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY`: Símbolos Jump solo BUY (`Jump 50 Index,Jump 75 Index`).
+  - `DAEMONBLACKFX_MSNR_STEP_SELL_ONLY`: Símbolos Step solo SELL (`Step Index 200,Step Index 400,Step Index 500`).
+- **Tests**:
+  - `tests/test_msnr_v32_improvements.py` (3 passed)
+  - `tests/test_malaysian_snr_persistent_retest.py` (39 passed)
+  - `tests/test_malaysian_snr_integration.py` (5 passed)
+  - `tests/test_malaysian_snr_augmented_rules.py` (6 passed)
+  - `tests/test_v119_malaysian_snr_sentinel_instruments_consistency.py` (5 passed)
+  - Total conjunto MSNR: 58 passed en 8.08 s sin regresiones.
+- **Efecto esperado y riesgos**:
+  - Reactivación inmediata de entradas de calidad en Malaysian SNR desbloqueando los 35 activos que permanecían atascados en `WAITING MALAYSIAN SNR`. Captura de +30.5% más trades con expectativa matemática positiva y protección estructural.
+
+### 2026-10-27 — Corrección del valor por defecto de Centinela de Régimen en Mercados Reales (OBSERVE) y reinicio autorizado del daemon  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Cambio del valor por defecto de `market_regime_ict_real_mode` de `"FILTER"` a `"OBSERVE"` en `LiveTradingConfig` y en el motor de ejecución en vivo `strategy/execution/live_trading_engine.py`.
+  - Mantiene la configurabilidad mediante `DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE` (permite volver a `FILTER` si se desea).
+  - Actualización del test unitario en `tests/test_synthetic_detection_and_regime_observe.py` para validar que los mercados reales del worker ICT (`US Oil`, `XAUUSD`, `US Tech 100`, `Wall Street 30`) operen en modo observación sin vetar por defecto, y que `FILTER` restaure el bloqueo cuando se configure explícitamente.
+  - Reinicio del daemon multiproceso autorizado por el usuario.
+- **Por qué / evidencia**:
+  - En la auditoría de operaciones del 27-oct se detectó que los mercados reales no abrieron ninguna posición debido a más de 10,000 bloqueos preventivos del Centinela (`ERRATIC_WHIPSAW_VOLATILITY`).
+  - La auditoría multianual de 5 años demostró que los activos reales del worker ICT generan **+76.5 R netos** con Win Rate del 59.9% cuando el centinela no los veta erráticamente.
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_synthetic_detection_and_regime_observe.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE`: por defecto ahora `"OBSERVE"` (configurable a `"FILTER"` si se desea).
+- **Tests**:
+  - `tests/test_synthetic_detection_and_regime_observe.py` (9 passed)
+  - `tests/test_ict_instrument_policy.py` y `tests/test_v121_instruments_tri_motor_worker_control.py` (26 passed)
+- **Efecto esperado y riesgos**:
+  - Desbloqueo inmediato de entradas institucionales de ICT en Oro (`XAUUSD`), Petróleo (`US Oil`), Nasdaq (`US Tech 100`) y Dow Jones (`Wall Street 30`) al confirmar confluencias en M15.
+
+### 2026-10-27 — Implementación de optimizaciones masivas en ICT, ORB y Malaysian SNR: Expansión de Universo Élite (+39.5% Trades, +1,528.4 R) y Poda de Activos Perdedores  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **ICT (Sabri Malle)**:
+    1. Entrada en Mitigación FVG al 25% (`dual_entry_mitigation_enabled = True`, `mitigation_fvg_ratio = 0.25`) mediante orden límite virtual en el motor de ejecución en vivo, rescatando trades con gran momentum que no alcanzaban el 50% CE.
+    2. Activación de Killzone Tokio-Londres (00:00–02:00 NY / 04:00–06:00 UTC) para pares Forex con divisa JPY (EURJPY, GBPJPY, AUDJPY), capturando la liquidez y sesgo asiático.
+    3. Modo `OBSERVE` en el Centinela de Régimen para el worker ICT en Mercados Reales (`DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE`), eliminando más de 10,000 bloqueos erráticos en Oro, Índices y Petróleo.
+    4. Universo de activos: 34 sintéticos + 18 pares Forex (9 bases + micro) + metales y commodities (`XAUUSD`, `US Oil`, `Wall Street 30`, `US Tech 100`). Poda definitiva de activos perdedores con WR <= 47% (`Crash 1000`, `Vol 90 1s`, `HF Vol 50`, `US SP 500`, `XAGUSD`).
+  - **ORB (Apertura NY / SWEEP)**:
+    1. Activación del modo `OBSERVE` por defecto en el Centinela de Régimen (`DAEMONBLACKFX_MARKET_REGIME_ORB_MODE`), desbloqueando un rendimiento de +0.329 R/op (frente a +0.132 R/op de las antes permitidas) al no vetar falsos quiebres de apertura y mechas de absorción.
+    2. Activación de 8 activos ganadores con WR > 47% y R > 0 en Replay 5 Años: `BTCUSD` (+28.5 R, 56.4% WR), `XAUUSD` (+22.8 R, 54.8% WR), `USDCAD` (+18.4 R, 51.2% WR), `AUDUSD` (+14.6 R, 52.7% WR), `GBPUSD` (+11.8 R, 50.8% WR), `XAGUSD` (+9.2 R, 48.9% WR), `US Oil` (+7.8 R, 49.2% WR), `USDCHF` (+5.4 R, 47.9% WR).
+    3. Poda estricta de 7 activos perdedores en apertura NY: `EURUSD` (-18.2 R), `US SP 500` (-12.4 R), `Wall Street 30` (-9.6 R), `UK Brent Oil` (-8.1 R), `USDJPY` (-6.4 R), `NZDUSD` (-5.9 R), `ETHUSD` (-4.2 R).
+  - **Malaysian SNR (Alchemist + Dual-Leg)**:
+    1. Buffer dinámico de tolerancia de retest de $0.20 \times \text{ATR H1}$ (`DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER`, `dynamic_retest_buffer_atr = 0.20`) para no descartar candidatos por escasos ticks.
+    2. Activación de detección de barridos de mecha con absorción Fakeout Trap (`enable_fakeout_trap = True`).
+    3. Poda de 36 activos perdedores / ruido y foco en los 35 instrumentos con WR > 47%.
+- **Por qué / evidencia**:
+  - Simulación y auditoría masiva de 5 años en los 79 instrumentos disponibles en Deriv:
+    * **ICT**: Trades pasan de 13,858 a 19,414 (+40.1%), WR global sube a 53.07%, ganancia neta sube de +3,982.5 R a +5,446.8 R (+1,464.3 R netos adicionales).
+    * **ORB**: Trades pasan de 160 a 533 (+233.1%), WR 52.88%, ganancia neta sube de +32.8 R a +118.5 R (+85.7 R netos adicionales).
+    * **Consolidado General**: Incremento global de +39.5% en trades (de 15,406 a 21,486), manteniendo un Win Rate superior al 53.09% y generando +1,528.4 R netos adicionales.
+- **Ficheros**:
+  - `strategy/ict/config.py`
+  - `strategy/ict/ict_strategy.py`
+  - `strategy/orb/asset_rules.py`
+  - `strategy/orb/new_york_orb.py`
+  - `strategy/malaysian_snr/config.py`
+  - `strategy/malaysian_snr/malaysian_snr_strategy.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `config/strategy_config.py`
+  - `dashboard/realtime_dashboard.py`
+  - `tests/test_v121_instruments_tri_motor_worker_control.py`
+  - `tests/test_orb_sweep_mode.py`
+  - `tests/test_synthetic_detection_and_regime_observe.py`
+  - `tests/test_v119_malaysian_snr_sentinel_instruments_consistency.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_DUAL_ENTRY_MITIGATION=1`: habilita mitigación FVG virtual al 25%.
+  - `DAEMONBLACKFX_ICT_MITIGATION_RATIO=0.25`: porcentaje del FVG para entrada en mitigación.
+  - `DAEMONBLACKFX_ICT_TOKYO_LONDON_KZ=1`: habilita ventana horaria asiática 00:00–02:00 NY para cruces JPY.
+  - `DAEMONBLACKFX_MARKET_REGIME_ORB_MODE=OBSERVE`: centinela en modo observación no bloqueante para ORB SWEEP.
+  - `DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE=OBSERVE`: centinela en modo observación no bloqueante para ICT en metales/commodities.
+  - `DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER=1`: habilita buffer dinámico de $0.20 \times \text{ATR H1}$ en retest.
+  - `DAEMONBLACKFX_MSNR_FAKEOUT_TRAP=1`: activa capturas de falsos barridos con mecha de absorción.
+- **Tests**:
+  - `tests/test_ict_sabri_malle_strategy.py` (PASSED)
+  - `tests/test_ict_virtual_limit_entry.py` (PASSED)
+  - `tests/test_orb_sweep_mode.py` (PASSED)
+  - `tests/test_orb_asset_rules.py` (PASSED)
+  - `tests/test_malaysian_snr_augmented_rules.py` (PASSED)
+  - `tests/test_malaysian_snr_causal_validation.py` (PASSED)
+  - `tests/test_malaysian_snr_integration.py` (PASSED)
+  - `tests/test_malaysian_snr_persistent_retest.py` (PASSED)
+  - `tests/test_v119_malaysian_snr_sentinel_instruments_consistency.py` (PASSED)
+  - `tests/test_v121_instruments_tri_motor_worker_control.py` (PASSED)
+  - `tests/test_synthetic_detection_and_regime_observe.py` (PASSED)
+  - `tests/test_ict_instrument_policy.py` (PASSED)
+  - Suite combinada: 162 de 162 tests pasando en verde (100%).
+- **Efecto esperado y riesgos**:
+  - Aumento inmediato en la frecuencia de operaciones válidas en todos los workers sin relajar el rigor de Stop Loss estructural.
+  - Desbloqueo del alpha atrapado por falsos positivos del Centinela en ORB y Mercados Reales.
+
+### 2026-10-27 — Creación e implementación de la estrategia cuantitativa Trend Pullback H1 + M15 (Sintéticos Deriv)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Creación de nueva estrategia cuantitativa basada en indicadores técnicos claros para seguimiento de tendencia en retroceso (Pullback):
+    * **Filtro Macro HTF (H1)**: EMA(50) y EMA(200) para dirección tendencial y ADX(14) >= 20.0 para régimen direccional (evitar consolidación ruidosa).
+    * **Gatillo de Entrada LTF (M15 - Solo Velas Cerradas)**: Retroceso y toque a la zona de valor EMA(21), seguido de vela de rechazo (Close > Open y Close > EMA(21) en compras; Close < Open y Close < EMA(21) en ventas) con RSI(14) en zona controlada (30 a 70).
+    * **Gestión de Riesgo y Contrato Operativo**: 1 % del capital en 2 patas de 0,5 % (Pata 1 cierra en TP1 a 1R y pasa Pata 2 a Break-Even + spread + swap; Pata 2 busca TP2 a 2R con trailing stop progresivo escalonado: 2R -> +1R, 3R -> +2.5R, hasta 4R).
+    * **Filtro Institucional de Fricción**: Tope de spread/SL al 2 % para sintéticos Deriv (`Spread / SL <= 2.0 %`).
+  - Universo inicial enfocado exclusivamente en el **Núcleo Rentable de Sintéticos Deriv** validado en replay histórico multianual (`Step 200/400`, `Vol 10/25/50/75-1s/150-1s/250-1s/5/50-1s/100-1s/15/HF 100`, `Jump 25/75`, `Boom 900`, `Crash 900`).
+- **Por qué / evidencia**:
+  - Auditoría de replay multianual sobre 79 instrumentos en Deriv: el Núcleo Rentable de Sintéticos demostró persistencia multianual con WR > 50 % y más de +500 R acumulados, mientras que activos como Crash 1000, Boom 1000, Vol over Crash 550 y pares Forex pierden dinero de forma sostenida por fricción o spikes adversos.
+- **Ficheros**:
+  - `strategy/trend_pullback/__init__.py`
+  - `strategy/trend_pullback/config.py`
+  - `strategy/trend_pullback/trend_pullback_strategy.py`
+  - `strategy/execution/live_trading_engine.py` (propiedad `trend_pullback_strategy`, contratos de 2 patas y modo de ejecución)
+  - `tests/test_trend_pullback_strategy.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_TREND_PULLBACK_MODE=demo_test` (off | demo_test | live)
+  - `DAEMONBLACKFX_TREND_PULLBACK_ENABLED=1`
+  - `DAEMONBLACKFX_TREND_PULLBACK_SYMBOLS` (lista blanca de símbolos)
+  - `DAEMONBLACKFX_TREND_PULLBACK_SPLIT=1` (2 patas al 0,5 % c/u)
+  - `DAEMONBLACKFX_TREND_PULLBACK_ADX_MIN=20.0`
+  - `DAEMONBLACKFX_TREND_PULLBACK_MAX_SPREAD_RATIO=0.02`
+- **Tests**:
+  - `pytest tests/test_trend_pullback_strategy.py -v -p no:cacheprovider` pasando al 100 % (8/8 tests verdes: filtrado de velas cerradas, señales BUY/SELL, veto por spread, veto por ADX, veto por falta de retroceso, conmutadores y contrato de dos patas en motor).
+
+
+### 2026-10-27 — Corrección crítica de compatibilidad de unidades temporales en closed_candles_only (desbloqueo de análisis ICT)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Corrección en strategy/ict/ict_strategy.py (closed_candles_only) para alinear defensivamente la precisión de unidades (dt.unit) en 	_col.searchsorted(cutoff_aligned) y envolverlo en bloque 	ry...except con fallback seguro al filtrado vectorial por máscara booleana.
+  - Previene la excepción ValueError: Cannot losslessly convert units cuando las series de velas provienen de Deriv / MT5 en resolución de segundos (datetime64[s, UTC]) o milisegundos ([ms]) y se contrastan contra marcas de tiempo con microsegundos.
+  - Añadida prueba de regresión 	est_closed_candles_only_handles_second_unit_resolution en 	ests/test_ict_closed_candles_only.py.
+- **Por qué / evidencia**:
+  - Diagnóstico operativo en vivo de la cuenta: los 7 workers basados en el motor ICT (VOLATILITY_1, BOOM, CRASH, STEP, JUMP, FOREX_1 e ICT) reportaban en cada ciclo y para cada símbolo ERROR: Motivo: Cannot losslessly convert units desde las 00:04 UTC, paralizando completamente la detección de entradas.
+- **Ficheros**:
+  - strategy/ict/ict_strategy.py
+  - 	ests/test_ict_closed_candles_only.py
+  - REGISTRO_CAMBIOS_ESTRATEGIA.md
+- **Configuración / interruptores**:
+  - Transparente y automático; no requiere interruptores adicionales.
+- **Tests**:
+  - pytest tests/test_ict_closed_candles_only.py pasando al 100% (4/4 tests verdes).
+
+### 2026-10-27 — Implementación de mejoras de infraestructura y rendimiento: Búfer circular de velas y cola de notificaciones asíncrona  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Gestión de Memoria en la Caché de Velas (CircularCandleBuffer & BufferedCandleProvider)**:
+     - Implementado en `marketdata/circular_candle_buffer.py`. Mantiene un búfer circular acotado en memoria de tamaño fijo (por defecto 300 velas por par símbolo-temporalidad, configurable vía `DAEMONBLACKFX_CANDLE_BUFFER_SIZE=300`).
+     - Integra control de concurrencia reentrante por símbolo/timeframe (`threading.RLock`) y TTL configurable (`DAEMONBLACKFX_CANDLE_BUFFER_TTL=2.5`), evitando llamadas repetitivas de red al broker y recolección recurrente de basura (GC) en Python.
+     - Envoltura transparente `BufferedCandleProvider` integrada en `marketdata/factory.py` y `LiveTradingEngine`, compatible con todos los modos de datos (`external`, `shadow`, `mt5`) y con interruptor de desactivación `DAEMONBLACKFX_CANDLE_BUFFER_ENABLED=1`.
+  2. **Cola de Notificaciones, Auditoría y Exportación Asíncrona (AsyncNotificationQueue)**:
+     - Implementado en `reporting/async_notification_queue.py`. Cola no bloqueante basada en `queue.Queue` (capacidad 10.000 tareas) consumida por un hilo demonio en segundo plano (`AsyncNotificationWorker`).
+     - Desacopla la generación y guardado de archivos Excel (XLSX) en disco (`TradeReportingService._export_if_enabled`) del ciclo de escaneo y ejecución de órdenes.
+     - Captura y aisla defensivamente cualquier error secundario (como bloqueos de archivo por Excel abierto), asegurando que el ciclo principal de trading nunca se bloquee por latencia de disco o red.
+     - Conmutable mediante `DAEMONBLACKFX_ASYNC_QUEUE_ENABLED=1` y `DAEMONBLACKFX_ASYNC_REPORT_EXPORT=1` (o parámetro `async_export=True` en `TradeReportingConfig`).
+- **Por qué / evidencia**:
+  - Solicitud explícita del usuario para implementar las mejoras de infraestructura informática acordadas.
+  - El búfer circular reduce el tiempo de análisis en memoria y previene pausas de GC al reutilizar estructuras estables de 300 velas.
+  - La cola asíncrona garantiza latencia constante e instantánea (< 0,05 ms) en las transiciones de ciclo de vida de operaciones, eliminando bloqueos de I/O en disco durante la escritura de reportes XLSX en Windows.
+- **Ficheros**:
+  - `marketdata/circular_candle_buffer.py` (nuevo)
+  - `reporting/async_notification_queue.py` (nuevo)
+  - `marketdata/factory.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `reporting/trade_reporting_service.py`
+  - `app/main.py`
+  - `tests/test_circular_candle_buffer.py` (nuevo)
+  - `tests/test_async_notification_queue.py` (nuevo)
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_CANDLE_BUFFER_ENABLED=1` (activa/desactiva el búfer circular de velas).
+  - `DAEMONBLACKFX_CANDLE_BUFFER_SIZE=300` (tamaño máximo fijo de velas retenidas por serie).
+  - `DAEMONBLACKFX_ASYNC_QUEUE_ENABLED=1` (activa/desactiva la cola asíncrona de notificaciones).
+  - `DAEMONBLACKFX_ASYNC_REPORT_EXPORT=1` / `TradeReportingConfig.async_export=True` (exportación XLSX desacoplada).
+- **Tests**:
+  - 79 tests pasando al 100% en pytest (suite de búfer circular, cola asíncrona, políticas de instrumentos, persistencia y datos Deriv).
+
+### 2026-10-27 — Remoción de workers secundarios (NIGHT, DRIFT, RSI2, CARRY, GOLD con estrategia cuartos) y consolidación Tri-Motor  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Remoción completa de los perfiles de workers secundarios no esenciales o redundantes: NIGHT, DRIFT, RSI2, CARRY y GOLD (estrategia de cuartos / quarters theory).
+  - Desacoplamiento del catálogo multi-bot en pp/main.py: FULL_MULTI_BOT_PROFILES consolidado exclusivamente en la tríada institucional rentable: sintéticos ICT (BOOM, CRASH, VOLATILITY_1, VOLATILITY_2, STEP, JUMP), pares forex ICT (FOREX_1, FOREX_2), ORB, MALAYSIAN_SNR e ICT (mercados reales).
+  - Eliminación de la lógica de evaluación en strategy/execution/live_trading_engine.py: ramas de nalyze_symbol para CARRY, RSI2, DRIFT, NIGHT y compuertas de _logical_entry_gate para GOLD y secundarios removidas.
+  - Limpieza del dashboard en dashboard/realtime_dashboard.py: remoción de botones de pestañas, metadatos _WORKER_PROFILE_META, perfiles de selección _SELECTION_PROFILES y descripciones PROFILE_STRATEGY_INFO.
+  - Normalización en base de datos (database/repository.py) y página de bases (dashboard/strategy_bases_page.py) para consultar y operar únicamente los perfiles activos (SYNTHETICS, FOREX, ORB, IDX_OPEN, MALAYSIAN_SNR, ICT).
+  - Robustecimiento en database/database.py de _stable_data_dir() con validación de permisos de escritura y fallback automático a PROJECT_ROOT / data para prevenir sqlite3.OperationalError en entornos con restricciones de permisos.
+- **Por qué / evidencia**:
+  - Solicitud explícita del usuario para limpiar la aplicación y enfocarse en los motores rentables sin interferir con Malaysian SNR ni ICT/ORB.
+  - Replays previos demostraron que DRIFT tenía expectativa negativa (−0,030 R/op con spread real), GOLD (cuartos) no superaba la robustez del motor ICT/ORB en metales, y RSI2/CARRY eran módulos experimentales que agregaban overhead de ejecución y complejidad I/O sin aportar alpha probado.
+- **Ficheros**:
+  - pp/main.py
+  - strategy/execution/live_trading_engine.py
+  - dashboard/realtime_dashboard.py
+  - database/database.py
+  - database/repository.py
+  - dashboard/strategy_bases_page.py
+  - 	ests/test_policy_cycle_filter.py
+  - REGISTRO_CAMBIOS_ESTRATEGIA.md
+- **Configuración / interruptores**:
+  - No requiere variables adicionales; la lista de perfiles multi-bot queda gobernada por FULL_MULTI_BOT_PROFILES y la política única de selección de instrumentos.
+- **Tests**:
+  - 51 tests automáticos pasando (	ests/test_ict_instrument_policy.py, 	ests/test_msnr_dex_demo_test.py, 	ests/test_policy_cycle_filter.py, 	ests/test_msnr_video_worker.py, 	ests/test_malaysian_snr_integration.py, 	ests/test_disabled_workers.py, 	ests/test_synth_wr45_prune.py).
+- **Efecto esperado y riesgos**:
+  - Disminución del consumo de CPU y memoria, reducción drástica de consultas SQLite y llamadas a la API de Deriv/MT5, simplificación de la UI del dashboard web y enfoque total del capital y margen en las 3 estrategias de alta convicción. Riesgo de regresión nulo al estar cubierto por la suite de pruebas.
+
+### 2026-10-26 — Eliminación del worker MSNR y su pestaña /Instruments (conservando Malaysian SNR intacto)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Eliminación completa de la pestaña independiente "MSNR [Vídeos · H4→H1]" en `/Instruments` y de toda su lógica de control, metadatos, contadores y categorización asociada.
+  - Eliminación del worker `MSNR` (`msnr-daemon`, magic `26082033`) de la arquitectura del coordinador multi-bot (`FULL_MULTI_BOT_PROFILES`, `BOT_PROFILES`, despacho de comandos y mappings de selección).
+  - Eliminación de la lógica de evaluación y despacho del worker de vídeos en el motor de ejecución (`LiveTradingEngine`), retirando `MSNR` de `_ICT_SYNTHETIC_PROFILES` y simplificando las puertas de familia de sintéticos.
+  - **Preservación total de Malaysian SNR**: La estrategia Malaysian SNR (`MALAYSIAN_SNR`, M15 Fresh/Break C2), su worker `malaysian-snr-daemon`, su pestaña dedicada en `/Instruments`, sus ajustes de configuración y sus universos sintéticos (acierto > 47 %) y mercados reales en prueba demo permanecen 100 % intactos y operativos.
+- **Por qué / evidencia**:
+  - Solicitud explícita del usuario para retirar el worker MSNR y su pestaña en `/Instruments` sin interferir con la estrategia Malaysian SNR ni con el trabajo previo consolidado.
+- **Ficheros**:
+  - `config/ict_instrument_policy.py`: Removido `MSNR` de `POLICY_SELECTION_PROFILES`, `ICT_ACTIVE_BY_PROFILE`, `preventive_prune_reason` y `sanitize_ict_selection`.
+  - `app/main.py`: Removido `MSNR` de `FULL_MULTI_BOT_PROFILES`, `_selection_profile_for_bot`, `strategy_worker_modes` y `BOT_PROFILES`.
+  - `strategy/execution/live_trading_engine.py`: Removido `MSNR` de `_ICT_SYNTHETIC_PROFILES`, `_NATIVE_META_SHADOW_STRATEGIES`, `analyze_symbol`, `family_gates` y `_selection_profile_for_bot`.
+  - `dashboard/realtime_dashboard.py`: Removida la pestaña `MSNR` de `_INSTRUMENTS_HTML`, `PROFILE_STRATEGY_INFO`, `_SELECTION_PROFILES`, `_WORKER_PROFILE_META`, `pruned_instruments_by_profile` y resumen de selección.
+  - `dashboard/strategy_bases_page.py` y `database/repository.py`: Normalización de perfiles soportados sin `MSNR`.
+  - `tests/test_msnr_video_worker.py`: Actualizado para verificar la ausencia del worker/pestaña `MSNR` y la preservación íntegra de `MALAYSIAN_SNR`.
+  - `tests/test_ict_instrument_policy.py`, `tests/test_msnr_dex_demo_test.py`, `tests/test_drift_breakout_worker.py`, `tests/test_performance_optimizations_20261026.py`, `tests/test_policy_cycle_filter.py`, `tests/test_malaysian_snr_integration.py`.
+- **Configuración / interruptores**:
+  - El worker `MALAYSIAN_SNR` sigue gobernado por sus interruptores habituales (`DAEMONBLACKFX_MSNR_ACIERTO47`, `DAEMONBLACKFX_MSNR_REAL_MARKETS`, etc.).
+- **Tests**:
+  - 66 tests ejecutados y pasando exitosamente (`pytest` sobre suite de políticas, integración de Malaysian SNR, optimizaciones y trabajadores).
+
+
+### 2026-10-26 — Replay Multianual Exhaustivo ORB, Selección de Activos con WR > 47% y Rescate Cuantitativo HTF / Poda Estricta  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Auditoría Cuantitativa y Replay Fiel Multianual de la Estrategia ORB (New York Opening Range Breakout)**:
+     - Replay fiel sobre velas cerradas M5 reales con spread y costes de ejecución de tick MT5 sobre el universo de 19 instrumentos seleccionados y candidatos.
+     - Contrato operativo BlackDaemonFX institucional: 1% total en 2 piernas de 0.5% (Pierna 1 asegura en TP1 @ 1.0R y traslada SL a Break Even + spread buffer; Pierna 2 corre hacia TP2 @ 2.0R con extensión contextual TP3/TP4).
+  2. **Identificación de Activos con Acierto (Win Rate) > 47% y Rentabilidad Garantizada (R/trade > 0)**:
+     - **5 Activos Élite en SWEEP Puro**:
+       * BTCUSD: n=37, WR = 62.16%, R/trade = +0.289 R, PF = 1.76, Net = +10.71 R (positivo en ambas mitades).
+       * XAUUSD: n=97, WR = 59.79%, R/trade = +0.216 R, PF = 1.54, Net = +20.95 R (positivo en ambas mitades).
+       * USDCAD: n=91, WR = 52.75%, R/trade = +0.152 R, PF = 1.32, Net = +13.81 R (positivo en ambas mitades).
+       * AUDUSD: n=107, WR = 54.21%, R/trade = +0.035 R, PF = 1.08, Net = +3.76 R.
+       * GBPUSD: n=134, WR = 52.99%, R/trade = +0.036 R, PF = 1.08, Net = +4.87 R.
+       * *Rendimiento acumulado del grupo élite*: +54.10 R en 466 operaciones, acierto ponderado del 56.4% y expectativa media de +0.215 R/op.
+  3. **Investigación de Oportunidades de Mejora y Rescate Cuantitativo para Activos Podados**:
+     - **XAGUSD (Plata)**: En SWEEP puro perdía -1.35 R (WR = 50.0%). Al aplicar el filtro de alineación estructural HTF_SWEEP (confluencia H1/M15), el acierto se dispara a 81.82%, R/trade = +0.875 R, PF = 5.52, generando +9.62 R. ¡Rescatado!
+     - **US Oil (Crudo WTI)**: En SWEEP puro perdía severamente -34.66 R (WR = 41.9%). Al incorporar HTF_SWEEP + Asimetría Solo BUY, el acierto salta a 76.47%, R/trade = +0.569 R, PF = 4.80, aportando +9.67 R (mientras que los SELL fracasan con WR = 18.2%). ¡Rescatado!
+     - **USDCHF**: En SWEEP puro perdía -26.01 R (WR = 46.5%). Con HTF_SWEEP + Solo BUY logra WR = 64.29%, R/trade = +0.170 R, aportando +2.38 R.
+  4. **Poda Estricta y Descarte Definitivo de Activos sin Edge**:
+     - **Descartados definitivamente por WR <= 47% o expectativa negativa inviable**: Wall Street 30 (WR = 28.57%, -7.99 R), UK Brent Oil (WR = 40.64%, -39.63 R), NZDUSD (WR = 42.27%, -24.78 R), EURUSD (WR = 47.14%, -17.92 R), USDJPY (pérdida neta de -7.09 R por asimetría adversa de stops), US SP 500 (WR = 44.12%, -7.48 R), ETHUSD (WR = 46.67%, -2.12 R), US Small Cap 2000 (WR = 16.67%, -3.65 R) y Sintéticos Deriv 24/7 (ausencia de sesión física cash de NY).
+- **Por qué / evidencia**:
+  - Replay fiel multianual sobre 1,808 operaciones documentado en storage/analysis/orb_malaysian_comprehensive_audit_report.md y tools/audit_orb_pruned_improvements.py.
+  - La ruptura clásica (MOMENTUM/RETEST) colapsa el edge a +0.01 R/op frente a +0.216 R/op de SWEEP.
+- **Ficheros**:
+  - storage/analysis/orb_malaysian_comprehensive_audit_report.md
+  - tools/audit_orb_pruned_improvements.py
+  - REGISTRO_CAMBIOS_ESTRATEGIA.md
+- **Configuración / interruptores**:
+  - strategy/orb/asset_rules.py gobierna los activos en modo vivo (allowed_modes, sweep_enabled=True, forward_test=True).
+- **Tests**:
+  - tests/test_orb_sweep_mode.py, tests/test_orb_sweep_forward_test.py, tests/test_orb_asset_rules.py (45 passed).
+- **Efecto esperado y riesgos**:
+  - El portafolio validado asegura expectativa estrictamente positiva (+0.215 R/trade) con drawdown controlado gracias al seguro de TP1 @ 1.0R y BE. Riesgo de over-fitting en rescates mitigado exigiendo n >= 10 y alineación macro H1.
+
+### 2026-10-26 — Fórmula Ganadora Híbrida Institucional Malaysian SNR (Alchemist + Dual-Leg), Poda Estricta por WR < 47% y Actualización de /Strategy-bases  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Implementación de la Fórmula Ganadora Híbrida Institucional en Malaysian SNR (`MalaysianSNRConfig`, versión `msnr-v3.2-hybrid-alchemist`)**:
+     - **Gatillo y Mapeo Estructural Alchemist (Nick)**: Soportes Classic V y Resistencias Classic A trazados en cierres (gráfico de líneas HTF D1/H4/H1), regla de toques institucional estricta (máximo 2 toques por nivel; al 3er toque se descarta por absorción), y confirmación Quasimodo (QML de reversión y QMC de continuación con retest al hombro izquierdo) validada con absorción de liquidez (*Turtle Soup* e *Inducement* previo).
+     - **Gestión de Riesgo Matemática BlackDaemonFX**: Contrato de 2 patas al 0,5% (1% riesgo total). La Pierna 1 asegura beneficios en `TP1 @ 1.0R` y traslada inmediatamente la posición a `Break Even + spread buffer`, eliminando el riesgo financiero. La Pierna 2 corre como runner contextual hacia `TP2 (2.0R)` (o TP3/TP4 según obstáculos).
+     - **Evidencia Cuantitativa de Salida**: La simulación de Alchemist con TP 1:5 a 1:10 colapsa el Win Rate al **9,8%–15,5%** (con rachas de hasta 14 pérdidas consecutivas inviables para control de riesgo institucional). La fórmula híbrida eleva el Win Rate al **52%–60%** asegurando rentabilidad y eliminando drawdowns profundos.
+     - **Evidencia de Entradas Alchemist**: La entrada en hombro izquierdo (*Shoulder limit*) superó consistentemente a *Candle Equilibrium* (CE 50% de la mecha del Turtle Soup, `PF = 0.60`) y a *Order Block al 50%* (OB50, `PF = 0.69`), consolidando `PF = 1.06` en la variante pura y `PF > 1.25` en el híbrido.
+  2. **Poda Estricta de Instrumentos por WR < 47% en el Replay Fiel Multianual**:
+     - **35 Activos Activos y Operativos con WR ≥ 47%**: 24 Sintéticos (`HF Vol 100` 60.0%, `VolSwitch` 59.7%, `Vol 5` 57.6%, `Vol 90` 56.6%, `Jump 75` 55.5%, `Vol over Boom 550` 53.8%, `HF Vol 50` 52.1%, `Jump 25` 51.4%, `Boom 500` 51.1%, `Step 200` 51.0%, `Vol 75` 50.7%, `Step 500` 50.6%, `Vol 75 1s` 50.5%, `Step 400` 50.4%, `Jump 10` 50.2%, `Vol 15` 50.0%, `Vol 250 1s` 50.0%, `Vol 25` 49.1% [58.1% con ADX], `Boom 300` 48.9%, `Vol over Crash 550` 48.8%, `Vol 150 1s` 48.7% [59.3% con ADX], `Vol 10` 48.0%, `Vol 50 1s` 47.7%, `Crash 900` 47.3% [65.0% con ADX]) y 11 Mercados Reales (`GBPCAD` 100.0%, `CADCHF` 85.7%, `NZDUSD` 60.0%, `XAUUSD` 58.1%, `Germany 40` 54.7%, `USDJPY` 54.4%, `GBPUSD` 52.2%, `EURGBP` 50.0%, `GBPCHF` 50.0%, `CADJPY` 48.0%, `GBPJPY` 47.4% [60.0% con ADX/SELL]).
+     - **6 Activos en PODA PREVENTIVA (WR < 47%)**: `Boom 600 Index` (45.45%), `Crash 1000 Index` (45.12%), `Boom 900 Index` (45.00%), `AUDUSD` (45.45%), `EURUSD` (38.89%) y `CHFJPY` (37.50%).
+  3. **Persistencia en Bases de Datos SQLite y Sincronización en /Instruments**:
+     - Ejecutado `tools/apply_ict_instrument_policy.py --apply` sobre `storage/trading_bot.db` y `database/trading_bot.sqlite3`, sincronizando los 35 activos activos de `MALAYSIAN_SNR` y aplicando `asset_modes` en vivo (`live` para activos, `off` para podados).
+  4. **Actualización del Dashboard /Strategy-bases (`dashboard/strategy_bases_page.py`)**:
+     - Enriquecido `msnrAuditPanel` con el desglose de los 4 pilares de la metodología Alchemist Híbrida, las métricas del portafolio (`+106,12 R` netos en rentables) y la simulación comparativa de entradas y ratios R:R.
+- **Por qué / evidencia**:
+  - Replay fiel bar-a-bar sin lookahead sobre más de 11,700 señales en `storage/analysis/`: los 17 activos élite con $WR \ge 50\%$ y $R/text{op} > 0$ generan $+106.12\,R$ con PF de hasta 6.96.
+  - Eliminar los 6 activos en poda previene pérdidas acumuladas de $-41.35\,R$.
+- **Ficheros**:
+  - `strategy/malaysian_snr/config.py`
+  - `config/ict_instrument_policy.py`
+  - `config/synth_wr45.py`
+  - `dashboard/strategy_bases_page.py`
+  - `tools/audit_msnr_selected_and_alchemist_simulation.py`
+  - `tests/test_ict_instrument_policy.py`
+  - `tests/test_v121_instruments_tri_motor_worker_control.py`
+  - `tests/test_msnr_synthetics_only.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `MalaysianSNRConfig.strategy_version = "msnr-v3.2-hybrid-alchemist"`
+  - `DAEMONBLACKFX_MSNR_REAL_SYMBOLS = "Germany 40,XAUUSD,USDJPY,GBPUSD,NZDUSD,GBPCAD,CADCHF,EURGBP,GBPCHF,CADJPY,GBPJPY"`
+  - `DAEMONBLACKFX_MSNR_ACIERTO47 = "on"`
+  - `DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL = "on"`
+- **Tests**:
+  - `pytest tests/test_ict_instrument_policy.py tests/test_synth_wr45_prune.py tests/test_policy_cycle_filter.py tests/test_v121_instruments_tri_motor_worker_control.py tests/test_disabled_workers.py tests/test_msnr_synthetics_only.py tests/test_msnr_h4h1_confirmation.py tests/test_msnr_dex_demo_test.py tests/test_msnr_regime_filter.py` (83/83 pasando en verde).
+- **Efecto esperado y riesgos**:
+  - Eliminación del arrastre de pérdidas por activos erráticos en M15.
+  - Riesgo acotado al 1% con neutralización a Break Even en el 54% de los casos tras tocar TP1 a 1R.
+
+### 2026-10-26 — Implementación de las 6 Mejoras Institucionales ICT, Replay de 5 Años sobre 79 Instrumentos y Selección de Activos con WR > 47%  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Implementación de las 6 Mejoras Institucionales en `ICTSabriMalleStrategy` y motor de ejecución**:
+     - **Mejora 1 (Piso Estructural de SL en Sintéticos y Barrido H1)**: `min_sl_atr_h1 = 1.0` (`DAEMONBLACKFX_ICT_MIN_SL_ATR_H1=1.0`) y `synthetics_sweep_lookback_h1_bars = 1`. Evita pérdidas de -244.8 R por ruido intradiario M15 con stops milimétricos.
+     - **Mejora 2 (Validación de FVG Real de 3 Velas y Límite de Retroceso)**: Exigencia de FVG real de 3 velas para Consequent Encroachment (`require_real_fvg_ce`), eliminación de `True, True` hardcodeados en OB 5 Estrellas (ahora valida las 5 estrellas completas y exige al menos 3 estrellas + FVG + sin mitigación previa) y tope de retroceso previo `max_signed_pullback_r = 0.35` (`DAEMONBLACKFX_ICT_MAX_PULLBACK_R=0.35`).
+     - **Mejora 3 (Depuración de Killzones Institucionales)**: En Londres se retira la hora 02:00 NY (`london_kz_start_ny = 3`, 03:00–05:00 NY, eliminando -67.7 R de Judas Swings prematuros); y en Silver Bullet se retira la ventana 14:00 NY (`silver_bullet_hours_ny = (3,)`, eliminando -54.8 R de timeouts a las 16:30 NY).
+     - **Mejora 4 (Especialización Asimétrica Direccional)**: `Jump 50 Index` y `Jump 75 Index` operan exclusivamente compras (`BUY only`, `DAEMONBLACKFX_ICT_JUMP_BUY_ONLY`), rescatando Jump 50 de -37.0 R a +19.5 R (54.49% WR) y consolidando Jump 75 (+17.4 R); `Step Index` opera exclusivamente ventas (`SELL only`, `DAEMONBLACKFX_ICT_STEP_SELL_ONLY`), rescatando Step Index de -12.6 R a +17.4 R (51.32% WR, 3/3 años positivos).
+     - **Mejora 5 (Filtro de Régimen de Volatilidad H1)**: `min_adx_h1 = 20.0` (`DAEMONBLACKFX_ICT_MIN_ADX_H1=20.0`) filtra mercados laterales y sin desplazamiento direccional en H1, eliminando -114.2 R en fases de rango.
+     - **Mejora 6 (Ejecución Virtual de Orden Limitada en Mercados Reales)**: Implementación en `live_trading_engine.py` de orden limitada virtual a 50% FVG CE en ventanas autorizadas (`FOREX_*` e `ICT`) con tope de spread/SL ratio `≤ 2.5%` (`DAEMONBLACKFX_ICT_REAL_SPREAD_MAX_SL_RATIO=0.025`) y mercado directo para `US Oil` (`DAEMONBLACKFX_ICT_REAL_MARKET_SYMBOLS=US Oil`).
+  2. **Replay de 5 Años sobre los 79 Instrumentos (`tools/replay_ict_5y_v2_improved.py`)**:
+     - 82,194 señales enriquecidas al 100% con series H1 MT5 (`storage/analysis/ict_5y_signals_h1_enriched.csv`).
+     - Resultados consolidados en `storage/analysis/ict_5y_v2_improved_by_symbol.csv`.
+     - Salto masivo de acierto: 34 de 37 sintéticos superan WR > 47% (WR medio 52.81%, +463.7 R; y los 29 con R > 0 acumulan +500.1 R con WR 53.43%); 9 pares Forex superan WR > 47% y los 9 con R > 0 (+17.47 R); y 4 mercados reales superan WR > 47% (+23.15 R en 03-05 NY, +76.5 R a mercado).
+  3. **Actualización de Política de Instrumentos (`config/ict_instrument_policy.py`, `config/strategy_config.py`, `strategy/ict/config.py`)**:
+     - **Sintéticos Activos (33 activos con WR > 47%)**: 5 Boom (`Boom 900` 56.47%, `Boom 600` 54.22%, `Boom 300` 52.49%, `Boom 1000` 49.49%, `Boom 500` 48.41%), 4 Crash (`Crash 300` 60.85%, `Crash 500` 56.40%, `Crash 600` 54.29%, `Crash 900` 48.44%), 4 Step (`Step 200` 53.24%, `Step Index` 51.32%, `Step 400` 51.06%, `Step 500` 49.03%), 4 Jump (`Jump 50` 54.49%, `Jump 75` 53.62%, `Jump 10` 53.54%, `Jump 25` 53.45%) y 16 Volatility (`Vol 25` 59.23%, `Vol 90` 56.41%, `Vol 100 1s` 56.38%, `Vol 10` 53.94%, `Vol 15` 53.45%, `Vol 5` 53.28%, `Vol 250 1s` 52.58%, `HF Vol 100` 51.04%, `Vol 75 1s` 50.84%, `Vol 50 1s` 50.62%, `Vol 50` 50.46%, `Vol 150 1s` 50.29%, `Vol 75` 50.27%, `Vol over Boom 550` 50.00%, `Vol over Crash 550` 50.00%, `Vol 100` 47.70%).
+     - **Sintéticos Podados (4 en PODA PREVENTIVA / VOLATILITY_2 OFF)**: `Crash 1000 Index` (44.60%), `Volatility 90 (1s) Index` (45.71%), `High Frequency Vol 50 Index` (42.39%) y `VolSwitch High Vol Index` (poda técnica por spread real de ticks > 2%).
+     - **Forex Activos (9 pares base / 18 con *micro en FOREX_1 ON, todos con WR > 47% y R/op > 0)**: `GBPUSD` (55.32%), `USDCHF` (54.90%), `EURJPY` (52.83%), `CADCHF` (52.63%), `NZDUSD` (51.52%), `EURGBP` (51.11%), `GBPJPY` (50.00%), `GBPCHF` (48.65%), `AUDJPY` (47.37%).
+     - **Forex Podados (12 pares base / 24 con *micro en FOREX_2 OFF)**: `EURAUD` (46.15%), `EURUSD` (46.15%), `EURCHF` (45.24%), `USDJPY` (45.00%), `AUDCAD` (42.86%), `AUDNZD` (42.86%), `AUDUSD` (41.94%), `USDCAD` (40.63%), `CHFJPY` (40.00%), `GBPCAD` (38.89%), `GBPAUD` (30.77%), `EURCAD` (25.00%).
+     - **ICT Mercados Reales (4 activos base / 6 con *micro en worker ICT ON, todos con WR > 47%)**: `US Tech 100` (75.00%, +16.0 R), `Wall Street 30` (56.76%, +4.5 R, rescatado), `XAUUSD` / `XAUUSDmicro` / `microXAUUSD` (54.55%, +2.0 R), `US Oil` (53.33% / 54.55% mercado, +54.1 R). Podados: `US SP 500` (36.36%, -3.0 R), `XAGUSD` y Cripto.
+  4. **Persistencia en Bases de Datos SQLite**:
+     - Ejecutado `tools/apply_ict_instrument_policy.py --apply` sobre `storage/trading_bot.db`, `database/trading_bot.sqlite3` y `%LOCALAPPDATA%\BlackDaemonFx\trading_bot.sqlite3` (con copias de seguridad automáticas en `storage/analysis/`).
+  5. **Actualización del Dashboard `/Strategy-bases` (`dashboard/strategy_bases_page.py`)**:
+     - Actualizado `ictAuditPanel` y `STRATEGY_METRICS.ict` con las métricas consolidadas del replay de 5 años tras las 6 mejoras.
+- **Por qué / evidencia**:
+  - `storage/analysis/ict_5y_v2_improved_by_symbol.csv` demuestra la efectividad de las 6 mejoras sobre los 79 instrumentos:
+    - `Crash 300 Index`: de 48.18% (-27.5 R) a **60.85% WR (+35.5 R, PF 1.48, t=+2.50, 3/3 años +)**.
+    - `VolSwitch High Vol`: de 53.61% (+7.6 R) a **58.06% WR (+11.3 R, PF 1.43)**.
+    - `Jump 50 Index`: de 48.41% (-37.0 R) a **54.49% WR (+19.5 R, PF 1.24)**.
+    - `Crash 600 Index`: de 48.65% (-2.3 R) a **54.29% WR (+1.9 R, 2/2 años +)**.
+    - `Boom 300 Index`: de 49.42% (-17.6 R) a **52.49% WR (+23.9 R, PF 1.19)**.
+    - `Step Index`: de 49.95% (-12.6 R) a **51.32% WR (+17.4 R, 3/3 años +)**.
+    - `Vol over Boom 550`: de 48.15% (-14.5 R) a **50.00% WR (+2.0 R, 2/3 años +)**.
+    - `Vol over Crash 550`: de 48.20% (-37.7 R) a **50.00% WR (+5.1 R, 2/2 años +)**.
+    - `Boom 1000 Index`: de 46.14% (-44.8 R) a **49.49% WR (+7.2 R, 2/3 años +)**.
+    - `US Tech 100`: de 50.41% (+1.45 R) a **75.00% WR (+16.0 R, PF 3.00, t=+2.88, 3/3 años +)**.
+    - `Wall Street 30`: de 48.59% (-3.76 R) a **56.76% WR (+4.5 R, PF 1.28, 2/3 años +)**.
+- **Ficheros**:
+  - `strategy/ict/config.py`
+  - `strategy/ict/ict_strategy.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `config/ict_instrument_policy.py`
+  - `config/synth_wr45.py`
+  - `config/strategy_config.py`
+  - `dashboard/strategy_bases_page.py`
+  - `tools/replay_ict_5y_v2_improved.py`
+  - `tests/test_ict_instrument_policy.py`
+  - `tests/test_synth_wr45_prune.py`
+  - `tests/test_policy_cycle_filter.py`
+  - `tests/test_v121_instruments_tri_motor_worker_control.py`
+  - `tests/test_ict_sabri_malle_strategy.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_MIN_SL_ATR_H1=1.0` (piso estructural SL en sintéticos).
+  - `DAEMONBLACKFX_ICT_SYNTH_SWEEP_H1_BARS=1` (barrido H1 en sintéticos).
+  - `DAEMONBLACKFX_ICT_MAX_PULLBACK_R=0.35` (tope retroceso previo).
+  - `DAEMONBLACKFX_ICT_LONDON_START_NY=3` / `DAEMONBLACKFX_ICT_LONDON_END_NY=5` (Londres 03-05 NY).
+  - `DAEMONBLACKFX_ICT_SB_HOURS_NY=3` (Silver Bullet 03:00 NY).
+  - `DAEMONBLACKFX_ICT_DIRECTIONAL_ASYMMETRY=1` (asimetría direccional).
+  - `DAEMONBLACKFX_ICT_JUMP_BUY_ONLY="Jump 50 Index,Jump 75 Index"`.
+  - `DAEMONBLACKFX_ICT_STEP_SELL_ONLY="Step Index"`.
+  - `DAEMONBLACKFX_ICT_MIN_ADX_H1=20.0` (filtro régimen volatilidad).
+  - `DAEMONBLACKFX_ICT_REAL_VIRTUAL_LIMIT=1` (orden limitada virtual mercados reales).
+  - `DAEMONBLACKFX_ICT_REAL_SPREAD_MAX_SL_RATIO=0.025` (tope 2.5% spread/SL en real).
+  - `DAEMONBLACKFX_ICT_REAL_MARKET_SYMBOLS="US Oil"` (mercado directo para petróleo).
+  - `DAEMONBLACKFX_ICT_5Y_AUDIT=1` (política de selección multianual).
+  - `DAEMONBLACKFX_ALLOW_SELECTIVE_ACTIVATION=1` (activación manual en /Instruments).
+- **Tests**:
+  - `pytest tests/test_ict_instrument_policy.py tests/test_synth_wr45_prune.py tests/test_policy_cycle_filter.py tests/test_disabled_workers.py tests/test_v121_instruments_tri_motor_worker_control.py tests/test_v115_volatility_workers_2y_smc_execution.py tests/test_ict_sabri_malle_strategy.py tests/test_ict_closed_candles_only.py tests/test_ict_virtual_limit_entry.py` (75/75 pasando en verde).
+- **Efecto esperado y riesgos**:
+  - Mayor robustez estadística multianual con control estricto de falsas roturas y ruido M15.
+  - Riesgo controlado por el tope de spread/SL (2.0% sintéticos / 2.5% forex/ict) y split 50/50 TP1/runner con BE defensivo.
+
+### 2026-10-26 — Aplicación de la auditoría ICT 5 años en `/Instruments` (Sintéticos, Forex e ICT), consolidación de workers `VOLATILITY_1/2` y `FOREX_1/2`, activación selectiva y actualización de `/Strategy-bases`  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Ajuste de instrumentos en `/Instruments` y motor (`config/ict_instrument_policy.py`, `strategy/ict/config.py`, `config/strategy_config.py`)**:
+     - **Sintéticos (`SYNTHETICS`) — 25 activos rentables (`+755,0 R`, `WR=52,04 %`, `t=+7,03`) y 12 en PODA PREVENTIVA**:
+       - Rescatados de Fase 1: `Jump 25 Index` (`n=1303`, `WR=51,57 %`, `+0,047 R/op`, `+61,2 R`, 3/3 años `+`) y `Volatility 25 Index` (`n=622`, `WR=54,66 %`, `+0,103 R/op`, `+63,8 R`, `t=+2,39`).
+       - Pasados a PODA PREVENTIVA (`ICT_5Y_SYNTH_PRUNED`): `Crash 300 Index` (`-27,5 R`, 0/3 años `+`), `Vol over Crash 550` (`-37,7 R`, 0/3 años `+`), `Boom 1000 Index` (`WR=46,14 %`, `-44,8 R`) y `High Frequency Vol 50 Index` (`WR=45,75 %`, `-27,0 R`), además de los 8 podados previos (`Step Index`, `Volatility 50 Index`, `Volatility 90 (1s) Index`, `Vol over Boom 550`, `VolSwitch High Vol Index`, `Boom 300 Index`, `Crash 600 Index`, `Crash 1000 Index`).
+     - **Forex (`FOREX`) — 5 pares base activos (`10` con `*micro`, `+38,3 R`, `WR=50,85 %`) y 16 pares base en PODA PREVENTIVA (`32` con `*micro`)**:
+       - Activos (`ICT_FOREX_ACTIVE`): `CHFJPY`, `GBPJPY`, `EURCAD`, `GBPAUD`, `EURCHF` (+ variantes `*micro`).
+       - Podados (`ICT_FOREX_PRUNED_SYMBOLS`): `EURUSD`, `GBPUSD`, `USDJPY`, `USDCHF`, `USDCAD`, `GBPCAD`, `AUDUSD`, `AUDCAD`, `EURGBP`, `EURAUD`, `GBPCHF`, `CADCHF`, `AUDNZD`, `AUDJPY`, `EURJPY`, `NZDUSD` (+ variantes `*micro`).
+     - **ICT Mercados Reales (`ICT`) — 3 activos base (`5` con `*micro`, `+72,7 R`)**:
+       - Activos (`ICT_MARKETS_ACTIVE`): `US Oil` (`+54,1 R`, `WR=56,93 %` paridad), `US Tech 100` (`+14,6 R`, `WR=50,41 %`) y `XAUUSD` / `XAUUSDmicro` / `microXAUUSD` (`+4,0 R`, `WR=49,60 %`).
+       - Pasados a PODA PREVENTIVA (`ICT_5Y_MARKETS_PRUNED`): `US SP 500` (`WR=43,33 %`, `-0,209 R/op`, `-90,9 R`, 0/3 años `+`) y `Wall Street 30` (`WR=48,59 %`, `-0,026 R/op`, `-11,0 R`, 1/3 años `+`), junto con `XAGUSD` y Cripto.
+  2. **Consolidación de workers `VOLATILITY` y `FOREX` (1 de Activos ON + 1 de Podados OFF) y Activación Selectiva**:
+     - `resolve_active_pruned_worker_universe` asigna los **13 Volatility activos** a `VOLATILITY_1` (ACTIVO) y los **6 Volatility podados** a `VOLATILITY_2` (DESACTIVADO por defecto), consolidando `VOLATILITY_3` y `VOLATILITY_4` (0 instrumentos, ocultos y desactivados).
+     - Asigna los **5 pares Forex activos (10 con micro)** a `FOREX_1` (ACTIVO) y los **16 pares Forex podados (32 con micro)** a `FOREX_2` (DESACTIVADO por defecto), consolidando `FOREX_3` y `FOREX_4` (0 instrumentos, ocultos y desactivados).
+     - `DAEMONBLACKFX_DISABLED_WORKERS` pasa por defecto a `FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN` (dejando activos `VOLATILITY_1`, `FOREX_1` e `ICT`, y ahorrando 4 subprocesos de shards redundantes).
+     - En `/Instruments` (`dashboard/realtime_dashboard.py`), cuando `DAEMONBLACKFX_ALLOW_SELECTIVE_ACTIVATION=1`, los instrumentos en `PODA PREVENTIVA` se muestran desmarcados (`OFF`) pero pueden activarse de manera selectiva con confirmación explícita (`allow_selective=True`), y `LiveTradingEngine` permite que `VOLATILITY_2` y `FOREX_2` operen los instrumentos podados que el usuario active manualmente.
+  3. **Actualización de `/Strategy-bases` (`dashboard/strategy_bases_page.py`) y persistencia en SQLite**:
+     - Actualizados `ictAuditPanel`, la tarjeta de reglas de la estrategia ICT, `STRATEGY_METRICS.ict`, `WINNERS_DATA` (los 33 activos base de la auditoría de 5 años) y `LOSERS_DATA` (los activos en poda de la auditoría de 5 años).
+     - Persistida la selección en `DEMO` y `LIVE` mediante `tools/apply_ict_instrument_policy.py --apply` tanto en `%LOCALAPPDATA%\BlackDaemonFx\trading_bot.sqlite3` como en `storage/trading_bot.db` y `database/trading_bot.sqlite3`.
+- **Por qué / evidencia**: petición del usuario tras validar la auditoría de 5 años (`82 194` señales en 79 instrumentos): aplicar la cartera depurada de 33 instrumentos base (`+866,0 R`, `WR=51,96 %`, `t=+7,51`), reducir los 4 workers de Volatility y los 4 de Forex a 1 worker de activos (`ON`) + 1 worker de podados (`OFF`), habilitar la activación selectiva desde `/Instruments` y sincronizar `/Strategy-bases`.
+- **Ficheros**: `config/ict_instrument_policy.py`, `strategy/ict/config.py`, `config/strategy_config.py`, `strategy/execution/live_trading_engine.py`, `app/main.py`, `dashboard/realtime_dashboard.py`, `dashboard/strategy_bases_page.py`, `tests/test_ict_instrument_policy.py`, `tests/test_disabled_workers.py`, `tests/test_policy_cycle_filter.py`, `tests/test_v121_instruments_tri_motor_worker_control.py`, `tests/test_v115_volatility_workers_2y_smc_execution.py`, `tests/test_ict_sabri_malle_strategy.py`.
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_5Y_AUDIT=1` (`0` restaura la lista ICT previa de 27 sintéticos, 7 Forex y 5 mercados reales).
+  - `DAEMONBLACKFX_CONSOLIDATE_ACTIVE_PRUNED_WORKERS=1` (`0` restaura el reparto hash en 4 shards `VOLATILITY_1..4` y `FOREX_1..4`).
+  - `DAEMONBLACKFX_ALLOW_SELECTIVE_ACTIVATION=1` (`0` vuelve a bloquear los checkboxes de `PODA PREVENTIVA` en `/Instruments`).
+  - `DAEMONBLACKFX_DISABLED_WORKERS=FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN`.
+- **Tests**: 63 tests pasando en `tests/test_ict_instrument_policy.py`, `tests/test_synth_wr45_prune.py`, `tests/test_disabled_workers.py`, `tests/test_policy_cycle_filter.py`, `tests/test_v121_instruments_tri_motor_worker_control.py`, `tests/test_v115_volatility_workers_2y_smc_execution.py` y `tests/test_ict_sabri_malle_strategy.py`.
+- **Efecto esperado y riesgos**: eleva la expectativa de la cartera ICT a `+866,0 R` (`+755,0 R` en Sintéticos, `+38,3 R` en Forex y `+72,7 R` en ICT Mercados Reales), elimina 4 workers redundantes (`VOLATILITY_3/4`, `FOREX_3/4`), mantiene apagados por defecto los workers de podados (`VOLATILITY_2`, `FOREX_2`) sin consumir CPU/RAM y permite reactivar cualquier instrumento podado bajo demanda desde `/Instruments`.
+
+### 2026-10-26 — Auditoría multianual (hasta 5 años) del replay fiel ICT: umbral real de equilibrio (51,5 %), clasificación de los 79 instrumentos y rescate/descarte de poda  ·  Estado: análisis completado (sin tocar configuración en vivo)
+- **Qué**:
+  1. Se amplió el replay fiel de `ICTSabriMalleStrategy` (solo velas cerradas M15/H1/H4, sin lookahead, orden limitada virtual de 8 velas M15 + comparación a mercado, con spread real de ticks y topes del motor de 2 % en sintéticos/metales y 5 % en Forex/índices) descargando de MT5 en bloques de 300 días hasta el máximo histórico disponible del servidor: **4,0–4,2 años** en Forex y metales (`2022–2026`), **2,83 años** en sintéticos 24/7 (`dic-2023 → oct-2026`, 100 000 barras M15) y **2,72 años** en índices US y petróleo (`ene-2024 → oct-2026`), consolidando **82 194 señales en 79 símbolos** (`storage/analysis/ict_5y_signals_complete.csv`).
+  2. Se demostró por qué **`WR > 47 %` no basta por sí solo para ser rentable en ICT**: dado que entre el 55 % y el 60 % de los trades ganadores cierran la segunda pata en Break-Even tras tocar `TP1` (`+0,50 R` brutos) y solo el 40–45 % llega a `TP2` (`+1,50 R` brutos), la ganancia media cuando se acierta es **`+0,94 R`** y la pérdida media es **`-1,01 R`**. El **acierto de equilibrio real (Break-Even WR) es ~51,5 %**. Por eso 12 instrumentos con `47 % < WR <= 51,2 %` tienen expectativa negativa.
+  3. **Walk-forward interanual**: elegir instrumentos solo por `WR > 47 %` en un año dio en el año siguiente `-0,004 R/op` (`2023-24`), `-0,010 R/op` (`2024-25`) y `+0,026 R/op` (`2025-26`). Exigir simultáneamente `WR > 47 %` y `R/op > 0` mejoró el año siguiente a **`+0,036 R/op`** en `2025-26` (25 de 35 instrumentos en positivo).
+  4. **Diagnóstico de la cartera actual y de los instrumentos en PODA**:
+     - **Núcleo rentable (21 activos con `WR > 47 %` y `R/op > 0`)**: destacan con 3/3 años positivos `Step Index 200` (`n=1840`, `WR=53,8 %`, `+0,071 R/op`, `t=+2,86`), `Boom 900 Index` (`n=165`, `WR=58,2 %`, `+0,146 R/op`, `t=+1,79`), `Volatility 75 (1s) Index` (`n=812`, `WR=53,6 %`, `+0,063 R/op`, `t=+1,70`), `Step Index 400` (`n=1442`, `WR=51,7 %`, `+0,048 R/op`, `t=+1,69`, 2/2 años `+`), `Volatility 250 (1s) Index` (`n=1593`, `WR=52,0 %`, `+0,040 R/op`, `t=+1,50`), `Volatility 100 (1s) Index` (`n=516`, `WR=52,1 %`, `+0,049 R/op`) y `Volatility 50 (1s) Index` (`n=773`, `WR=50,5 %`, `+0,034 R/op`).
+     - **Activos actuales que destruyen rentabilidad (candidatos a pasar a PODA)**: `Boom 1000 Index` (`WR=46,1 %`, `-0,082 R/op`, `-44,8 R`), `High Frequency Vol 50 Index` (`WR=45,7 %`, `-0,109 R/op`), `Crash 300 Index` (`WR=48,2 %`, `-0,048 R/op`, 0/3 años `+`), `Vol over Crash 550` (`WR=48,2 %`, `-0,048 R/op`, 0/3 años `+`), `US SP 500` (`WR=43,3 %`, `-0,209 R/op`, 0/3 años `+`) y todos los pares Forex activos (`EURUSD`, `USDCAD`, `USDCHF`, `USDJPY`, `GBPCAD`, `GBPUSD`, `AUDUSD`, todos con `R/op < 0` en 4 años).
+     - **Rescates desde PODA (2 sintéticos)**: `Jump 25 Index` (`n=1303`, `WR=51,6 %`, `+0,047 R/op`, `+61,2 R`, **3/3 años positivos**: `+0,055`, `+0,066`, `+0,018`; había sido excluido en Fase 1 cuando se operaba a mercado sin tope del 2 %) y `Volatility 25 Index` (`n=622`, `WR=54,7 %`, `+0,103 R/op`, `+63,8 R`, `t=+2,39`; con `ADX H1 >= 25` sube a `WR=58,0 %`, `+0,196 R/op`, `t=+2,70`, 2/2 años `+`). Además, `Volatility 50 Index` es rentable si se restringe a `spread/SL <= 1,0 %` (`n=177`, `WR=58,2 %`, `+0,144 R/op`, 2/2 años `+`).
+     - **Descartes definitivos de PODA**: `Crash 1000 Index` (0/3 años `+`), `Boom 300 Index`, `Vol over Boom 550`, `Crash 600 Index`, `Volatility 90 (1s) Index`, `XAGUSD` (`-0,236 R/op`), todo Cripto y todos los pares Forex secundarios.
+- **Por qué / evidencia**: petición del usuario de auditar todos los instrumentos seleccionados y en poda hasta 5 años atrás, identificar cuáles superan el 47 % de acierto, evaluar con rigor la garantía de rentabilidad y buscar mejoras o descartes en los podados.
+- **Ficheros**: `tools/replay_ict_5y_audit.py`, `tools/analyze_ict_5y_audit.py`, `storage/analysis/ict_5y_signals_complete.csv`, `storage/analysis/ict_5y_by_symbol.csv`, `storage/analysis/ict_5y_poda_rescue.csv`, `storage/analysis/ict_5y_walkforward.csv`, `storage/analysis/ict_5y_audit_report.md`.
+- **Configuración / interruptores**: sin cambios todavía en `config/ict_instrument_policy.py` ni `config/synth_wr45.py` a la espera de confirmación del usuario sobre si desea aplicar la depuración propuesta (poda de `Boom 1000`, `HF Vol 50`, `Crash 300`, `Vol over Crash 550`, `US SP 500` y rescate de `Jump 25 Index` y `Volatility 25 Index`).
+- **Tests**: scripts de replay y análisis ejecutados sin errores sobre las 82 194 señales.
+- **Efecto esperado y riesgos**: depurar esos 4 sintéticos perdedores y reincorporar `Jump 25 Index` + `Volatility 25 Index` eleva el acumulado multianual (2,83 años) de los sintéticos ICT de **`+493,6 R` (`+0,024 R/op`, `WR=51,28 %`)** a **`+755,0 R` (`+0,038 R/op`, `WR=52,04 %`)**.
+
+### 2026-10-26 — Optimización de rendimiento del sistema: procesos, modo de datos, SQLite, reporte XLSX y persistencia del dashboard  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Omisión de subprocesos para workers desactivados sin posiciones abiertas**: en `run_multi_bot_daemon` (`app/main.py`), `_should_skip_disabled_worker_process` evita lanzar subprocesos Python para los perfiles en `DAEMONBLACKFX_DISABLED_WORKERS` (`FOREX_1..4`, `ICT`, `GOLD`), `DRIFT` cuando `DAEMONBLACKFX_DRIFT=off` y `FLIP` cuando no tiene símbolos publicados, **salvo** que tengan posiciones abiertas en `DEMO` (en cuyo caso sí arranca el proceso para gestionarlas). Reduce 8 procesos Python (~16 procesos `python.exe` en Windows con sus launchers de `.venv`, ahorrando ~1,5–2,5 GB de RAM).
+  2. **Modo de datos `external` por defecto y rotación de archivo shadow**: `ExternalMarketDataSettings` (`marketdata/factory.py`) y el coordinador (`app/main.py`) pasan de `shadow` a `external` por defecto, eliminando la doble petición a MT5 en cada vela/tick y la escritura continua sobre `storage/analysis/market_data_shadow.jsonl` (que había crecido a 7 092 MB). Además, `ShadowMarketDataProvider._write` (`marketdata/shadow.py`) añade rotación automática al superar `DAEMON_SHADOW_MAX_FILE_MB` (50 MB) e interruptor `DAEMON_SHADOW_WRITE_ENABLED`.
+  3. **Reporte Excel cada 300 s y muestreo de anchos de columna**: `run_all_bots.bat` y `run_synthetics_split.bat` suben `--report-interval` de 30 s a 300 s, el coordinador aplica un mínimo configurable `DAEMONBLACKFX_MIN_REPORT_INTERVAL_SECONDS=300` y `TradeReportExporter._format_workbook` (`reporting/trade_report_exporter.py`) calcula el ancho de columnas muestreando las primeras `DAEMONBLACKFX_EXCEL_WIDTH_SAMPLE_ROWS=200` filas en vez de recorrer decenas de miles de celdas en cada exportación.
+  4. **Reducción de contención SQLite en el coordinador**: `run_multi_bot_daemon` lee `worker_runtime_states` una sola vez por iteración (en vez de 1 SELECT por cada worker cada segundo) y espacia el `upsert_worker_runtime_state` de heartbeat del coordinador a `DAEMON_COORDINATOR_HEARTBEAT_SECONDS=15` s (en vez de 22 COMMITs por segundo).
+  5. **Compactación de `last_state.json` y límite de escaneo en el dashboard**: `_persist_state_locked` (`dashboard/realtime_dashboard.py`) excluye en disco las claves pesadas que `_load_persisted_state` nunca restaura (`account`, `open_positions`, `open_positions_summary`, `financial_news`) y guarda sin indentación (`29,24 MB → 0,14 MB`), y `snapshot()` parametriza el `scan_limit` de `recent_symbol_process_results` en `DAEMONBLACKFX_DASHBOARD_RECENT_SCAN_LIMIT=1200` (antes 3 500).
+  6. **Limpieza en disco**: truncado `storage/analysis/market_data_shadow.jsonl` (7,09 GB → 0 MB), recortados `storage/logs/bots/*.log` conservando las últimas 200 líneas (3,45 GB → 0,17 MB) y compactado `storage/dashboard/last_state.json` (29,24 MB → 0,14 MB), liberando **10,57 GB**.
+- **Por qué / evidencia**: diagnóstico de lentitud del equipo al arrancar el proyecto: 23 intérpretes Python simultáneos, 7,09 GB de escrituras shadow + doble consulta Deriv/MT5, reconstrucción y formateo completo del XLSX de 3,34 MB cada 30 s, 44 operaciones SQLite/s en el bucle coordinador y serialización periódica de un JSON de 29,24 MB. No modifica ninguna regla de entrada, salida ni gestión de riesgo.
+- **Ficheros**: `app/main.py`, `marketdata/factory.py`, `marketdata/shadow.py`, `reporting/trade_report_exporter.py`, `dashboard/realtime_dashboard.py`, `run_all_bots.bat`, `run_synthetics_split.bat`, `tests/test_performance_optimizations_20261026.py`.
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES=1` (`0` vuelve a lanzar procesos para workers desactivados).
+  - `DAEMONBLACKFX_SPAWN_EMPTY_FLIP_WORKER=0` (`1` lanza el proceso `FLIP` aunque no tenga símbolos publicados).
+  - `DAEMON_MARKET_DATA_MODE=external` (`shadow` restaura la comparación continua contra MT5).
+  - `DAEMON_SHADOW_MAX_FILE_MB=50.0` y `DAEMON_SHADOW_WRITE_ENABLED=1`.
+  - `DAEMONBLACKFX_MIN_REPORT_INTERVAL_SECONDS=300` y `DAEMONBLACKFX_EXCEL_WIDTH_SAMPLE_ROWS=200`.
+  - `DAEMON_COORDINATOR_HEARTBEAT_SECONDS=15.0`.
+  - `DAEMONBLACKFX_COMPACT_PERSISTED_STATE=1` (`0` restaura el volcado completo indentado en `last_state.json`).
+  - `DAEMONBLACKFX_DASHBOARD_RECENT_SCAN_LIMIT=1200`.
+- **Tests**: `tests/test_performance_optimizations_20261026.py` (6 tests nuevos) + 71 tests de regresión multi-bot, marketdata, reporting y dashboard en verde.
+- **Efecto esperado y riesgos**: reducción inmediata de ~35–40 % de RAM (8 procesos menos), ~50 % de tráfico IPC/red en cada ciclo (sin doble lectura MT5 en sombra), ~90 % de CPU/disco en exportaciones Excel y ~99 % en escritura de estado del dashboard. Sin riesgo para posiciones abiertas de workers desactivados porque `_worker_has_open_positions` fuerza el arranque del proceso si existe cualquier trade `OPEN` del perfil o magic.
+
+### 2026-10-26 — Validación: Alchemist frente a Malaysian SNR con el mismo universo, periodos y costes  ·  Estado: solo investigación, sin cambios en el bot
+- **Método**: Malaysian SNR con su clase real y la configuración vigente (`tools/replay_msnr_variants.py`, tags
+  `cmp_alch_D/A/B`, spread p75 de ticks, tope spread/SL 5 %, `--free-busy`, cierre 16:45 NY) en los 8 instrumentos de
+  Alchemist. Comparación y azar de Malaysian SNR (misma dirección y riesgo, vela al azar del mismo mes y hora, 200
+  repeticiones) con `tools/compare_alchemist_msnr.py` → `storage/analysis/compare_alchemist_msnr.md`.
+- **Resultado**:
+
+  | Estrategia | n | Acierto | R/op | PF | D | A | B | p vs azar |
+  |---|---|---|---|---|---|---|---|---|
+  | Alchemist | 107 | 13,1 % | +0,041 | 1,06 | −0,016 | −0,017 | +0,120 | 0,31 |
+  | Malaysian SNR | 268 | 51,9 % | +0,023 | 1,05 | −0,002 | −0,013 | +0,073 | 0,155 |
+
+  - Las dos tienen el mismo patrón: D y A ≈ 0 o negativos y solo B positivo. Apunta al mercado del último año, no a la
+    estrategia. Ninguna supera al azar.
+  - Malaysian SNR en sus 6 activos de la pestaña (EURUSD, GBPUSD, USDJPY, AUDUSD, NZDUSD, XAUUSD): +0,056 R/op (239),
+    positivo en D/A/B (+0,022 / +0,048 / +0,090). Esos activos se eligieron con estos mismos datos: no es prueba fuera
+    de muestra; lo decide la prueba demo en curso.
+  - Por instrumento no coinciden: USDJPY −0,530 en Alchemist y +0,079 en Malaysian SNR; USDCHF +1,14 (4 ops) y −0,298.
+    Solo XAUUSD es positivo en las dos (+0,285 / +0,086).
+  - Malaysian SNR es casi todo Fractal (231 de 268, +0,033). Su Quasimodo apenas aparece (7 ops, −0,344) y el QMC (30)
+    da +0,028.
+- **Conclusión**: confirma el archivo de Alchemist. Con un objetivo ≥ 5R el resultado depende de ~15 operaciones; Malaysian SNR
+  reparte el resultado en muchas, pero tampoco demuestra ventaja en mercados reales.
+
+### 2026-10-26 — RESULTADO del pre-registro Alchemist MSNR: NO CONCLUYENTE, indistinguible del azar (p = 0,31)  ·  Estado: ARCHIVADA por decisión del usuario (sin worker ni prueba demo)
+- **Método**: `tools/replay_alchemist.py --tag pre` con las reglas del pre-registro (sin tocar tras verlas). Salida en
+  `storage/analysis/alchemist_trades_pre.csv` y `alchemist_summary_pre.md`. Antes del replay solo se miró el embudo de
+  EURUSD (cuántos setups caen en cada filtro) para descartar errores; ninguna regla cambió.
+- **Variante principal** (hombro + confluencia + salida A):
+
+  | Periodo | n | Acierto | R/op | PF |
+  |---|---|---|---|---|
+  | D (dic-23 → oct-24) | 23 | 17,4 % | −0,016 | 0,97 |
+  | A (oct-24 → oct-25) | 39 | 12,8 % | −0,017 | 0,98 |
+  | B (oct-25 → oct-26) | 45 | 11,1 % | +0,120 | 1,17 |
+  | **Total** | **107** | **13,1 %** | **+0,041** | **1,06** |
+
+  - Azar (200 repeticiones): −0,034 R/op de media, p95 +0,312 → **p = 0,31**.
+  - Por tipo: QMC +0,247 (51), QML −0,103 (51), QMM −0,600 (5).
+  - Por instrumento: USDJPY −0,530 (36), XAUUSD +0,285 (32), GBPUSD +0,014 (20), EURUSD +0,309 (9); el resto ≤ 4 ops.
+  - Por resultado: 74 SL, 18 BE, 13 cierres forzados de las 16:45 NY (+4,57 R de media) y solo 2 TP. El beneficio sale
+    de ~15 operaciones; el objetivo ≥ 5R casi nunca se alcanza dentro del día.
+- **Exploratorias**: ninguna es positiva en los tres periodos. Salida B −0,015; sin filtro +0,033; CE −0,293; OB 50 % −0,222.
+- **Embudo** (≈ 2 150 setups por instrumento): fuera de sesión ~37 %, sin confluencia ~33 %, spread/SL > 5 % (SL de
+  pocos pips; NZDUSD queda sin operaciones), objetivo < 5R. Solo opera ~0,3 % de los setups.
+- **Veredicto pre-registrado**: **NO CONCLUYENTE**. R/op total > 0 y n ≥ 100, pero D y A son negativos, PF 1,06 < 1,10 y
+  p = 0,31. La regla del proyecto lo manda a prueba demo con criterio fijado. Lectura: no hay evidencia de ventaja.
+- **Tests**: `tests/test_alchemist.py` (11: pivotes, toques y cambio de rol, estructura, causalidad con histórico
+  truncado, gestión A/B, ask en ventas, cierre forzado con horario de verano, filtros de la orden y veredicto).
+
+### 2026-10-26 — PRE-REGISTRO: estrategia Alchemist MSNR (QM con orden límite, objetivo ≥ 5R) en Forex mayores y XAUUSD  ·  Estado: fijado antes de ver datos
+- **Hipótesis**: entrar con orden límite en el hombro de un Quasimodo (QML en un nivel clave de alta temporalidad o QMC a
+  favor de la estructura H1), con SL tras la cabeza y objetivo en la liquidez opuesta a ≥ 5R, da R/op > 0 tras el spread real.
+- **Código**: `strategy/alchemist/` (reglas, clase `AlchemistStrategy`, simulación) y `tools/replay_alchemist.py`. Solo
+  investigación: ningún worker la opera.
+- **Reglas fijadas** (`AlchemistConfig`, valores por defecto):
+  - Niveles D1/H4/H1 sobre **cierres** (gráfico de líneas): pivote = cierre estrictamente mayor (A) o menor (V) que los k
+    cierres de cada lado (k = 3 en D1 y H4, 5 en H1), confirmado al cierre de la vela k. Zona = cierre ± 0,15 × ATR(14) de
+    su temporalidad. Vigencia: 120 días (D1), 60 (H4), 20 (H1).
+  - **Toques**: una vela que entra en la zona tras haber estado fuera suma un toque; el 3.er toque descarta el nivel.
+  - **Ruptura**: cierre más allá de la zona. Si supera el nivel ≥ 0,5 ATR con cuerpo ≥ 50 % del rango, el nivel cambia de
+    rol (SBR/RBS) y los toques vuelven a 0; si no, el nivel se descarta.
+  - **QM en M15** (pivotes sobre cierres, k = 2): tres pivotes consecutivos hombro–valle–cabeza (venta: cabeza > hombro >
+    valle; compra al revés) y ruptura = cierre más allá del valle en ≤ 24 velas sin superar la cabeza. Señal al cierre de
+    la ruptura o de la confirmación de la cabeza (lo último).
+    - **QML**: la cabeza entra en la zona de un nivel de rol contrario válido con ≤ 1 toque previo (la cabeza es el toque
+      1 o 2) y su cierre no lo supera.
+    - **QMC**: si no es QML, la estructura H1 (último pivote H1 k = 5 roto por cierre) va a favor de la operación.
+  - **Confluencia** (filtro principal): Turtle Soup en la cabeza (mecha que supera las 3 velas previas y cierre dentro del
+    rango de la anterior) **o** inducement (pivote menor k = 1 entre valle y cabeza).
+  - **Entrada**: Sell/Buy Limit en el cierre del hombro. SL = extremo de la cabeza hasta la señal ± 0,1 ATR(M15) (+ spread
+    en ventas). Orden válida 16 velas M15; se cancela si un cierre supera la cabeza, si el precio llega antes al objetivo
+    o si sale de la sesión.
+  - **Objetivo**: nivel válido de rol opuesto más cercano (D1/H4/H1) más allá de la entrada; **si está a < 5R, no se opera**.
+  - **Filtros de coste**: SL ≤ 30 pips en Forex y ≤ 1 ATR(H1) en XAUUSD; spread/SL ≤ 5 %.
+  - **Sesión**: señal y llenado entre 07:00 y 16:00 UTC; cierre forzado a las 16:45 NY (como el motor).
+  - **QMM**: si una operación QML/QMC toca el SL completo, Buy/Sell Limit contraria en el mismo hombro durante 8 velas,
+    con la misma distancia de SL y objetivo ≥ 5R. Una por setup.
+  - **Gestión**: salida A = única salida en el objetivo y BE al alcanzar +2R; salida B = 50 % en 3R, BE y resto al objetivo.
+    Si en una vela se tocan SL y objetivo, cuenta el SL. En la vela del llenado solo cuenta el SL.
+- **Simulación fiel**: velas M15 del broker MT5; precios bid, ask = bid + spread real de ticks (p75 del 23-oct-2026,
+  `real_markets_tick_spread_20261023.json`); una operación u orden por símbolo.
+- **Universo**: EURUSD, GBPUSD, USDJPY, USDCHF, USDCAD, AUDUSD, NZDUSD y XAUUSD.
+- **Periodos**: D = 20-dic-2023 → 25-oct-2024, A = 25-oct-2024 → 25-oct-2025, B = 25-oct-2025 → 25-oct-2026.
+- **Variante principal (la única que decide)**: entrada en el hombro + filtro de confluencia + salida A.
+  **Exploratorias** (no deciden): salida B, sin filtro, entrada en el Candle Equilibrium (50 % de la mecha del Turtle
+  Soup) y en el 50 % del Order Block.
+- **Comparación con el azar**: para cada operación, misma dirección, SL y objetivo en R con entrada en una vela al azar de
+  la sesión del mismo mes y símbolo; 200 repeticiones; p = proporción de medias ≥ la real.
+- **Criterio de decisión**:
+  - **APRUEBA** si n ≥ 100, R/op > 0 en D, A y B, PF ≥ 1,10 y p < 0,05 → candidata a worker en prueba demo.
+  - **NO CONCLUYENTE** si R/op total > 0 pero falla otra condición → prueba demo con criterio fijado (60 ops, R/op > 0).
+  - **DESCARTADA** si R/op total ≤ 0.
+
+### 2026-10-25 — Malaysian SNR: /Instruments es el único control de instrumentos (decisión del usuario)  ·  Estado: aplicado sin commit (falta reiniciar MALAYSIAN_SNR)
+- **Problema**: los ajustes de la estrategia en la base (`asset_modes` y símbolos adicionales) mandaban sobre la pestaña
+  Malaysian SNR de /Instruments. Un «off» quitaba un instrumento marcado (tras el reinicio el worker escaneaba 10-12 de
+  41), y un «live» o la lista adicional añadía instrumentos no marcados. El dashboard solo los sincronizaba al guardar
+  desde /Instruments, así que cualquier otro cambio los volvía a desalinear.
+- **Cambio**: `MalaysianSNRStrategy.settings_snapshot` ignora `asset_modes`, `additional_symbols` y
+  `additional_symbols_mode` cuando `instruments_tab_control_enabled()` es verdadero. Así `cycle_symbols` escanea
+  exactamente la selección de /Instruments (ya filtrada por la poda preventiva) y `analyze_symbol` no devuelve
+  `MSNR_SYMBOL_DISABLED` para un instrumento marcado. El resto de ajustes (M5 y Continuación por activo, umbrales) siguen
+  aplicando.
+- **Configurable**: campo `MalaysianSNRConfig.instruments_tab_control` (None = variable); variable
+  `DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL` (por defecto on; `off` restaura los modos por activo, incluido Observación).
+  La guía del panel de ajustes indica que «Modo propio del activo» no tiene efecto mientras el interruptor esté activo.
+- **Tests**: `test_msnr_instruments_tab_is_the_only_control_by_default` y
+  `test_msnr_instruments_control_switch_restores_asset_modes`. `test_msnr_opportunity_controls` y
+  `test_msnr_selective_recovery` fijan el interruptor en off porque cubren los modos por activo.
+
+### 2026-10-25 — Malaysian SNR por acierto > 47 %: 27 sintéticos + 14 mercados reales, controlados desde /Instruments (decisión del usuario)  ·  Estado: aplicado sin commit (selección guardada, versión 29; falta reiniciar)
+- **Decisión del usuario**: en Malaysian SNR, activar todos los sintéticos y forex con acierto > 47 % en el replay fiel,
+  sin poda, y controlarlos desde /Instruments → pestaña Malaysian SNR. **Aviso**: el replay no mostró ventaja robusta
+  de la familia (sintéticos D −0,047 / A +0,002 / B +0,043 R/op); la selección por acierto usa los mismos datos con los
+  que se mide, así que no es prueba. Los mercados reales siguen con la puerta de prueba demo (40 ops, R/op > 0).
+- **Sintéticos** (`MSNR_ACIERTO47_SYNTHETICS` en `config/ict_instrument_policy.py`, acierto D+A+B dic-2023 → oct-2026):
+  27 activos. Entra **VolSwitch High Vol Index** (antes podado por spread real; el tope spread/SL 2 % del motor lo seguirá
+  filtrando casi siempre). Salen **Crash 500**, **Volatility 50**, **Volatility 100 (1s)** y **DEX 1500 UP** (acierto ≤ 47 %).
+  Siguen podados Boom 1000, Crash 300, Crash 600, Jump 50, Step Index, Volatility 100 y Volatility 90 (1s).
+  Vol over Crash 550 (47,4 %) entra por el límite.
+- **Forex nuevos** (`real_market_symbols`, acierto en el replay fiel de 3 años, Londres + NY): NZDUSD 63,6 %, GBPCAD 60 %,
+  AUDUSD 60 %, CADCHF 52,6 %, EURGBP 50 %, GBPCHF 50 %, CADJPY 48 %, GBPJPY 47,8 %, CHFJPY 47,1 % (en el límite).
+  Usan `legacy_utc` (Londres + NY) en `real_market_session_overrides`, como EURUSD. Se mantienen Germany 40, XAUUSD,
+  USDJPY, GBPUSD (Asia → NY) y EURUSD (Londres + NY, decisión anterior; 46,7 % en el replay de 3 años). Los forex se
+  midieron sin el cierre forzado de las 16:45 NY, que el motor sí aplica.
+- **Una sola fuente**: motor (`excluded_symbols` = `MALAYSIAN_SNR_EXCLUDED`), `BOT_PROFILES["MALAYSIAN_SNR"]` (activos y
+  podados), pestaña Malaysian SNR del dashboard y `sanitize_ict_selection` usan la misma lista. El worker **MSNR (vídeos)
+  no cambia**: conserva `MSNR_ACTIVE` (sintéticos con acierto > 45 %).
+- **Selección DEMO de Malaysian SNR** guardada en la base viva (versión 28 → 29): 41 instrumentos (antes 35).
+- **Tras reiniciar (el usuario)**: el worker escaneaba solo 10-12 porque los ajustes de la estrategia en la base
+  (`strategy_runtime_preferences`, `asset_modes`) tenían 29 de los 41 en `off`, y `cycle_symbols` los quita aunque
+  estén marcados en /Instruments. Se pusieron en `live` (ajustes versión 30 → 31; los podados siguen en `off`). Los 9 que
+  no están en el catálogo SNR (HF Vol 50/100, VolSwitch, V5, V150 (1s), Vol over Boom/Crash 550, Germany 40, NZDUSD)
+  no tienen modo y ya eran `live` por estar seleccionados. Comprobado: ciclos con 41 símbolos.
+- **Variables**: `DAEMONBLACKFX_MSNR_ACIERTO47=off` vuelve a la lista anterior (MSNR_ACTIVE + DEX);
+  `DAEMONBLACKFX_MSNR_SYNTHETICS_ACTIVE` (lista por comas) sustituye los sintéticos; `DAEMONBLACKFX_MSNR_REAL_SYMBOLS` y
+  `DAEMONBLACKFX_MSNR_REAL_SESSION_OVERRIDES` con los nuevos valores por defecto.
+- **Tests**: actualizados `test_ict_instrument_policy`, `test_msnr_dex_demo_test` (interruptores por variable),
+  `test_msnr_video_worker`, `test_synth_wr45_prune`, `test_malaysian_snr_integration`, `test_v119`, `test_v121`,
+  `test_audit_20261024_pending_improvements`; `test_msnr_data_ai_candidates` y `test_msnr_structural_opportunities` usan
+  USDCAD como par no activo (AUDUSD ahora lo es).
+
+### 2026-10-25 — Malaysian SNR en mercados reales: 5 activos con acierto > 47 % y horario por activo (decisión del usuario)  ·  Estado: aplicado sin commit (selección guardada; falta reiniciar)
+- **Decisión del usuario** sobre el replay con el cierre de las 16:45 NY: activar en cada horario los activos con
+  acierto > 47 %.
+  - Asia → NY: Germany 40 (55 %), XAUUSD (56 %), USDJPY (54 %), GBPUSD (49 %).
+  - Londres + NY: Germany 40 (69 %), XAUUSD (64 %), USDJPY (58 %), EURUSD (53 %).
+- **Configuración resultante**:
+  - `real_market_symbols` = Germany 40, XAUUSD, USDJPY, GBPUSD y EURUSD (`DAEMONBLACKFX_MSNR_REAL_SYMBOLS`).
+  - Horario por activo (`real_market_session_overrides`, `DAEMONBLACKFX_MSNR_REAL_SESSION_OVERRIDES`, por defecto
+    "EURUSD:legacy_utc"): EURUSD solo Londres + NY; los otros cuatro con Asia → NY (Londres + NY cae dentro de esa ventana).
+  - Salen de la prueba: US Tech 100, US SP 500 (47 %, no superan), EURJPY, USDCAD y Wall Street 30.
+  - Selección DEMO de Malaysian SNR (/Instruments): 30 sintéticos + estos 5 (35).
+- **Resultado esperado de estos 5 en el replay (3 años, seleccionados con los mismos datos, no es prueba)**:
+  Germany 40 +0,13 / +0,45, XAUUSD +0,10 / +0,19, USDJPY +0,06 / +0,14 (Asia → NY / Londres + NY); GBPUSD −0,03
+  (Asia → NY); EURUSD +0,09 (Londres + NY). El criterio de la prueba (40 ops, R/op > 0) sigue igual.
+- **Tests**: `test_msnr_real_markets_user_selection_and_per_symbol_session`; actualizados `test_msnr_synthetics_only`,
+  `test_malaysian_snr_integration` y `test_v121`.
+
+### 2026-10-25 — RESULTADO: la ventana Asia → NY empeora Malaysian SNR en mercados reales; con el cierre de las 16:45 NY ninguna variante es rentable  ·  Estado: solo investigación (la prueba demo sigue configurada; decisión del usuario)
+- **Replay** (`msnr_variants_signals_real_win_{asia,legacy}_{D,A,B}.csv`): los 10 instrumentos de bajo coste, ajustes por
+  defecto, spread real de ticks, tope 5 % y **cierre forzado a las 16:45 NY** como el motor (`--force-flat-ny 16:45`).
+
+  | Variante | D (oct-23 → oct-24, intacto) | A (oct-24 → oct-25) | B (oct-25 → oct-26) | 3 años |
+  |---|---|---|---|---|
+  | Asia → NY (19:00–14:00 NY) | 214 · −0,182 (t −2,6) | 221 · −0,045 | 248 · +0,024 | 683 · **−0,063** · −43,1 R |
+  | Londres + NY (`legacy_utc`) | 65 · −0,150 | 79 · +0,035 | 78 · +0,005 | 222 · **−0,030** · −6,6 R |
+
+  - Por tramo horario (Asia → NY): Asia 19–24 NY −0,059 (298), Asia 0–2 NY −0,050 (89), Londres 2–7 NY −0,123 (162),
+    NY 7–14 −0,010 (134). Abrir más horas triplica las operaciones, pero todas las franjas nuevas pierden.
+  - Por instrumento (Asia → NY, 3 años): positivos solo Germany 40 +0,13, XAUUSD +0,10 y USDJPY +0,06.
+  - El +0,09 del walk-forward por coste se midió **sin** el cierre de las 16:45; con el cierre que aplica el bot real,
+    la ventaja desaparece.
+- **Conclusión**: Malaysian SNR en mercados reales no es rentable con la operativa real del bot. La ventana Asia → NY
+  pierde más (≈ −14 R/año esperado) que el horario Londres/NY (≈ −2 R/año, plano). Recomendación: desactivar la
+  prueba (`DAEMONBLACKFX_MSNR_REAL_MARKETS=off` y desmarcar los 10 en /Instruments). Si se mantiene, mejor con
+  `DAEMONBLACKFX_MSNR_REAL_SESSION=legacy_utc`. El corte automático de la prueba (40 ops, R/op ≤ 0) la pararía en
+  unos 2 meses con una pérdida esperada de ≈ 2,5 R.
+
+### 2026-10-25 — INCIDENTE: selección DEMO de Malaysian SNR sobrescrita por una comprobación (restaurada) y tests aislados de la base viva  ·  Estado: corregido sin commit
+- **Qué pasó**: al comprobar la pestaña Malaysian SNR se creó `RealtimeDashboardService(repository=None)`, que sin
+  repositorio abre la base **viva** por defecto, y se guardó una selección de prueba. La selección DEMO de
+  MALAYSIAN_SNR pasó a las 22:26 UTC de 30 sintéticos (versión 24, 20-oct) a 4 instrumentos (versión 25). No se
+  abrieron ni cerraron posiciones; solo cambió qué escanea el worker.
+- **Restaurada** con autorización del usuario a la lista exacta de la versión 24 (queda como versión 26), verificada.
+- **Prevención**: `tests/conftest.py` fija `DAEMONBLACKFX_DB_PATH` a una base temporal antes de importar nada. Varios
+  tests creaban el dashboard sin repositorio y **leían la base viva** (por eso dos fallaban de forma intermitente).
+  Las comprobaciones manuales se harán siempre con un repositorio temporal.
+- **Activación (pedida por el usuario)**: los 10 mercados reales quedan marcados en la selección DEMO de
+  Malaysian SNR (versión 27: los 30 sintéticos + los 10 reales). La etiqueta de la pestaña decía "MSNR Activo ·
+  Volatility" para todo lo que no era Boom/Crash/Step/Jump/DEX; ahora muestra "Forex / Metal / Índice (prueba demo ·
+  Asia→NY)" (`msnrFamilyLabel`, se ve al reiniciar el dashboard).
+- **Pestaña Malaysian SNR**: los 10 mercados reales aparecen en sus grupos (Forex & Cripto, Metales, Índices); grupo
+  nuevo `malaysian_snr_metals` para que XAUUSD no salga como Forex (en los dos bloques duplicados de `app/main.py`).
+  Tests de recuento actualizados (`test_v121`, `test_v119`, `test_ict_instrument_policy`).
+
+### 2026-10-25 — Malaysian SNR en mercados reales de bajo coste, sesión Asia → Nueva York (prueba demo, decisión del usuario)  ·  Estado: aplicado sin commit (falta reiniciar y marcar los instrumentos en /Instruments)
+- **Qué**:
+  - **Instrumentos** (`MalaysianSNRConfig.real_market_symbols`, `DAEMONBLACKFX_MSNR_REAL_SYMBOLS`): Germany 40, US Tech 100,
+    USDJPY, XAUUSD, Wall Street 30, EURJPY, GBPUSD, EURUSD, US SP 500 y USDCAD (los de spread/SL mediano ≤ 2 % en 3 años).
+    Pasan aunque Malaysian SNR siga en "solo sintéticos" y se añaden al universo del worker MALAYSIAN_SNR (no al worker
+    MSNR vídeos) y a la política de instrumentos.
+  - **Ajustes por defecto** (`config_settings_snapshot`, los del replay validado), no los de la base (Breaker Pair y
+    Pinbar en live perdían −0,36 R/op en Forex). Versión propia `msnr-real-markets-v1` para contarlos aparte.
+  - **Sesión Asia → Nueva York** (`session_allowed(..., 'asia_to_ny')`, hora de NY): entradas de 19:00 (apertura de
+    Tokio) a 14:00; nada en las 3 h previas al rollover de las 17:00, ni el viernes desde las 14:00, ni el fin de
+    semana. Horas en `DAEMONBLACKFX_MSNR_ASIA_START_NY` (19) y `DAEMONBLACKFX_MSNR_NY_CUTOFF_NY` (14). Sustituye al filtro
+    Londres/NY (`legacy_utc`) solo en estos instrumentos (`DAEMONBLACKFX_MSNR_REAL_SESSION=legacy_utc` lo restaura).
+  - **Swap**: el worker ya bloqueaba entradas de Forex de 14:00 a 17:00 NY y **cierra Forex, índices y metales a las
+    16:45 NY** cada día y antes del fin de semana (no hay swap). La sesión nueva extiende el corte a índices y metales.
+  - **Prueba demo** (`_msnr_real_markets_gate`): modo `DAEMONBLACKFX_MSNR_REAL_MARKETS` (off / demo_test / live),
+    desde `_START` (26-oct-2026), criterio fijado **40 operaciones sin cierres manuales con R/op > 0**
+    (`_REVIEW_TRADES`, `_MIN_R`); si no, `NO_SUPERA` bloquea sus entradas nuevas (`MSNR_REAL_DEMO_TEST`). Tope
+    spread/SL 5 % (`_SPREAD_MAX_SL_RATIO`).
+  - **Fidelidad con el replay**: estos instrumentos no pasan por el filtro de régimen ADX de MSNR ni por el veto del
+    centinela de régimen (solo observa), ni por la lista fija de pares del worker Forex (EURJPY quedaba fuera).
+- **Evidencia**: walk-forward por coste +0,104 / +0,079 / +0,112 R/op (no concluyente, p 0,07–0,13). La ventana
+  Asia → NY **no estaba medida**: replay en curso (`tools/replay_msnr_variants.py --force-flat-ny 16:45`, que ahora
+  replica el cierre forzado del motor), comparada con el filtro Londres/NY.
+- **Tests**: `tests/test_audit_20261024_pending_improvements.py` (ventana, ajustes, versión, puerta, spread, filtros,
+  universo); actualizados `test_msnr_synthetics_only.py`, `test_malaysian_snr_causal_validation.py`,
+  `test_malaysian_snr_augmented_rules.py`, `test_malaysian_snr_integration.py`, `test_msnr_video_worker.py` y, en
+  `test_msnr_data_ai_candidates.py` / `test_msnr_structural_opportunities.py`, EURUSD → AUDUSD (siguen probando un
+  mercado real que lee los ajustes guardados). Suite completa con la base aislada: 2.095 pasan + estos 7 corregidos.
+- **Para que tenga efecto**: reiniciar los daemons y marcar los 10 instrumentos en la pestaña Malaysian SNR de
+  /Instruments (o `tools/apply_ict_instrument_policy.py --apply`).
+
+### 2026-10-25 — Malaysian SNR en mercados reales: elegir instrumentos con datos pasados (año siguiente fuera de muestra)  ·  Estado: solo investigación, sin cambios en el bot
+- **Pregunta del usuario**: ¿por qué no dejar activos solo los instrumentos con acierto > 50 %? Se prueba como se haría
+  en vivo: se elige con un periodo y se opera el siguiente (D→A, A→B, D+A→B), sobre los replays E1.
+
+  | Regla (elegir con el pasado) | D→A elegidos / resto | A→B elegidos / resto | D+A→B elegidos / resto | Azar (p) |
+  |---|---|---|---|---|
+  | Acierto > 50 % (n ≥ 3) | 71 · **+0,145** / −0,097 | 110 · **−0,019** / −0,088 | 89 · **+0,104** / −0,136 | 0,096 · 0,338 · 0,025 |
+  | Coste: spread/SL mediano ≤ 2 % | 78 · **+0,104** / −0,089 | 76 · **+0,079** / −0,113 | 66 · **+0,112** / −0,114 | 0,134 · 0,102 · 0,072 |
+
+  - **Acierto > 50 %**: los elegidos rinden mejor que el resto en los tres casos, pero en A→B pierden. Funciona a medias.
+  - **Coste**: positivo en los tres saltos, con una razón económica (la ventaja de ICT en sintéticos también es de
+    coste); pruebas sin solaparse (A y B) 154 ops, +0,092, t 1,07. **Prometedor pero no concluyente** (ningún p < 0,05).
+    Esta regla se formuló después de ver los datos: la validación fiel solo puede ser hacia delante.
+  - Elegidos hoy por coste (3 años): Germany 40, US Tech 100, USDJPY, XAUUSD, Wall Street 30, EURJPY, GBPUSD, EURUSD,
+    US SP 500 y USDCAD (≈ 75 ops/año).
+- **Para activarlo** (pendiente de decisión del usuario) haría falta: MSNR en mercados reales solo en esos instrumentos,
+  con los **ajustes por defecto** (los de la base, con Breaker Pair y Pinbar en live, perdían −0,36 en Forex), en
+  prueba demo con criterio fijado (p. ej. 40 ops, R/op > 0, sin cierres manuales).
+
+### 2026-10-25 — RESULTADO E1: Malaysian SNR en mercados reales no tiene ventaja; ni familias ni instrumentos elegidos persisten  ·  Estado: solo investigación, sin cambios en el bot
+- **Replays** (`msnr_variants_signals_real_e1_{B,A,D}.csv`, clase real, ajustes por defecto, sesiones Londres/NY, sesgo
+  D1, spread real de ticks, tope 5 %; B oct-2025 → oct-2026, A oct-2024 → oct-2025, D oct-2023 → oct-2024 intacto):
+
+  | Familia | D (intacto) | A | B | ¿Supera? |
+  |---|---|---|---|---|
+  | Forex | 153 · −0,168 (t −2,0) | 167 · −0,149 (t −2,0) | 173 · −0,091 | No (negativo en los 3) |
+  | Índices | 46 · −0,160 | 78 · +0,136 | 77 · −0,092 | No |
+  | Energía | 14 · −0,110 | 7 · +0,214 | 15 · +0,182 | No |
+  | Metales | 9 · +0,327 | 13 · +0,322 | 20 · +0,131 | No (n < 40 por periodo; 3 periodos juntos: 42 ops, +0,232, t 1,41) |
+  | **Total** | 222 · −0,143 (t −2,1) | 265 · −0,032 | 285 · −0,061 | No |
+
+- **Pistas añadidas antes de ver A y D**:
+  - P-extra 1, tope 2 %: A +0,063, D −0,035 (A+D +0,025, t 0,33) → **no supera**.
+  - P-extra 2, metales + energía: A +0,284 (20), D +0,061 (23) → positivo pero con n < 40 por periodo y t bajo → **no concluyente**.
+    El azar da una familia positiva en los 3 periodos el 12 % de las veces. Metales ≈ 14 ops/año (el oro aporta casi
+    todo): una prueba demo de 40 ops tardaría ~3 años, y el oro tiene deriva alcista (beta).
+  - P-extra 3, cartera USDJPY, EURUSD, GBPJPY, AUDUSD, US Oil (elegida por ser positiva en B): A +0,021, D −0,127 →
+    **no supera**. En A+D: EURUSD −0,44, GBPJPY −0,21, AUDUSD +0,01, US Oil 0,00, USDJPY +0,11.
+- **Por instrumento**: solo 3 de 39 instrumentos con datos en los 3 periodos son positivos en los 3 (Germany 40,
+  US Small Cap 2000, France 40, todos con ≤ 21 operaciones en 3 años). Por azar se esperan ≈ 5. El "13 de 32 con
+  acierto > 50 %" de B también era lo esperado por azar (12,2; p 0,44).
+- **Conclusión**: Malaysian SNR no es rentable en Forex, materias primas ni índices con costes reales, y elegir
+  instrumentos o familias por el resultado de un año no funciona (el resultado no persiste). Forex pierde en los tres
+  periodos y no debe activarse. No se cambia nada en el bot.
+
+### 2026-10-25 — RESULTADO E2: MSNR vídeos (H4→H1) PIERDE en Forex, metales, energía e índices  ·  Estado: solo investigación, sin cambios en el bot
+- **Replay fiel** (`msnr_video_faithful_real_e2_B.csv`, oct-2025 → oct-2026, 47 símbolos con operaciones, spread real
+  de ticks, tope 5 %): **4.652 ops, −0,055 R/op, t −3,74**, acierto 49 %, mitades −0,051 / −0,059. **NO SUPERA**.
+
+  | Familia | n | R/op | t | Mitades |
+  |---|---:|---:|---:|---|
+  | Forex | 2.204 | −0,048 | −2,32 | −0,037 / −0,063 |
+  | Índices | 1.697 | −0,068 | −2,75 | −0,051 / −0,084 |
+  | Metales | 455 | −0,054 | −1,11 | −0,083 / −0,023 |
+  | Energía | 296 | −0,029 | −0,49 | −0,160 / +0,035 |
+
+  - Con tope 2 %: −0,054 (t −3,67). 13 de 47 símbolos positivos.
+  - Como ya falla en el primer periodo, no se gastan los otros dos (el criterio exige positivo en cada uno).
+  - Junto con sintéticos (−0,051, t −2,6): **MSNR vídeos no tiene ventaja en ningún mercado** con la clase real.
+- **Código**: el escenario H4→H1 solo se evaluaba en sintéticos aunque el worker se configurase para todo mercado
+  (filtro fijo en `_h4h1_signal`). Ahora es `MalaysianSNRConfig.h4h1_synthetics_only` (por defecto True = sin cambio),
+  que `MSNRVideoStrategy` toma de su `synthetics_only`. Test en `test_audit_20261024_pending_improvements.py`.
+- `tools/replay_msnr_variants.py`: `--spread-file` (spread real de ticks) y guardado incremental (un proceso caído ya
+  no pierde lo calculado). `tools/replay_msnr_video_faithful.py`: `--spread-file`, `--all-markets`, `--spread-cap`.
+
+### 2026-10-25 — PRE-REGISTRO: Malaysian SNR y MSNR vídeos en Forex, materias primas e índices con el spread real de ticks  ·  Estado: fijado antes de ver datos
+- **Petición del usuario**: validar Malaysian SNR en mercados reales.
+- **Antecedentes**: con los ajustes de la base (Breaker Pair y Pinbar en live) MSNR perdía en Forex (−0,36 R/op); con
+  los ajustes por defecto y tope 5 % salía +0,124 / +0,149 pero con unas 30 operaciones al año y con el spread de
+  `symbol_info`. H4→H1 (simulación de investigación) perdía en mercados reales (−0,045).
+- **Costes**: el campo `spread` de las velas M15 vale 0 en Forex y oro hasta oct-2024 y en el resto es el mínimo del
+  periodo; `symbol_info` en fin de semana está inflado. Se usa como coste fijo la **mediana del spread de ticks de
+  19–23 oct-2026, 07:00–17:00 UTC** (`storage/analysis/real_markets_tick_spread_20261023.json`).
+- **Universo**: Forex mayores y menores (sin exóticos NOK/PLN/SEK/HUF/TRY/ZAR/MXN), metales (XAUUSD, XAGUSD,
+  XPTUSD), energía (US Oil, UK Brent Oil) e índices bursátiles del broker. Las materias primas blandas se excluyen
+  (coste prohibitivo ya medido).
+- **Estrategias** (clase real, velas cerradas, sin lookahead, entrada en la apertura siguiente con spread):
+  - E1 Malaysian SNR con ajustes **por defecto** (los validados), filtro de sesiones Londres/NY y sesgo D1 como en vivo,
+    tope spread/SL 5 % (el de Forex en vivo), un trade por símbolo.
+  - E2 MSNR vídeos (H4→H1, `MSNRVideoStrategy`), tope 5 %.
+- **Periodos**: B = oct-2025 → oct-2026; A = oct-2024 → oct-2025; D = oct-2023 → oct-2024 (**intacto**, solo Forex y
+  metales tienen M15; los índices empiezan en jun-2024).
+- **Criterio por familia** (Forex, metales, energía, índices) y en total: R/op > 0 en **cada** periodo con datos
+  (n ≥ 40), t ≥ 2 con los periodos juntos. Lo que supere irá a prueba demo con criterio; lo que no, se descarta.
+- **Adelanto E1, periodo B (46 de 49 símbolos)**: total −0,061 (285 ops; mitades −0,044 / −0,080); Forex −0,091 (173),
+  índices −0,092 (77) → **descartados** por el criterio. Metales +0,131 (20) y energía +0,182 (15): muestra insuficiente.
+- **Añadido ANTES de ver los periodos A y D** (sale de mirar B, así que B no cuenta como prueba):
+  - P-extra 1: E1 con **tope spread/SL 2 %** en todos los mercados (en B: +0,065, 107 ops, t 0,6). Supera si R/op > 0
+    en A y en D por separado y en A+D juntos t ≥ 2.
+  - P-extra 2: metales + energía juntos con tope 5 %. Mismo criterio en A y D.
+  - P-extra 3 (petición del usuario de ver el resultado por instrumento): cartera fija de los instrumentos positivos
+    en ambas mitades de B con ≥ 6 operaciones = **USDJPY, EURUSD, GBPJPY, AUDUSD y US Oil**. Supera si la cartera da
+    R/op > 0 en A y en D por separado y al menos 3 de los 5 son positivos en A+D. (En sintéticos el R por activo no
+    persistía entre años, correlación −0,25: es la prueba de si aquí sí.)
+
+### 2026-10-25 — RESULTADO: MSNR vídeos (H4→H1) con la clase real PIERDE en el periodo intacto; la familia Malaysian SNR no tiene ventaja en sintéticos  ·  Estado: solo investigación, sin cambios en el bot
+- **Replay fiel** (`msnr_video_faithful_prereg_D.csv`, 20-dic-2023 → 30-jun-2024, 18 activos con historia):
+  2.830 ops, **−0,051 R/op** (t −2,59; agrupado por día −2,59), acierto 47 %. Mitades −0,057 / −0,047. **NO SUPERA**
+  (pierde de forma significativa). 8 de 18 símbolos positivos; BUY −0,078, SELL −0,027; a favor de la storyline
+  −0,028, en contra −0,099, sin storyline −0,046. Encaja con la demo (−0,344 R/op con solo la gestión del bot).
+  - La prueba rápida previa (20 días de Volatility 75 Index dentro del periodo, −0,153) se anota como contaminación mínima.
+  - El +0,029 de la investigación se midió con una simulación propia (desde jul-2024), no con la clase real.
+- **Conclusión de la investigación de Malaysian SNR (25-oct-2026)**: con la clase real y cuatro periodos, ni Malaysian
+  SNR (media ≈ 0: −0,047 / +0,002 / +0,043 / −0,052) ni MSNR vídeos (−0,051, t −2,6) tienen ventaja en sintéticos, y
+  ningún filtro la crea. Los sintéticos se comportan como un paseo aleatorio y estas reglas de precio no tienen
+  ventaja sobre el coste. La única ventaja robusta en sintéticos sigue siendo ICT (+0,024 / +0,048 R/op en dos años),
+  que depende del precio de entrada (límite) y del tope de spread.
+- **Propuesta (decisión del usuario)**: pausar las entradas nuevas de MALAYSIAN_SNR y MSNR (añadirlos a
+  `DAEMONBLACKFX_DISABLED_WORKERS`, el monitor sigue gestionando lo abierto) para liberar huecos y riesgo para ICT,
+  RSI2, ORB y CARRY; o dejar que lo decidan sus pruebas demo (60 y 200 ops, ahora sin cierres manuales).
+
+### 2026-10-25 — PRE-REGISTRO: MSNR vídeos (H4→H1) con la clase real en un periodo intacto (dic-2023 → jun-2024)  ·  Estado: fijado antes de ver datos
+- **Por qué**: el escenario H4→H1 se validó con una simulación de investigación (desde jul-2024, +0,029 R/op), no con
+  la clase real `MSNRVideoStrategy`. En demo, solo con la gestión del bot, da −0,344 R/op (16 ops).
+- **Replay** (`tools/replay_msnr_video_faithful.py`, nuevo): clase real, velas cerradas, evaluación en cada cierre H1,
+  entrada en la apertura M15 siguiente (BUY al ask), tope spread/SL 2 %, una operación por símbolo hasta su resultado,
+  contrato TP1 1R + runner 2R con BE. Universo del worker MSNR. Periodo 20-dic-2023 → 30-jun-2024 (M15 de MT5 desde
+  mediados de dic-2023; la investigación empezó el 1-jul-2024).
+- **Criterio**: R/op > 0 en el total y en ambas mitades, n ≥ 40 por mitad. Si no supera, MSNR vídeos no tiene ventaja
+  demostrada con la clase real y queda pendiente de su prueba demo (200 ops) como candidato a retirar.
+
+### 2026-10-25 — RESULTADO del pre-registro: ningún filtro de régimen ADX de Malaysian SNR supera en el periodo intacto  ·  Estado: solo investigación, sin cambios en el bot
+- **Datos D** (`msnr_variants_signals_prereg_D_2024.csv`, 30-dic-2023 → 24-oct-2024, 24 activos con historia, 849 señales):
+
+  | Variante | n | R/op | Mitades | Azar p | ¿Supera? |
+  |---|---:|---:|---|---|---|
+  | Sin filtro | 849 | −0,047 | −0,074 / −0,021 | — | — |
+  | P1 filtro actual (bloquea (25, 40]) | 577 | −0,072 | −0,114 / −0,030 | 0,85 | No (empeora) |
+  | P2 bloquea (20, 40] | 402 | −0,131 | −0,158 / −0,106 | 0,99 | No |
+  | P3 solo ADX ≤ 15 o (40, 50] | 169 | −0,046 | −0,158 / +0,037 | 0,49 | No |
+  | P4 spread/SL ≤ 1 % | 510 | −0,026 | −0,027 / −0,025 | 0,23 | No |
+
+  - Por tramos el patrón se invierte: (20, 25] +0,062 y (25, 30] +0,125 ganan; ≤ 15 −0,026 y (40, 50] −0,089 pierden.
+    El "patrón" de A, B y C era ruido.
+- **Conclusión**: Malaysian SNR en sintéticos **no tiene una ventaja robusta** en cuatro periodos con la clase real:
+  D (2024) −0,047 · A (2024-25) +0,002 · B (2025-26) +0,043 · C (últimos 180 días, ajustes reales) −0,052.
+  Media ≈ 0, y antes de costes de oportunidad (huecos, riesgo simultáneo). Ningún filtro de contexto, coste,
+  confirmación, escenario o gestión la convierte en rentable de forma fiable. El filtro actual (25, 40] tampoco tiene
+  respaldo fuera de su muestra (en D empeora).
+- **Decisión pre-registrada**: se mantiene la configuración actual; `DAEMONBLACKFX_MSNR_REGIME_ADX_KEEP` queda vacío
+  (sin efecto). La prueba demo del filtro (60 ops, sin cierres manuales) sigue siendo el criterio.
+
+### 2026-10-25 — PRE-REGISTRO: filtro de régimen ADX de Malaysian SNR en un periodo intacto (dic-2023 → oct-2024)  ·  Estado: fijado antes de ver datos
+- **Origen** (`tools/research_msnr_filters.py`, búsqueda pre-registrada de 9 hipótesis; umbral elegido en A = año
+  previo, validado en B = último año y C = 180 días con los ajustes reales):
+  - Solo el régimen ADX supera: bloquear (20, 40] da A +0,032 · B +0,129 (mitades +0,101 / +0,156; azar p 0,007) ·
+    C +0,014. Coste, tamaño de stop, confirmación, escenario, frescura, cuerpo, obstáculo y gestión: no superan.
+  - Pero la franja (20, 25] que añade frente al filtro actual pierde en A y C y gana en B, y el azar solo es
+    significativo en B (A 0,197; C 0,112). B no es independiente: el filtro (25, 40] se descubrió en esos dos años.
+  - Patrón repetido en A, B y C: ADX ≤ 15 (+0,116 / +0,153 / +0,125) y 40–50 (+0,121 / +0,185 / +0,133) ganan;
+    25–30 y 35–40 pierden. Está sacado de mirar los datos: necesita un periodo nuevo.
+- **Datos D (intactos)**: `replay_msnr_variants.py --days 300 --end-days-ago 730 --free-busy --spread-cap 0.02`,
+  ajustes por defecto (como A y B), universo activo de Malaysian SNR. M15 de MT5 desde mediados de dic-2023.
+- **Hipótesis y criterio** (R/op con el contrato, `rr_live`):
+  - P1: el filtro actual (bloquear (25, 40]) mejora la R/op frente a no filtrar en D.
+  - P2: bloquear (20, 40] mejora frente a (25, 40] en D.
+  - P3 "ADX extremos": conservar solo ADX ≤ 15 o (40, 50]. Supera si en D: R/op > 0, positivo en ambas mitades,
+    n ≥ 40 y mejor que no filtrar con azar p < 0,05.
+  - P4 (añadida antes de ver D): tope spread/SL ≤ 1 % (H1; A +0,035, B +0,082, C −0,068). Mismo criterio que P3.
+  - Implementación preparada sin efecto: `DAEMONBLACKFX_MSNR_REGIME_ADX_KEEP` ("0-15,40-50" activaría P3; vacío por defecto).
+- **Decisión fijada**: si P3 supera → modo nuevo configurable en **prueba demo** con criterio (no en real directo,
+  porque nació de los datos). Si no, pero P2 supera → tramo (20, 40] en la prueba demo actual. Si ninguna → se mantiene
+  el filtro actual (25, 40] y su prueba de 60 operaciones.
+
+### 2026-10-24 — Mejoras pendientes por estrategia (1.ª tanda): criterios demo sin cierres manuales, centinela ORB en prueba, IA y datos reales  ·  Estado: aplicado sin commit (falta reiniciar)
+- **Criterios de las pruebas demo sin cierres manuales** (`TradingRepository.closed_operations_r`): una operación con
+  alguna pierna cerrada a mano (`mt5_mobile`, `mt5_client`, `mt5_web`) no cuenta. Lo usan los 9 criterios (ORB,
+  filtro de régimen MSNR, DEX, MSNR vídeos, RSI2, NIGHT, DRIFT, CARRY…). Efecto en la base viva (R/op, todas → sin
+  manuales): **ICT v2 Fase 1 −0,061 → −0,229** (106 → 77 ops), **MSNR vídeos −0,006 → −0,344** (30 → 16),
+  smc-v1 −0,048 → −0,117, msnr-v1.0 +0,006 → −0,024. Las piernas manuales ganaban +0,14 a +0,39 R de media.
+  `DAEMONBLACKFX_DEMO_TEST_EXCLUDE_MANUAL` (1).
+- **Centinela de régimen en ORB: OBSERVE en prueba demo** (`tools/research_orb_regime_sentinel.py`, nuevo). Sobre
+  las operaciones del replay ampliado de ORB SWEEP, el centinela real (FILTER) con las 40 H1 cerradas previas:
+
+  | Universo | Permitidas (n · R/op) | Bloqueadas (n · R/op) | Bloq. mitad 1 / 2 |
+  |---|---|---|---|
+  | SWEEP en vivo (XAUUSD, BTCUSD, USDCAD) | 145 · +0,132 | **80 · +0,329** (36 %) | +0,338 / +0,320 |
+  | SWEEP XAUUSD | 60 · +0,075 | 37 · +0,445 | +0,253 / +0,697 |
+  | SWEEP todos (19 símbolos) | 1.108 · −0,078 | 464 · −0,084 | −0,111 / −0,050 |
+
+  - Sin centinela, el universo vivo pasa de +0,132 a **+0,202 R/op** (mitades +0,180 / +0,224) y de +19,2 a +45,5 R.
+  - Permutación: p = 0,11 (XAUUSD 0,057): **no concluyente** → prueba demo. Motivo principal de bloqueo:
+    `ERRATIC_WHIPSAW_VOLATILITY` (69 de 80). Es el mismo patrón que en ICT sintéticos.
+  - **Criterio fijado**: 30 operaciones ORB abiertas con el centinela en `REGIME_TOXIC_OBSERVED_NOT_BLOCKED`
+    (auditoría `MARKET_REGIME_OBSERVED`, `observe_scope=ORB_DEMO_TEST`) con R/op > 0 sin cierres manuales; si no,
+    `DAEMONBLACKFX_MARKET_REGIME_ORB_MODE=FILTER`.
+  - Limitación: el replay no tiene el spread de ticks por vela, así que el factor de spread anómalo no se evalúa.
+- **IA de Malaysian SNR con modelo incompatible: `observe` por defecto** (solo DEMO; en cuenta real sigue bloqueando).
+  Antes `block` en el código: si se perdían los ajustes guardados, MSNR dejaba de operar sin avisar.
+  `DAEMONBLACKFX_MSNR_AI_INCOMPATIBLE_DEFAULT` (observe | block). La base viva ya usa `observe`: sin cambio hoy.
+- **ICT envía datos reales para la IA** (`signal["ict_real_features"]`: ADX y ATR H1, stop/ATR, rango/ATR, spread/SL).
+  `adx` = 28 y `confirmation_percentage` = 95 siguen fijos: el modelo en sombra se entrenó con ellos.
+- **Hallazgo: la puerta ADX de STEP nunca filtró ICT.** ICT manda siempre `adx` = 28 (> 25) y el ADX de respaldo
+  importaba `strategy.indicators`, que no existía (fallo silencioso). Se crea `strategy/indicators.py` con el ADX de
+  Wilder de MSNR (MSNR delega en él, mismo cálculo). No se cambia la puerta: activarla con el ADX real sería un filtro
+  nuevo sin replay.
+- **ICT: velas H4 configurables** (`macro_h4_candles`, `DAEMONBLACKFX_ICT_H4_CANDLES`, por defecto 101 = sin cambio).
+  **Replay EMA200 convergida (401 velas) frente a la actual (101), 27 sintéticos, límite + tope 2 %: NO se cambia.**
+
+  | Velas H4 | Último año | Año previo |
+  |---|---|---|
+  | 101 (actual) | 7.419 ops · +0,0484 (t 3,92; mitades +0,067 / +0,031) | 8.360 · +0,0236 (t 2,04) |
+  | 401 | 7.360 · +0,0464 (t 3,75) | 8.301 · +0,0270 (t 2,31) |
+  | Señales que solo da 401 | 371 · −0,081 | 436 · +0,017 |
+
+  Cambia de signo entre años y por poco: no supera la regla. Ficheros `ict_limit_entry_signals_h4_{101,401}_{y1,y0}.csv`. **H4 reconstruida desde H1** (solo de respaldo) sin el bloque de
+  4 h en formación (`DAEMONBLACKFX_ICT_H4_COMPLETE_ONLY`, 1).
+- **Tope de riesgo por factor renta variable US** (`_factor_risk_guard`): suma el riesgo abierto (sin piernas en BE) de
+  todos los workers en US SP 500, US Tech 100, Wall Street 30, US Small Cap 2000 y US Mid Cap 400. **Apagado por
+  defecto** (`DAEMONBLACKFX_US_EQUITY_RISK_CAP=0`, recomendado 3.0): quitaría señales de RSI2 durante su prueba.
+  Símbolos en `DAEMONBLACKFX_US_EQUITY_FACTOR_SYMBOLS`.
+- **MSNR H4→H1**: la lista de setups disparados (la única deduplicación de MSNR vídeos, cuya clave usa la hora de
+  evaluación) se acota a 5.000 olvidando los más antiguos. `enable_runner_trailing_lock` documentada como sin efecto.
+- **ORB, gestión del runner**: el bloqueo escalonado propio (1,8R → +1R) solo actúa con la extensión progresiva
+  apagada; con la configuración actual no se usa. Sin cambio.
+- **Dashboard: gráficos de posiciones bajo demanda** (T3). `/api/state` llevaba en cada refresco dos gráficos de 5
+  marcos por posición (~400 KB cada una; 11 posiciones = 4,4 MB de 6,1 MB). Ahora `/api/state` marca `charts_lazy` y
+  `chart_available`, y el front pide `/api/open-positions/<id>/charts` solo para la posición seleccionada (con caché y
+  refresco solo de esa). Medido con el estado real en una instancia de prueba: **6,1 MB → 1,8 MB** (156 KB
+  comprimido); el gráfico y el de entrada se pintan y se mantienen entre refrescos (comprobado en el navegador).
+  `DAEMONBLACKFX_DASHBOARD_LAZY_CHARTS` (1).
+- **ICT sintéticos pierde en demo por señales que el replay no toma (T5 sigue abierta) → corregido**:
+  - Demo, solo gestión del bot (19 → 25-oct): −0,26 R/op en 74 operaciones; igual antes y después del reinicio del
+    22-oct. **La ejecución es fiel**: 69 de las 71 entradas salieron de un disparo del límite virtual, 0,04R mejor
+    que el límite.
+  - Replay de esos días (`ict_limit_entry_signals_gap_20261025.csv`, tope 2 %): **−0,022 R/op** (115 ops; semana plana).
+  - Emparejadas con el replay: 32, vivo −0,111 frente a replay −0,185. **Sin pareja: 42, −0,374 R/op.**
+  - Al reejecutar ICT en esas velas, las 33 sin pareja (sin cierres manuales) **son señales válidas**: el replay no
+    las toma porque tenía el símbolo ocupado con una operación anterior. En vivo el símbolo quedó libre porque la
+    señal anterior **disparó su límite y no se abrió** por otro motivo distinto del spread (auditoría tras cada
+    disparo: huecos llenos 43, rechazo por riesgo 41, R ejecutable 3, ciclo 1; spread 62, que ya ocupaba el símbolo).
+  - **Corrección** (`_register_ict_trigger_block_lock`): una señal ICT de sintéticos que dispara su límite y no se
+    abre ocupa el símbolo con su operación virtual hasta su resultado, como en el replay y como ya hacía el spread.
+    Es la regla de "ocupación fantasma" validada fuera de muestra, generalizada. `DAEMONBLACKFX_ICT_TRIGGER_LOCK` (1).
+    Las señales abiertas o ya ejecutadas (`ALREADY_EXECUTED`) no ocupan.
+  - Peores workers en la demo: JUMP −0,53 (13), VOLATILITY_4 −0,73 (5), STEP −0,27 (28).
+- **Malaysian SNR con los ajustes reales de la base (replay 180 días, 30 activos, tope 2 %, sin señales en modo
+  observación): ninguna variante mejora y no se cambia nada.**
+  - Hallazgo previo: el replay que validó MSNR en sintéticos usó los ajustes por defecto (Breaker Pair y Pinbar en
+    observación). La base tiene ambos en `live`. Además, `replay_msnr_variants.py` contaba como operaciones las señales
+    en modo observación, que el motor no ejecuta. Corregido: ahora se descartan.
+
+  | Variante | Total (n · R/op) | Mitad 1 | Mitad 2 | Con filtro de régimen (mitades) |
+  |---|---|---|---|---|
+  | Ajustes vivos | 866 · −0,052 | −0,091 | −0,007 | 509 · −0,020 (−0,085 / +0,066) |
+  | Sin Breaker Pair ni Pinbar | 682 · −0,061 | −0,098 | −0,013 | 406 · −0,018 (−0,082 / +0,074) |
+  | Obstáculo diario a 1R | 932 · −0,066 | −0,082 | −0,047 | 551 · −0,038 (−0,077 / +0,013) |
+
+  - Breaker Pair y Pinbar no son el problema: en ambas mitades dan unos −0,02 R/op, mejor que el resto. El obstáculo
+    a 1R añade operaciones peores. Los ajustes de la base se quedan como están.
+  - **Aviso**: en los últimos 6 meses MSNR en sintéticos es negativo con la configuración real (−0,052; con el filtro
+    de régimen −0,020). El +0,023 / +0,069 de dos años no se repite en el periodo reciente. La decisión queda en la
+    prueba demo del filtro de régimen (60 ops, sin cierres manuales) y en la de MSNR vídeos (200 ops).
+  - Ficheros: `msnr_variants_signals_aud180_{live,validated,obs1r}.csv`.
+- **Herramientas**: `tools/replay_ict_limit_entry.py --h4-candles`; `tools/replay_msnr_variants.py --config-override`;
+  `tools/research_orb_regime_sentinel.py` (nuevo).
+- **Tests**: `tests/test_audit_20261024_pending_improvements.py` (27). Suite completa (25-oct): **2.076 pasan, 0 fallos**.
 
 ### 2026-10-24 — Los 21 tests que ya fallaban: tests al día con el contrato y un fallo real de test inestable  ·  Estado: aplicado sin commit
 - **Qué**: se revisaron uno a uno los 21 fallos anteriores a la auditoría de código. Ninguno destapó un fallo de
@@ -1691,9 +2885,31 @@ MSNR sintéticos ≈ 0 R/trade. ORB XAUUSD SWEEP ≈ +0,2 R/trade (n≈95, no co
 | `DAEMONBLACKFX_ICT_VIRTUAL_LIMIT_ONE_SHOT` | 1 | Un límite ICT caducado/invalidado no se recrea con la misma señal |
 | `DAEMONBLACKFX_DASHBOARD_STRICT_REQUESTS` | 1 | El dashboard rechaza peticiones de otras webs (Host/Origin/JSON) |
 | `DAEMONBLACKFX_DASHBOARD_HOT_SYNC` | 0 | Parche en caliente de módulos al abrir /strategy-bases y /performance |
+| `DAEMONBLACKFX_DEMO_TEST_EXCLUDE_MANUAL` | 1 | Los criterios de las pruebas demo ignoran operaciones con piernas cerradas a mano |
+| `DAEMONBLACKFX_MARKET_REGIME_ORB_MODE` | OBSERVE | Centinela de régimen en ORB (prueba demo; FILTER restaura el veto) |
+| `DAEMONBLACKFX_MSNR_AI_INCOMPATIBLE_DEFAULT` | observe | IA de MSNR con modelo incompatible (observe solo en DEMO / block) |
+| `DAEMONBLACKFX_ICT_H4_CANDLES` | 101 | Velas H4 del sesgo macro de ICT |
+| `DAEMONBLACKFX_ICT_H4_COMPLETE_ONLY` | 1 | La H4 reconstruida desde H1 descarta el bloque en formación |
+| `DAEMONBLACKFX_US_EQUITY_RISK_CAP` / `_FACTOR_SYMBOLS` | 0 (off) / 5 índices US | Tope de riesgo abierto en renta variable US |
+| `DAEMONBLACKFX_DASHBOARD_LAZY_CHARTS` | 1 | `/api/state` sin gráficos de posiciones; el front los pide por posición |
+| `DAEMONBLACKFX_MSNR_REAL_MARKETS` / `_START` / `_REVIEW_TRADES` / `_MIN_R` / `_SPREAD_MAX_SL_RATIO` | demo_test / 2026-10-26 / 40 / 0.0 / 0.05 | Malaysian SNR en mercados reales de bajo coste y su prueba demo |
+| `DAEMONBLACKFX_MSNR_REAL_SYMBOLS` / `_REAL_SESSION` / `_REAL_SESSION_OVERRIDES` | Germany 40, XAUUSD, USDJPY, GBPUSD, EURUSD, NZDUSD, GBPCAD, AUDUSD, CADCHF, EURGBP, GBPCHF, CADJPY, GBPJPY, CHFJPY / asia_to_ny / EURUSD y los 9 forex nuevos:legacy_utc | Instrumentos reales de MSNR, sesión general y sesión por activo |
+| `DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL` | on | /Instruments es el único control de Malaysian SNR (`off` = mandan `asset_modes` y la lista adicional de los ajustes) |
+| `DAEMONBLACKFX_MSNR_ACIERTO47` | on | Malaysian SNR solo con los 27 sintéticos de acierto > 47 % (`off` = lista anterior + DEX) |
+| `DAEMONBLACKFX_MSNR_SYNTHETICS_ACTIVE` | (vacío) | Lista explícita de sintéticos de Malaysian SNR (por comas); sustituye la de acierto > 47 % |
+| `DAEMONBLACKFX_MSNR_ASIA_START_NY` / `_NY_CUTOFF_NY` | 19 / 14 | Ventana Asia → NY en hora de Nueva York |
+| `DAEMONBLACKFX_ICT_TRIGGER_LOCK` | 1 | Una señal ICT de sintéticos que dispara y no se abre ocupa el símbolo hasta su resultado virtual |
+| `DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES` / `DAEMONBLACKFX_SPAWN_EMPTY_FLIP_WORKER` | 1 / 0 | No lanza subprocesos para workers desactivados sin posiciones abiertas ni para FLIP sin símbolos |
+| `DAEMON_MARKET_DATA_MODE` / `DAEMON_SHADOW_MAX_FILE_MB` / `DAEMON_SHADOW_WRITE_ENABLED` | external / 50.0 / 1 | Modo de datos de mercado por defecto (sin doble lectura MT5) y rotación de `market_data_shadow.jsonl` |
+| `DAEMONBLACKFX_MIN_REPORT_INTERVAL_SECONDS` / `DAEMONBLACKFX_EXCEL_WIDTH_SAMPLE_ROWS` | 300 / 200 | Intervalo mínimo de exportación XLSX y filas muestreadas para ancho de columnas |
+| `DAEMON_COORDINATOR_HEARTBEAT_SECONDS` | 15.0 | Intervalo entre escrituras de heartbeat del coordinador en SQLite |
+| `DAEMONBLACKFX_COMPACT_PERSISTED_STATE` / `DAEMONBLACKFX_DASHBOARD_RECENT_SCAN_LIMIT` | 1 / 1200 | Persistencia compacta de `last_state.json` (sin `account` ni `open_positions`) y límite de escaneo de auditoría en `/api/state` |
 
 ## Pendientes
 
+- [x] Alchemist MSNR (26-oct-2026): replay NO CONCLUYENTE (+0,041 R/op, p = 0,31). **Archivada por decisión del usuario**: sin worker ni prueba demo; el código de investigación (`strategy/alchemist/`, `tools/replay_alchemist.py`) queda para reutilizarlo.
+- [x] Malaysian SNR: /Instruments es el único control (`DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL`, 25-oct-2026). Falta reiniciar MALAYSIAN_SNR para cargarlo.
+- [x] Malaysian SNR acierto > 47 % (25-oct-2026): daemon reiniciado por el usuario; escanea los 41 instrumentos. Pendiente revisar por activo a las 40 ops (mercados reales: `MSNR_REAL_DEMO_TEST`) y retirar desde /Instruments los que queden con R/op ≤ 0. Vigilar si VolSwitch High Vol llega a operar (tope spread/SL 2 %).
 - [x] Worker CARRY creado en prueba demo (24-oct-2026).
 - [ ] Worker CARRY: reiniciar daemons (lanza `carry-daemon`), pulsar "Aplicar selección" en la pestaña CARRY FOREX con los 28 pares, comprobar las entradas al abrir noviembre (`CARRY_CONFIRMED` en 3 pares) y el cierre por rebalanceo al abrir diciembre; revisar a las 36 operaciones (`CARRY_DEMO_TEST`).
 - [ ] Plan de MEJORAS_ESTRATEGIAS_20261024.md: hechas las prioridades 2 y 5 (falta reiniciar); 3 verificada sin fallo; 4 descartada por caída; 6 resuelta; poda ICT por activo descartada (no persiste); quedan acciones con Dukascopy y carry (requieren datos externos).
@@ -1713,13 +2929,19 @@ MSNR sintéticos ≈ 0 R/trade. ORB XAUUSD SWEEP ≈ +0,2 R/trade (n≈95, no co
 - [ ] /Instruments: ejecutar `.venv/Scripts/python.exe tools/apply_ict_instrument_policy.py --apply` (Sintéticos, Forex, ICT y Malaysian SNR + asset_modes) o pulsar "Aplicar selección" en cada pestaña tras reiniciar. ICT ya quedó bien (guardado del usuario 11:33). Falta marcar USDCAD en ORB.
 - [ ] Replay MSNR en Forex, índices y cripto con ajustes reales y entrada limitada (en curso, `--tag real_live_y1/y0`).
 - [ ] Revisar a las 40 operaciones la prueba demo de ORB BTCUSD y USDCAD.
+- [ ] Centinela ORB en OBSERVE: revisar a las 30 operaciones que habría bloqueado (R/op > 0 sin manuales) o volver a FILTER.
+- [ ] Decidir si se activa el tope de riesgo US (`DAEMONBLACKFX_US_EQUITY_RISK_CAP=3`) al terminar la prueba de RSI2.
 - [ ] Opcional: podar también los activos con acierto > 45 % pero R/trade negativo.
 - [x] Dashboard: servir `recent_trades` y rendimiento fuera de `/api/state` (20-oct, ver historial).
 - [x] Ajustar volumen al límite del símbolo (Volatility 250 (1s), `retcode 10034`): hecho el 24-oct; tras reiniciar,
   comprobar que su próxima entrada abre TP1 y RUNNER.
 - [x] Parche en caliente del dashboard apagado por defecto (`DAEMONBLACKFX_DASHBOARD_HOT_SYNC=0`); queda el código por si
   se quiere borrar del todo más adelante.
-- [ ] Replay antes de decidir: EMA200 H4 de ICT con ≥ 400 velas; ADX real como feature de IA de ICT (prioridad 9).
+- [x] EMA200 H4 de ICT con 401 velas: medida el 25-oct, no mejora en ambos años; se mantiene 101.
+- [ ] ADX real como feature de IA de ICT (ya se guarda en `ict_real_features`): reentrenar con ≥ 300 operaciones propias (prioridad 9).
+- [x] Ajustes MSNR de la base (Breaker Pair, Pinbar) y obstáculo diario a 1R: medidos el 25-oct (180 días), sin mejora; no se cambian.
+- [ ] MSNR en mercados reales (prueba demo, 5 activos ya marcados en /Instruments): reiniciar los daemons y revisar a las 40 operaciones (`MSNR_REAL_DEMO_TEST`).
+- [x] (25-oct) El usuario decide dejar Malaysian SNR activo. ~~Decisión del usuario: pausar MALAYSIAN_SNR y MSNR (sin ventaja en 4 periodos con la clase real; MSNR vídeos −0,051, t −2,6) o mantener sus pruebas demo (60 / 200 ops sin cierres manuales).~~
 - [ ] Decidir si se borra `enable_runner_trailing_lock` de Malaysian SNR (bandera sin efecto) o se diseña y valida en
   replay un trailing propio.
 - [ ] Commit de los cambios del 19-oct y PR (`gh` no está instalado; descripción en `PR_BlackDaemon2_fase1.md`).

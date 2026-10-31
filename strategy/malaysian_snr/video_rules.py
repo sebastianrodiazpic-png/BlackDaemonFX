@@ -1,7 +1,27 @@
 """Measurable interpretations of the supplied SNR lessons, using closed data."""
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import math
+import os
 from .universe import FAMILIES, canonical_symbol
+
+# Política 'asia_to_ny' (hora de Nueva York): entradas desde la apertura de Tokio hasta 3 h antes del rollover (17:00 NY).
+ASIA_START_NY = float(os.getenv("DAEMONBLACKFX_MSNR_ASIA_START_NY", "19"))
+NY_ENTRY_CUTOFF_NY = float(os.getenv("DAEMONBLACKFX_MSNR_NY_CUTOFF_NY", "14"))
+
+
+def asia_to_ny_allowed(now, start=None, cutoff=None):
+    """True si `now` cae entre la apertura de Asia y el corte previo al rollover de NY, de domingo a viernes.
+
+    Bloquea [corte, apertura de Asia) cada día, el viernes desde el corte, el sábado y el domingo antes de la apertura.
+    """
+    start = ASIA_START_NY if start is None else float(start)
+    cutoff = NY_ENTRY_CUTOFF_NY if cutoff is None else float(cutoff)
+    ny = now.tz_convert(ZoneInfo('America/New_York'))
+    hour = ny.hour + ny.minute / 60 + ny.second / 3600
+    weekday = ny.weekday()  # 0 = lunes
+    if weekday == 5 or (weekday == 6 and hour < start) or (weekday == 4 and hour >= cutoff):
+        return False
+    return hour >= start or hour < cutoff
 
 
 def session_allowed(symbol, now, policy='legacy_utc', synthetic=False):
@@ -10,6 +30,8 @@ def session_allowed(symbol, now, policy='legacy_utc', synthetic=False):
     if policy == 'legacy_utc':
         hour = now.hour + now.minute / 60 + now.second / 3600
         return 7 <= hour < 11 or 12.5 <= hour < 17
+    if policy == 'asia_to_ny':
+        return asia_to_ny_allowed(now)
     if policy != 'market_hours':
         raise ValueError('INVALID_MSNR_SESSION_POLICY')
     if canonical_symbol(symbol).upper() in FAMILIES['crypto']:

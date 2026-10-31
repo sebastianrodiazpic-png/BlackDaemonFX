@@ -859,6 +859,7 @@ class TradeReportExporter:
         workbook = load_workbook(path or self.output_path)
         blue = "1F4E78"
         white = "FFFFFF"
+        sample_rows = max(10, int(os.getenv("DAEMONBLACKFX_EXCEL_WIDTH_SAMPLE_ROWS", "200")))
 
         for worksheet in workbook.worksheets:
             worksheet.freeze_panes = "A2"
@@ -866,14 +867,17 @@ class TradeReportExporter:
                 cell.font = Font(bold=True, color=white)
                 cell.fill = PatternFill("solid", fgColor=blue)
                 cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            for column_cells in worksheet.columns:
-                max_length = 0
-                for cell in column_cells:
-                    value = cell.value
+            max_lengths = {}
+            max_scan_row = min(worksheet.max_row or 1, sample_rows)
+            for row in worksheet.iter_rows(min_row=1, max_row=max_scan_row, values_only=True):
+                for col_idx, value in enumerate(row, start=1):
                     if value is not None:
-                        max_length = max(max_length, len(str(value)))
-                letter = column_cells[0].column_letter
-                worksheet.column_dimensions[letter].width = min(max_length + 2, 48)
+                        length = len(str(value))
+                        if length > max_lengths.get(col_idx, 0):
+                            max_lengths[col_idx] = length
+            for col_idx, cell in enumerate(worksheet[1], start=1):
+                letter = cell.column_letter
+                worksheet.column_dimensions[letter].width = min(max_lengths.get(col_idx, 0) + 2, 48)
 
         trades_ws = workbook["Trades"]
         headers = {cell.value: cell.column for cell in trades_ws[1]}

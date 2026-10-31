@@ -8,8 +8,8 @@ def test_runner_defaults_follow_progressive_extension_contract():
     # sube el stop de forma progresiva hacia TP3/TP4 (máx. 4R). Sustituye a la política v101 de TP2 fijo.
     config = LiveTradingConfig()
     assert config.runner_extension_enabled is True
-    assert config.runner_extension_first_trigger_rr == 2.0 and config.runner_extension_first_lock_rr == 1.0
-    assert config.runner_extension_second_trigger_rr == 3.0 and config.runner_extension_second_lock_rr == 2.5
+    assert config.runner_extension_first_trigger_rr == 1.5 and config.runner_extension_first_lock_rr == 1.5
+    assert config.runner_extension_second_trigger_rr == 2.5 and config.runner_extension_second_lock_rr == 2.5
     # Máximo del contrato: 4R en todas las familias.
     assert config.runner_extension_max_target_rr == 4.0
     assert config.smc_runner_max_target_rr == 4.0

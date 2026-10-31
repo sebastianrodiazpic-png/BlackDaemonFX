@@ -19,7 +19,7 @@ def test_xauusd_profile_is_sweep_only():
     assert ASSET_CONFIG["XAUUSD"]["sweep_enabled"] is True
     assert ASSET_CONFIG["XAUUSD"]["allowed_modes"] == []
     assert ORB_SWEEP_STRATEGY_VERSION == "orb-ny-v5-sweep"
-    forward = {"BTCUSD", "USDCAD"}  # prueba hacia delante en demo
+    forward = {"BTCUSD", "USDCAD", "AUDUSD", "GBPUSD"}  # prueba hacia delante en demo de activos rentables M3
     for key, profile in ASSET_CONFIG.items():
         assert profile["allowed_modes"] == []
         if key in forward:

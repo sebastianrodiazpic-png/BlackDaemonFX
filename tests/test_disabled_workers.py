@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradingEngine
 
-DEFAULT = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "ICT", "GOLD", "IDX_OPEN")
+DEFAULT = ("FOREX_2", "FOREX_3", "FOREX_4", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "GOLD", "IDX_OPEN")
 
 
 def _cfg_in_clean_env(value=None):

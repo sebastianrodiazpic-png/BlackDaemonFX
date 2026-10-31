@@ -1,5 +1,11 @@
 """Tests de integración y cobertura para la estrategia Malaysian SNR."""
 
+import os
+from pathlib import Path
+_ws_test_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".test_tmp", "trading_bot.sqlite3")
+os.makedirs(os.path.dirname(_ws_test_db), exist_ok=True)
+os.environ.setdefault("DAEMONBLACKFX_DB_PATH", _ws_test_db)
+
 import unittest
 from datetime import datetime, timezone
 import pandas as pd
@@ -62,14 +68,19 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertEqual(result["strategy_name"], "MALAYSIAN_SNR")
 
     def test_repository_profile_persistence(self):
-        repo = TradingRepository()
+        test_db = Path(".test_tmp") / "test_msnr_integ.sqlite3"
+        test_db.parent.mkdir(parents=True, exist_ok=True)
+        repo = TradingRepository(test_db)
+        repo.save_instrument_selection_profile(["Jump 25 Index", "Step Index 200"], selection_profile="MALAYSIAN_SNR")
         profiles = repo.latest_instrument_selection_profiles()
         self.assertIn("MALAYSIAN_SNR", profiles)
-        self.assertGreaterEqual(len(profiles["MALAYSIAN_SNR"]["selected_symbols"]), 10)
+        self.assertEqual(len(profiles["MALAYSIAN_SNR"]["selected_symbols"]), 2)
 
     def test_dashboard_instruments_profile_aware_pruning(self):
         from dashboard.realtime_dashboard import RealtimeDashboardService, DEFAULT_PRIORITIZED_SYMBOLS
-        repo = TradingRepository()
+        test_db = Path(".test_tmp") / "test_msnr_integ.sqlite3"
+        test_db.parent.mkdir(parents=True, exist_ok=True)
+        repo = TradingRepository(test_db)
         dash = RealtimeDashboardService(repository=repo, host="127.0.0.1", port=8765)
         payload = dash._cached_instruments_payload(force=True)
         
@@ -77,19 +88,21 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertIn("MALAYSIAN_SNR", pruned_by_profile)
         msnr_pruned = pruned_by_profile["MALAYSIAN_SNR"]
         
-        # MSNR solo en sintéticos: ningún sintético podado
+        # Sintéticos con acierto > 47 % activos (25-oct-2026)
         for sym in ("Jump 25 Index", "Step Index 200", "Step Index 400", "Jump 10 Index", "Boom 300 Index",
-                    "Crash 1000 Index", "Crash 500 Index", "Boom 500 Index",
-                    "Volatility 10 Index", "Volatility 50 Index"):
+                    "Boom 500 Index", "Volatility 10 Index", "VolSwitch High Vol Index",
+                    "Boom 500 Index"):
             self.assertNotIn(sym, msnr_pruned)
-        # Podados por acierto <= 45% en el replay fiel
-        for sym in ("Crash 600 Index", "Step Index", "Boom 1000 Index", "Volatility 100 Index"):
+        # Podados por acierto <= 47 % en el replay fiel
+        for sym in ("Crash 600 Index", "Step Index", "Boom 1000 Index", "Volatility 100 Index", "Crash 500 Index",
+                    "Volatility 50 Index", "Volatility 100 (1s) Index", "DEX 1500 UP Index"):
             self.assertIn(sym, msnr_pruned)
-        
-        # Todos los mercados reales podados
-        for sym in ("Wall Street 30", "CADCHF", "US Oil", "XAUUSD", "EURUSD"):
+
+        # Mercados reales: activos los de acierto > 47 %, el resto podado
+        for sym in ("Wall Street 30", "US Oil", "XAGUSD", "USDCAD", "EURUSD"):
             self.assertIn(sym, msnr_pruned)
-        self.assertNotIn("Boom 900 Index", msnr_pruned)
+        for sym in ("Germany 40", "XAUUSD", "CADCHF", "NZDUSD"):
+            self.assertNotIn(sym, msnr_pruned)
 
 
 if __name__ == "__main__":

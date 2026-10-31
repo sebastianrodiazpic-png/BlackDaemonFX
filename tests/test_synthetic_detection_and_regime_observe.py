@@ -86,8 +86,15 @@ def test_ict_workers_on_synthetics_only_observe():
 def test_other_strategies_and_real_markets_still_blocked():
     assert _engine("MALAYSIAN_SNR")._market_regime_entry_gate("Volatility 10 Index")["action"] == "MARKET_REGIME_BLOCKED"
     assert _engine("FLIP")._market_regime_entry_gate("Crash Boom Flip 1000 Index")["action"] == "MARKET_REGIME_BLOCKED"
-    assert _engine("ICT")._market_regime_entry_gate("US Oil")["action"] == "MARKET_REGIME_BLOCKED"
     assert _engine("FOREX_1")._market_regime_entry_gate("EURUSD")["action"] == "MARKET_REGIME_BLOCKED"
+    # ICT en mercados reales (Oro/Petróleo/Índices) por defecto en OBSERVE para capturar la ventaja del replay
+    e_ict_real = _engine("ICT")
+    assert e_ict_real._market_regime_entry_gate("US Oil") is None
+    assert e_ict_real.events == ["MARKET_REGIME_OBSERVED"]
+    # Con FILTER explícito restaura el bloqueo
+    e_ict_filter = _engine("ICT")
+    e_ict_filter.config.market_regime_ict_real_mode = "FILTER"
+    assert e_ict_filter._market_regime_entry_gate("US Oil")["action"] == "MARKET_REGIME_BLOCKED"
 
 
 def test_filter_mode_restores_veto_and_non_toxic_passes():

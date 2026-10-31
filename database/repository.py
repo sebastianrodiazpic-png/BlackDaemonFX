@@ -2313,7 +2313,7 @@ class TradingRepository:
             ValueError: si el perfil no es uno de los soportados.
         """
         value = str(profile or "SYNTHETICS").upper().strip()
-        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "GOLD", "ICT", "MSNR", "NIGHT", "DRIFT", "RSI2", "CARRY"}:
+        if value not in {"SYNTHETICS", "FOREX", "ORB", "IDX_OPEN", "MALAYSIAN_SNR", "ICT", "TREND_PULLBACK"}:
             raise ValueError(f"Perfil de selección no soportado: {value}")
         return value
 
@@ -2428,7 +2428,7 @@ class TradingRepository:
             Dict `perfil -> seleccion`, solo con los perfiles configurados.
         """
         result={}
-        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","GOLD","ICT","MSNR","NIGHT","DRIFT","RSI2","CARRY"):
+        for profile in ("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","ICT"):
             row=self.latest_instrument_selection_profile(profile,source=source)
             if row is not None: result[profile]=row
         return result
@@ -3198,17 +3198,33 @@ class TradingRepository:
             ), rows[0])
             return self._trade_dict(row)
 
+    # Cierres a mano desde MT5 (móvil, terminal o web): no son la gestión del bot.
+    MANUAL_EXIT_REASONS = ("mt5_mobile", "mt5_client", "mt5_web")
+
+    @staticmethod
+    def _demo_test_excludes_manual() -> bool:
+        import os
+        return os.getenv("DAEMONBLACKFX_DEMO_TEST_EXCLUDE_MANUAL", "1").strip().lower() not in ("0", "false", "off", "no")
+
     def closed_operations_r(self, instrument: str | None, *, strategy_version: str, source: str = "DEMO",
-                            since=None) -> list[float]:
+                            since=None, exclude_manual: bool | None = None) -> list[float]:
         """R por operación (patas TP1+RUNNER unidas por execution_key) de las operaciones cerradas.
 
         R = suma de net_pnl / suma de risk_amount de las patas. Lee `trade_journal` (sobrevive a reinicios
-        de estadísticas). Se usa para la prueba hacia delante de ORB SWEEP y la prueba demo del filtro MSNR.
-        instrument=None suma todos los instrumentos; since filtra por entry_time >= since.
+        de estadísticas). Se usa para los criterios de las pruebas demo (ORB SWEEP, filtro MSNR, RSI2, NIGHT,
+        CARRY...). instrument=None suma todos los instrumentos; since filtra por entry_time >= since.
+
+        `exclude_manual` (por defecto DAEMONBLACKFX_DEMO_TEST_EXCLUDE_MANUAL=1) descarta la operación entera si
+        alguna de sus patas se cerró a mano (MANUAL_EXIT_REASONS): en octubre fueron el 14 % de las piernas, con
+        +0,24 R de media, y maquillaban los criterios.
         """
+        if exclude_manual is None:
+            exclude_manual = self._demo_test_excludes_manual()
         with self.Session() as session:
             query = (
-                select(TradeJournal.execution_key, TradeJournal.net_pnl, TradeJournal.risk_amount, TradeJournal.id)
+                select(TradeJournal.execution_key, TradeJournal.net_pnl, TradeJournal.risk_amount, TradeJournal.id,
+                       Trade.exit_reason)
+                .outerjoin(Trade, Trade.execution_key == TradeJournal.execution_key)
                 .where(TradeJournal.strategy_version == str(strategy_version))
                 .where(TradeJournal.source == str(source).upper())
                 .where(TradeJournal.status == "CLOSED")
@@ -3219,11 +3235,16 @@ class TradingRepository:
                 query = query.where(TradeJournal.entry_time >= since)
             rows = session.execute(query).all()
         ops: dict[str, list[float]] = {}
-        for key, pnl, risk, row_id in rows:
+        manual: set[str] = set()
+        for key, pnl, risk, row_id, exit_reason in rows:
             parent = str(key).rsplit(":", 1)[0] if key else f"id:{row_id}"
             agg = ops.setdefault(parent, [0.0, 0.0])
             agg[0] += float(pnl or 0.0)
             agg[1] += float(risk or 0.0)
+            if str(exit_reason or "").strip().lower() in self.MANUAL_EXIT_REASONS:
+                manual.add(parent)
+        if exclude_manual:
+            ops = {parent: agg for parent, agg in ops.items() if parent not in manual}
         return [p / r for p, r in ops.values() if r > 0]
 
     def open_trades(

@@ -44,8 +44,18 @@ def _stable_data_dir() -> Path:
     if os.name == "nt":
         base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
         if base:
-            return Path(base) / "BlackDaemonFx"
-    return Path.home() / ".blackdaemonfx"
+            candidate = Path(base) / "BlackDaemonFx"
+            try:
+                candidate.mkdir(parents=True, exist_ok=True)
+                test_f = candidate / ".test_write"
+                test_f.write_text("ok")
+                test_f.unlink(missing_ok=True)
+                return candidate
+            except Exception:
+                pass
+    fallback = PROJECT_ROOT / "data"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
 
 
 def _explicit_db_path() -> Path | None:
@@ -216,8 +226,9 @@ def resolve_db_path(db_path: str | Path | None = None) -> Path:
         Ruta absoluta, con el directorio padre ya creado.
     """
     global _DB_BOOTSTRAP_INFO
-    path = Path(db_path).expanduser().resolve() if db_path else Path(DEFAULT_DB_PATH).expanduser().resolve()
-    if db_path is None and _EXPLICIT_DB is None:
+    explicit = _explicit_db_path()
+    path = Path(db_path).expanduser().resolve() if db_path else Path(explicit or DEFAULT_DB_PATH).expanduser().resolve()
+    if db_path is None and explicit is None and _EXPLICIT_DB is None:
         _DB_BOOTSTRAP_INFO = _bootstrap_stable_database(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path

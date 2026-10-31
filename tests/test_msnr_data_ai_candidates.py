@@ -108,14 +108,14 @@ def test_h4_fallback_requires_sufficient_neutral_d1_and_never_overrides_oppositi
     strategy=MalaysianSNRStrategy(provider,MalaysianSNRConfig(allowed_symbols=()),lambda:controls)
     def bias(frame,*args):return 'BUY' if len(frame)==40 else None
     with patch('strategy.malaysian_snr.malaysian_snr_strategy.structural_bias',side_effect=bias):
-        result=strategy.analyze_symbol('EURUSD',now)
+        result=strategy.analyze_symbol('USDCAD',now)
         assert result['valid'] and result['shadow_only'],result
         assert result['signal']['h4_neutral_fallback_used']
         frames['D1']=frames['D1'].iloc[-2:]
-        assert not strategy.analyze_symbol('EURUSD',now)['valid']
+        assert not strategy.analyze_symbol('USDCAD',now)['valid']
     with patch('strategy.malaysian_snr.malaysian_snr_strategy.structural_bias',
                side_effect=lambda frame,*args:'BUY' if len(frame)==40 else 'SELL'):
-        assert not strategy.analyze_symbol('EURUSD',now)['valid']
+        assert not strategy.analyze_symbol('USDCAD',now)['valid']
 
 
 def confirmed_capture():

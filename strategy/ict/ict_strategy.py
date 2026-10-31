@@ -21,6 +21,7 @@ Implementa el ciclo completo de manipulación institucional con validación cuan
 from __future__ import annotations
 
 import math
+import os
 import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -44,9 +45,23 @@ def closed_candles_only(df: pd.DataFrame, timeframe: str, now: pd.Timestamp, cou
     MT5 entrega la vela en formación como última fila; evaluarla genera señales intra-vela
     que el replay fiel (solo velas cerradas) no produce y que pueden desaparecer al cierre.
     """
+    duration = pd.Timedelta(minutes=TIMEFRAME_MINUTES.get(str(timeframe).upper(), 0))
+    t_col = df["time"]
+    if isinstance(t_col.dtype, pd.DatetimeTZDtype) and str(t_col.dtype.tz) == "UTC" and t_col.is_monotonic_increasing:
+        cutoff = now - duration
+        try:
+            unit_str = getattr(t_col.dt, "unit", None)
+            if unit_str:
+                cutoff_aligned = pd.Timestamp(cutoff).as_unit(unit_str, round_ok=True)
+            else:
+                cutoff_aligned = cutoff
+            idx = int(t_col.searchsorted(cutoff_aligned, side="right"))
+            start = max(0, idx - int(count)) if count is not None else 0
+            return df.iloc[start:idx].reset_index(drop=True)
+        except Exception:
+            pass
     out = df.copy()
     out["time"] = pd.to_datetime(out["time"], utc=True)
-    duration = pd.Timedelta(minutes=TIMEFRAME_MINUTES.get(str(timeframe).upper(), 0))
     out = out[out["time"] + duration <= now].sort_values("time")
     if count is not None:
         out = out.tail(int(count))
@@ -84,8 +99,14 @@ def build_h4_candles_from_h1(df_h1: pd.DataFrame) -> pd.DataFrame:
     }
     if "tick_volume" in df.columns:
         agg_dict["tick_volume"] = "sum"
-    h4 = df.set_index("time").resample("4h").agg(agg_dict).dropna().reset_index()
+    grouped = df.set_index("time").resample("4h")
+    h4 = grouped.agg(agg_dict).dropna().reset_index()
     h4["time"] = pd.to_datetime(h4["time"], utc=True)
+    if os.getenv("DAEMONBLACKFX_ICT_H4_COMPLETE_ONLY", "1").strip().lower() not in ("0", "false", "off") and len(h4):
+        # El último bloque de 4 h con menos de 4 velas H1 es una vela H4 en formación (Fase 1: solo velas cerradas).
+        last_h1 = pd.to_datetime(df["time"], utc=True).max()
+        if last_h1 + pd.Timedelta(hours=1) < h4["time"].iloc[-1] + pd.Timedelta(hours=4):
+            h4 = h4.iloc[:-1].reset_index(drop=True)
     return h4
 
 
@@ -335,20 +356,23 @@ def check_order_block_five_stars(
     if direction == "BUY":
         for i in range(start_i, curr_idx):
             if closes[i] < opens[i] and (i + 2 <= curr_idx):
-                has_fvg = highs[i] < lows[i + 2]
+                has_fvg = bool(highs[i] < lows[i + 2])
                 prev_lows = lows[max(0, i - 4) : i]
-                swept_liq = len(prev_lows) > 0 and (lows[i] <= float(np.min(prev_lows)))
+                swept_liq = bool(len(prev_lows) > 0 and (lows[i] <= float(np.min(prev_lows))))
                 ob_mid = (opens[i] + closes[i]) / 2.0
                 mitigated = False
                 for k in range(i + 1, curr_idx + 1):
                     if closes[k] < ob_mid:
                         mitigated = True
                         break
-                stars = sum([has_fvg, swept_liq, not mitigated, True, True])
+                next_range = max(1e-9, float(highs[i + 1] - lows[i + 1]))
+                strong_disp = bool(closes[i + 1] > opens[i + 1] and (abs(closes[i + 1] - opens[i + 1]) / next_range) >= 0.45)
+                broke_struct = bool(closes[i + 1] > highs[i] or closes[i + 2] > highs[i])
+                stars = sum([has_fvg, swept_liq, not mitigated, strong_disp, broke_struct])
                 if not mitigated:
                     if best_ob is None or lows[i] < best_ob["low"]:
                         best_ob = {
-                            "valid": bool(stars >= 3),
+                            "valid": bool(stars >= 3 and has_fvg and not mitigated),
                             "index": int(i),
                             "top": float(highs[i]),
                             "bottom": float(lows[i]),
@@ -361,20 +385,23 @@ def check_order_block_five_stars(
     else:
         for i in range(start_i, curr_idx):
             if closes[i] > opens[i] and (i + 2 <= curr_idx):
-                has_fvg = lows[i] > highs[i + 2]
+                has_fvg = bool(lows[i] > highs[i + 2])
                 prev_highs = highs[max(0, i - 4) : i]
-                swept_liq = len(prev_highs) > 0 and (highs[i] >= float(np.max(prev_highs)))
+                swept_liq = bool(len(prev_highs) > 0 and (highs[i] >= float(np.max(prev_highs))))
                 ob_mid = (opens[i] + closes[i]) / 2.0
                 mitigated = False
                 for k in range(i + 1, curr_idx + 1):
                     if closes[k] > ob_mid:
                         mitigated = True
                         break
-                stars = sum([has_fvg, swept_liq, not mitigated, True, True])
+                next_range = max(1e-9, float(highs[i + 1] - lows[i + 1]))
+                strong_disp = bool(closes[i + 1] < opens[i + 1] and (abs(closes[i + 1] - opens[i + 1]) / next_range) >= 0.45)
+                broke_struct = bool(closes[i + 1] < lows[i] or closes[i + 2] < lows[i])
+                stars = sum([has_fvg, swept_liq, not mitigated, strong_disp, broke_struct])
                 if not mitigated:
                     if best_ob is None or highs[i] > best_ob["high"]:
                         best_ob = {
-                            "valid": bool(stars >= 3),
+                            "valid": bool(stars >= 3 and has_fvg and not mitigated),
                             "index": int(i),
                             "top": float(highs[i]),
                             "bottom": float(lows[i]),
@@ -481,7 +508,13 @@ class ICTSabriMalleStrategy:
                 if ny_hour in tuple(getattr(self.config, "silver_bullet_hours_ny", (3, 10, 14))):
                     in_silver_bullet = True
 
-            session_active = in_london_kz or ny_kz_active or in_london_close or in_silver_bullet
+            # Mejora 8 (27-oct-2026): Killzone Tokio-Londres (00:00 - 02:00 NY) para pares Forex con JPY
+            in_tokyo_london_jpy = False
+            if is_forex and "JPY" in sym_u and getattr(self.config, "tokyo_london_kz_enabled", True):
+                if 0 <= ny_hour <= 2:
+                    in_tokyo_london_jpy = True
+
+            session_active = in_london_kz or ny_kz_active or in_london_close or in_silver_bullet or in_tokyo_london_jpy
 
         if not is_synthetic and self.config.killzone_filter_enabled:
             if not session_active:
@@ -499,9 +532,10 @@ class ICTSabriMalleStrategy:
         # Velas H4 para Macro Bias
         df_h4 = None
         try:
-            raw_h4 = self.provider.get_candles(symbol, self.config.macro_timeframe, count=101)
+            h4_count = max(31, int(getattr(self.config, "macro_h4_candles", 101)))
+            raw_h4 = self.provider.get_candles(symbol, self.config.macro_timeframe, count=h4_count)
             if raw_h4 is not None and len(raw_h4) >= 30:
-                df_h4 = closed_candles_only(raw_h4, self.config.macro_timeframe, now, count=100)
+                df_h4 = closed_candles_only(raw_h4, self.config.macro_timeframe, now, count=h4_count - 1)
         except Exception:
             pass
 
@@ -547,6 +581,23 @@ class ICTSabriMalleStrategy:
         intended_direction = "SELL" if bias_bearish else "BUY"
         if not is_direction_allowed(symbol, intended_direction):
             return {**base_response, "reason": f"DIRECTION_BLOCKED_BY_POLICY: {intended_direction}"}
+        is_adaptive_jump_sell = False
+        is_adaptive_step_buy = False
+        if getattr(self.config, "directional_asymmetry_filter_enabled", True):
+            sym_l = str(symbol).strip().lower()
+            jump_buy_only = {str(s).strip().lower() for s in getattr(self.config, "jump_buy_only_symbols", ())}
+            step_sell_only = {str(s).strip().lower() for s in getattr(self.config, "step_sell_only_symbols", ())}
+            is_adaptive_on = bool(getattr(self.config, "adaptive_bidirectional_jump_step_enabled", True))
+            if sym_l in jump_buy_only and intended_direction != "BUY":
+                if is_adaptive_on and sym_l in {"jump 50 index", "jump 75 index"} and intended_direction == "SELL":
+                    is_adaptive_jump_sell = True
+                else:
+                    return {**base_response, "reason": "ICT_DIRECTION_ASYMMETRY_JUMP_BUY_ONLY"}
+            if sym_l in step_sell_only and intended_direction != "SELL":
+                if is_adaptive_on and sym_l in {"step index", "step index 500"} and intended_direction == "BUY":
+                    is_adaptive_step_buy = True
+                else:
+                    return {**base_response, "reason": "ICT_DIRECTION_ASYMMETRY_STEP_SELL_ONLY"}
 
         # 4. Acumulación (A): Rango Asiático (20:00 - 00:00 NY), Rango Londres, o Consolidación Previa
         atr_h1 = compute_atr(df_h1, period=14)
@@ -644,10 +695,16 @@ class ICTSabriMalleStrategy:
         if is_synthetic:
             # En sintéticos (Boom, Crash, Volatility, Step, Jump, Flip) que operan 24/7/365,
             # no se exige barrido institucional de Judas Swing bancario.
-            # Se toma el extremo de la consolidación reciente como nivel de referencia para el gatillo LTF.
+            # Se toma el extremo de las últimas N velas H1 configuradas como nivel de referencia para el gatillo LTF.
             manipulation_found = True
-            sweep_peak = float(df_h1["high"].iloc[-1]) if bias_bearish else float(df_h1["low"].iloc[-1])
-            sweep_idx = len(df_h1) - 1
+            synth_sweep_bars = max(1, int(getattr(self.config, "synthetics_sweep_lookback_h1_bars", 1)))
+            recent_synth_h1 = df_h1.iloc[-synth_sweep_bars:]
+            if bias_bearish:
+                sweep_peak = float(recent_synth_h1["high"].max())
+                sweep_idx = int(len(df_h1) - len(recent_synth_h1) + int(np.argmax(recent_synth_h1["high"].values)))
+            else:
+                sweep_peak = float(recent_synth_h1["low"].min())
+                sweep_idx = int(len(df_h1) - len(recent_synth_h1) + int(np.argmin(recent_synth_h1["low"].values)))
         else:
             recent_bars = df_h1.iloc[-4:].reset_index(drop=True)
             for idx in range(len(recent_bars)):
@@ -683,6 +740,8 @@ class ICTSabriMalleStrategy:
 
         is_ifvg_bpr = False
         ifvg_bpr_scenario = None
+        ifvg_bpr_entry = None
+        ifvg_bpr_sl = None
         if not manipulation_found or sweep_peak is None:
             # Opción C: Si no hubo sweep de Judas Swing, comprobar Inversion FVG y BPR
             if getattr(self.config, "ifvg_bpr_enabled", True):
@@ -695,10 +754,12 @@ class ICTSabriMalleStrategy:
                 )
                 if ifvg_bpr and ifvg_bpr.get("valid"):
                     manipulation_found = True
-                    sweep_peak = ifvg_bpr["stop_loss"]
+                    sweep_peak = float(ifvg_bpr["stop_loss"])
                     sweep_idx = len(df_h1) - 2
                     is_ifvg_bpr = True
                     ifvg_bpr_scenario = ifvg_bpr["scenario"]
+                    ifvg_bpr_entry = float(ifvg_bpr["entry_price"])
+                    ifvg_bpr_sl = float(ifvg_bpr["stop_loss"])
                 else:
                     return {**base_response, "reason": "NO_JUDAS_SWING_MANIPULATION_CONFIRMED"}
             else:
@@ -746,7 +807,11 @@ class ICTSabriMalleStrategy:
                 ob_five_star = None
 
         fvg_aligned = False
-        if intended_direction == "SELL":
+        if is_ifvg_bpr and ifvg_bpr_entry is not None and ifvg_bpr_sl is not None:
+            entry_price = ifvg_bpr_entry
+            stop_loss = ifvg_bpr_sl
+            fvg_aligned = True
+        elif intended_direction == "SELL":
             # Soporte previo al sweep
             local_support = float(eval_df["low"].iloc[-8:-1].min())
             if curr_close >= local_support:
@@ -755,15 +820,25 @@ class ICTSabriMalleStrategy:
                 return {**base_response, "reason": "PRICE_EXTENDED_CHASING_MSS_WAITING_PULLBACK"}
 
             # Comprobar FVG Consequent Encroachment (50%) y Mean Threshold de OB 5 Estrellas
-            prev_high = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_high
-            fvg_ce = (prev_high + curr_low) / 2.0
+            mitigation_ratio = float(getattr(self.config, "mitigation_fvg_ratio", 0.25))
+            if getattr(self.config, "require_real_fvg_ce", False):
+                prev_low_3 = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_high
+                has_real_fvg = curr_high < prev_low_3
+                fvg_ce = (prev_low_3 + curr_high) / 2.0 if has_real_fvg else local_support
+                fvg_mitigation = (curr_high + mitigation_ratio * (prev_low_3 - curr_high)) if has_real_fvg else candidate_entry if 'candidate_entry' in locals() else local_support
+            else:
+                prev_high = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_high
+                fvg_ce = (prev_high + curr_low) / 2.0
+                fvg_mitigation = (curr_low + mitigation_ratio * (prev_high - curr_low)) if prev_high > curr_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
                 candidate_entry = min(local_support, fvg_ce)
                 if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
                     candidate_entry = min(candidate_entry, ob_five_star["mean_threshold"])
                 entry_price = candidate_entry
+                mitigation_entry_price = min(local_support, fvg_mitigation)
             else:
                 entry_price = curr_close
+                mitigation_entry_price = curr_close
             stop_loss = sweep_peak + spread
             fvg_aligned = True
 
@@ -776,20 +851,44 @@ class ICTSabriMalleStrategy:
                 return {**base_response, "reason": "PRICE_EXTENDED_CHASING_MSS_WAITING_PULLBACK"}
 
             prev_low = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_low
-            fvg_ce = (prev_low + curr_high) / 2.0
+            mitigation_ratio = float(getattr(self.config, "mitigation_fvg_ratio", 0.25))
+            if getattr(self.config, "require_real_fvg_ce", False):
+                prev_high_3 = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_low
+                has_real_fvg = curr_low > prev_high_3
+                fvg_ce = (prev_high_3 + curr_low) / 2.0 if has_real_fvg else local_resistance
+                fvg_mitigation = (curr_low - mitigation_ratio * (curr_low - prev_high_3)) if has_real_fvg else local_resistance
+            else:
+                fvg_ce = (prev_low + curr_high) / 2.0
+                fvg_mitigation = (curr_high - mitigation_ratio * (curr_high - prev_low)) if curr_high > prev_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
                 candidate_entry = max(local_resistance, fvg_ce)
                 if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
                     candidate_entry = max(candidate_entry, ob_five_star["mean_threshold"])
                 entry_price = candidate_entry
+                mitigation_entry_price = max(local_resistance, fvg_mitigation)
             else:
                 entry_price = curr_close
+                mitigation_entry_price = curr_close
             stop_loss = sweep_peak - spread
             fvg_aligned = True
 
         risk = abs(entry_price - stop_loss)
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):
             return {**base_response, "reason": "INVALID_RISK_SPREAD_RATIO"}
+
+        # Mejora 1 (26-oct-2026): piso estructural de SL en sintéticos (sl_atr_h1 >= min_sl_atr_h1)
+        min_sl_atr = float(getattr(self.config, "min_sl_atr_h1", 0.0) or 0.0)
+        if is_synthetic and min_sl_atr > 0 and curr_atr > 0:
+            sl_atr_ratio = risk / curr_atr
+            if sl_atr_ratio < min_sl_atr:
+                return {**base_response, "reason": f"SL_ATR_H1_TOO_TIGHT ({sl_atr_ratio:.2f} < {min_sl_atr:.2f})"}
+
+        # Mejora 2 (26-oct-2026): tope de profundidad de retroceso (signed_pullback_r <= max_signed_pullback_r)
+        max_pb_r = float(getattr(self.config, "max_signed_pullback_r", 0.0) or 0.0)
+        if max_pb_r > 0 and risk > 0:
+            signed_pb_r = ((curr_close - entry_price) if intended_direction == "BUY" else (entry_price - curr_close)) / risk
+            if signed_pb_r > max_pb_r + 1e-9:
+                return {**base_response, "reason": f"PULLBACK_DEPTH_EXCEEDS_MAX_R ({signed_pb_r:.2f} > {max_pb_r:.2f})"}
 
         # 7. Objetivos (TP1 = tp1_rr, TP2 = runner_rr; hoy 1R / 2R) y validación Fibonacci
         if intended_direction == "SELL":
@@ -818,10 +917,49 @@ class ICTSabriMalleStrategy:
 
         trade_score = 95.0 if (ob_five_star and ob_five_star.get("valid")) else 90.0
 
+        # Datos reales para reentrenar la IA por estrategia. `adx` (28) y `confirmation_percentage` (95) siguen fijos:
+        # el modelo en sombra se entrenó con ellos y la puerta ADX de STEP los lee (cambiarlos alteraría la operativa
+        # validada en replay). Ver registro, auditoría del 24-oct-2026.
+        real_features = {"atr_h1": round(curr_atr, 8), "sl_atr_h1": round(risk / curr_atr, 4) if curr_atr > 0 else None,
+                         "range_atr_h1": round(range_height / curr_atr, 4) if curr_atr > 0 else None,
+                         "spread_sl": round(spread / risk, 6) if risk > 0 else None, "adx_h1": None}
+        try:
+            from strategy.indicators import calculate_adx
+            adx_value = float(calculate_adx(df_h1).iloc[-1])
+            real_features["adx_h1"] = round(adx_value, 2) if math.isfinite(adx_value) else None
+        except Exception:
+            adx_value = None
+
+        # Mejora 5 (26-oct-2026): filtro de régimen ADX H1 >= min_adx_h1
+        min_adx = float(getattr(self.config, "min_adx_h1", 0.0) or 0.0)
+        if min_adx > 0 and real_features["adx_h1"] is not None and real_features["adx_h1"] > 0 and real_features["adx_h1"] < min_adx:
+            return {**base_response, "reason": f"INSUFFICIENT_H1_ADX_REGIME ({real_features['adx_h1']:.1f} < {min_adx:.1f})"}
+
+        # Mejora 9 (30-oct-2026): Lógica adaptativa bidireccional Jump y Step
+        if is_adaptive_jump_sell:
+            jump_sell_min_sl = float(getattr(self.config, "jump_sell_min_sl_atr_h1", 1.45))
+            sl_atr_ratio = (risk / curr_atr) if curr_atr > 0 else 0.0
+            if sl_atr_ratio < jump_sell_min_sl:
+                return {**base_response, "reason": f"JUMP_SELL_SL_TOO_TIGHT_ANTI_JUMP_SHIELD ({sl_atr_ratio:.2f} < {jump_sell_min_sl:.2f})"}
+            jump_sell_max_pb = float(getattr(self.config, "jump_sell_max_signed_pb_r", 0.40))
+            if risk > 0 and 'signed_pb_r' in locals() and signed_pb_r > jump_sell_max_pb + 1e-9:
+                return {**base_response, "reason": f"JUMP_SELL_PULLBACK_TOO_DEEP ({signed_pb_r:.2f} > {jump_sell_max_pb:.2f})"}
+
+        if is_adaptive_step_buy:
+            step_buy_min_adx = float(getattr(self.config, "step_buy_min_adx_h1", 28.0))
+            current_adx = real_features.get("adx_h1")
+            if current_adx is not None and current_adx < step_buy_min_adx:
+                return {**base_response, "reason": f"STEP_BUY_REQUIRES_STRONG_H1_ADX_EXPANSION ({current_adx:.1f} < {step_buy_min_adx:.1f})"}
+            step_buy_max_pb = float(getattr(self.config, "step_buy_max_signed_pb_r", 0.25))
+            if risk > 0 and 'signed_pb_r' in locals() and signed_pb_r > step_buy_max_pb + 1e-9:
+                return {**base_response, "reason": f"STEP_BUY_PULLBACK_TOO_DEEP ({signed_pb_r:.2f} > {step_buy_max_pb:.2f})"}
+
         signal = {
             "symbol": symbol,
             "direction": intended_direction,
             "entry_price": round(entry_price, 5),
+            "mitigation_entry_price": round(mitigation_entry_price, 5) if 'mitigation_entry_price' in locals() else round(entry_price, 5),
+            "dual_entry_mitigation_enabled": bool(getattr(self.config, "dual_entry_mitigation_enabled", True)),
             "stop_loss": round(stop_loss, 5),
             "take_profit": round(tp2_price, 5),
             "tp1_price": round(tp1_price, 5),
@@ -862,6 +1000,7 @@ class ICTSabriMalleStrategy:
             "fvg_consequent_encroachment_aligned": fvg_aligned,
             "displacement_body_ratio": round(displacement_ratio, 3),
             "ob_five_star": ob_five_star.get("stars") if ob_five_star else None,
+            "ict_real_features": real_features,
             "strategy_name": self.config.strategy_name,
             "strategy_version": self.config.strategy_version,
         }

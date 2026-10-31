@@ -25,7 +25,7 @@ import numpy as np
 
 from strategy.malaysian_snr.history import useful_history
 from strategy.malaysian_snr.video_rules import session_allowed, breaker_pair_candidate, track_session_liquidity, fakeout_trap_candidate, h1_ema_dynamic_confluence
-from strategy.malaysian_snr.config import MalaysianSNRConfig
+from strategy.malaysian_snr.config import MalaysianSNRConfig, instruments_tab_control_enabled
 from strategy.malaysian_snr.runtime_settings import validate_fractal_min_body_ratio, validate_fractal_max_entry_distance_atr
 from strategy.malaysian_snr.runtime_settings import msnr_default_settings, normalize_msnr_settings
 from strategy.malaysian_snr.universe import resolve_symbol_settings, canonical_symbol
@@ -48,24 +48,9 @@ def compute_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
 
 def compute_adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
-    high = df["high"]
-    low = df["low"]
-    close = df["close"]
-    prev_close = close.shift(1)
-    tr = pd.concat([
-        high - low,
-        (high - prev_close).abs(),
-        (low - prev_close).abs(),
-    ], axis=1).max(axis=1)
-    up_move = high - high.shift(1)
-    down_move = low.shift(1) - low
-    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
-    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
-    atr = pd.Series(tr).ewm(alpha=1/period, min_periods=period).mean()
-    plus_di = 100.0 * pd.Series(plus_dm, index=df.index).ewm(alpha=1/period, min_periods=period).mean() / atr
-    minus_di = 100.0 * pd.Series(minus_dm, index=df.index).ewm(alpha=1/period, min_periods=period).mean() / atr
-    dx = 100.0 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, 1e-9)
-    return dx.ewm(alpha=1/period, min_periods=period).mean()
+    """ADX de Wilder; mismo cálculo, ahora compartido en `strategy.indicators.calculate_adx`."""
+    from strategy.indicators import calculate_adx
+    return calculate_adx(df, period)
 
 
 def is_synthetic_symbol(symbol: str) -> bool:
@@ -107,11 +92,34 @@ class MalaysianSNRStrategy:
         self._structure_cache = {}
         self._structure_cache_lock = RLock()
 
+    def is_real_market_symbol(self, symbol: str) -> bool:
+        """Mercado real en prueba demo (`real_market_symbols`, ver config): pasa aunque synthetics_only sea True."""
+        if not getattr(self.config, "real_markets_enabled", False) or is_synthetic_symbol(symbol):
+            return False
+        norm = str(symbol).strip().lower().removesuffix("micro")
+        return norm in {str(s).strip().lower().removesuffix("micro") for s in (getattr(self.config, "real_market_symbols", ()) or ())}
+
+    def real_market_session_policy(self, symbol: str) -> str:
+        """Horario de un mercado real en prueba: el del activo (`real_market_session_overrides`) o el general."""
+        norm = str(symbol).strip().lower().removesuffix("micro")
+        for item in str(getattr(self.config, "real_market_session_overrides", "") or "").split(","):
+            name, _, policy = item.rpartition(":")
+            if name.strip().lower().removesuffix("micro") == norm and policy.strip():
+                return policy.strip()
+        return getattr(self.config, "real_market_session_policy", "") or self.config.session_policy
+
     def settings_snapshot(self):
         if self.runtime_settings_loader is not None:
             raw = self.runtime_settings_loader()
             settings = normalize_msnr_settings({k:v for k,v in raw.items() if k not in ('version','updated_at')})
+            if instruments_tab_control_enabled(self.config):
+                # /Instruments decide qué instrumentos se escanean y operan (config.instruments_tab_control).
+                settings.update(asset_modes={}, additional_symbols=[], additional_symbols_mode='off')
             return {**settings, 'version':raw.get('version',0)}
+        return self.config_settings_snapshot()
+
+    def config_settings_snapshot(self):
+        """Ajustes por defecto + los de la config (los que usó el replay fiel sin ajustes de la base)."""
         settings = msnr_default_settings()
         for key in settings:
             if hasattr(self.config, key):
@@ -125,7 +133,10 @@ class MalaysianSNRStrategy:
 
     def analyze_symbol(self, symbol: str, now_utc: datetime | None = None) -> dict:
         try:
-            settings = self.settings_snapshot()
+            # Mercados reales en prueba: ajustes por defecto (los validados en el replay), no los de la base.
+            settings = (self.config_settings_snapshot()
+                        if self.is_real_market_symbol(symbol) and getattr(self.config, "real_market_default_settings", True)
+                        else self.settings_snapshot())
         except Exception:
             return {'valid':False, 'strategy_name':self.config.strategy_name,
                 'strategy_version':self.config.strategy_version, 'symbol':symbol,
@@ -189,13 +200,20 @@ class MalaysianSNRStrategy:
         result['analysis_outside_entry_lock'] = settings['analysis_outside_entry_lock']
         result['runtime_controls'] = settings
         result['runtime_settings_version'] = settings['version']
+        if self.is_real_market_symbol(symbol):
+            # Versión propia: la prueba demo de mercados reales se cuenta aparte de MSNR en sintéticos.
+            from strategy.malaysian_snr.config import MSNR_REAL_STRATEGY_VERSION
+            result['strategy_version'] = MSNR_REAL_STRATEGY_VERSION
+            if isinstance(result.get('signal'), dict):
+                result['signal']['strategy_version'] = MSNR_REAL_STRATEGY_VERSION
+            result['real_market_demo_test'] = True
         return result
 
     def _h4h1_signal(self, symbol: str, now_utc: datetime | None = None) -> dict | None:
         """Escenario H4→H1: solo sintéticos no podados, una vez por configuración (setup_id)."""
         from strategy.malaysian_snr.h4h1_confirmation import (H4H1_CONFIRMATION, H4H1_SCENARIO,
                                                               H4H1_STRATEGY_VERSION, detect_h4h1)
-        if not is_synthetic_symbol(symbol):
+        if getattr(self.config, "h4h1_synthetics_only", True) and not is_synthetic_symbol(symbol):
             return None
         norm = str(symbol).strip().lower().removesuffix("micro")
         if norm in {str(s).strip().lower().removesuffix("micro") for s in (getattr(self.config, "excluded_symbols", ()) or ())}:
@@ -216,7 +234,7 @@ class MalaysianSNRStrategy:
         setup = detect_h4h1(h4, h1, now, spread=spread)
         if setup is None:
             return None
-        fired = self.__dict__.setdefault("_h4h1_fired", set())
+        fired = self.__dict__.setdefault("_h4h1_fired", {})  # setup_id -> None, en orden de llegada
         if setup["setup_id"] in fired:
             return None
         entry = setup["entry_reference"]
@@ -233,7 +251,11 @@ class MalaysianSNRStrategy:
                                               setup["h1_open_close_level"], setup["atr_h1"], 0.0, now.to_pydatetime())
         if not result.get("valid"):
             return None
-        fired.add(setup["setup_id"])
+        # Es la deduplicación de la señal (la clave de ejecución de MSNR_VIDEO usa la hora de evaluación): no se puede
+        # quitar. Se acotan los 5.000 últimos (se olvida el más antiguo); un setup H4→H1 caduca en horas.
+        fired[setup["setup_id"]] = None
+        while len(fired) > 5000:
+            fired.pop(next(iter(fired)))
         runner_rr = float(getattr(self.config, "h4h1_runner_rr", 2.0))
         signal = result["signal"]
         signal.update(strategy_version=H4H1_STRATEGY_VERSION, entry_confirmation=H4H1_CONFIRMATION,
@@ -278,13 +300,15 @@ class MalaysianSNRStrategy:
         norm = str(symbol).strip().lower().removesuffix("micro")
         if allowed and norm not in {a.strip().lower().removesuffix("micro") for a in allowed}:
             return {**base, "reason": "SYMBOL_NOT_IN_MSNR_ALLOWLIST"}
-        if getattr(self.config, "synthetics_only", False) and not is_synthetic_symbol(symbol):
+        real_market = self.is_real_market_symbol(symbol)
+        if getattr(self.config, "synthetics_only", False) and not is_synthetic_symbol(symbol) and not real_market:
             return {**base, "reason": "MSNR_SYNTHETICS_ONLY"}
         if norm in {str(s).strip().lower().removesuffix("micro") for s in (getattr(self.config, "excluded_symbols", ()) or ())}:
             return {**base, "reason": "MSNR_SYMBOL_PRUNED_WINRATE_LE_45"}
         if self.config.enable_session_killzones_filter and not is_synthetic_symbol(symbol):
             try:
-                in_session = session_allowed(symbol, now, self.config.session_policy)
+                policy = self.real_market_session_policy(symbol) if real_market else self.config.session_policy
+                in_session = session_allowed(symbol, now, policy)
             except ValueError as exc:
                 return {**base, 'reason': str(exc)}
             if not in_session:
@@ -459,6 +483,16 @@ class MalaysianSNRStrategy:
                 if not is_direction_allowed(symbol, direction):
                     observations.append(wait('DIRECTION_POLICY_BLOCKED'))
                     continue
+                if getattr(self.config, "directional_asymmetry_enabled", True):
+                    sym_l = str(symbol).strip().lower()
+                    jump_buy_only = {str(s).strip().lower() for s in getattr(self.config, "jump_buy_only_symbols", ())}
+                    step_sell_only = {str(s).strip().lower() for s in getattr(self.config, "step_sell_only_symbols", ())}
+                    if sym_l in jump_buy_only and direction != "BUY":
+                        observations.append(wait('DIRECTION_ASYMMETRY_JUMP_BUY_ONLY'))
+                        continue
+                    if sym_l in step_sell_only and direction != "SELL":
+                        observations.append(wait('DIRECTION_ASYMMETRY_STEP_SELL_ONLY'))
+                        continue
                 macro_shadow = False
                 if daily_bias_enforced and (daily_direction is None or daily_direction != direction):
                     if (self.config.macro_structure_mode == 'shadow' and structure_direction == direction):
@@ -477,9 +511,12 @@ class MalaysianSNRStrategy:
                 if (sign * (extremes - setup['invalidation_level']) <= 0).any():
                     observations.append(wait('SETUP_STRUCTURE_INVALIDATED'))
                     continue
+                effective_tolerance_atr = self.config.retest_tolerance_atr
+                if getattr(self.config, 'dynamic_retest_buffer_enabled', False):
+                    effective_tolerance_atr += getattr(self.config, 'dynamic_retest_buffer_atr', 0.20)
                 evidence = retest_confirmation(
                     recent, setup['level'], direction, setup['atr'],
-                    self.config.retest_tolerance_atr, setup['max_entry_distance_atr'],
+                    effective_tolerance_atr, setup['max_entry_distance_atr'],
                     allow_sweep=self.config.enable_crt_sweep_rejection,
                     allow_zone=self.config.enable_zone_rejection_trigger or not self.config.enable_crt_sweep_rejection,
                     max_penetration_atr=self.config.max_retest_penetration_atr,
@@ -950,6 +987,18 @@ class MalaysianSNRStrategy:
             return reject("INVALID_STOP_OR_RISK_DISTANCE")
         if not is_direction_allowed(symbol, direction):
             return reject("DIRECTION_POLICY_BLOCKED")
+        if getattr(self.config, "directional_asymmetry_enabled", True):
+            sym_l = str(symbol).strip().lower()
+            jump_buy_only = {str(s).strip().lower() for s in getattr(self.config, "jump_buy_only_symbols", ())}
+            step_sell_only = {str(s).strip().lower() for s in getattr(self.config, "step_sell_only_symbols", ())}
+            if sym_l in jump_buy_only and direction != "BUY":
+                return reject("DIRECTION_ASYMMETRY_JUMP_BUY_ONLY")
+            if sym_l in step_sell_only and direction != "SELL":
+                return reject("DIRECTION_ASYMMETRY_STEP_SELL_ONLY")
+        # Piso estructural de SL en sintéticos contra mechas mínimas de ruido M15
+        min_sl_atr = float(getattr(self.config, "min_sl_atr_h1", 0.0) or 0.0)
+        if is_synthetic_symbol(symbol) and min_sl_atr > 0 and current_atr > 0 and (risk_dist / current_atr) < min_sl_atr - 1e-9:
+            return reject(f"MSNR_SL_ATR_H1_TOO_TIGHT ({risk_dist / current_atr:.2f} < {min_sl_atr:.2f})")
         # Variante C2 (walk-forward 180d): ADX(14) H1 >= min_adx en todos los escenarios.
         if getattr(self.config, "enable_c2_fx_metals_atr_cap", False) and adx < float(getattr(self.config, "min_adx", 30.0)) - 1e-9:
             return reject("C2_ADX_BELOW_MIN")

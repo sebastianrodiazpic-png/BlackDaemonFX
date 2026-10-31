@@ -72,6 +72,23 @@ def test_closed_candles_only_drops_forming_bar():
     assert len(closed_candles_only(df, "H1", now)) == 0
 
 
+def test_closed_candles_only_handles_second_unit_resolution():
+    """Velas con resolución [s] o [ms] (como entrega Deriv / MT5) no deben fallar por conversión de unidades."""
+    times_s = pd.date_range("2026-10-26 00:00", periods=5, freq="1h", unit="s", tz="UTC")
+    df = pd.DataFrame({
+        "time": times_s,
+        "open": [1, 2, 3, 4, 5],
+        "high": [1, 2, 3, 4, 5],
+        "low": [1, 2, 3, 4, 5],
+        "close": [1, 2, 3, 4, 5],
+    })
+    # now con microsegundos arbitrarios
+    now = pd.Timestamp("2026-10-26 03:15:33.456789", tz="UTC")
+    res = closed_candles_only(df, "H1", now, count=3)
+    assert len(res) == 3
+    assert res["time"].iloc[-1] == pd.Timestamp("2026-10-26 02:00:00", tz="UTC")
+
+
 @pytest.mark.parametrize("minute_in_bar", [3, 11])
 def test_forming_candle_never_changes_the_ict_decision(minute_in_bar):
     m15 = _random_walk_m15()

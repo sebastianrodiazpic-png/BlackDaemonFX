@@ -89,6 +89,30 @@ def configure_worker_rules(config):
             strategy_version=RULESET,
             orb_enabled=False,
         )
+    if profile == "TREND_PULLBACK":
+        return replace(
+            config,
+            trend_pullback_enabled=True,
+            dual_m5_m1_trigger_enabled=False,
+            h1_location_only=False,
+            entry_timeframe='M15',
+            structure_timeframe='H1',
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            min_rr=1.0,
+            symbol_loss_cooldown_enabled=True,
+            symbol_loss_cooldown_minutes=60.0,
+            symbol_daily_strikes_enabled=False,
+            symbol_max_daily_losses=0,
+        )
     smc = profile not in {'ORB', 'IDX_OPEN'}
     if not smc:
         return replace(config, dual_m5_m1_trigger_enabled=False, h1_location_only=False)
@@ -207,7 +231,7 @@ def configure_worker_rules(config):
 
 def worker_poll_interval(profile, interval):
     # The M1 scheduler must get a chance to observe each minute's closed candle.
-    return max(1, min(int(interval), 10)) if str(profile).upper() not in {'ORB','IDX_OPEN','MALAYSIAN_SNR'} else max(1, int(interval))
+    return max(1, min(int(interval), 10)) if str(profile).upper() not in {'ORB','IDX_OPEN','MALAYSIAN_SNR','TREND_PULLBACK'} else max(1, int(interval))
 
 
 def worker_rules_manifest(engine):

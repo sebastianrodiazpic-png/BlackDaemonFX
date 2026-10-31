@@ -39,13 +39,23 @@ class ShadowMarketDataProvider:
         return frame.iloc[:-1] if len(frame) > 1 else frame.iloc[0:0]
 
     def _write(self, payload):
+        if os.getenv("DAEMON_SHADOW_WRITE_ENABLED", "1").strip().lower() in {"0", "false", "no", "off"}:
+            return
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(payload, ensure_ascii=False, default=str, separators=(",", ":")) + "\n"
+        max_mb = float(os.getenv("DAEMON_SHADOW_MAX_FILE_MB", "50.0"))
+        max_bytes = int(max(1.0, max_mb) * 1024 * 1024)
         # Una sola escritura append reduce intercalado entre los workers Windows.
         flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
         if hasattr(os, "O_BINARY"):
             flags |= os.O_BINARY
         with self._write_lock:
+            try:
+                if self.output_path.exists() and self.output_path.stat().st_size >= max_bytes:
+                    rotated = self.output_path.with_suffix(self.output_path.suffix + ".1")
+                    os.replace(self.output_path, rotated)
+            except OSError:
+                pass
             descriptor = os.open(str(self.output_path), flags, 0o600)
             try:
                 os.write(descriptor, line.encode("utf-8"))

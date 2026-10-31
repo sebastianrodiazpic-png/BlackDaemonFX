@@ -115,7 +115,7 @@ def test_drift_profile_contract_without_runner_extension():
     src = open(sys.modules[LiveTradingEngine.__module__].__file__, encoding="utf-8").read()
     assert 'if str(getattr(self.config, "bot_profile", "") or "").upper() == "DRIFT":' in src
     assert '"ICT_SABRI_MALLE", "DRIFT_BREAKOUT"' in src  # TP1/runner del propio signal
-    assert 'family_gates = str(self.config.bot_profile or "").upper() not in {"MSNR", "DRIFT"}' in src
+    assert 'family_gates = str(self.config.bot_profile or "").upper() != "DRIFT"' in src
     cfg = LiveTradingConfig()
     # desactivado por defecto desde el 23-oct-2026 (sin ventaja con el spread real de ticks)
     assert (cfg.drift_mode, cfg.drift_review_trades, cfg.drift_min_r, cfg.drift_runner_extension) == ("off", 200, 0.0, False)

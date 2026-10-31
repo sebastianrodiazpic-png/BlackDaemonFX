@@ -77,7 +77,10 @@ class TestCausalMSNR(unittest.TestCase):
         instant = datetime(2026, 10, 9, 3, tzinfo=timezone.utc)
         shifted = pd.Timestamp(instant).tz_convert("America/Santiago").to_pydatetime()
         self.assertEqual(strategy.analyze_symbol("EURUSD", instant), strategy.analyze_symbol("EURUSD", shifted))
-        self.assertEqual(strategy.analyze_symbol("EURUSD", datetime(2026, 10, 9, 11, tzinfo=timezone.utc))["reason"], "SESSION_FILTER_OUTSIDE_KILLZONE")
+        # AUDUSD no está en la prueba de mercados reales: sesión Londres/NY (legacy_utc).
+        self.assertEqual(strategy.analyze_symbol("AUDUSD", datetime(2026, 10, 9, 11, tzinfo=timezone.utc))["reason"], "SESSION_FILTER_OUTSIDE_KILLZONE")
+        # EURUSD sí: sesión Asia → NY, sin entradas desde las 14:00 NY (viernes 9-oct, 18:30 UTC = 14:30 NY).
+        self.assertEqual(strategy.analyze_symbol("EURUSD", datetime(2026, 10, 9, 18, 30, tzinfo=timezone.utc))["reason"], "SESSION_FILTER_OUTSIDE_KILLZONE")
 
     def test_disabled_and_missing_daily_fail_closed(self):
         now = pd.Timestamp("2026-10-09 16:15", tz="UTC")

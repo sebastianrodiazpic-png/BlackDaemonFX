@@ -1,16 +1,24 @@
 import sqlite3
+import os
 import json
+from pathlib import Path
 
-conn = sqlite3.connect(r'C:\Users\sebas\AppData\Local\BlackDaemonFx\trading_bot.sqlite3')
-rows = conn.execute('''
-    SELECT id, broker_position_ticket, broker_order_ticket, instrument, direction, volume, 
-           entry_price, stop_loss, take_profit, planned_rr, risk_percent, risk_amount, details_json
-    FROM trades WHERE status = 'OPEN'
-''').fetchall()
+p = Path(os.environ['LOCALAPPDATA']) / 'BlackDaemonFx' / 'trading_bot.sqlite3'
+conn = sqlite3.connect(p)
+cur = conn.cursor()
 
+cur.execute("SELECT id, instrument, direction, entry_price, stop_loss, take_profit, planned_rr, entry_time, setup_reason, details_json FROM trades WHERE status = 'OPEN'")
+rows = cur.fetchall()
+print(f"Total open trades: {len(rows)}")
 for r in rows:
-    print(f"ID: {r[0]} | PosTicket: {r[1]} | OrdTicket: {r[2]} | Sym: {r[3]} | Dir: {r[4]} | Vol: {r[5]}")
-    print(f"  Entry: {r[6]} | SL: {r[7]} | TP: {r[8]} | RR: {r[9]} | RiskPct: {r[10]} | RiskAmt: {r[11]}")
-    details = json.loads(r[12]) if r[12] else {}
-    print(f"  metadata: {details.get('metadata')}")
-    print(f"  split_context: {details.get('split_context')}")
+    print(f"=== OPEN Trade #{r[0]} | {r[1]} {r[2]} | Entry: {r[7]} ===")
+    print(f"Entry: {r[3]} | SL: {r[4]} | TP: {r[5]} | Planned RR: {r[6]}")
+    if r[9]:
+        try:
+            details = json.loads(r[9])
+            meta = details.get('metadata', {})
+            print("  mae_price:", meta.get('mae_price'), "mfe_price:", meta.get('mfe_price'))
+            print("  last_sample_rr:", meta.get('excursion_last_sample_rr'))
+        except Exception as e:
+            print("  err:", e)
+conn.close()

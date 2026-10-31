@@ -27,11 +27,11 @@ OUT = ROOT / "storage" / "analysis"
 LIMIT_BARS = 8
 
 
-def load_frames_until(mt5, symbol, days, end):
+def load_frames_until(mt5, symbol, days, end, h4_extra_days=45):
     """Como replay_ict_live_faithful.load_frames pero con fecha de fin explícita (para años previos)."""
     from datetime import timedelta
     consts = {"M15": mt5.TIMEFRAME_M15, "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4}
-    extra = {"M15": 5, "H1": 10, "H4": 45}
+    extra = {"M15": 5, "H1": 10, "H4": h4_extra_days}
     frames = {}
     for tf, const in consts.items():
         rates = mt5.copy_rates_range(symbol, const, end - timedelta(days=days + extra[tf]), end)
@@ -43,7 +43,7 @@ def load_frames_until(mt5, symbol, days, end):
     return frames
 
 
-def run_symbol(symbol: str, days: int, end_days_ago: int = 0):
+def run_symbol(symbol: str, days: int, end_days_ago: int = 0, h4_candles: int | None = None):
     import MetaTrader5 as mt5
     from strategy.ict.config import ICTSabriMalleConfig
     from strategy.ict.ict_strategy import ICTSabriMalleStrategy, is_synthetic_asset
@@ -55,13 +55,17 @@ def run_symbol(symbol: str, days: int, end_days_ago: int = 0):
     mt5.symbol_select(symbol, True)
     from datetime import datetime, timedelta, timezone
     end = datetime.now(timezone.utc) - timedelta(days=end_days_ago)
-    frames = load_frames(mt5, symbol, days) if end_days_ago == 0 else load_frames_until(mt5, symbol, days, end)
+    if h4_candles:
+        # Más historia H4 para que haya `h4_candles` velas cerradas desde el inicio del periodo (24/7: 6 por día).
+        frames = load_frames_until(mt5, symbol, days, end, h4_extra_days=max(45, h4_candles // 6 + 15))
+    else:
+        frames = load_frames(mt5, symbol, days) if end_days_ago == 0 else load_frames_until(mt5, symbol, days, end)
     info = mt5.symbol_info(symbol)
     mt5.shutdown()
     if frames is None or info is None:
         return symbol, [], "SIN_DATOS"
     spread = float(info.spread) * float(info.point)
-    cfg = ICTSabriMalleConfig(excluded_symbols=())
+    cfg = ICTSabriMalleConfig(excluded_symbols=(), **({"macro_h4_candles": h4_candles} if h4_candles else {}))
     provider = HistoricalProvider(frames, spread)
     strat = ICTSabriMalleStrategy(provider, cfg)
     m15 = frames["M15"].reset_index(drop=True)
@@ -155,6 +159,7 @@ def main():
     ap.add_argument("--symbols", type=str, default="")
     ap.add_argument("--end-days-ago", type=int, default=0, help="desplaza el fin del periodo (365 = año previo)")
     ap.add_argument("--tag", type=str, default="", help="sufijo de los ficheros de salida")
+    ap.add_argument("--h4-candles", type=int, default=0, help="velas H4 del sesgo macro (0 = valor de la config)")
     args = ap.parse_args()
     if args.symbols:
         syms = [s.strip() for s in args.symbols.split(",") if s.strip()]
@@ -162,7 +167,7 @@ def main():
         syms = sorted(pd.read_csv(OUT / "ict_faithful_365d_v2_trades.csv", usecols=["symbol"]).symbol.unique())
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        futs = {pool.submit(run_symbol, s, args.days, args.end_days_ago): s for s in syms}
+        futs = {pool.submit(run_symbol, s, args.days, args.end_days_ago, args.h4_candles or None): s for s in syms}
         for f in as_completed(futs):
             s, rr, status = f.result()
             rows += rr

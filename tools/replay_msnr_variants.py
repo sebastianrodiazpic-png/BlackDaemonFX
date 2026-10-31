@@ -35,13 +35,13 @@ LIMIT_BARS = 8
 VARIANTS = {"rr_live": (1.0, 2.0), "rr_r15": (1.0, 1.5), "rr_r3": (1.0, 3.0), "rr_1r": (1.0, 1.0), "rr_h05": (0.5, 2.0)}
 
 
-def live_config():
+def live_config(overrides=None):
     """Misma configuración que construye LiveTradingEngine para MSNR, con C2 off y sin allowlist."""
     from strategy.malaysian_snr.config import MalaysianSNRConfig
     return MalaysianSNRConfig(enabled=True, entry_timeframe="M15", structure_timeframe="H1",
                               tp1_min_rr=1.0, tp2_runner_rr=2.0, enable_c2_fx_metals_atr_cap=False,
                               min_adx=30.0, c2_fx_metals_max_sl_atr=1.2, c2_default_max_sl_atr=1.5,
-                              allowed_symbols=())
+                              allowed_symbols=(), **(overrides or {}))
 
 
 def frames_until(mt5, symbol, days, end):
@@ -56,7 +56,8 @@ def frames_until(mt5, symbol, days, end):
     return frames
 
 
-def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free_busy=False, spread_cap=0.02):
+def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free_busy=False, spread_cap=0.02,
+               config_overrides=None, spread_override=None, force_flat_ny=None):
     import MetaTrader5 as mt5
     from strategy.malaysian_snr.malaysian_snr_strategy import MalaysianSNRStrategy, is_fx_or_metal_symbol, is_synthetic_symbol
     from strategy.malaysian_snr.config import MalaysianSNRConfig
@@ -70,8 +71,10 @@ def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free
     mt5.shutdown()
     if frames is None or info is None:
         return symbol, [], "SIN_DATOS"
-    spread = float(info.spread) * float(info.point)
-    cfg = live_config()
+    # spread_override: spread real medido en ticks (--spread-file). El campo spread de las velas es el mínimo del
+    # periodo (y 0 en Forex/oro antes de oct-2024) y el de symbol_info en fin de semana está inflado.
+    spread = float(spread_override) if spread_override else float(info.spread) * float(info.point)
+    cfg = live_config(config_overrides)
     allow = {a.strip().lower().removesuffix("micro") for a in MalaysianSNRConfig().allowed_symbols}
     provider = HistoricalProvider(frames)
     strat = MalaysianSNRStrategy(provider, cfg, runtime_settings_loader=(lambda: dict(live_settings)) if live_settings else None)
@@ -81,6 +84,13 @@ def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free
     mid_cut = start_cut + pd.Timedelta(days=days / 2)
     rows, busy, seen = [], -1, set()
     n = len(m15)
+    # Cierre forzado del motor en mercados reales (Forex, índices, metales): cada día a la hora `force_flat_ny` (NY).
+    flat_idx = None
+    if force_flat_ny and not is_synthetic_symbol(symbol):
+        hh, mm = (int(x) for x in str(force_flat_ny).split(":"))
+        ny = m15["time"].dt.tz_convert("America/New_York")
+        minute = ny.dt.hour * 60 + ny.dt.minute
+        flat_idx = np.flatnonzero(((minute >= hh * 60 + mm) & (minute < 17 * 60)).to_numpy())
     for i in range(100, n - 2):
         if m15["time"].iloc[i] < start_cut or i <= busy:
             continue
@@ -88,6 +98,8 @@ def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free
         res = strat.analyze_symbol(symbol, now_utc=provider.now.to_pydatetime())
         if not res.get("valid"):
             continue
+        if res.get("shadow_only"):
+            continue  # el motor no ejecuta las señales en modo observación (shadow)
         sig = res["signal"]
         sid = sig.get("setup_id")
         if sid and sid in seen:
@@ -113,6 +125,10 @@ def run_symbol(symbol, days, end_days_ago, limit=False, live_settings=None, free
                    obstacle_room_rr=room, synthetic=is_synthetic_symbol(symbol), fx_metal=is_fx_or_metal_symbol(symbol),
                    in_allowlist=symbol.strip().lower().removesuffix("micro") in allow)
         future_end = n - 1
+        if flat_idx is not None:
+            k = int(np.searchsorted(flat_idx, i + 1, side="left"))
+            if k < len(flat_idx):
+                future_end = min(future_end, int(flat_idx[k]))  # la última vela simulada es la anterior al cierre
         args = (h[i + 1:future_end], l[i + 1:future_end], c[i + 1:future_end])
         kw = dict(opens=o[i + 1:future_end], spreads=np.full(future_end - i - 1, spread),
                   leg1_weight=cfg.leg1_risk_ratio, leg2_weight=cfg.leg2_risk_ratio)
@@ -173,6 +189,9 @@ def main():
     ap.add_argument("--free-busy", action="store_true", help="las señales descartadas por spread no ocupan el símbolo")
     ap.add_argument("--spread-cap", type=float, default=0.02)
     ap.add_argument("--override", type=str, default="", help='JSON con ajustes a sobrescribir, p.ej. {"breaker_pair_mode": "shadow"}')
+    ap.add_argument("--force-flat-ny", type=str, default="", help="HH:MM: cierre forzado diario en hora de NY (mercados reales)")
+    ap.add_argument("--spread-file", type=str, default="", help="JSON {símbolo: {spread: precio}} con el spread real de ticks")
+    ap.add_argument("--config-override", type=str, default="", help='JSON con campos de MalaysianSNRConfig, p.ej. {"min_obstacle_rr": 1.0}')
     args = ap.parse_args()
     if args.symbols:
         syms = [s.strip() for s in args.symbols.split(",") if s.strip()]
@@ -202,14 +221,29 @@ def main():
     if args.synthetics_only:
         from strategy.malaysian_snr.malaysian_snr_strategy import is_synthetic_symbol
         syms = [s for s in syms if is_synthetic_symbol(s)]
+    import json as _json
+    config_overrides = _json.loads(args.config_override) if args.config_override else None
+    if config_overrides:
+        print("config sobrescrita:", config_overrides, flush=True)
+    spreads = {}
+    if args.spread_file:
+        spreads = {k: v["spread"] for k, v in _json.load(open(args.spread_file, encoding="utf-8")).items()}
+        print("spread real de ticks para", len(spreads), "símbolos", flush=True)
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         futs = [pool.submit(run_symbol, s, args.days, args.end_days_ago, args.limit, live_settings,
-                            args.free_busy, args.spread_cap) for s in syms]
+                            args.free_busy, args.spread_cap, config_overrides, spreads.get(s), args.force_flat_ny or None)
+                for s in syms]
         for f in as_completed(futs):
-            s, rr, status = f.result()
+            try:
+                s, rr, status = f.result()
+            except Exception as exc:  # un proceso caído no debe perder lo ya calculado
+                print(f"ERROR en un símbolo: {type(exc).__name__}: {exc}", flush=True)
+                continue
             rows += rr
             print(f"{s}: {status} señales={len(rr)}", flush=True)
+            # Guardado incremental: si el pool se rompe, lo terminado queda en disco.
+            pd.DataFrame(rows).to_csv(OUT / f"msnr_variants_signals_{args.tag}.csv", index=False)
     pd.DataFrame(rows).to_csv(OUT / f"msnr_variants_signals_{args.tag}.csv", index=False)
     print("ok", len(rows))
 

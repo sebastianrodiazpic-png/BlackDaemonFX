@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo
 import math
 import re
 
+import os
 import pandas as pd
 
 from strategy.smc.volume_utils import select_volume_column
@@ -94,11 +95,19 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "btcusd":
         return "BTCUSD"
 
-    # Prueba hacia delante SWEEP (solo el contrato estándar; la versión micro no está validada).
     if name == "usdcad":
         return "USDCAD"
 
-    if name in {"eurusd", "eur/usd", "eeurusd"} or (name.startswith("eur") and "usd" in name):
+    if name in {"gbpusd", "gbpusdmicro", "microgbpusd"} or (name.startswith("gbp") and "usd" in name):
+        return "GBPUSD"
+
+    if name in {"audusd", "audusdmicro", "microaudusd"} or (name.startswith("aud") and "usd" in name):
+        return "AUDUSD"
+
+    if name in {"usdchf", "usdchfmicro", "microusdchf"} or (name.startswith("usd") and "chf" in name):
+        return "USDCHF"
+
+    if name in {"eurusd", "eur/usd", "eeurusd", "eurusdmicro", "microeurusd"} or (name.startswith("eur") and "usd" in name):
         return "EURUSD"
 
     if name == "cl":
@@ -213,7 +222,7 @@ def discover_orb_symbols(data_provider) -> list[str]:
     que productos Deriv no utilizados (por ejemplo Gold BB/MACO) no bloqueen
     todo el arranque del daemon.
     """
-    terms = (
+    terms = [
         "XAUUSD",
         "XAGUSD",
         "Silver",
@@ -234,7 +243,9 @@ def discover_orb_symbols(data_provider) -> list[str]:
         "S&P 500",
         "SandP500",
         "US SP 500",
-    )
+    ]
+    if os.getenv("DAEMONBLACKFX_ORB_DISCOVER_GBP_AUD", "1").strip().lower() in ("1", "true", "yes", "on"):
+        terms.extend(["GBPUSD", "AUDUSD"])
     found = set()
     get_info = getattr(data_provider, "get_symbol_info", None)
 
@@ -635,8 +646,11 @@ class NewYorkORBStrategy:
         """
         bar = post_range.iloc[-1]
         bar_ny = pd.Timestamp(bar["time_ny"])
-        if bar_ny.hour * 60 + bar_ny.minute >= 955:
-            return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": "SWEEP_FUERA_DE_VENTANA_09_45_15_50"}
+        # Ventana institucional depurada: entradas hasta las 11:30 NY (690 min) por defecto; configurable con DAEMONBLACKFX_ORB_MAX_MINUTE_NY
+        import os
+        max_entry_min = int(os.getenv("DAEMONBLACKFX_ORB_MAX_MINUTE_NY", str(getattr(self.config, "entry_cutoff_minute_ny", 955))))
+        if bar_ny.hour * 60 + bar_ny.minute >= max_entry_min:
+            return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": f"SWEEP_FUERA_DE_VENTANA_HASTA_{max_entry_min//60:02d}_{max_entry_min%60:02d}_NY"}
         session_date_str = str(now_ny.date())
         remembered = self._session_signal_memory.get(orb_session_asset(symbol))
         if remembered is not None and remembered[0] == session_date_str:
@@ -655,6 +669,13 @@ class NewYorkORBStrategy:
             buy = float(sweep["low"]) < range_low - buffer and float(bar["close"]) > max(float(before["high"].max()), midpoint)
             if not sell and not buy:
                 continue
+            # Asimetría direccional institucional (ej. US Oil y USDCHF solo BUY)
+            allowed_dirs = cfg.get("allowed_directions")
+            if allowed_dirs:
+                if sell and "SELL" not in allowed_dirs:
+                    continue
+                if buy and "BUY" not in allowed_dirs:
+                    continue
             direction = "SELL" if sell else "BUY"
             side = -1 if sell else 1
             evidence = audit_volume_confirmation(df.iloc[max(0, bar_pos - 350):bar_pos + 1], sweep["time"],
@@ -847,7 +868,7 @@ class NewYorkORBStrategy:
             if atr_reference is not None:
                 self._frozen_atr_sessions[session_key] = atr_reference
         base.update(atr_frozen_m5=atr_reference, orb_atr_frozen_at=range_end_ny.isoformat())
-        max_atr_multiple = float(cfg["max_range_atr_ratio"])
+        max_atr_multiple = float(cfg.get("max_range_atr_ratio", self.config.max_opening_range_atr_multiple))
         amplitude = check_range_amplitude(range_high, range_low, atr_reference, max_atr_multiple)
         range_atr_ratio = amplitude["ratio"]
         opening_range_atr_within_limit = amplitude["allow_momentum"]

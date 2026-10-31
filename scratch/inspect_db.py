@@ -1,47 +1,33 @@
 import sys
-import os
-sys.path.insert(0, os.path.abspath("."))
-import sqlite3
-import json
+sys.path.insert(0, ".")
 from database.database import resolve_db_path
+import sqlite3
 
-c = sqlite3.connect(resolve_db_path()).cursor()
+db_path = resolve_db_path()
+print(f"=== DB PATH: {db_path} ===")
 
-# Get the last cycle number for Malaysian SNR
-r = c.execute("SELECT cycle_number, pid, status, symbols_processed, symbols_total, current_symbol FROM worker_runtime_states WHERE bot_profile='MALAYSIAN_SNR'").fetchone()
-print("Worker state:", r)
+con = sqlite3.connect(db_path)
+cur = con.cursor()
+tables = [row[0] for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+print("Tables:", tables)
 
-# Get all SYMBOL_PROCESS_RESULT events for Malaysian SNR in recent events
-rows = c.execute("""
-    SELECT id, cycle_number, instrument, action, reason, 
-           json_extract(payload_json, '$.index'), 
-           json_extract(payload_json, '$.total'),
-           event_time
-    FROM daemon_audit_events
-    WHERE event_type='SYMBOL_PROCESS_RESULT' 
-      AND (json_extract(payload_json, '$.result.strategy_name')='MALAYSIAN_SNR' 
-           OR json_extract(payload_json, '$.result._bot_profile')='MALAYSIAN_SNR'
-           OR json_extract(payload_json, '$.result.strategy_name')='Malaysian SNR')
-    ORDER BY id DESC LIMIT 30
-""").fetchall()
+for t in tables:
+    count = cur.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
+    print(f"  {t}: {count} rows")
 
-print(f"\nRecent events ({len(rows)}):")
-for row in rows:
-    print(row)
+print("\n--- ULTIMOS TRADES ---")
+cols = [c[1] for c in cur.execute("PRAGMA table_info(trades)").fetchall()]
+trades = cur.execute("SELECT * FROM trades ORDER BY id DESC LIMIT 15").fetchall()
+for t in trades:
+    d = dict(zip(cols, t))
+    print(" ", {k: d[k] for k in ["id", "symbol", "direction", "entry_price", "status", "created_at", "closed_at", "profit_usd", "net_r"] if k in d})
 
-# Let's inspect the symbols in a full cycle of Malaysian SNR
-if rows:
-    cycle = rows[0][1]
-    cycle_rows = c.execute("""
-        SELECT json_extract(payload_json, '$.index'), instrument, action, reason
-        FROM daemon_audit_events
-        WHERE event_type='SYMBOL_PROCESS_RESULT'
-          AND cycle_number=?
-          AND (json_extract(payload_json, '$.result.strategy_name')='MALAYSIAN_SNR' 
-               OR json_extract(payload_json, '$.result._bot_profile')='MALAYSIAN_SNR'
-               OR json_extract(payload_json, '$.result.strategy_name')='Malaysian SNR')
-        ORDER BY json_extract(payload_json, '$.index')
-    """, (cycle,)).fetchall()
-    print(f"\nCycle {cycle} symbols ({len(cycle_rows)}):")
-    for cr in cycle_rows:
-        print(cr)
+print("\n--- INSTRUMENT SELECTION PROFILES ---")
+profiles = cur.execute("SELECT profile_name, active_instruments, updated_at FROM instrument_selection_profile_preferences").fetchall()
+for p in profiles:
+    print(f"Profile: {p[0]} (len={len(p[1]) if p[1] else 0}) -> {p[1][:120]}... updated: {p[2]}")
+
+print("\n--- DAEMON AUDIT EVENTS (ultimos 10) ---")
+events = cur.execute("SELECT id, worker, event_type, details, created_at FROM daemon_audit_events ORDER BY id DESC LIMIT 10").fetchall()
+for e in events:
+    print(f"  [{e[4]}] {e[1]} - {e[2]}: {str(e[3])[:100]}")

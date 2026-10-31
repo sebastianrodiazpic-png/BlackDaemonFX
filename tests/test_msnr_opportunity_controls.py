@@ -16,6 +16,12 @@ from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradin
 from strategy.execution.active_position_guard import symbol_cycle_lock
 
 
+@pytest.fixture(autouse=True)
+def _legacy_asset_modes(monkeypatch):
+    """Estos tests cubren los modos por activo, activos solo si /Instruments no es el único control."""
+    monkeypatch.setenv("DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL", "off")
+
+
 def strategy_with_preferences(tmp_path, **changes):
     repo = TradingRepository(tmp_path/'controls.sqlite3')
     if changes:

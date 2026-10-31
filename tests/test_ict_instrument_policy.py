@@ -19,16 +19,15 @@ from config.strategy_config import ICT_WR45_PRUNED
 def test_synthetics_active_set_is_the_28_ict_synthetics():
     from config.synth_wr45 import REAL_SPREAD_PRUNED
     active = set(ict_active_symbols("SYNTHETICS"))
-    assert len(active) == 28 - len(REAL_SPREAD_PRUNED)  # 23-oct-2026: VolSwitch High Vol podado por spread real
+    assert len(active) == 33  # 26-oct-2026: auditoría 5Y con 6 mejoras deja activos los 33 sintéticos con WR > 47%
     assert not active & set(ICT_PHASE1_EXCLUDED)
-    assert not active & set(ICT_WR45_PRUNED)
-    assert not active & {"Volatility 50 Index", "Crash 600 Index"}
-    assert {"Volatility 10 Index", "Step Index 200", "Boom 500 Index", "Crash 300 Index"} <= active
+    assert not (active & (set(ICT_WR45_PRUNED) - {"Boom 300 Index", "Vol over Boom 550"}))
+    assert {"Volatility 10 Index", "Step Index 200", "Boom 500 Index", "Jump 25 Index", "Volatility 25 Index", "Crash 300 Index", "Boom 300 Index", "Step Index"} <= active
 
 
 def test_ict_tab_has_no_crypto_silver_synthetics_or_forex():
     active = ict_active_symbols("ICT")
-    assert set(active) == {"XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Oil", "Wall Street 30", "US Tech 100", "US SP 500"}
+    assert set(active) == {"XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Oil", "US Tech 100", "Wall Street 30"}
     for profile in ("SYNTHETICS", "FOREX"):
         assert not set(active) & set(ict_active_symbols(profile))  # un instrumento, una pestaña
 
@@ -48,14 +47,14 @@ def test_phase1_exclusions_match_ict_strategy():
 
 def test_sanitize_drops_preventive_prune_only_in_ict_tabs():
     assert sanitize_ict_selection("ICT", ["XAUUSD", "BTCUSD", "XAGUSD"]) == ["XAUUSD"]
-    assert sanitize_ict_selection("SYNTHETICS", ["Boom 300 Index", "Boom 500 Index"]) == ["Boom 500 Index"]
+    assert sanitize_ict_selection("SYNTHETICS", ["Crash 1000 Index", "Boom 500 Index"]) == ["Boom 500 Index"]
     assert sanitize_ict_selection("ORB", ["XAGUSD"]) == ["XAGUSD"]
 
 
 def test_preventive_prune_reasons():
     assert preventive_prune_reason("XAUUSD", "ICT") == ""
-    for sym, profile in (("BTCUSD", "ICT"), ("XAGUSD", "ICT"), ("Boom 300 Index", "SYNTHETICS"),
-                         ("Crash 600 Index", "SYNTHETICS"), ("AUDJPY", "FOREX"), ("Boom 500 Index", "ICT")):
+    for sym, profile in (("BTCUSD", "ICT"), ("XAGUSD", "ICT"), ("Crash 1000 Index", "SYNTHETICS"),
+                         ("Volatility 90 (1s) Index", "SYNTHETICS"), ("EURUSD", "FOREX"), ("Boom 500 Index", "ICT")):
         assert preventive_prune_reason(sym, profile).startswith(PREVENTIVE_PRUNE_LABEL)
     assert "cripto" in preventive_prune_reason("BTCUSD", "ICT")
 
@@ -64,7 +63,7 @@ def test_dashboard_prioritized_and_prune_info_never_overlap():
     from dashboard import realtime_dashboard as rd
     catalog = [{"category": "ict_crypto_btcusd", "symbols": ["BTCUSD"]},
                {"category": "ict_metals_xauusd", "symbols": ["XAUUSD", "microXAUUSD"]},
-               {"category": "boom", "symbols": ["Boom 300 Index", "Boom 500 Index", "Boom 50 Index"]},
+               {"category": "boom", "symbols": ["Crash 1000 Index", "Boom 500 Index", "Boom 50 Index"]},
                {"category": "forex", "symbols": ["EURUSD", "AUDJPY"]}]
     for profile, base in (("SYNTHETICS", rd.PRUNED_INSTRUMENTS_INFO), ("FOREX", rd.FOREX_PRUNED_INFO), ("ICT", rd.ICT_PRUNED_INFO)):
         assert rd.DEFAULT_PRIORITIZED_SYMBOLS[profile] == list(ict_active_symbols(profile))
@@ -73,7 +72,7 @@ def test_dashboard_prioritized_and_prune_info_never_overlap():
         assert all(v.startswith(PREVENTIVE_PRUNE_LABEL) for v in info.values())
     assert "BTCUSD" in rd._ict_preventive_prune_info("ICT", catalog, rd.ICT_PRUNED_INFO)
     syn = rd._ict_preventive_prune_info("SYNTHETICS", catalog, rd.PRUNED_INSTRUMENTS_INFO)
-    assert "Boom 300 Index" in syn and "Boom 50 Index" in syn and "AUDCAD" not in syn
+    assert "Crash 1000 Index" in syn and "Boom 50 Index" in syn and "AUDCAD" not in syn
 
 
 def test_dashboard_save_never_persists_preventive_prune():
@@ -116,8 +115,10 @@ def test_msnr_active_is_synthetics_without_wr45_prune():
     from config.strategy_config import MSNR_WR45_PRUNED
     from config.synth_wr45 import REAL_SPREAD_PRUNED
     assert len(MSNR_SYNTHETIC_UNIVERSE) == 37 and len(MSNR_ACTIVE) == 30 - len(REAL_SPREAD_PRUNED)
-    from config.ict_instrument_policy import MSNR_DEMO_TEST_SYMBOLS
-    assert set(ict_active_symbols("MALAYSIAN_SNR")) == (set(MSNR_SYNTHETIC_UNIVERSE) - set(MSNR_WR45_PRUNED)) | set(MSNR_DEMO_TEST_SYMBOLS)
+    from config.ict_instrument_policy import MSNR_ACIERTO47_SYNTHETICS, MSNR_REAL_MARKET_SYMBOLS
+    # Malaysian SNR (26-oct-2026): 24 sintéticos con acierto >= 47 % + 11 mercados reales (Boom 600, 900, Crash 1000 podados).
+    assert len(MSNR_ACIERTO47_SYNTHETICS) == 24 and set(MSNR_ACIERTO47_SYNTHETICS) <= set(MSNR_SYNTHETIC_UNIVERSE)
+    assert set(ict_active_symbols("MALAYSIAN_SNR")) == set(MSNR_ACIERTO47_SYNTHETICS) | set(MSNR_REAL_MARKET_SYMBOLS)
     assert {"Jump 25 Index", "Boom 300 Index", "Volatility 25 Index"} <= set(MSNR_ACTIVE)  # Fase 1 ICT no aplica a MSNR
 
 
@@ -129,8 +130,9 @@ def test_msnr_universe_matches_bot_profile():
 
 def test_msnr_prune_reasons_and_sanitize():
     assert preventive_prune_reason("Jump 25 Index", "MALAYSIAN_SNR") == ""
-    assert "acierto <= 45" in preventive_prune_reason("Boom 1000 Index", "MALAYSIAN_SNR")
-    assert "solo opera sintéticos" in preventive_prune_reason("AUDNZD", "MALAYSIAN_SNR")
+    assert "acierto <= 47" in preventive_prune_reason("Boom 1000 Index", "MALAYSIAN_SNR")
+    assert "acierto <= 47" in preventive_prune_reason("Crash 500 Index", "MALAYSIAN_SNR")
+    assert "acierto <= 47" in preventive_prune_reason("AUDNZD", "MALAYSIAN_SNR")
     assert sanitize_ict_selection("MALAYSIAN_SNR", ["AUDNZD", "Boom 1000 Index", "Boom 300 Index"]) == ["Boom 300 Index"]
 
 
@@ -138,7 +140,8 @@ def test_dashboard_msnr_tab_uses_policy():
     from dashboard import realtime_dashboard as rd
     assert rd.DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"] == list(ict_active_symbols("MALAYSIAN_SNR"))
     info = rd._ict_preventive_prune_info("MALAYSIAN_SNR", [], rd.MALAYSIAN_SNR_PRUNED_INFO)
-    assert {"AUDNZD", "EURUSD", "Boom 1000 Index", "Crash 600 Index"} <= set(info)
+    assert {"AUDNZD", "Boom 1000 Index", "Crash 600 Index"} <= set(info)
+    assert "EURUSD" in info  # podado por acierto < 47 % (38.89 % en replay fiel 26-oct-2026)
     assert not set(info) & set(ict_active_symbols("MALAYSIAN_SNR"))
     html = rd._INSTRUMENTS_HTML
     assert "✓ MSNR Activo · " in html and "MSNR Canónico Activo" not in html and "MSNR Tier S" not in html
@@ -191,10 +194,12 @@ def test_volswitch_high_vol_pruned_by_real_spread_in_ict_and_msnr():
     from config.synth_wr45 import ICT_WR45_PRUNED, MSNR_WR45_PRUNED, REAL_SPREAD_PRUNED
     sym = "VolSwitch High Vol Index"
     assert REAL_SPREAD_PRUNED == (sym,) and sym in ICT_WR45_PRUNED and sym in MSNR_WR45_PRUNED
-    for profile in ("SYNTHETICS", "MALAYSIAN_SNR", "MSNR"):
+    for profile in ("SYNTHETICS",):
         assert sym not in ict_active_symbols(profile)
         assert "spread real" in preventive_prune_reason(sym, profile)
     assert sym not in MSNR_ACTIVE
+    # Malaysian SNR (25-oct-2026): activo por acierto > 47 % por decisión del usuario (el tope spread/SL lo filtra).
+    assert sym in ict_active_symbols("MALAYSIAN_SNR") and preventive_prune_reason(sym, "MALAYSIAN_SNR") == ""
 
 
 def test_real_spread_prune_switch_by_env():
@@ -203,3 +208,35 @@ def test_real_spread_prune_switch_by_env():
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                          env={**os.environ, "DAEMONBLACKFX_REAL_SPREAD_PRUNE": "0"}, cwd=os.getcwd())
     assert out.stdout.strip() == "()", out.stderr
+
+
+def test_worker_consolidation_active_vs_pruned_and_selective_activation():
+    from config.ict_instrument_policy import (
+        ICT_FOREX_ACTIVE,
+        ICT_FOREX_PRUNED_SYMBOLS,
+        ICT_VOLATILITY_ACTIVE_SYMBOLS,
+        ICT_VOLATILITY_PRUNED_SYMBOLS,
+        resolve_active_pruned_worker_universe,
+    )
+    assert len(ICT_VOLATILITY_ACTIVE_SYMBOLS) == 16
+    assert len(ICT_VOLATILITY_PRUNED_SYMBOLS) == 2
+    assert set(resolve_active_pruned_worker_universe("VOLATILITY_1")) == set(ICT_VOLATILITY_ACTIVE_SYMBOLS)
+    assert set(resolve_active_pruned_worker_universe("VOLATILITY_2")) == set(ICT_VOLATILITY_PRUNED_SYMBOLS)
+    assert resolve_active_pruned_worker_universe("VOLATILITY_3") == []
+    assert resolve_active_pruned_worker_universe("VOLATILITY_4") == []
+
+    assert len(ICT_FOREX_ACTIVE) == 18
+    assert len(ICT_FOREX_PRUNED_SYMBOLS) == 24
+    assert set(resolve_active_pruned_worker_universe("FOREX_1")) == set(ICT_FOREX_ACTIVE)
+    assert set(resolve_active_pruned_worker_universe("FOREX_2")) == set(ICT_FOREX_PRUNED_SYMBOLS)
+    assert resolve_active_pruned_worker_universe("FOREX_3") == []
+    assert resolve_active_pruned_worker_universe("FOREX_4") == []
+
+    assert sanitize_ict_selection("FOREX", ["GBPUSD", "EURUSD"], allow_selective=False) == ["GBPUSD"]
+    assert sanitize_ict_selection("FOREX", ["GBPUSD", "EURUSD"], allow_selective=True) == ["GBPUSD", "EURUSD"]
+    assert sanitize_ict_selection("SYNTHETICS", ["Volatility 10 Index", "Crash 300 Index"], allow_selective=True) == [
+        "Volatility 10 Index",
+        "Crash 300 Index",
+    ]
+    assert sanitize_ict_selection("ICT", ["XAUUSD", "US SP 500"], allow_selective=True) == ["XAUUSD", "US SP 500"]
+

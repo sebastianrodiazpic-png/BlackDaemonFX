@@ -11,6 +11,12 @@ from strategy.malaysian_snr.research_comparison import compare_samples
 from test_msnr_dynamic_d1_settings import market, dashboard, api
 
 
+@pytest.fixture(autouse=True)
+def _legacy_asset_modes(monkeypatch):
+    """Estos tests cubren los modos por activo, activos solo si /Instruments no es el único control."""
+    monkeypatch.setenv("DAEMONBLACKFX_MSNR_INSTRUMENTS_CONTROL", "off")
+
+
 def controls(**patch):
     return {**msnr_default_settings(), 'additional_symbols': [], **patch}
 
