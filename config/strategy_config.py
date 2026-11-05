@@ -144,8 +144,9 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
         "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
     ),
-    # ORB NEW YORK: 8 Activos Rentables con modo SWEEP (WR > 47% y R > 0 en Replay 5Y).
+    # ORB NEW YORK: Activos Rentables con modo SWEEP y RETEST en Índices Americanos
     "ORB": (
+        "Wall Street 30", "US Tech 100", "US SP 500",
         "XAUUSD", "XAUUSDmicro",
         "BTCUSD", "USDCAD",
         "AUDUSD", "GBPUSD",
@@ -164,7 +165,9 @@ TRI_MOTOR_TIER_S_ASSETS = {
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
         "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
     ),
+    # ORB NEW YORK: Activos Rentables con modo SWEEP y RETEST en Índices Americanos
     "ORB": (
+        "Wall Street 30", "US Tech 100", "US SP 500",
         "XAUUSD", "XAUUSDmicro",
         "BTCUSD", "USDCAD",
         "AUDUSD", "GBPUSD",

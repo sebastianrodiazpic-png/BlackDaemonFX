@@ -1,0 +1,126 @@
+=== STRATEGY: Trend Pullback (17 activos) ===
+  Crash 300 Index: Estrategia=60.1% | Con Criterio=63.9% | Retorno=40.0R
+  Volatility 25 Index: Estrategia=58.5% | Con Criterio=62.0% | Retorno=60.0R
+  Volatility 100 (1s) Index: Estrategia=57.8% | Con Criterio=61.3% | Retorno=36.5R
+  Volatility 90 Index: Estrategia=57.0% | Con Criterio=60.2% | Retorno=13.8R
+  Crash 500 Index: Estrategia=55.2% | Con Criterio=58.4% | Retorno=31.4R
+  VolSwitch High Vol Index: Estrategia=54.7% | Con Criterio=57.7% | Retorno=13.5R
+  Jump 10 Index: Estrategia=54.5% | Con Criterio=57.5% | Retorno=67.3R
+  Boom 900 Index: Estrategia=54.4% | Con Criterio=57.3% | Retorno=7.0R
+  Volatility 10 Index: Estrategia=53.7% | Con Criterio=56.6% | Retorno=42.2R
+  Volatility 250 (1s) Index: Estrategia=53.3% | Con Criterio=56.2% | Retorno=48.2R
+  Boom 600 Index: Estrategia=53.5% | Con Criterio=56.2% | Retorno=8.8R
+  Volatility 5 Index: Estrategia=53.1% | Con Criterio=56.0% | Retorno=17.5R
+  Jump 25 Index: Estrategia=53.1% | Con Criterio=56.0% | Retorno=48.3R
+  Crash 600 Index: Estrategia=52.8% | Con Criterio=55.7% | Retorno=1.9R
+  Boom 300 Index: Estrategia=52.1% | Con Criterio=54.8% | Retorno=32.1R
+  Volatility 75 Index: Estrategia=51.6% | Con Criterio=54.3% | Retorno=20.1R
+  Volatility 15 Index: Estrategia=51.2% | Con Criterio=53.8% | Retorno=4.0R
+
+=== STRATEGY: AMR-SMC Bidireccional (Step & Jump) (7 activos) ===
+  Jump 75 Index: Estrategia=54.7% | Con Criterio=57.5% | Retorno=30.9R
+  Jump 10 Index: Estrategia=54.5% | Con Criterio=57.2% | Retorno=65.8R
+  Jump 50 Index: Estrategia=54.0% | Con Criterio=56.6% | Retorno=20.2R
+  Step Index 200: Estrategia=53.3% | Con Criterio=55.9% | Retorno=45.5R
+  Jump 25 Index: Estrategia=53.1% | Con Criterio=55.7% | Retorno=46.8R
+  Step Index 400: Estrategia=51.5% | Con Criterio=53.9% | Retorno=21.4R
+  Step Index: Estrategia=50.8% | Con Criterio=53.1% | Retorno=23.4R
+
+=== STRATEGY: ORB Nueva York (8 activos) ===
+  XAGUSD: Estrategia=81.82% | Con Criterio=87.2% | Retorno=10.0R
+  US Oil: Estrategia=76.47% | Con Criterio=82.9% | Retorno=10.4R
+  USDCHF: Estrategia=64.29% | Con Criterio=70.3% | Retorno=3.1R
+  BTCUSD: Estrategia=62.16% | Con Criterio=66.3% | Retorno=12.1R
+  XAUUSD: Estrategia=59.79% | Con Criterio=64.3% | Retorno=25.1R
+  AUDUSD: Estrategia=54.21% | Con Criterio=57.8% | Retorno=8.3R
+  GBPUSD: Estrategia=52.99% | Con Criterio=56.4% | Retorno=10.5R
+  USDCAD: Estrategia=52.75% | Con Criterio=56.2% | Retorno=17.7R
+
+=== STRATEGY: Malaysian SNR v3.2 (35 activos) ===
+  GBPCAD: Estrategia=100.0% | Con Criterio=100.0% | Retorno=3.5R
+  CADCHF: Estrategia=85.71% | Con Criterio=95.0% | Retorno=6.2R
+  NZDUSD: Estrategia=60.0% | Con Criterio=67.5% | Retorno=1.0R
+  High Frequency Vol 100 Index: Estrategia=60.0% | Con Criterio=63.3% | Retorno=10.8R
+  VolSwitch High Vol Index: Estrategia=59.72% | Con Criterio=62.9% | Retorno=9.3R
+  XAUUSD: Estrategia=58.06% | Con Criterio=61.1% | Retorno=11.7R
+  Volatility 5 Index: Estrategia=57.58% | Con Criterio=60.9% | Retorno=14.7R
+  Volatility 90 Index: Estrategia=56.6% | Con Criterio=59.4% | Retorno=7.4R
+  Jump 75 Index: Estrategia=55.46% | Con Criterio=58.3% | Retorno=27.2R
+  Germany 40: Estrategia=54.72% | Con Criterio=57.3% | Retorno=8.4R
+  USDJPY: Estrategia=54.39% | Con Criterio=57.3% | Retorno=5.7R
+  Vol over Boom 550: Estrategia=53.85% | Con Criterio=56.7% | Retorno=1.6R
+  GBPUSD: Estrategia=52.17% | Con Criterio=54.7% | Retorno=4.7R
+  High Frequency Vol 50 Index: Estrategia=52.08% | Con Criterio=54.6% | Retorno=1.9R
+  EURGBP: Estrategia=50.0% | Con Criterio=54.0% | Retorno=0.8R
+  Jump 25 Index: Estrategia=51.38% | Con Criterio=53.7% | Retorno=8.7R
+  Boom 500 Index: Estrategia=51.14% | Con Criterio=53.5% | Retorno=7.4R
+  Step Index 200: Estrategia=51.05% | Con Criterio=53.4% | Retorno=8.4R
+  Volatility 75 Index: Estrategia=50.67% | Con Criterio=53.0% | Retorno=6.9R
+  Step Index 500: Estrategia=50.57% | Con Criterio=52.9% | Retorno=5.9R
+  Volatility 75 (1s) Index: Estrategia=50.51% | Con Criterio=52.8% | Retorno=10.3R
+  Step Index 400: Estrategia=50.39% | Con Criterio=52.7% | Retorno=9.2R
+  Jump 10 Index: Estrategia=50.22% | Con Criterio=52.5% | Retorno=7.4R
+  GBPCHF: Estrategia=50.0% | Con Criterio=52.2% | Retorno=-0.7R
+  Volatility 250 (1s) Index: Estrategia=50.0% | Con Criterio=52.2% | Retorno=8.7R
+  Volatility 15 Index: Estrategia=50.0% | Con Criterio=52.1% | Retorno=0.2R
+  Volatility 25 Index: Estrategia=49.06% | Con Criterio=51.2% | Retorno=0.5R
+  Boom 300 Index: Estrategia=48.89% | Con Criterio=51.0% | Retorno=1.9R
+  Vol over Crash 550: Estrategia=48.75% | Con Criterio=50.8% | Retorno=1.3R
+  Volatility 150 (1s) Index: Estrategia=48.68% | Con Criterio=50.8% | Retorno=-0.9R
+  CADJPY: Estrategia=48.0% | Con Criterio=50.5% | Retorno=-0.7R
+  Volatility 10 Index: Estrategia=47.98% | Con Criterio=50.0% | Retorno=-6.4R
+  Volatility 50 (1s) Index: Estrategia=47.74% | Con Criterio=49.6% | Retorno=-0.6R
+  GBPJPY: Estrategia=47.37% | Con Criterio=49.4% | Retorno=-1.0R
+  Crash 900 Index: Estrategia=47.3% | Con Criterio=49.1% | Retorno=-2.8R
+
+=== STRATEGY: ICT Sabri Malle (49 activos) ===
+  DOTUSD: Estrategia=100.0% | Con Criterio=100.0% | Retorno=0.5R
+  US Tech 100: Estrategia=75.0% | Con Criterio=79.7% | Retorno=16.9R
+  Crash 300 Index: Estrategia=60.85% | Con Criterio=64.3% | Retorno=41.2R
+  Volatility 25 Index: Estrategia=59.23% | Con Criterio=62.4% | Retorno=62.2R
+  VolSwitch High Vol Index: Estrategia=58.06% | Con Criterio=61.1% | Retorno=13.1R
+  Wall Street 30: Estrategia=56.76% | Con Criterio=60.0% | Retorno=5.7R
+  Boom 900 Index: Estrategia=56.47% | Con Criterio=59.6% | Retorno=10.8R
+  Volatility 90 Index: Estrategia=56.41% | Con Criterio=59.4% | Retorno=10.4R
+  Crash 500 Index: Estrategia=56.4% | Con Criterio=59.3% | Retorno=37.4R
+  Volatility 100 (1s) Index: Estrategia=56.38% | Con Criterio=59.3% | Retorno=29.2R
+  BTCUSD: Estrategia=55.56% | Con Criterio=58.8% | Retorno=1.6R
+  GBPUSD: Estrategia=55.32% | Con Criterio=58.3% | Retorno=4.2R
+  USDCHF: Estrategia=54.9% | Con Criterio=57.6% | Retorno=4.8R
+  Jump 50 Index: Estrategia=54.49% | Con Criterio=57.2% | Retorno=24.9R
+  XAUUSD: Estrategia=54.55% | Con Criterio=57.0% | Retorno=3.5R
+  Boom 600 Index: Estrategia=54.22% | Con Criterio=56.8% | Retorno=9.5R
+  Crash 600 Index: Estrategia=54.29% | Con Criterio=56.6% | Retorno=2.8R
+  Volatility 10 Index: Estrategia=53.94% | Con Criterio=56.6% | Retorno=43.2R
+  Jump 75 Index: Estrategia=53.62% | Con Criterio=56.3% | Retorno=25.9R
+  Jump 10 Index: Estrategia=53.54% | Con Criterio=56.2% | Retorno=49.8R
+  Volatility 15 Index: Estrategia=53.45% | Con Criterio=56.2% | Retorno=9.3R
+  Jump 25 Index: Estrategia=53.45% | Con Criterio=56.1% | Retorno=50.9R
+  Volatility 5 Index: Estrategia=53.28% | Con Criterio=55.9% | Retorno=15.7R
+  US Oil: Estrategia=53.33% | Con Criterio=55.9% | Retorno=2.4R
+  Step Index 200: Estrategia=53.24% | Con Criterio=55.8% | Retorno=43.5R
+  CADCHF: Estrategia=52.63% | Con Criterio=55.3% | Retorno=1.2R
+  EURJPY: Estrategia=52.83% | Con Criterio=55.2% | Retorno=3.0R
+  Volatility 250 (1s) Index: Estrategia=52.58% | Con Criterio=55.1% | Retorno=38.5R
+  Boom 300 Index: Estrategia=52.49% | Con Criterio=55.0% | Retorno=31.7R
+  XAUEUR: Estrategia=50.0% | Con Criterio=54.0% | Retorno=0.8R
+  NZDUSD: Estrategia=51.52% | Con Criterio=53.7% | Retorno=1.4R
+  Step Index: Estrategia=51.32% | Con Criterio=53.7% | Retorno=26.4R
+  EURGBP: Estrategia=51.11% | Con Criterio=53.7% | Retorno=3.0R
+  High Frequency Vol 100 Index: Estrategia=51.04% | Con Criterio=53.5% | Retorno=11.4R
+  Step Index 400: Estrategia=51.06% | Con Criterio=53.4% | Retorno=20.5R
+  Volatility 75 (1s) Index: Estrategia=50.84% | Con Criterio=53.2% | Retorno=24.1R
+  Volatility 50 (1s) Index: Estrategia=50.62% | Con Criterio=52.9% | Retorno=26.9R
+  Volatility 50 Index: Estrategia=50.46% | Con Criterio=52.7% | Retorno=9.4R
+  Volatility 150 (1s) Index: Estrategia=50.29% | Con Criterio=52.5% | Retorno=18.0R
+  Volatility 75 Index: Estrategia=50.27% | Con Criterio=52.5% | Retorno=11.0R
+  Vol over Boom 550: Estrategia=50.0% | Con Criterio=52.2% | Retorno=6.5R
+  Vol over Crash 550: Estrategia=50.0% | Con Criterio=52.2% | Retorno=12.6R
+  GBPJPY: Estrategia=50.0% | Con Criterio=52.1% | Retorno=4.8R
+  Boom 1000 Index: Estrategia=49.49% | Con Criterio=51.7% | Retorno=13.2R
+  Step Index 500: Estrategia=49.03% | Con Criterio=51.2% | Retorno=1.4R
+  GBPCHF: Estrategia=48.65% | Con Criterio=50.9% | Retorno=2.6R
+  Crash 900 Index: Estrategia=48.44% | Con Criterio=50.5% | Retorno=5.0R
+  Boom 500 Index: Estrategia=48.41% | Con Criterio=50.4% | Retorno=-1.2R
+  Volatility 100 Index: Estrategia=47.7% | Con Criterio=49.7% | Retorno=3.3R
+

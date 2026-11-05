@@ -678,54 +678,58 @@ __MSNR_SETTINGS_PANEL__
 
       <!-- PANEL DE AUDITORÍA ORB NEW YORK SWEEP (SE MUESTRA EN PESTAÑA ORB) -->
       <div id="orbAuditPanel" style="display: none; margin-bottom: 24px;">
-        <div class="card" style="border-left: 4px solid #f5bd36; background: linear-gradient(180deg, rgba(245, 189, 54, 0.08) 0%, var(--p) 100%);">
+        <div class="card" style="border-left: 4px solid #10b981; background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--p) 100%);">
           <div class="card-header" style="margin-bottom: 12px;">
             <h2 class="card-title">
               <span class="icon">🗽</span>
-              Auditoría ORB New York (Paso 1.3 ORB SWEEP): 231–241 Trades Intradía · +31.54 R Netos
+              Auditoría Replay Multianual ORB New York SWEEP: +73.4 R Netos Acumulados
             </h2>
-            <div class="badge badge-gold">56.7%–59.1% Win Rate · 4 Activos Core (+Variantes Micro) · 5 Índices/Forex Podados</div>
+            <div class="badge badge-green">8 Activos con WR > 47% y R > 0 · Contrato 2 Patas 0.5% (TP1 @ 1R -> BE, Runner TP2/TP4) · 8 Podados OFF</div>
           </div>
           <div class="muted" style="font-size: 13px; line-height: 1.7; margin-bottom: 18px;">
-            Reconfiguración <strong>ORB SWEEP (<code>HTF_SWEEP</code>)</strong> en la apertura Cash de Nueva York (09:30–11:30 NY) con filtro macro de liquidez <code>PDH / PDL (0.25 × ATR)</code>, Stop Loss anclado al <strong>50% Equilibrium</strong> del rango de 15 minutos y salida Dual-Leg (<code>TP1 @ 1.0R</code> + <code>BE + spread</code>, <code>TP2 @ 1.5R–2.0R</code>).
+            Metodología <strong>ORB SWEEP Institucional</strong> en la apertura Cash de Wall Street (09:30–11:30 NY) con filtro de absorción de liquidez (*Turtle Soup* del rango 15 min), confirmación de quiebre de estructura menor (*MSS*), alineación con <code>VWAP / POC</code> y contrato institucional de 2 patas (1% total: <code>TP1 @ 1.0R</code> con traslado automático de Stop a <code>Break Even + spread buffer</code>, y <code>TP2 @ 2.0R</code> con extensión progresiva hacia <code>3.0R–4.0R</code>).
+            Sincronizado 100% con <a href="/instruments" style="color: #34d399; text-decoration: underline; font-weight: 600;">/instruments</a> en la pestaña <strong>ORB NEW YORK</strong>.
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
             <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: var(--g); text-transform: uppercase;">🏆 4 Activos Rentables ORB Sweep</span>
-                <span class="badge badge-green">+31.54 R Netos</span>
+                <span style="font-size: 12px; font-weight: 700; color: var(--g); text-transform: uppercase;">🏆 5 Activos Élite (SWEEP Puro)</span>
+                <span class="badge badge-green">+54.10 R Netos</span>
               </div>
               <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
-                • <strong>XAUUSD & XAUUSDmicro:</strong> +14.92 R (110 trades, <strong>59.1% WR</strong>, PF 1.88, MaxDD 3.2R).<br>
-                • <strong>BTCUSD & BTCUSDmicro:</strong> +9.49 R (57 trades, <strong>57.9% WR</strong>, PF 1.65, MaxDD 2.9R).<br>
-                • <strong>XAGUSD & XAGUSDmicro:</strong> +5.74 R (60 trades, <strong>56.7% WR</strong>, PF 1.48, MaxDD 3.5R).<br>
-                • <strong>US Oil (WTI HTF_SWEEP):</strong> +1.39 R (14 trades, <strong>57.1% WR</strong>, PF 1.35 con filtro PDH/PDL).
+                • <strong>BTCUSD & BTCUSDmicro:</strong> +10.71 R (37 trades, <strong>62.2% WR</strong>, PF 1.76, +0.289 R/op).<br>
+                • <strong>XAUUSD & XAUUSDmicro:</strong> +20.95 R (97 trades, <strong>59.8% WR</strong>, PF 1.54, +0.216 R/op).<br>
+                • <strong>USDCAD & USDCADmicro:</strong> +13.81 R (91 trades, <strong>52.8% WR</strong>; con corte 11:30 NY sube a <strong>56.0% WR</strong>, +18.1 R).<br>
+                • <strong>AUDUSD & AUDUSDmicro:</strong> +3.76 R (107 trades, <strong>54.2% WR</strong>; con Runway libre sube a <strong>62.9% WR</strong>).<br>
+                • <strong>GBPUSD & GBPUSDmicro:</strong> +4.87 R (134 trades, <strong>53.0% WR</strong>; con corte 11:30 NY sube a <strong>57.0% WR</strong>, +12.0 R).
               </div>
             </div>
 
             <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: var(--r); text-transform: uppercase;">⚠️ Activos Podados en ORB</span>
-                <span class="badge badge-red">-48.27 R Evitados</span>
+                <span style="font-size: 12px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🛡️ 3 Activos Rescatados (HTF / Asimetría)</span>
+                <span class="badge badge-cyan">+19.30 R Netos</span>
               </div>
               <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
-                • <strong>US Tech 100 (Nasdaq):</strong> -21.11 R (41.2% WR, whipsaws severos en los primeros 15 min de apertura NY).<br>
-                • <strong>Wall Street 30 (Dow):</strong> -12.16 R (41.9% WR, barridos de ambos extremos del ORB).<br>
-                • <strong>US SP 500:</strong> -11.83 R (42.9% WR, reversión a la media tras ruptura).<br>
-                • <strong>EURUSD (-3.17 R) y UK Brent Oil (-42.23 R):</strong> Excluidos de ORB (EURUSD se opera en ICT y MSNR).
+                • <strong>XAGUSD & XAGUSDmicro (HTF_SWEEP):</strong> +9.62 R (11 trades, <strong>81.82% WR</strong>, PF 5.52, +0.875 R/op; rescate desde -1.35 R).<br>
+                • <strong>US Oil (WTI HTF + Solo BUY):</strong> +9.67 R (17 trades, <strong>76.47% WR</strong>, PF 4.80, +0.569 R/op; rescate desde -34.66 R).<br>
+                • <strong>USDCHF & USDCHFmicro (HTF + Solo BUY):</strong> +2.38 R (14 trades, <strong>64.29% WR</strong>, +0.170 R/op; rescate desde -26.01 R).
               </div>
             </div>
 
             <div style="background: var(--p2); border: 1px solid #1e2b37; border-radius: 10px; padding: 14px 16px;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: var(--cyan); text-transform: uppercase;">⚙️ Reglas de Ejecución Paso 1.3</span>
-                <span class="badge badge-cyan">Tier A · 0.50% Riesgo</span>
+                <span style="font-size: 12px; font-weight: 700; color: var(--r); text-transform: uppercase;">⚠️ 8 Activos en Poda Estricta</span>
+                <span class="badge badge-red">-120+ R Evitados</span>
               </div>
               <div style="font-size: 12px; color: var(--m); line-height: 1.6;">
-                • <strong>Ventana:</strong> Rango 09:30–09:45 NY; entradas 09:45–11:30 NY.<br>
-                • <strong>Gating HTF_SWEEP:</strong> Requiere barrido previo de Asian High/Low o London High/Low antes de validar el quiebre.<br>
-                • <strong>Escalonamiento Tier A:</strong> Opera con 0.50% de riesgo total (0.25% Leg 1 + 0.25% Leg 2) para blindar el drawdown intradía.
+                • <strong>Wall Street 30 (Dow):</strong> -7.99 R (<strong>28.6% WR</strong>, ruido en campana 09:30 NY).<br>
+                • <strong>UK Brent Oil:</strong> -39.63 R (<strong>40.6% WR</strong>, quiebres falsos continuos).<br>
+                • <strong>NZDUSD:</strong> -24.78 R (<strong>42.3% WR</strong>, sin recorrido suficiente post-apertura).<br>
+                • <strong>EURUSD & EURUSDmicro:</strong> -17.92 R (<strong>47.1% WR</strong>; operado en ICT Londres).<br>
+                • <strong>USDJPY & USDJPYmicro:</strong> -7.09 R netos (asimetría desfavorable de stops).<br>
+                • <strong>US SP 500, ETHUSD & Sintéticos 24/7:</strong> Descartados por microestructura.
               </div>
             </div>
           </div>
@@ -1249,232 +1253,179 @@ __MSNR_SETTINGS_PANEL__
       // DATASETS EMBEBIDOS AUDITADOS (SINCRONIZADOS 100% CON /INSTRUMENTS)
       // ==========================================
 
-      const WINNERS_DATA = [
-        // 1. MALAYSIAN SNR INSTITUCIONAL (VARIANTE C2) - 23 ACTIVOS CANÓNICOS ACTIVOS (+81.55 R 2Y / +37.64 R OOS C2 / 60.6% WR OOS)
-        { rank: 1, symbol: "Step Index 400", strategy: "Malaysian SNR", category: "Sintéticos Step", trades: 26, win_rate: 80.0, tp1: 16, tp2: 11, tp3: 4, tp4: 2, be: 5, pnl: 968.0, status: "Canónico Activo C2 (+9.68R 2Y / +7.07R OOS)" },
-        { rank: 2, symbol: "XAGUSD", strategy: "Malaysian SNR", category: "Metales", trades: 18, win_rate: 80.0, tp1: 12, tp2: 8, tp3: 3, tp4: 1, be: 4, pnl: 721.0, status: "Canónico Activo C2 (+7.21R 2Y / +5.71R OOS)" },
-        { rank: 3, symbol: "AUDNZD", strategy: "Malaysian SNR", category: "Forex Core", trades: 18, win_rate: 66.7, tp1: 12, tp2: 8, tp3: 3, tp4: 1, be: 4, pnl: 576.0, status: "Canónico Activo C2 (+5.76R 2Y / +5.23R OOS)" },
-        { rank: 4, symbol: "Crash 1000 Index", strategy: "Malaysian SNR", category: "Crash (Ventas)", trades: 13, win_rate: 61.5, tp1: 8, tp2: 5, tp3: 2, tp4: 1, be: 3, pnl: 547.0, status: "Canónico Activo C2 (+5.47R 2Y / +4.30R OOS)" },
-        { rank: 5, symbol: "Jump 25 Index", strategy: "Malaysian SNR", category: "Sintéticos Jump", trades: 31, win_rate: 75.0, tp1: 18, tp2: 11, tp3: 4, tp4: 2, be: 7, pnl: 542.0, status: "Canónico Activo C2 (+5.42R 2Y / +3.77R OOS)" },
-        { rank: 6, symbol: "GBPJPY", strategy: "Malaysian SNR", category: "Forex Core", trades: 8, win_rate: 62.5, tp1: 5, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 516.0, status: "Canónico Activo C2 (+5.16R / 62.5% WR)" },
-        { rank: 7, symbol: "USDJPY", strategy: "Malaysian SNR", category: "Forex Core", trades: 11, win_rate: 54.5, tp1: 6, tp2: 4, tp3: 1, tp4: 0, be: 2, pnl: 513.0, status: "Canónico Activo C2 (+5.13R / 54.5% WR)" },
-        { rank: 8, symbol: "GBPUSD", strategy: "Malaysian SNR", category: "Forex Core", trades: 7, win_rate: 70.0, tp1: 5, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 500.0, status: "Canónico Activo C2 (+5.00R 2Y / +2.86R OOS)" },
-        { rank: 9, symbol: "Boom 300 Index", strategy: "Malaysian SNR", category: "Boom (Compras)", trades: 15, win_rate: 60.0, tp1: 9, tp2: 5, tp3: 2, tp4: 1, be: 4, pnl: 371.0, status: "Canónico Activo C2 (+3.71R 2Y / +1.64R OOS)" },
-        { rank: 10, symbol: "Volatility 250 (1s) Index", strategy: "Malaysian SNR", category: "Volatility", trades: 13, win_rate: 53.8, tp1: 7, tp2: 4, tp3: 1, tp4: 0, be: 3, pnl: 366.0, status: "Canónico Activo C2 (+3.66R)" },
-        { rank: 11, symbol: "Step Index", strategy: "Malaysian SNR", category: "Sintéticos Step", trades: 31, win_rate: 54.8, tp1: 17, tp2: 10, tp3: 3, tp4: 1, be: 7, pnl: 316.0, status: "Canónico Activo C2 (+3.16R)" },
-        { rank: 12, symbol: "Jump 10 Index", strategy: "Malaysian SNR", category: "Sintéticos Jump", trades: 25, win_rate: 56.0, tp1: 14, tp2: 8, tp3: 3, tp4: 1, be: 6, pnl: 277.0, status: "Canónico Activo C2 (+2.77R)" },
-        { rank: 13, symbol: "GBPAUD", strategy: "Malaysian SNR", category: "Forex Core", trades: 10, win_rate: 50.0, tp1: 5, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 276.0, status: "Canónico Activo C2 (+2.76R en MSNR)" },
-        { rank: 14, symbol: "Wall Street 30", strategy: "Malaysian SNR", category: "Índices Bursátiles", trades: 15, win_rate: 60.0, tp1: 9, tp2: 5, tp3: 2, tp4: 1, be: 4, pnl: 257.0, status: "Canónico Activo C2 (+2.57R 2Y / +1.38R Rescatado ATR≤1.5)" },
-        { rank: 15, symbol: "EURUSD", strategy: "Malaysian SNR", category: "Forex Core", trades: 9, win_rate: 55.6, tp1: 5, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 254.0, status: "Canónico Activo C2 (+2.54R / 55.6% WR)" },
-        { rank: 16, symbol: "Volatility 50 (1s) Index", strategy: "Malaysian SNR", category: "Volatility", trades: 29, win_rate: 55.2, tp1: 16, tp2: 9, tp3: 3, tp4: 1, be: 7, pnl: 231.0, status: "Canónico Activo C2 (+2.31R)" },
-        { rank: 17, symbol: "Volatility 90 Index", strategy: "Malaysian SNR", category: "Volatility", trades: 7, win_rate: 57.1, tp1: 4, tp2: 2, tp3: 1, tp4: 0, be: 2, pnl: 225.0, status: "Canónico Activo C2 (+2.25R)" },
-        { rank: 18, symbol: "Boom 1000 Index", strategy: "Malaysian SNR", category: "Boom (Compras)", trades: 15, win_rate: 60.0, tp1: 9, tp2: 5, tp3: 1, tp4: 0, be: 4, pnl: 181.0, status: "Canónico Activo C2 (+1.81R)" },
-        { rank: 19, symbol: "Step Index 200", strategy: "Malaysian SNR", category: "Sintéticos Step", trades: 24, win_rate: 54.2, tp1: 13, tp2: 7, tp3: 2, tp4: 1, be: 6, pnl: 179.0, status: "Canónico Activo C2 (+1.79R)" },
-        { rank: 20, symbol: "EURCHF", strategy: "Malaysian SNR", category: "Forex Core", trades: 4, win_rate: 66.7, tp1: 3, tp2: 2, tp3: 0, tp4: 0, be: 1, pnl: 123.0, status: "Canónico Activo C2 (+1.23R / 66.7% WR)" },
-        { rank: 21, symbol: "EURGBP", strategy: "Malaysian SNR", category: "Forex Core", trades: 5, win_rate: 60.0, tp1: 3, tp2: 2, tp3: 0, tp4: 0, be: 1, pnl: 100.0, status: "Canónico Activo C2 (+1.00R en MSNR)" },
-        { rank: 22, symbol: "XAUUSD", strategy: "Malaysian SNR", category: "Metales", trades: 15, win_rate: 53.3, tp1: 8, tp2: 5, tp3: 1, tp4: 0, be: 3, pnl: 87.0, status: "Canónico Activo C2 (+0.87R)" },
-        { rank: 23, symbol: "Crash 600 Index", strategy: "Malaysian SNR", category: "Crash (Ventas)", trades: 8, win_rate: 50.0, tp1: 4, tp2: 2, tp3: 0, tp4: 0, be: 2, pnl: 29.0, status: "Canónico Activo C2 (+0.29R)" },
-
-        // 2. ORB NEW YORK (PASO 1.3 ORB SWEEP / HTF_SWEEP) - 4 ACTIVOS CORE + VARIANTES MICRO (231-241 TRADES, 56.7%-59.1% WR, +31.54 R)
-        { rank: 24, symbol: "XAUUSD / XAUUSDmicro (ORB Sweep)", strategy: "ORB New York", category: "Metales", trades: 110, win_rate: 59.1, tp1: 65, tp2: 41, tp3: 0, tp4: 0, be: 24, pnl: 1492.0, status: "Canónico Activo ORB (+14.92R / 59.1% WR / PF 1.88)" },
-        { rank: 25, symbol: "BTCUSD / BTCUSDmicro (ORB Sweep)", strategy: "ORB New York", category: "Criptomonedas", trades: 57, win_rate: 57.9, tp1: 33, tp2: 21, tp3: 0, tp4: 0, be: 12, pnl: 949.0, status: "Canónico Activo ORB (+9.49R / 57.9% WR / PF 1.65)" },
-        { rank: 26, symbol: "XAGUSD / XAGUSDmicro (ORB Sweep)", strategy: "ORB New York", category: "Metales", trades: 60, win_rate: 56.7, tp1: 34, tp2: 20, tp3: 0, tp4: 0, be: 14, pnl: 574.0, status: "Canónico Activo ORB (+5.74R / 56.7% WR / PF 1.48)" },
-        { rank: 27, symbol: "US Oil (WTI ORB HTF_SWEEP)", strategy: "ORB New York", category: "Energía", trades: 14, win_rate: 57.1, tp1: 8, tp2: 5, tp3: 0, tp4: 0, be: 3, pnl: 139.0, status: "Canónico Activo ORB (+1.39R / 57.1% WR con PDH/PDL)" },
-
-        // 3. ICT SABRI MALLE (AUDITORÍA FIEL 5 AÑOS) - 33 ACTIVOS BASE LIBRES DE PODA (25 SINTÉTICOS + 5 FOREX + 3 ICT MERCADOS REALES = +866.0 R)
-        { rank: 28, symbol: "Step Index 200", strategy: "ICT Sabri Malle", category: "Sintéticos Step (Worker STEP)", trades: 1840, win_rate: 53.8, tp1: 989, tp2: 615, tp3: 240, tp4: 110, be: 374, pnl: 13002.46, status: "Activo 5Y en /Instruments Sintéticos (+130.02R / t=+2.86 / 3/3 años +)" },
-        { rank: 29, symbol: "Step Index 400", strategy: "ICT Sabri Malle", category: "Sintéticos Step (Worker STEP)", trades: 1442, win_rate: 51.7, tp1: 745, tp2: 462, tp3: 185, tp4: 84, be: 283, pnl: 6905.51, status: "Activo 5Y en /Instruments Sintéticos (+69.06R / t=+1.69 / 2/2 años +)" },
-        { rank: 30, symbol: "Volatility 25 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 622, win_rate: 54.7, tp1: 340, tp2: 218, tp3: 92, tp4: 44, be: 122, pnl: 6378.03, status: "Rescatado 5Y en /Instruments Sintéticos (+63.78R / 54.66% WR / t=+2.39)" },
-        { rank: 31, symbol: "Volatility 250 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 1593, win_rate: 52.0, tp1: 829, tp2: 514, tp3: 205, tp4: 95, be: 315, pnl: 6350.00, status: "Activo 5Y en /Instruments Sintéticos (+63.50R / 3/3 años +)" },
-        { rank: 32, symbol: "Jump 25 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump (Worker JUMP)", trades: 1303, win_rate: 51.6, tp1: 672, tp2: 417, tp3: 168, tp4: 78, be: 255, pnl: 6118.27, status: "Rescatado 5Y en /Instruments Sintéticos (+61.18R / 51.57% WR / 3/3 años +)" },
-        { rank: 33, symbol: "Volatility 10 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 1205, win_rate: 52.4, tp1: 631, tp2: 394, tp3: 158, tp4: 74, be: 237, pnl: 5593.52, status: "Activo 5Y en /Instruments Sintéticos (+55.94R / +61.25R GBDT)" },
-        { rank: 34, symbol: "US Oil (WTI ICT)", strategy: "ICT Sabri Malle", category: "Energía (Worker ICT)", trades: 137, win_rate: 56.9, tp1: 78, tp2: 51, tp3: 22, tp4: 11, be: 27, pnl: 5410.00, status: "Activo 5Y en /Instruments ICT (+54.1R 5Y / +12.81R Paridad / 56.93% WR)" },
-        { rank: 35, symbol: "Volatility 75 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 812, win_rate: 53.6, tp1: 435, tp2: 274, tp3: 110, tp4: 52, be: 161, pnl: 5103.66, status: "Activo 5Y en /Instruments Sintéticos (+51.04R / 3/3 años +)" },
-        { rank: 36, symbol: "Volatility 150 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 1091, win_rate: 51.6, tp1: 563, tp2: 349, tp3: 140, tp4: 64, be: 214, pnl: 4572.01, status: "Activo 5Y en /Instruments Sintéticos (+45.72R / 51.60% WR)" },
-        { rank: 37, symbol: "Jump 75 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump (Worker JUMP)", trades: 1855, win_rate: 51.6, tp1: 958, tp2: 590, tp3: 230, tp4: 105, be: 368, pnl: 3794.41, status: "Activo 5Y en /Instruments Sintéticos (+37.94R / 3/3 años WR≥47%)" },
-        { rank: 38, symbol: "Volatility 5 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 270, win_rate: 54.4, tp1: 147, tp2: 94, tp3: 38, tp4: 18, be: 53, pnl: 2649.52, status: "Activo 5Y en /Instruments Sintéticos (+26.50R / 54.44% WR)" },
-        { rank: 39, symbol: "Volatility 50 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 773, win_rate: 50.5, tp1: 390, tp2: 242, tp3: 96, tp4: 44, be: 148, pnl: 2621.27, status: "Activo 5Y en /Instruments Sintéticos (+26.21R / 3/3 años +)" },
-        { rank: 40, symbol: "Crash 900 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Crash (Worker CRASH)", trades: 239, win_rate: 52.3, tp1: 125, tp2: 79, tp3: 32, tp4: 15, be: 46, pnl: 2595.20, status: "Activo 5Y en /Instruments Sintéticos (+25.95R / PF 1.23)" },
-        { rank: 41, symbol: "Volatility 100 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 516, win_rate: 52.1, tp1: 269, tp2: 168, tp3: 67, tp4: 31, be: 101, pnl: 2503.23, status: "Activo 5Y en /Instruments Sintéticos (+25.03R / 3/3 años +)" },
-        { rank: 42, symbol: "Boom 900 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Boom (Worker BOOM)", trades: 165, win_rate: 58.2, tp1: 96, tp2: 64, tp3: 28, tp4: 14, be: 32, pnl: 2411.41, status: "Activo 5Y en /Instruments Sintéticos (+24.11R / 58.18% WR / 3/3 años +)" },
-        { rank: 43, symbol: "Volatility 15 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 232, win_rate: 55.2, tp1: 128, tp2: 82, tp3: 33, tp4: 15, be: 46, pnl: 1867.78, status: "Activo 5Y en /Instruments Sintéticos (+18.68R / 55.17% WR)" },
-        { rank: 44, symbol: "High Frequency Vol 100 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 315, win_rate: 50.8, tp1: 160, tp2: 100, tp3: 40, tp4: 18, be: 60, pnl: 1756.29, status: "Activo 5Y en /Instruments Sintéticos (+17.56R / PF 1.11)" },
-        { rank: 45, symbol: "US Tech 100", strategy: "ICT Sabri Malle", category: "Índices Bursátiles (Worker ICT)", trades: 123, win_rate: 50.4, tp1: 62, tp2: 39, tp3: 15, tp4: 7, be: 23, pnl: 1460.00, status: "Activo 5Y en /Instruments ICT (+14.6R 5Y / +1.45R Paridad / 2/3 años +)" },
-        { rank: 46, symbol: "Jump 10 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump (Worker JUMP)", trades: 1669, win_rate: 50.6, tp1: 844, tp2: 520, tp3: 204, tp4: 92, be: 324, pnl: 1159.43, status: "Activo 5Y en /Instruments Sintéticos (+11.59R / 3/3 años WR≥47%)" },
-        { rank: 47, symbol: "GBPJPY / GBPJPYmicro", strategy: "ICT Sabri Malle", category: "Forex (Worker FOREX 1 Activos)", trades: 193, win_rate: 52.3, tp1: 101, tp2: 63, tp3: 25, tp4: 11, be: 38, pnl: 952.44, status: "Activo 5Y en /Instruments Forex (+9.52R / 52.33% WR / PF 1.12)" },
-        { rank: 48, symbol: "Volatility 90 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 163, win_rate: 52.1, tp1: 85, tp2: 53, tp3: 21, tp4: 9, be: 32, pnl: 582.12, status: "Activo 5Y en /Instruments Sintéticos (+5.82R / 52.15% WR)" },
-        { rank: 49, symbol: "Volatility 100 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 1088, win_rate: 50.1, tp1: 545, tp2: 336, tp3: 132, tp4: 60, be: 209, pnl: 450.72, status: "Activo 5Y en /Instruments Sintéticos (+4.51R / 2025-26 +0.110 R/op)" },
-        { rank: 50, symbol: "CHFJPY / CHFJPYmicro", strategy: "ICT Sabri Malle", category: "Forex (Worker FOREX 1 Activos)", trades: 69, win_rate: 55.1, tp1: 38, tp2: 24, tp3: 10, tp4: 4, be: 14, pnl: 442.75, status: "Activo 5Y en /Instruments Forex (+4.43R / 55.07% WR / 2/2 años +)" },
-        { rank: 51, symbol: "XAUUSD / XAUUSDmicro", strategy: "ICT Sabri Malle", category: "Metales (Worker ICT)", trades: 125, win_rate: 49.6, tp1: 62, tp2: 39, tp3: 16, tp4: 7, be: 23, pnl: 400.00, status: "Activo 5Y en /Instruments ICT (+4.0R 5Y / +26.0R GBDT / 2024-26 +)" },
-        { rank: 52, symbol: "Boom 500 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Boom (Worker BOOM)", trades: 721, win_rate: 50.5, tp1: 364, tp2: 225, tp3: 88, tp4: 40, be: 139, pnl: 348.26, status: "Activo 5Y en /Instruments Sintéticos (+3.48R / 3/3 años WR≥48%)" },
-        { rank: 53, symbol: "EURCHF / EURCHFmicro", strategy: "ICT Sabri Malle", category: "Forex (Worker FOREX 1 Activos)", trades: 173, win_rate: 50.3, tp1: 87, tp2: 54, tp3: 21, tp4: 9, be: 33, pnl: 196.49, status: "Activo 5Y en /Instruments Forex (+1.96R / 50.29% WR / PF 1.07)" },
-        { rank: 54, symbol: "EURCAD / EURCADmicro", strategy: "ICT Sabri Malle", category: "Forex (Worker FOREX 1 Activos)", trades: 66, win_rate: 50.0, tp1: 33, tp2: 21, tp3: 8, tp4: 4, be: 12, pnl: 167.80, status: "Activo 5Y en /Instruments Forex (+1.68R / PF 1.27)" },
-        { rank: 55, symbol: "GBPAUD / GBPAUDmicro", strategy: "ICT Sabri Malle", category: "Forex (Worker FOREX 1 Activos)", trades: 69, win_rate: 51.0, tp1: 35, tp2: 22, tp3: 9, tp4: 4, be: 13, pnl: 121.37, status: "Activo 5Y en /Instruments Forex (+1.21R / PF 1.17 / +0.097 R/op 2025-26)" },
-        { rank: 56, symbol: "Crash 500 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Crash (Worker CRASH)", trades: 645, win_rate: 50.7, tp1: 327, tp2: 201, tp3: 79, tp4: 35, be: 126, pnl: 31.81, status: "Activo 5Y en /Instruments Sintéticos (+0.32R / 2024-26 en positivo)" },
-        { rank: 57, symbol: "Volatility 75 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (Worker VOLATILITY 1 Activos)", trades: 1205, win_rate: 50.8, tp1: 612, tp2: 376, tp3: 148, tp4: 66, be: 236, pnl: 750.00, status: "Activo 5Y en /Instruments Sintéticos (50.79% WR / +0.104 R/op en 2025-26)" },
-        { rank: 58, symbol: "Step Index 500", strategy: "ICT Sabri Malle", category: "Sintéticos Step (Worker STEP)", trades: 1915, win_rate: 50.4, tp1: 965, tp2: 594, tp3: 234, tp4: 105, be: 371, pnl: 2525.00, status: "Activo 5Y en /Instruments Sintéticos (50.39% WR / 2024-26 en positivo)" },
-        { rank: 59, symbol: "Boom 600 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Boom (Worker BOOM)", trades: 180, win_rate: 51.1, tp1: 92, tp2: 57, tp3: 22, tp4: 10, be: 35, pnl: 350.00, status: "Activo 5Y en /Instruments Sintéticos (51.11% WR / 2024-26 en positivo)" },
-        { rank: 60, symbol: "Jump 50 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Jump (Worker JUMP)", trades: 942, win_rate: 48.4, tp1: 456, tp2: 282, tp3: 110, tp4: 49, be: 174, pnl: 1560.00, status: "Activo 5Y en /Instruments Sintéticos (2/3 años +: +28.5R en 24-25 y +5.0R en 25-26)" },
-
-        // 4. GOLD QUARTERS (ESTRATEGIA DE CUARTOS - WORKER GOLD)
-        { rank: 61, symbol: "XAGUSD (Plata Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 170, win_rate: 41.8, tp1: 71, tp2: 34, tp3: 0, tp4: 0, be: 32, pnl: 986.12, status: "Activo / Priorizado (+9.86% Retorno)" },
-        { rank: 62, symbol: "XAUUSD (Oro Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 656, win_rate: 41.3, tp1: 271, tp2: 131, tp3: 0, tp4: 0, be: 124, pnl: 252.76, status: "Activo / Priorizado (Nivel Cuartos $25/$50)" }
+                  const WINNERS_DATA = [
+        // MALAYSIAN SNR INSTITUCIONAL - REPLAY 2 AÑOS AUDITADO (60 ACTIVOS EVALUADOS: 23 ACTIVOS RENTABLES)
+        { rank: 1, symbol: "Step Index 400", strategy: "Malaysian SNR", category: "SYNTH_PODA", trades: 26, win_rate: 42.3, tp1: 11, tp2: 5, tp3: 2, tp4: 1, be: 1, pnl: 968.0, status: "Activo / Líder Sintético (+9.68R)" },
+        { rank: 2, symbol: "XAGUSD", strategy: "Malaysian SNR", category: "Metales", trades: 18, win_rate: 55.6, tp1: 10, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 721.0, status: "Activo / Metales (+7.21R)" },
+        { rank: 3, symbol: "AUDNZD", strategy: "Malaysian SNR", category: "Forex Core", trades: 18, win_rate: 50.0, tp1: 9, tp2: 3, tp3: 1, tp4: 0, be: 1, pnl: 576.0, status: "Activo / Validado (+5.76R)" },
+        { rank: 4, symbol: "Crash 1000 Index", strategy: "Malaysian SNR", category: "Crash (Ventas)", trades: 13, win_rate: 46.2, tp1: 6, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 547.0, status: "Activo / Validado (+5.47R)" },
+        { rank: 5, symbol: "Jump 25 Index", strategy: "Malaysian SNR", category: "Sintéticos Jump", trades: 31, win_rate: 38.7, tp1: 12, tp2: 5, tp3: 2, tp4: 1, be: 1, pnl: 542.0, status: "Activo / Validado (+5.42R)" },
+        { rank: 6, symbol: "GBPJPY", strategy: "Malaysian SNR", category: "Forex Core", trades: 8, win_rate: 62.5, tp1: 5, tp2: 1, tp3: 0, tp4: 0, be: 1, pnl: 516.0, status: "Activo / Líder Forex (62.5% WR / +5.16R)" },
+        { rank: 7, symbol: "USDJPY", strategy: "Malaysian SNR", category: "Forex Core", trades: 11, win_rate: 54.5, tp1: 6, tp2: 1, tp3: 0, tp4: 0, be: 1, pnl: 513.0, status: "Activo / Líder Forex (54.5% WR / +5.13R)" },
+        { rank: 8, symbol: "GBPUSD", strategy: "Malaysian SNR", category: "Forex Core", trades: 7, win_rate: 42.9, tp1: 3, tp2: 3, tp3: 1, tp4: 0, be: 0, pnl: 500.0, status: "Activo / Líder Forex (42.9% WR / +5.00R)" },
+        { rank: 9, symbol: "Boom 300 Index", strategy: "Malaysian SNR", category: "SYNTH_PODA", trades: 15, win_rate: 40.0, tp1: 6, tp2: 4, tp3: 2, tp4: 1, be: 1, pnl: 371.0, status: "Activo / Validado (+3.71R)" },
+        { rank: 10, symbol: "Volatility 250 (1s) Index", strategy: "Malaysian SNR", category: "SYNTH_PODA", trades: 13, win_rate: 46.2, tp1: 6, tp2: 3, tp3: 1, tp4: 0, be: 2, pnl: 366.0, status: "Activo / Validado (+3.66R)" },
+        { rank: 11, symbol: "Step Index", strategy: "Malaysian SNR", category: "Sintéticos Step", trades: 31, win_rate: 41.9, tp1: 13, tp2: 5, tp3: 2, tp4: 1, be: 3, pnl: 316.0, status: "Activo / Validado (+3.16R)" },
+        { rank: 12, symbol: "Jump 10 Index", strategy: "Malaysian SNR", category: "Sintéticos Jump", trades: 25, win_rate: 40.0, tp1: 10, tp2: 5, tp3: 2, tp4: 1, be: 4, pnl: 277.0, status: "Activo / Validado (+2.77R)" },
+        { rank: 13, symbol: "GBPAUD", strategy: "Malaysian SNR", category: "Forex Core", trades: 10, win_rate: 50.0, tp1: 5, tp2: 1, tp3: 0, tp4: 0, be: 2, pnl: 276.0, status: "Activo / Validado (+2.76R)" },
+        { rank: 14, symbol: "Wall Street 30", strategy: "Malaysian SNR", category: "Índices Bursátiles", trades: 15, win_rate: 33.3, tp1: 5, tp2: 4, tp3: 2, tp4: 1, be: 0, pnl: 257.0, status: "Activo / Validado (+2.57R)" },
+        { rank: 15, symbol: "EURUSD", strategy: "Malaysian SNR", category: "Forex Core", trades: 9, win_rate: 55.6, tp1: 5, tp2: 1, tp3: 0, tp4: 0, be: 1, pnl: 254.0, status: "Activo / Líder Forex (55.6% WR / +2.54R)" },
+        { rank: 16, symbol: "Volatility 50 (1s) Index", strategy: "Malaysian SNR", category: "SYNTH_PODA", trades: 29, win_rate: 37.9, tp1: 11, tp2: 6, tp3: 3, tp4: 1, be: 5, pnl: 231.0, status: "Activo / Validado (+2.31R)" },
+        { rank: 17, symbol: "Volatility 90 Index", strategy: "Malaysian SNR", category: "SYNTH_PODA", trades: 7, win_rate: 57.1, tp1: 4, tp2: 1, tp3: 0, tp4: 0, be: 3, pnl: 225.0, status: "Activo / Validado (+2.25R)" },
+        { rank: 18, symbol: "Boom 1000 Index", strategy: "Malaysian SNR", category: "Boom (Compras)", trades: 15, win_rate: 40.0, tp1: 6, tp2: 2, tp3: 1, tp4: 0, be: 2, pnl: 181.0, status: "Activo / Validado (+1.81R)" },
+        { rank: 19, symbol: "Step Index 200", strategy: "Malaysian SNR", category: "Sintéticos Step", trades: 24, win_rate: 37.5, tp1: 9, tp2: 6, tp3: 3, tp4: 1, be: 0, pnl: 179.0, status: "Activo / Validado (+1.79R)" },
+        { rank: 20, symbol: "EURCHF", strategy: "Malaysian SNR", category: "Forex Core", trades: 4, win_rate: 50.0, tp1: 2, tp2: 1, tp3: 0, tp4: 0, be: 0, pnl: 123.0, status: "Activo / Validado (+1.23R)" },
+        { rank: 21, symbol: "EURGBP", strategy: "Malaysian SNR", category: "Forex Core", trades: 5, win_rate: 60.0, tp1: 3, tp2: 0, tp3: 0, tp4: 0, be: 3, pnl: 100.0, status: "Activo / Validado (+1.00R)" },
+        { rank: 22, symbol: "XAUUSD", strategy: "Malaysian SNR", category: "Metales", trades: 15, win_rate: 33.3, tp1: 5, tp2: 3, tp3: 1, tp4: 0, be: 0, pnl: 87.0, status: "Activo / Metales (+0.87R)" },
+        { rank: 23, symbol: "Crash 600 Index", strategy: "Malaysian SNR", category: "Crash (Ventas)", trades: 8, win_rate: 50.0, tp1: 4, tp2: 0, tp3: 0, tp4: 0, be: 1, pnl: 29.0, status: "Activo / Validado (+0.29R)" },
+        // ORB NEW YORK - UNIVERSO AUDITADO
+        { rank: 24, symbol: "BTCUSD (ORB)", strategy: "ORB New York", category: "Criptomonedas", trades: 8, win_rate: 75.0, tp1: 6, tp2: 2, tp3: 0, tp4: 0, be: 2, pnl: 439.0, status: "Activo / Priorizado (Líder WR 75%)" },
+        { rank: 25, symbol: "US Tech 100 (ORB)", strategy: "ORB New York", category: "Índices Bursátiles", trades: 38, win_rate: 55.3, tp1: 21, tp2: 5, tp3: 0, tp4: 0, be: 11, pnl: 209.0, status: "Activo / Priorizado (Nasdaq ORB)" },
+        { rank: 26, symbol: "EURUSD (ORB)", strategy: "ORB New York", category: "Forex Core", trades: 187, win_rate: 51.9, tp1: 97, tp2: 34, tp3: 0, tp4: 0, be: 34, pnl: 1436.0, status: "Activo / Priorizado (Forex ORB)" },
+        { rank: 27, symbol: "XAUUSD (Oro ORB)", strategy: "ORB New York", category: "Metales", trades: 130, win_rate: 50.8, tp1: 66, tp2: 16, tp3: 0, tp4: 0, be: 23, pnl: 310.0, status: "Activo / Priorizado (Oro ORB)" },
+        { rank: 28, symbol: "XAGUSD (Plata ORB)", strategy: "ORB New York", category: "Metales", trades: 183, win_rate: 50.3, tp1: 92, tp2: 34, tp3: 0, tp4: 0, be: 30, pnl: 569.0, status: "Activo / Priorizado (Plata ORB)" },
+        { rank: 29, symbol: "Wall Street 30 (ORB)", strategy: "ORB New York", category: "Índices Bursátiles", trades: 23, win_rate: 47.8, tp1: 11, tp2: 5, tp3: 0, tp4: 0, be: 3, pnl: 154.0, status: "Activo / Priorizado (Dow Jones ORB)" },
+        { rank: 30, symbol: "US SP 500 (ORB)", strategy: "ORB New York", category: "Índices Bursátiles", trades: 42, win_rate: 42.9, tp1: 18, tp2: 7, tp3: 0, tp4: 0, be: 4, pnl: 85.0, status: "Activo / Priorizado (S&P 500 ORB)" },
+        // ICT SABRI MALLE - UNIVERSO COMPLETO AUDITADO (2 AÑOS: +196.9 R / +$19,690 USD)
+        { rank: 31, symbol: "XAGUSD (Plata ICT)", strategy: "ICT Sabri Malle", category: "Metales", trades: 40, win_rate: 52.5, tp1: 21, tp2: 17, tp3: 17, tp4: 17, be: 4, pnl: 3805.73, status: "Activo / Priorizado (#1 ICT +38.1R)" },
+        { rank: 32, symbol: "BTCUSD (ICT)", strategy: "ICT Sabri Malle", category: "Criptomonedas", trades: 50, win_rate: 48.0, tp1: 24, tp2: 14, tp3: 14, tp4: 14, be: 10, pnl: 2808.11, status: "Activo / Priorizado (#2 ICT +28.1R)" },
+        { rank: 33, symbol: "Step Index (ICT)", strategy: "ICT Sabri Malle", category: "Sintéticos Step", trades: 24, win_rate: 54.2, tp1: 13, tp2: 10, tp3: 10, tp4: 10, be: 1, pnl: 2717.45, status: "Activo / Priorizado (#3 ICT +27.2R)" },
+        { rank: 34, symbol: "Volatility 75 Index (ICT)", strategy: "ICT Sabri Malle", category: "Sintéticos Vol", trades: 22, win_rate: 54.5, tp1: 12, tp2: 9, tp3: 9, tp4: 9, be: 3, pnl: 2000.0, status: "Activo / Priorizado (+20.0R)" },
+        { rank: 35, symbol: "Volatility 100 Index (ICT)", strategy: "ICT Sabri Malle", category: "Sintéticos Vol", trades: 15, win_rate: 66.7, tp1: 10, tp2: 5, tp3: 5, tp4: 5, be: 2, pnl: 1928.39, status: "Activo / Priorizado (+19.3R)" },
+        { rank: 36, symbol: "Boom 1000 Index (ICT)", strategy: "ICT Sabri Malle", category: "Boom (Compras)", trades: 29, win_rate: 48.3, tp1: 14, tp2: 10, tp3: 10, tp4: 10, be: 4, pnl: 1900.0, status: "Activo / Priorizado (+19.0R)" },
+        { rank: 37, symbol: "Crash 1000 Index (ICT)", strategy: "ICT Sabri Malle", category: "Crash (Ventas)", trades: 17, win_rate: 52.9, tp1: 9, tp2: 8, tp3: 8, tp4: 8, be: 1, pnl: 1792.67, status: "Activo / Priorizado (+17.9R)" },
+        { rank: 38, symbol: "USDCAD (ICT Forex)", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 16, win_rate: 62.5, tp1: 10, tp2: 4, tp3: 4, tp4: 4, be: 6, pnl: 1200.0, status: "Activo / Priorizado (#1 Forex ICT +12.0R)" },
+        { rank: 39, symbol: "Wall Street 30 (ICT)", strategy: "ICT Sabri Malle", category: "Índices Bursátiles", trades: 14, win_rate: 64.3, tp1: 9, tp2: 4, tp3: 4, tp4: 4, be: 5, pnl: 1200.0, status: "Activo / Priorizado (+12.0R)" },
+        { rank: 40, symbol: "EURUSD (ICT v2 Killzones)", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 89, win_rate: 50.6, tp1: 45, tp2: 24, tp3: 24, tp4: 24, be: 18, pnl: 5100.0, status: "Activo / Top Performer Forex (PF 2.24)" },
+        { rank: 41, symbol: "GBPUSD (ICT v2 Killzones)", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 87, win_rate: 49.4, tp1: 43, tp2: 21, tp3: 21, tp4: 21, be: 17, pnl: 3654.8, status: "Activo / Rehabilitado (+36.5% PnL / PF 1.88)" },
+        { rank: 42, symbol: "XAUUSD (Oro ICT)", strategy: "ICT Sabri Malle", category: "Metales", trades: 62, win_rate: 41.9, tp1: 26, tp2: 12, tp3: 12, tp4: 12, be: 11, pnl: 1900.0, status: "Activo / M15/M5 FVG CE (PF 1.58)" },
+        { rank: 43, symbol: "US Tech 100 (ICT)", strategy: "ICT Sabri Malle", category: "Índices Bursátiles", trades: 6, win_rate: 50.0, tp1: 3, tp2: 3, tp3: 3, tp4: 3, be: 0, pnl: 600.0, status: "Activo / Priorizado (+6.0R)" },
+        { rank: 44, symbol: "USDCHF (ICT Forex)", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 21, win_rate: 42.9, tp1: 9, tp2: 3, tp3: 3, tp4: 3, be: 6, pnl: 300.0, status: "Activo / Priorizado (+3.0R)" },
+        { rank: 45, symbol: "AUDUSD (ICT Forex)", strategy: "ICT Sabri Malle", category: "Forex Core", trades: 14, win_rate: 42.9, tp1: 6, tp2: 2, tp3: 2, tp4: 2, be: 4, pnl: 200.0, status: "Activo / Priorizado (+2.0R)" },
+        { rank: 46, symbol: "US SP 500 (ICT)", strategy: "ICT Sabri Malle", category: "Índices Bursátiles", trades: 15, win_rate: 40.0, tp1: 6, tp2: 2, tp3: 2, tp4: 2, be: 4, pnl: 100.0, status: "Activo / Priorizado (+1.0R)" },
+        // GOLD QUARTERS (ESTRATEGIA DE CUARTOS - WORKER GOLD)
+        { rank: 47, symbol: "XAGUSD (Plata Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 170, win_rate: 41.8, tp1: 71, tp2: 34, tp3: 0, tp4: 0, be: 32, pnl: 986.12, status: "Activo / Priorizado (+9.86% Retorno)" },
+        { rank: 48, symbol: "XAUUSD (Oro Cuartos)", strategy: "Gold Quarters", category: "Metales", trades: 656, win_rate: 41.3, tp1: 271, tp2: 131, tp3: 0, tp4: 0, be: 124, pnl: 252.76, status: "Activo / Priorizado (Nivel Cuartos $25/$50)" }
       ];
-
 
       const LOSERS_DATA = [
-        // 1. MALAYSIAN SNR - 37 ACTIVOS PODADOS EN /INSTRUMENTS (PESTAÑA MALAYSIAN SNR)
-        { symbol: "Volatility 50 Index", strategy: "Malaysian SNR", trades: 25, win_rate: 8.0, sl_hits: 23, pnl: -1785.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 8.0% WR, -17.85R. Drift continuo de volatilidad sintética incompatible con reversión M15; operado en worker VOLATILITY (ICT)." },
-        { symbol: "Volatility 100 Index", strategy: "Malaysian SNR", trades: 26, win_rate: 19.2, sl_hits: 21, pnl: -1373.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 19.2% WR, -13.73R. Drift continuo de volatilidad sintética incompatible con reversión M15; operado en worker VOLATILITY (ICT)." },
-        { symbol: "EURJPY", strategy: "Malaysian SNR", trades: 19, win_rate: 15.8, sl_hits: 16, pnl: -1218.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 15.8% WR, -12.18R. Sin expansión en retest H1; operado de forma rentable en worker FOREX (ICT +7.80R)." },
-        { symbol: "Volatility 10 Index", strategy: "Malaysian SNR", trades: 50, win_rate: 28.0, sl_hits: 36, pnl: -1178.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.0% WR, -11.78R. Tendencia continua sin retorno a nivel H1; líder absoluto en worker VOLATILITY (ICT +61.25R)." },
-        { symbol: "EURNZD", strategy: "Malaysian SNR", trades: 11, win_rate: 0.0, sl_hits: 11, pnl: -1110.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 0.0% WR, -11.10R. Rango lateral y spread adverso sin expansión institucional a TP1." },
-        { symbol: "Crash 900 Index", strategy: "Malaysian SNR", trades: 15, win_rate: 13.3, sl_hits: 13, pnl: -876.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 13.3% WR, -8.76R. Spikes atraviesan niveles H1; derivado a worker CRASH (ICT)." },
-        { symbol: "Crash 300 Index", strategy: "Malaysian SNR", trades: 22, win_rate: 22.7, sl_hits: 17, pnl: -870.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.7% WR, -8.70R en MSNR; operado con alta rentabilidad en worker CRASH (ICT +13.50R)." },
-        { symbol: "Jump 100 Index", strategy: "Malaysian SNR", trades: 36, win_rate: 25.0, sl_hits: 27, pnl: -856.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -8.56R. Mechas excesivas y saltos estocásticos que invalidan el nivel Break." },
-        { symbol: "Volatility 75 (1s) Index", strategy: "Malaysian SNR", trades: 30, win_rate: 26.7, sl_hits: 22, pnl: -836.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 26.7% WR, -8.36R en MSNR; operado en worker VOLATILITY (ICT +13.75R)." },
-        { symbol: "Boom 500 Index", strategy: "Malaysian SNR", trades: 17, win_rate: 17.6, sl_hits: 14, pnl: -795.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 17.6% WR, -7.95R en MSNR; operado en worker BOOM (ICT +13.40R)." },
-        { symbol: "Crash 500 Index", strategy: "Malaysian SNR", trades: 14, win_rate: 28.6, sl_hits: 10, pnl: -770.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -7.70R en MSNR; derivado a worker CRASH (ICT)." },
-        { symbol: "Volatility 25 Index", strategy: "Malaysian SNR", trades: 29, win_rate: 27.6, sl_hits: 21, pnl: -679.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 27.6% WR, -6.79R en MSNR; operado en worker VOLATILITY (ICT +20.75R)." },
-        { symbol: "USDCHF", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -666.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.66R en MSNR; derivado a worker FOREX (ICT)." },
-        { symbol: "US Oil", strategy: "Malaysian SNR", trades: 8, win_rate: 12.5, sl_hits: 7, pnl: -651.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 12.5% WR, -6.51R en MSNR; operado en ICT (+89.0R) y ORB Sweep (+1.39R)." },
-        { symbol: "AUDJPY", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -625.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.25R en MSNR; líder en worker FOREX (ICT +15.25R)." },
-        { symbol: "GBPCHF", strategy: "Malaysian SNR", trades: 11, win_rate: 18.2, sl_hits: 9, pnl: -611.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -6.11R. Rango lateral y compresión sin expansión a TP1." },
-        { symbol: "Volatility 15 Index", strategy: "Malaysian SNR", trades: 9, win_rate: 11.1, sl_hits: 8, pnl: -575.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 11.1% WR, -5.75R en MSNR; operado en worker VOLATILITY (ICT +14.75R)." },
-        { symbol: "AUDUSD", strategy: "Malaysian SNR", trades: 13, win_rate: 23.1, sl_hits: 10, pnl: -514.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 23.1% WR, -5.14R en MSNR; derivado a worker FOREX (ICT)." },
-        { symbol: "CADJPY", strategy: "Malaysian SNR", trades: 11, win_rate: 18.2, sl_hits: 9, pnl: -500.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -5.00R. Whipsaws y falta de seguimiento en niveles H1." },
-        { symbol: "Volatility 75 Index", strategy: "Malaysian SNR", trades: 41, win_rate: 34.1, sl_hits: 27, pnl: -427.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 34.1% WR, -4.27R en MSNR; operado en worker VOLATILITY (ICT +7.50R)." },
-        { symbol: "AUDCHF", strategy: "Malaysian SNR", trades: 9, win_rate: 22.2, sl_hits: 7, pnl: -422.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -4.22R. Baja volatilidad y compresión." },
-        { symbol: "CHFJPY", strategy: "Malaysian SNR", trades: 14, win_rate: 28.6, sl_hits: 10, pnl: -397.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -3.97R en MSNR; operado en worker FOREX (ICT +1.92R)." },
-        { symbol: "BTCUSD", strategy: "Malaysian SNR", trades: 19, win_rate: 31.6, sl_hits: 13, pnl: -356.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 31.6% WR, -3.56R en MSNR; operado con alta rentabilidad en ORB Sweep (+9.49R) e ICT (+31.5R)." },
-        { symbol: "GBPNZD", strategy: "Malaysian SNR", trades: 7, win_rate: 14.3, sl_hits: 6, pnl: -350.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 14.3% WR, -3.50R. Spread amplio y barridos de mechas." },
-        { symbol: "Boom 600 Index", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -264.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -2.64R en MSNR; operado en worker BOOM (ICT +3.50R)." },
-        { symbol: "US SP 500", strategy: "Malaysian SNR", trades: 17, win_rate: 29.4, sl_hits: 12, pnl: -241.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 29.4% WR, -2.41R en MSNR; operado en worker ICT (+2.50R)." },
-        { symbol: "AUDCAD", strategy: "Malaysian SNR", trades: 9, win_rate: 22.2, sl_hits: 7, pnl: -235.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -2.35R. Rango lateral persistente." },
-        { symbol: "Jump 75 Index", strategy: "Malaysian SNR", trades: 27, win_rate: 37.0, sl_hits: 17, pnl: -231.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 37.0% WR, -2.31R en MSNR; operado con +37.75R en worker JUMP (ICT)." },
-        { symbol: "CADCHF", strategy: "Malaysian SNR", trades: 6, win_rate: 16.7, sl_hits: 5, pnl: -200.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 16.7% WR, -2.00R en MSNR; operado en worker FOREX (ICT +5.25R)." },
-        { symbol: "EURCAD", strategy: "Malaysian SNR", trades: 5, win_rate: 40.0, sl_hits: 3, pnl: -174.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.74R. Sin continuación a TP2." },
-        { symbol: "EURAUD", strategy: "Malaysian SNR", trades: 9, win_rate: 33.3, sl_hits: 6, pnl: -131.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -1.31R. Falsos quiebres en sesión asiática." },
-        { symbol: "Boom 900 Index", strategy: "Malaysian SNR", trades: 8, win_rate: 25.0, sl_hits: 6, pnl: -130.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -1.30R en MSNR; operado en worker BOOM (ICT +2.75R)." },
-        { symbol: "GBPCAD", strategy: "Malaysian SNR", trades: 5, win_rate: 40.0, sl_hits: 3, pnl: -118.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.18R en MSNR; derivado a worker FOREX (ICT)." },
-        { symbol: "Jump 50 Index", strategy: "Malaysian SNR", trades: 27, win_rate: 33.3, sl_hits: 18, pnl: -51.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.51R en MSNR; operado con +15.60R en worker JUMP (ICT)." },
-        { symbol: "Step Index 500", strategy: "Malaysian SNR", trades: 26, win_rate: 34.6, sl_hits: 17, pnl: -44.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 34.6% WR, -0.44R en MSNR; operado con +25.25R en worker STEP (ICT)." },
-        { symbol: "US Tech 100", strategy: "Malaysian SNR", trades: 18, win_rate: 33.3, sl_hits: 12, pnl: -31.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.31R en MSNR; operado en worker ICT (+1.70R)." },
-        { symbol: "USDCAD", strategy: "Malaysian SNR", trades: 7, win_rate: 42.9, sl_hits: 4, pnl: -21.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 42.9% WR, -0.21R en MSNR; operado con +8.80R en worker FOREX (ICT)." },
-
-        // 2. ORB NEW YORK - 5 ACTIVOS PODADOS EN /INSTRUMENTS (PESTAÑA ORB)
-        { symbol: "US Tech 100 (Nasdaq ORB)", strategy: "ORB New York", trades: 68, win_rate: 41.2, sl_hits: 40, pnl: -2111.0, reason: "Descartado por Poda en ORB New York (-21.11R, 41.2% WR): whipsaws severos en los primeros 15 min de NY Cash. Operado en ICT (+1.70R)." },
-        { symbol: "Wall Street 30 (Dow ORB)", strategy: "ORB New York", trades: 62, win_rate: 41.9, sl_hits: 36, pnl: -1216.0, reason: "Descartado por Poda en ORB New York (-12.16R, 41.9% WR): barridos de ambos extremos en apertura. Operado en MSNR C2 (+2.57R) e ICT (+5.90R)." },
-        { symbol: "US SP 500 (S&P 500 ORB)", strategy: "ORB New York", trades: 56, win_rate: 42.9, sl_hits: 32, pnl: -1183.0, reason: "Descartado por Poda en ORB New York (-11.83R, 42.9% WR): reversión a la media tras ruptura inicial. Operado en ICT (+2.50R)." },
-        { symbol: "EURUSD (Forex ORB)", strategy: "ORB New York", trades: 57, win_rate: 45.6, sl_hits: 31, pnl: -317.0, reason: "Descartado por Poda en ORB New York (-3.17R, 45.6% WR): agotamiento del ADR de Londres a las 09:30 NY. Operado en ICT (+15.10R) y MSNR C2 (+2.54R)." },
-        { symbol: "UK Brent Oil (ORB)", strategy: "ORB New York", trades: 282, win_rate: 45.4, sl_hits: 154, pnl: -4223.33, reason: "Descartado por Poda en ORB New York (-42.23R): falsas rupturas y desfase de horario con sesión de Londres." },
-
-        // 3. ICT SABRI MALLE - ACTIVOS REALMENTE PODADOS EN /INSTRUMENTS SEGÚN AUDITORÍA FIEL 5 AÑOS (SINTÉTICOS, FOREX E ICT MERCADOS REALES)
-        { symbol: "US SP 500", strategy: "ICT Sabri Malle", category: "Índices Bursátiles (ICT)", trades: 120, win_rate: 43.3, sl_hits: 68, pnl: -9090.0, reason: "Descartado por Poda en /Instruments ICT (Auditoría 5 Años): 43.33% WR, -0.209 R/op (-25.02R paridad / -90.9R sin cap), PF 0.63 y 0/3 años positivos." },
-        { symbol: "Crash 1000 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Crash", trades: 750, win_rate: 47.5, sl_hits: 394, pnl: -4694.36, reason: "Descartado por Poda en /Instruments Sintéticos (ICT): 47.47% WR, -0.063 R/op (-46.94R), 0/3 años positivos; mantenido activo en Malaysian SNR (+5.47R)." },
-        { symbol: "Boom 1000 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Boom", trades: 544, win_rate: 46.1, sl_hits: 293, pnl: -4475.53, reason: "Descartado por Poda en /Instruments Sintéticos (Auditoría 5 Años): 46.14% WR < 47%, -0.082 R/op (-44.76R), PF 0.85; mantenido activo en Malaysian SNR." },
-        { symbol: "Vol over Crash 550", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 778, win_rate: 48.2, sl_hits: 403, pnl: -3771.20, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): 48.20% WR, -0.048 R/op (-37.71R), 0/3 años positivos." },
-        { symbol: "Crash 300 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Crash", trades: 577, win_rate: 48.2, sl_hits: 299, pnl: -2751.75, reason: "Descartado por Poda en /Instruments Sintéticos (Auditoría 5 Años): 48.18% WR, -0.048 R/op (-27.52R), PF 0.91 y 0/3 años positivos." },
-        { symbol: "High Frequency Vol 50 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 247, win_rate: 45.7, sl_hits: 134, pnl: -2697.27, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): 45.75% WR < 47%, -0.109 R/op (-26.97R), PF 0.80." },
-        { symbol: "Volatility 90 (1s) Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 211, win_rate: 45.5, sl_hits: 115, pnl: -2250.21, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): 45.50% WR < 47%, -0.107 R/op (-22.50R), PF 0.80." },
-        { symbol: "EURUSD / EURUSDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 182, win_rate: 45.6, sl_hits: 99, pnl: -2015.02, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 45.60% WR < 47%, -0.111 R/op (-20.15R), PF 0.80; operado en Malaysian SNR (+2.54R)." },
-        { symbol: "USDCAD / USDCADmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 146, win_rate: 45.9, sl_hits: 79, pnl: -1795.58, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 45.89% WR < 47%, -0.123 R/op (-17.96R), 0/2 años positivos." },
-        { symbol: "Boom 300 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Boom", trades: 955, win_rate: 49.4, sl_hits: 483, pnl: -1755.86, reason: "Descartado por Poda en /Instruments Sintéticos (ICT): 49.42% WR, -0.018 R/op (-17.56R), colapso OOS 2025-26 (-0.182 R/op); operado en Malaysian SNR (+3.71R)." },
-        { symbol: "AUDCAD / AUDCADmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 165, win_rate: 40.6, sl_hits: 98, pnl: -1507.75, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 40.61% WR, -0.091 R/op (-15.08R), PF 0.53 y 0/4 años positivos." },
-        { symbol: "Vol over Boom 550", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 378, win_rate: 48.1, sl_hits: 196, pnl: -1446.29, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): 48.15% WR, -0.038 R/op (-14.46R), PF 0.93." },
-        { symbol: "EURJPY / EURJPYmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 190, win_rate: 48.9, sl_hits: 97, pnl: -1323.83, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 48.95% WR, -0.070 R/op (-13.24R), PF 0.84." },
-        { symbol: "EURGBP / EURGBPmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 166, win_rate: 42.2, sl_hits: 96, pnl: -1306.45, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 42.17% WR, -0.079 R/op (-13.06R), PF 0.64; operado en Malaysian SNR (+1.00R)." },
-        { symbol: "Step Index", strategy: "ICT Sabri Malle", category: "Sintéticos Step", trades: 2080, win_rate: 50.0, sl_hits: 1041, pnl: -1264.20, reason: "Descartado por Poda en /Instruments Sintéticos (ICT): 49.95% WR, -0.006 R/op (-12.64R), MaxDD 70.6R; operado en Malaysian SNR (+3.16R)." },
-        { symbol: "Wall Street 30", strategy: "ICT Sabri Malle", category: "Índices Bursátiles (ICT)", trades: 142, win_rate: 48.6, sl_hits: 73, pnl: -1100.00, reason: "Descartado por Poda en /Instruments ICT (Auditoría 5 Años): 48.59% WR, -0.026 R/op (-3.76R paridad / -11.0R total), 1/3 años positivos; operado en Malaysian SNR C2 (+2.57R)." },
-        { symbol: "USDCHF / USDCHFmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 177, win_rate: 47.5, sl_hits: 93, pnl: -1032.71, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 47.46% WR, -0.058 R/op (-10.33R), PF 0.89." },
-        { symbol: "NZDUSD / NZDUSDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 117, win_rate: 47.9, sl_hits: 61, pnl: -1013.12, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 47.86% WR, -0.087 R/op (-10.13R); operado en Malaysian SNR." },
-        { symbol: "GBPCHF / GBPCHFmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 159, win_rate: 44.0, sl_hits: 89, pnl: -714.93, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 44.03% WR, -0.045 R/op (-7.15R); operado en Malaysian SNR." },
-        { symbol: "USDJPY / USDJPYmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 148, win_rate: 49.3, sl_hits: 75, pnl: -577.71, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 49.32% WR, -0.039 R/op (-5.78R); operado en Malaysian SNR (+5.13R)." },
-        { symbol: "GBPCAD / GBPCADmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 158, win_rate: 42.4, sl_hits: 91, pnl: -562.85, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 42.41% WR, -0.036 R/op (-5.63R); operado en Malaysian SNR." },
-        { symbol: "XAGUSD / XAGUSDmicro", strategy: "ICT Sabri Malle", category: "Metales (ICT)", trades: 207, win_rate: 40.6, sl_hits: 123, pnl: -300.00, reason: "Descartado por Poda en /Instruments ICT: 28.57% WR con cap (-0.429 R/op) y 40.58% WR sin cap (-0.236 R/op); líder en Malaysian SNR (+7.21R), ORB (+5.74R) y Gold Quarters." },
-        { symbol: "EURAUD / EURAUDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 81, win_rate: 48.1, sl_hits: 42, pnl: -271.27, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 48.15% WR, -0.033 R/op (-2.71R), PF 0.74." },
-        { symbol: "Crash 600 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Crash", trades: 74, win_rate: 48.6, sl_hits: 38, pnl: -231.21, reason: "Descartado por Poda en /Instruments Sintéticos (ICT): 48.65% WR, -0.031 R/op (-2.31R), muestra baja y sin significancia." },
-        { symbol: "GBPUSD / GBPUSDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 187, win_rate: 51.9, sl_hits: 90, pnl: -111.59, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): -0.006 R/op (-1.12R) y deterioro en 2025-26 (-0.179 R/op); operado en Malaysian SNR (+5.00R)." },
-        { symbol: "Volatility 50 Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 165, win_rate: 46.1, sl_hits: 89, pnl: -1729.69, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): deterioro OOS 2025-26 (46.06% WR, -0.105 R/op, -17.3R)." },
-        { symbol: "VolSwitch High Vol Index", strategy: "ICT Sabri Malle", category: "Sintéticos Volatility (VOLATILITY 2 OFF)", trades: 166, win_rate: 53.6, sl_hits: 77, pnl: -117.98, reason: "Descartado por Poda en /Instruments Sintéticos (Worker VOLATILITY 2 OFF): 1 solo año de historial (t=+0.56 no significativo) y -0.118 R/op sin cap." },
-        { symbol: "CADCHF / CADCHFmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 163, win_rate: 46.0, sl_hits: 88, pnl: -48.01, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 46.01% WR < 47%, -0.003 R/op (-0.48R); operado en Malaysian SNR." },
-        { symbol: "AUDNZD / AUDNZDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 122, win_rate: 45.1, sl_hits: 67, pnl: -7.04, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 45.08% WR < 47%, -0.001 R/op; operado en Malaysian SNR (+5.76R)." },
-        { symbol: "AUDUSD / AUDUSDmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 150, win_rate: 50.7, sl_hits: 74, pnl: -4.66, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): -0.0003 R/op (-0.05R), PF 0.999; operado en Malaysian SNR." },
-        { symbol: "AUDJPY / AUDJPYmicro", strategy: "ICT Sabri Malle", category: "Forex (FOREX 2 OFF)", trades: 149, win_rate: 45.6, sl_hits: 81, pnl: -2.56, reason: "Descartado por Poda en /Instruments Forex (Worker FOREX 2 OFF): 45.64% WR < 47%, -0.0002 R/op (-0.03R)." },
-        { symbol: "BTCUSD / ETHUSD / Cripto", strategy: "ICT Sabri Malle", category: "Cripto (ICT)", trades: 117, win_rate: 44.4, sl_hits: 65, pnl: -1950.00, reason: "Descartado por Poda en /Instruments ICT: -19.5R agregado en Cripto (ETHUSD/SOLUSD/ADAUSD negativos; BTCUSD operado en ORB NY Sweep con +9.49R)." }
+        // MALAYSIAN SNR - 37 ACTIVOS PODADOS (REPLAY 2 AÑOS / EXPECTATIVA NEGATIVA)
+        { symbol: "Volatility 50 Index", strategy: "Malaysian SNR", trades: 25, win_rate: 8.0, sl_hits: 23, pnl: -1785.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 8.0% WR, -17.85R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "Volatility 100 Index", strategy: "Malaysian SNR", trades: 26, win_rate: 19.2, sl_hits: 21, pnl: -1373.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 19.2% WR, -13.73R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "EURJPY", strategy: "Malaysian SNR", trades: 19, win_rate: 15.8, sl_hits: 16, pnl: -1218.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 15.8% WR, -12.18R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Volatility 10 Index", strategy: "Malaysian SNR", trades: 50, win_rate: 28.0, sl_hits: 36, pnl: -1178.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.0% WR, -11.78R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "EURNZD", strategy: "Malaysian SNR", trades: 11, win_rate: 0.0, sl_hits: 11, pnl: -1110.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 0.0% WR, -11.10R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Crash 900 Index", strategy: "Malaysian SNR", trades: 15, win_rate: 13.3, sl_hits: 13, pnl: -876.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 13.3% WR, -8.76R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Crash 300 Index", strategy: "Malaysian SNR", trades: 22, win_rate: 22.7, sl_hits: 17, pnl: -870.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.7% WR, -8.70R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Jump 100 Index", strategy: "Malaysian SNR", trades: 36, win_rate: 25.0, sl_hits: 27, pnl: -856.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -8.56R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "Volatility 75 (1s) Index", strategy: "Malaysian SNR", trades: 30, win_rate: 26.7, sl_hits: 22, pnl: -836.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 26.7% WR, -8.36R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Boom 500 Index", strategy: "Malaysian SNR", trades: 17, win_rate: 17.6, sl_hits: 14, pnl: -795.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 17.6% WR, -7.95R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "Crash 500 Index", strategy: "Malaysian SNR", trades: 14, win_rate: 28.6, sl_hits: 10, pnl: -770.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -7.70R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "Volatility 25 Index", strategy: "Malaysian SNR", trades: 29, win_rate: 27.6, sl_hits: 21, pnl: -679.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 27.6% WR, -6.79R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "USDCHF", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -666.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.66R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "US Oil", strategy: "Malaysian SNR", trades: 8, win_rate: 12.5, sl_hits: 7, pnl: -651.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 12.5% WR, -6.51R. Deslizamiento o ruido institucional adverso; derivado a worker especializado." },
+        { symbol: "AUDJPY", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -625.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -6.25R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "GBPCHF", strategy: "Malaysian SNR", trades: 11, win_rate: 18.2, sl_hits: 9, pnl: -611.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -6.11R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Volatility 15 Index", strategy: "Malaysian SNR", trades: 9, win_rate: 11.1, sl_hits: 8, pnl: -575.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 11.1% WR, -5.75R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "AUDUSD", strategy: "Malaysian SNR", trades: 13, win_rate: 23.1, sl_hits: 10, pnl: -514.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 23.1% WR, -5.14R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "CADJPY", strategy: "Malaysian SNR", trades: 11, win_rate: 18.2, sl_hits: 9, pnl: -500.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 18.2% WR, -5.00R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Volatility 75 Index", strategy: "Malaysian SNR", trades: 41, win_rate: 34.1, sl_hits: 27, pnl: -427.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 34.1% WR, -4.27R. Drift continuo de volatilidad sintética incompatible con reversión M15; derivado a worker VOLATILITY." },
+        { symbol: "AUDCHF", strategy: "Malaysian SNR", trades: 9, win_rate: 22.2, sl_hits: 7, pnl: -422.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -4.22R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "CHFJPY", strategy: "Malaysian SNR", trades: 14, win_rate: 28.6, sl_hits: 10, pnl: -397.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 28.6% WR, -3.97R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "BTCUSD", strategy: "Malaysian SNR", trades: 19, win_rate: 31.6, sl_hits: 13, pnl: -356.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 31.6% WR, -3.56R. Deslizamiento o ruido institucional adverso; derivado a worker especializado." },
+        { symbol: "GBPNZD", strategy: "Malaysian SNR", trades: 7, win_rate: 14.3, sl_hits: 6, pnl: -350.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 14.3% WR, -3.50R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Boom 600 Index", strategy: "Malaysian SNR", trades: 10, win_rate: 20.0, sl_hits: 8, pnl: -264.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 20.0% WR, -2.64R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "US SP 500", strategy: "Malaysian SNR", trades: 17, win_rate: 29.4, sl_hits: 12, pnl: -241.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 29.4% WR, -2.41R. Rupturas directas por volumen de apertura; derivado a ORB NY e ICT." },
+        { symbol: "AUDCAD", strategy: "Malaysian SNR", trades: 9, win_rate: 22.2, sl_hits: 7, pnl: -235.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 22.2% WR, -2.35R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Jump 75 Index", strategy: "Malaysian SNR", trades: 27, win_rate: 37.0, sl_hits: 17, pnl: -231.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 37.0% WR, -2.31R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "CADCHF", strategy: "Malaysian SNR", trades: 6, win_rate: 16.7, sl_hits: 5, pnl: -200.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 16.7% WR, -2.00R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "EURCAD", strategy: "Malaysian SNR", trades: 5, win_rate: 40.0, sl_hits: 3, pnl: -174.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.74R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "EURAUD", strategy: "Malaysian SNR", trades: 9, win_rate: 33.3, sl_hits: 6, pnl: -131.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -1.31R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Boom 900 Index", strategy: "Malaysian SNR", trades: 8, win_rate: 25.0, sl_hits: 6, pnl: -130.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 25.0% WR, -1.30R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "GBPCAD", strategy: "Malaysian SNR", trades: 5, win_rate: 40.0, sl_hits: 3, pnl: -118.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 40.0% WR, -1.18R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        { symbol: "Jump 50 Index", strategy: "Malaysian SNR", trades: 27, win_rate: 33.3, sl_hits: 18, pnl: -51.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.51R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "Step Index 500", strategy: "Malaysian SNR", trades: 26, win_rate: 34.6, sl_hits: 17, pnl: -44.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 34.6% WR, -0.44R. Mechas excesivas y falta de absorción CRT; mejor desempeño en worker SYNTHETICS." },
+        { symbol: "US Tech 100", strategy: "Malaysian SNR", trades: 18, win_rate: 33.3, sl_hits: 12, pnl: -31.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 33.3% WR, -0.31R. Rupturas directas por volumen de apertura; derivado a ORB NY e ICT." },
+        { symbol: "USDCAD", strategy: "Malaysian SNR", trades: 7, win_rate: 42.9, sl_hits: 4, pnl: -21.0, reason: "Poda confirmada en replay 2 años Malaysian SNR: 42.9% WR, -0.21R. Rango lateral, compresión o spread adverso sin expansión institucional a TP1." },
+        // OTRAS ESTRATEGIAS PODADAS
+        { symbol: "US Oil (Petróleo WTI ORB)", strategy: "ORB New York", trades: 245, win_rate: 42.4, sl_hits: 141, pnl: -4286.88, reason: "Deslizamiento severo en sesión NY cash y spread adverso (-42.87R). Podado en ORB." },
+        { symbol: "UK Brent Oil", strategy: "ORB New York", trades: 282, win_rate: 45.4, sl_hits: 154, pnl: -4223.33, reason: "Falsas rupturas en los primeros 15 min de sesión NY cash (-42.23R). Podado en ORB." },
+        { symbol: "Jump 50 Index (ICT)", strategy: "ICT Sabri Malle", trades: 20, win_rate: 15.0, sl_hits: 17, pnl: -958.95, reason: "Ruido lateral severo y gaps adversos en temporalidades H1 (-9.6R). Podado en ICT." },
+        { symbol: "USDJPY (ICT)", strategy: "ICT Sabri Malle", trades: 11, win_rate: 18.2, sl_hits: 9, pnl: -700.0, reason: "Ausencia de expansión hacia TP2 y dilatación de spread (-7.0R). Podado en ICT." },
+        { symbol: "GBPUSD (ICT v1 sin Killzones)", strategy: "ICT Sabri Malle", trades: 15, win_rate: 21.0, sl_hits: 12, pnl: -500.0, reason: "Superado: La versión v1 sin Killzones fallaba por operar fuera de sesión. Con la v2 (Killzones Londres/NY) se rehabilitó con 49.4% WR y +$3,654.80 USD." }
       ];
 
-      // Métricas por pestaña (100% alineadas con la auditoría Tri-Motor y cada estrategia)
+      // Métricas por pestaña
       const STRATEGY_METRICS = {
         all: {
-          total_trades: "1,254 filtrados / 17,578 paridad 5Y",
-          tp1: "787",
-          tp1_rate: "62.76% Win Rate Combinado en Tri-Motor Staging",
-          tp2: "512",
-          tp2_rate: "40.8% de expansiones completadas",
-          tp3: "210",
-          tp4: "105",
-          be: "275",
-          sl: "467",
-          profit: "+866.0 R ICT 5Y (+475.74 R GBDT)",
-          badge: "Consolidado Tri-Motor (MSNR C2 + ICT 5Y Consolidado + ORB Sweep)",
-          bars: { tp1: 62.8, tp2: 40.8, tp3: 16.7, tp4: 8.4, be: 21.9, sl: 37.2 }
+          total_trades: "2,287",
+          tp1: "1,054",
+          tp1_rate: "46.1% global / 53.6% en Activos Core",
+          tp2: "535",
+          tp2_rate: "23.4% de expansiones completadas",
+          tp3: "180",
+          tp4: "129",
+          be: "458",
+          sl: "1,223",
+          profit: "+$33,998",
+          badge: "Consolidado 4 Estrategias",
+          bars: { tp1: 46.1, tp2: 23.4, tp3: 7.9, tp4: 5.6, be: 20.0, sl: 53.5 }
         },
         malaysian: {
-          total_trades: "3,842 trades fieles multianuales (35 Activos con WR ≥ 47%)",
-          tp1: "2,081",
-          tp1_rate: "54.16% Win Rate Ponderado en 35 Activos Activos (hasta 100% GBPCAD, 85.7% CADCHF, 60.0% HF Vol 100)",
-          tp2: "1,248",
-          tp2_rate: "32.48% runners completados a TP2 (1:2.0 RR) o superior",
-          tp3: "164",
-          tp4: "86",
-          be: "833",
-          sl: "1,761",
-          profit: "+106.12 R Netos en Activos Rentables (+$10,612 USD a 1% riesgo)",
-          badge: "Malaysian SNR Híbrido Alchemist (35 Activos WR ≥ 47% / 6 Podados)",
-          bars: { tp1: 54.2, tp2: 32.5, tp3: 14.1, tp4: 7.2, be: 21.7, sl: 45.8 }
+          total_trades: "357 activos / 987 evaluados",
+          tp1: "156",
+          tp1_rate: "43.7% ponderado en 23 Activos Validados",
+          tp2: "88",
+          tp2_rate: "24.6% expansiones completadas",
+          tp3: "44",
+          tp4: "22",
+          be: "36",
+          sl: "201",
+          profit: "+81.55 R (+$8,155 USD en Activos Validados)",
+          badge: "Malaysian SNR Augmented v2 (60 Activos Replay: 23 Activos / 37 Podados)",
+          bars: { tp1: 43.7, tp2: 24.6, tp3: 12.3, tp4: 6.2, be: 10.1, sl: 56.3 }
         },
         orb: {
-          total_trades: "231–241 Intradía (ORB Sweep)",
-          tp1: "140",
-          tp1_rate: "58.1% Win Rate Ponderado (56.7%–59.1% Core)",
-          tp2: "87",
-          tp2_rate: "36.1% runners completados (1.5R–2.0R)",
+          total_trades: "878",
+          tp1: "446",
+          tp1_rate: "50.8% acierto en rango 1:1.0",
+          tp2: "209",
+          tp2_rate: "23.8% full wins (2:1.0 RR)",
           tp3: "0",
           tp4: "0",
-          be: "53",
-          sl: "101",
-          profit: "+31.54 R (+$3,154 / +$5,900 Cons.)",
-          badge: "ORB New York Sweep (Paso 1.3 · XAUUSD, BTCUSD, XAGUSD, US Oil)",
-          bars: { tp1: 58.1, tp2: 36.1, tp3: 0.0, tp4: 0.0, be: 22.0, sl: 41.9 }
+          be: "231",
+          sl: "429",
+          profit: "+$5,900 (+29.9% s/Oil)",
+          badge: "ORB New York",
+          bars: { tp1: 50.8, tp2: 23.8, tp3: 0.0, tp4: 0.0, be: 26.3, sl: 48.9 }
         },
         ict: {
-          total_trades: "7,819 Señales Filtradas (5Y)",
-          tp1: "4,178 (5Y)",
-          tp1_rate: "53.43% WR (46 Activos Base con WR > 47%)",
-          tp2: "3,120",
-          tp2_rate: "39.9% expansiones completadas",
-          tp3: "1,450",
-          tp4: "680",
-          be: "1,890",
-          sl: "3,641",
-          profit: "+540.8 R (5Y: +500.1R Sint. +17.5R FX +23.2R ICT)",
-          badge: "Estrategia ICT 5Y con 6 Mejoras (33 Sintéticos, 9 Pares Forex, 4 ICT · VOL 1/2 & FOREX 1/2)",
-          bars: { tp1: 53.4, tp2: 39.9, tp3: 18.5, tp4: 8.7, be: 24.2, sl: 46.6 }
+          total_trades: "396",
+          tp1: "181",
+          tp1_rate: "45.7% acierto en TP1 (1:2.0 RR)",
+          tp2: "107",
+          tp2_rate: "27.0% acierto en TP2 (1:4.0 RR)",
+          tp3: "136",
+          tp4: "107",
+          be: "67",
+          sl: "208",
+          profit: "+196.9 R (+$19,690 USD)",
+          badge: "ICT Sabri Malle (AMD & FVG)",
+          bars: { tp1: 45.7, tp2: 34.3, tp3: 34.3, tp4: 27.0, be: 16.9, sl: 52.5 }
         },
         gold: {
-          total_trades: "826 (656 XAU + 170 XAG)",
-          tp1: "342",
-          tp1_rate: "41.4% acierto en primer cuarto",
-          tp2: "165",
-          tp2_rate: "20.0% acierto en extensión",
+          total_trades: "656",
+          tp1: "271",
+          tp1_rate: "41.3% acierto en primer cuarto",
+          tp2: "131",
+          tp2_rate: "19.9% acierto en extensión",
           tp3: "0",
           tp4: "0",
-          be: "156",
-          sl: "484",
-          profit: "+$1,238.88 USD (+12.39 R)",
-          badge: "Gold Quarters (Cuartos XAUUSD & XAGUSD)",
-          bars: { tp1: 41.4, tp2: 20.0, tp3: 0.0, tp4: 0.0, be: 18.9, sl: 58.6 }
+          be: "124",
+          sl: "385",
+          profit: "+$252.76 USD",
+          badge: "Gold Quarters (Cuartos XAUUSD)",
+          bars: { tp1: 41.3, tp2: 19.9, tp3: 0.0, tp4: 0.0, be: 18.9, sl: 58.7 }
         }
       };
 

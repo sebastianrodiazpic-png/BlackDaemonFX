@@ -25,13 +25,18 @@ def test_trend_pullback_universe_resolution():
 
 
 def test_malaysian_snr_policy_excludes_unlisted_symbols():
-    """Verifica que Vol over Boom/Crash 550 no estén en la política activa de Malaysian SNR."""
-    assert "Vol over Boom 550" not in MSNR_ACIERTO47_SYNTHETICS
+    """Verifica que los activos tóxicos (WR <= 50%) estén excluidos y los rentables (>50%) activos."""
+    # Activos rescatados por WR > 50%
+    assert "Vol over Boom 550" in MSNR_ACIERTO47_SYNTHETICS
     assert "Vol over Crash 550" not in MSNR_ACIERTO47_SYNTHETICS
+    # Activos excluidos por WR <= 50%
+    assert "Crash 900 Index" not in MSNR_ACIERTO47_SYNTHETICS
+    assert "Jump 50 Index" not in MSNR_ACIERTO47_SYNTHETICS
 
 
 def test_recover_empty_selections_trend_pullback_and_msnr_cleanup():
-    """Verifica la autorecuperación de TREND_PULLBACK y purga de símbolos obsoletos en MALAYSIAN_SNR."""
+    """Verifica la autorecuperación de TREND_PULLBACK y MALAYSIAN_SNR si sus selecciones están vacías."""
+    from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
     saved_calls = {}
 
     def mock_reader(profile, source="DEMO"):
@@ -42,9 +47,9 @@ def test_recover_empty_selections_trend_pullback_and_msnr_cleanup():
         if profile == "ORB":
             return {"selected_symbols": ["BTCUSD"]}
         if profile == "TREND_PULLBACK":
-            return {"selected_symbols": []}  # vacío
+            return {"selected_symbols": []}  # vacío -> autorecupera
         if profile == "MALAYSIAN_SNR":
-            return {"selected_symbols": ["Step Index 200", "Vol over Boom 550", "Vol over Crash 550", "Jump 10 Index"]}
+            return {"selected_symbols": []}  # vacío -> autorecupera
         return None
 
     def mock_writer(symbols, selection_profile, source="DEMO"):
@@ -63,10 +68,9 @@ def test_recover_empty_selections_trend_pullback_and_msnr_cleanup():
     assert len(saved_calls["TREND_PULLBACK"]) == len(DEFAULT_PULLBACK_SYMBOLS)
 
     assert "MALAYSIAN_SNR" in saved_calls
-    assert "Vol over Boom 550" not in saved_calls["MALAYSIAN_SNR"]
+    assert len(saved_calls["MALAYSIAN_SNR"]) == len(MALAYSIAN_SNR_ACTIVE)
+    assert "Vol over Boom 550" in saved_calls["MALAYSIAN_SNR"]
     assert "Vol over Crash 550" not in saved_calls["MALAYSIAN_SNR"]
-    assert "Step Index 200" in saved_calls["MALAYSIAN_SNR"]
-    assert "Jump 10 Index" in saved_calls["MALAYSIAN_SNR"]
 
 
 def test_effective_min_acceptable_fill_rr_tp1_tolerance():

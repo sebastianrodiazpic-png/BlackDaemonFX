@@ -84,7 +84,7 @@ def test_ict_config_defaults():
     assert config.london_close_reversal_enabled is False
     assert config.london_kz_start_ny == 3
     assert config.london_kz_end_ny == 5
-    assert tuple(config.silver_bullet_hours_ny) == (3,)
+    assert tuple(config.silver_bullet_hours_ny) == (3, 10)
     assert config.macro_h4_candles == 300
     assert config.min_sl_atr_h1 == 1.0
     assert config.max_signed_pullback_r == 0.45
@@ -112,7 +112,7 @@ def test_worker_rules_ict_ruleset():
 
 def test_ict_strategy_insufficient_candles():
     provider = MockCandleProvider(df_h1=pd.DataFrame({"time": [datetime.now(timezone.utc)], "close": [100.0]}))
-    strategy = ICTSabriMalleStrategy(data_provider=provider)
+    strategy = ICTSabriMalleStrategy(data_provider=provider, config=ICTSabriMalleConfig(killzone_filter_enabled=False))
     result = strategy.analyze_symbol("EURUSD")
     assert result["valid"] is False
     assert "INSUFFICIENT" in result["reason"]
@@ -372,4 +372,35 @@ def test_order_block_five_stars_detection():
     assert "mean_threshold" in ob_buy
 
 
+def test_ict_silver_bullet_ny_am_window():
+    """Verify Silver Bullet 10:00 - 11:00 AM NY allows Forex and Real Markets to pass killzone."""
+    from zoneinfo import ZoneInfo
+    ny_tz = ZoneInfo("America/New_York")
+    now_ny_10 = datetime(2026, 10, 14, 10, 15, tzinfo=ny_tz).astimezone(timezone.utc)
+    dates = [now_ny_10 - timedelta(hours=i) for i in range(40, 0, -1)]
+    df_h1 = pd.DataFrame({
+        "time": dates,
+        "open": [1.10] * 40,
+        "high": [1.11] * 40,
+        "low": [1.09] * 40,
+        "close": [1.10] * 40,
+    })
+    strat = ICTSabriMalleStrategy(data_provider=MockCandleProvider(df_h1=df_h1), config=ICTSabriMalleConfig())
+    res = strat.analyze_symbol("EURUSD", now_utc=now_ny_10)
+    # Debe ser admitido por la ventana Silver Bullet NY AM 10:00 NY
+    assert "OUTSIDE_INSTITUTIONAL_KILLZONE" not in res["reason"]
 
+
+def test_ict_order_block_five_stars_mitigation_entry():
+    """Verify OB 5 Estrellas provides mitigation_entry_price level."""
+    from strategy.ict.ict_strategy import check_order_block_five_stars
+    df = pd.DataFrame({
+        "open": [100.0, 98.0, 95.0, 96.0, 102.0, 105.0],
+        "high": [101.0, 99.0, 96.0, 98.0, 104.0, 107.0],
+        "low": [97.0, 94.0, 91.0, 95.0, 101.0, 104.0],
+        "close": [98.0, 95.0, 92.0, 101.0, 105.0, 106.0],
+    })
+    ob_buy = check_order_block_five_stars(df, "BUY")
+    assert ob_buy["valid"] is True
+    assert ob_buy["top"] == 96.0  # proximal edge for buy retest
+    assert ob_buy["mean_threshold"] == 93.5

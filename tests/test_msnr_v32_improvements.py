@@ -29,14 +29,22 @@ def test_msnr_v32_live_trading_engine_configuration():
     assert strat_cfg.dynamic_retest_buffer_atr == 0.20
     assert strat_cfg.directional_asymmetry_enabled is True
     assert strat_cfg.strategy_version == "msnr-v3.2-hybrid-alchemist"
-    assert "Jump 75 Index" in strat_cfg.jump_buy_only_symbols
-    assert "Step Index 200" in strat_cfg.step_sell_only_symbols
-    assert "Step Index 400" in strat_cfg.step_sell_only_symbols
-    assert "Step Index 500" in strat_cfg.step_sell_only_symbols
+    # Toda la familia Step y Jump son bidireccionales por defecto en Malaysian SNR
+    assert strat_cfg.jump_buy_only_symbols == ()
+    assert strat_cfg.step_sell_only_symbols == ()
 
 
 def test_msnr_directional_asymmetry_jump_and_step():
-    config = MalaysianSNRConfig(allowed_symbols=(), directional_asymmetry_enabled=True)
+    config = MalaysianSNRConfig(
+        allowed_symbols=(),
+        directional_asymmetry_enabled=True,
+        jump_buy_only_symbols=("Jump 75 Index", "Jump 50 Index"),    # Configurado explícitamente para testear bloqueo
+        step_sell_only_symbols=("Step Index 200", "Step Index 400"),  # Configurado explícitamente para testear bloqueo
+        enable_synthetic_daily_storyline_filter=False,
+        continuation_min_adx=10.0,
+        step_min_adx=10.0,
+        enable_midnight_guard=False,
+    )
     provider_buy, _, now_buy = market("BUY", "SELL")
     provider_sell, _, now_sell = market("SELL", "BUY")
 
@@ -63,15 +71,49 @@ def test_msnr_directional_asymmetry_jump_and_step():
     res_s400_buy = strat_buy.analyze_symbol("Step Index 400", now_buy)
     assert res_s400_buy.get("reason") == "DIRECTION_ASYMMETRY_STEP_SELL_ONLY"
 
+    # Step Index 500: Bidireccional (NO está en step_sell_only_symbols, válido en BUY)
+    res_s500_buy = strat_buy.analyze_symbol("Step Index 500", now_buy)
+    assert res_s500_buy.get("valid") is True
+
+    # Crash 500 Index: Bloqueado en BUY, Válido en SELL (dirección de spikes protegida)
+    res_c500_buy = strat_buy.analyze_symbol("Crash 500 Index", now_buy)
+    assert res_c500_buy.get("reason") in ("DIRECTION_ASYMMETRY_CRASH_SELL_ONLY", "DIRECTION_POLICY_BLOCKED")
+    res_c500_sell = strat_sell.analyze_symbol("Crash 500 Index", now_sell)
+    assert res_c500_sell.get("valid") is True
+
     # Activo no restringido (Volatility 75 Index): Válido en BUY
     res_vol = strat_buy.analyze_symbol("Volatility 75 Index", now_buy)
     assert res_vol.get("valid") is True
 
 
 def test_msnr_directional_asymmetry_can_be_disabled():
-    config = MalaysianSNRConfig(allowed_symbols=(), directional_asymmetry_enabled=False)
+    config = MalaysianSNRConfig(
+        allowed_symbols=(),
+        directional_asymmetry_enabled=False,
+        enable_synthetic_daily_storyline_filter=False,
+        continuation_min_adx=10.0,
+        step_min_adx=10.0,
+        enable_midnight_guard=False,
+    )
     provider_buy, _, now_buy = market("BUY", "SELL")
     strat = MalaysianSNRStrategy(provider_buy, config)
     res = strat.analyze_symbol("Step Index 200", now_buy)
     # Al estar desactivada la asimetría, Step Index 200 puede confirmar BUY
     assert res.get("valid") is True
+
+
+def test_msnr_midnight_guard():
+    import pandas as pd
+    config = MalaysianSNRConfig(allowed_symbols=(), enable_midnight_guard=True, midnight_guard_window_minutes=15)
+    provider_buy, _, _ = market("BUY", "SELL")
+    strat = MalaysianSNRStrategy(provider_buy, config)
+    
+    # 23:55 UTC (dentro de la ventana de 15 min antes de medianoche)
+    t_midnight = pd.Timestamp("2026-10-15 23:55:00", tz="UTC")
+    res = strat.analyze_symbol("Volatility 25 Index", t_midnight)
+    assert res.get("reason") == "MIDNIGHT_TRANSITION_GUARD_ACTIVE"
+
+    # 12:00 UTC (fuera de la ventana)
+    t_noon = pd.Timestamp("2026-10-15 12:00:00", tz="UTC")
+    res_noon = strat.analyze_symbol("Volatility 25 Index", t_noon)
+    assert res_noon.get("reason") != "MIDNIGHT_TRANSITION_GUARD_ACTIVE"

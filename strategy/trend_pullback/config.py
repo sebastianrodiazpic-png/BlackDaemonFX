@@ -69,7 +69,7 @@ def _env_symbols() -> tuple[str, ...]:
 @dataclass
 class TrendPullbackConfig:
     """Parámetros configurables e interruptores de la estrategia Trend Pullback."""
-    enabled: bool = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+    enabled: bool = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
     strategy_name: str = TREND_PULLBACK_STRATEGY
     strategy_version: str = TREND_PULLBACK_VERSION
     symbols: tuple[str, ...] = field(default_factory=_env_symbols)

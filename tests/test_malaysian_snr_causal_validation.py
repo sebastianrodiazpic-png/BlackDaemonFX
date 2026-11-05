@@ -95,7 +95,7 @@ class TestCausalMSNR(unittest.TestCase):
         h1 = candles(count=40)
         now = h1.time.iloc[-1] + pd.Timedelta(minutes=30)
         m15 = candles("15min", count=60, start=now - pd.Timedelta(hours=14, minutes=45))
-        cfg = MalaysianSNRConfig(allowed_symbols=(), enable_daily_storyline_filter=False)
+        cfg = MalaysianSNRConfig(allowed_symbols=(), enable_daily_storyline_filter=False, step_min_adx=0.0)
         provider = Provider({"H1": h1, "M15": m15})
         strategy = MalaysianSNRStrategy(provider, cfg)
         before = strategy.analyze_symbol("Step Index", now)
@@ -111,7 +111,7 @@ class TestCausalMSNR(unittest.TestCase):
         break_close = h1.time.iloc[-1] + pd.Timedelta(hours=1)
         m15 = candles("15min", count=60, start=break_close - pd.Timedelta(hours=14, minutes=45))
         m15.loc[59, ["open", "high", "low", "close"]] = [102.9, 103.8, 102.8, 103.3]
-        cfg = MalaysianSNRConfig(allowed_symbols=(), enable_daily_storyline_filter=False)
+        cfg = MalaysianSNRConfig(allowed_symbols=(), enable_daily_storyline_filter=False, step_min_adx=0.0)
         provider = Provider({"H1": h1, "M15": m15})
         strategy = MalaysianSNRStrategy(provider, cfg)
         self.assertEqual(strategy.analyze_symbol("Step Index", break_close)["reason"], "WAITING_POST_BREAK_RETEST")

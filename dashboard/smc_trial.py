@@ -15,6 +15,8 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1] / "storage/runtime/smc_trial"
 _LOCK = threading.Lock()
 _STATE = {}
+_LAST_DISK_WRITE = {}
+_DIRTY_PROFILES = set()
 
 
 def _atomic_write(target, payload):
@@ -188,6 +190,18 @@ def record(profile, result, policy, retest, root=None, now=None, quote_reader=No
             identity = symbol + ":" + str((result.get("signal_age") or {}).get("signal_time"))
             if identity not in state["stale_signals"]:
                 state["stale_signals"].append(identity)
+        # Optimización I/O: Throttle de escritura a disco para evitar cuellos de botella NTFS
+        flush_interval = float(os.getenv("DAEMONBLACKFX_TRIAL_FLUSH_INTERVAL_SECONDS", "10.0"))
+        now_mono = time.monotonic()
+        last_flush = _LAST_DISK_WRITE.get(key, 0.0)
+        is_critical_action = bool(
+            action in {"ORDER_OPENED", "SPLIT_ORDER_OPENED", "SIGNAL_READY"}
+            or str(action).startswith(("REJECTED_", "INVALID_"))
+        )
+        if flush_interval > 0.0 and not is_critical_action and (now_mono - last_flush) < flush_interval:
+            _DIRTY_PROFILES.add((str(root), profile, day))
+            return result
+
         root.mkdir(parents=True, exist_ok=True)
         target = root / (profile + ".json")
         payload = json.dumps(state, ensure_ascii=False)
@@ -197,10 +211,40 @@ def record(profile, result, policy, retest, root=None, now=None, quote_reader=No
         archive.mkdir(exist_ok=True)
         archive_target = archive / (profile + "_" + day + ".json")
         _atomic_write(archive_target, payload)
+        _LAST_DISK_WRITE[key] = now_mono
+        _DIRTY_PROFILES.discard((str(root), profile, day))
         return result
 
 
+def flush_pending_trials(root=None):
+    """Fuerza la persistencia en disco de cualquier estado en memoria pendiente."""
+    with _LOCK:
+        for (r_str, profile, day) in list(_DIRTY_PROFILES):
+            key = (r_str, profile, day)
+            state = _STATE.get(key)
+            if not state:
+                continue
+            try:
+                r = Path(r_str)
+                r.mkdir(parents=True, exist_ok=True)
+                target = r / (profile + ".json")
+                payload = json.dumps(state, ensure_ascii=False)
+                _atomic_write(target, payload)
+                archive = r / "history"
+                archive.mkdir(exist_ok=True)
+                archive_target = archive / (profile + "_" + day + ".json")
+                _atomic_write(archive_target, payload)
+                _LAST_DISK_WRITE[key] = time.monotonic()
+            except Exception:
+                pass
+        _DIRTY_PROFILES.clear()
+
+
 def snapshot(root=None):
+    try:
+        flush_pending_trials(root)
+    except Exception:
+        pass
     rows, errors = [], []
     for path in sorted(Path(root or ROOT).glob("*.json")):
         try:

@@ -79,6 +79,22 @@ class CircularCandleBuffer:
                 self._series_locks[key] = threading.RLock()
             return self._series_locks[key]
 
+    def get_timeframe_ttl(self, timeframe: str) -> float:
+        """Calcula el TTL adaptativo según la temporalidad de la vela.
+
+        Las temporalidades mayores (H4, H1, M15) varían con mucha menor frecuencia
+        que M1/M5, por lo que retienen frescura durante más tiempo en memoria sin
+        re-consultar innecesariamente al broker o API externa.
+        """
+        tf = str(timeframe).upper().strip()
+        if tf in ("H4", "D1"):
+            return max(self.ttl_seconds, float(os.getenv("DAEMONBLACKFX_CANDLE_BUFFER_H4_TTL", "120.0")))
+        if tf in ("H1", "H2"):
+            return max(self.ttl_seconds, float(os.getenv("DAEMONBLACKFX_CANDLE_BUFFER_H1_TTL", "45.0")))
+        if tf == "M15":
+            return max(self.ttl_seconds, float(os.getenv("DAEMONBLACKFX_CANDLE_BUFFER_M15_TTL", "12.0")))
+        return self.ttl_seconds
+
     def _normalize_key(self, symbol: str, timeframe: str) -> Tuple[str, str]:
         """Normaliza el par símbolo y temporalidad a mayúsculas consistentes."""
         return (str(symbol).strip().upper(), str(timeframe).strip().upper())
@@ -100,6 +116,7 @@ class CircularCandleBuffer:
 
         key = self._normalize_key(symbol, timeframe)
         current_time = time.monotonic()
+        effective_ttl = self.get_timeframe_ttl(timeframe)
 
         with self._global_lock:
             cached_frame = self._buffer.get(key)
@@ -108,7 +125,7 @@ class CircularCandleBuffer:
             if cached_frame is None:
                 return None
 
-            is_fresh = (current_time - last_timestamp) <= self.ttl_seconds
+            is_fresh = (current_time - last_timestamp) <= effective_ttl
             has_enough_bars = len(cached_frame) >= int(count)
 
             if is_fresh and has_enough_bars:

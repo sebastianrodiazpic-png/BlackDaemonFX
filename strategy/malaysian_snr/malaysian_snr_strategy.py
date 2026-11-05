@@ -188,6 +188,9 @@ class MalaysianSNRStrategy:
             max_entry_distance_atr=settings['qm_max_entry_distance_atr'],
             continuation_fresh_only=settings['continuation_fresh_only'],
             retest_window_minutes=settings['retest_window_minutes'],
+            enable_structural_freshness=settings.get('enable_structural_freshness', getattr(self.config, 'enable_structural_freshness', True)),
+            structural_max_window_minutes=settings.get('structural_max_window_minutes', getattr(self.config, 'structural_max_window_minutes', 720)),
+            retest_contact_buffer_atr=settings.get('retest_contact_buffer_atr', getattr(self.config, 'retest_contact_buffer_atr', 0.15)),
             enable_setup_diagnostics=settings['enable_setup_diagnostics'],
             enable_structure_cache=settings['enable_structure_cache'],
             allowed_symbols=tuple(dict.fromkeys((*allowed,*extra))) if allowed else ())
@@ -274,6 +277,11 @@ class MalaysianSNRStrategy:
                 "action": "WAITING_MALAYSIAN_SNR", "reason": "NO_SETUP_CONFIRMED", "symbol": symbol}
         if not self.config.enabled:
             return {**base, "reason": "STRATEGY_DISABLED"}
+        if getattr(self.config, 'enable_midnight_guard', True) and is_synthetic_symbol(symbol):
+            minute_of_day = now.hour * 60 + now.minute
+            guard_min = int(getattr(self.config, 'midnight_guard_window_minutes', 15))
+            if minute_of_day >= (1440 - guard_min) or minute_of_day < guard_min:
+                return {**base, "reason": "MIDNIGHT_TRANSITION_GUARD_ACTIVE"}
         synthetic_d1_filter = getattr(self.config, 'enable_synthetic_daily_storyline_filter', False)
         fractal_min_body_ratio = self.config.fractal_min_body_ratio
         fractal_max_entry_distance_atr = self.config.fractal_max_entry_distance_atr
@@ -416,7 +424,7 @@ class MalaysianSNRStrategy:
                 daily_direction = structure_direction
         base.update({'macro_structure_bias':structure_direction, 'macro_candle_bias':candle_direction,
                      'gap_data_reason':gap_data_reason})
-        if (not 15 <= self.config.retest_window_minutes <= 360
+        if (not 15 <= self.config.retest_window_minutes <= 720
                 or self.config.retest_recovery_bars < 1
                 or not 0 <= self.config.entry_execution_grace_seconds <= 120
                 or not all(math.isfinite(value) and value >= 0 for value in (
@@ -432,12 +440,28 @@ class MalaysianSNRStrategy:
         retest_mins = controls.get('retest_window_minutes', self.config.retest_window_minutes)
         window = pd.Timedelta(minutes=retest_mins)
         grace = pd.Timedelta(seconds=self.config.entry_execution_grace_seconds)
+        structural_freshness = getattr(self.config, 'enable_structural_freshness', True)
+        structural_max_mins = controls.get('structural_max_window_minutes', getattr(self.config, 'structural_max_window_minutes', 720))
+        effective_max_window = pd.Timedelta(minutes=max(retest_mins, structural_max_mins)) if structural_freshness else window
         # Reconstruct original breaks from CLOSED prefixes: restart-safe, causal,
         # and identical for live evaluation and historical replay.
-        anchor_count = int(window / delta) + 2
-        h1_obstacles = active_av_levels(h1, definition=self.config.obstacle_av_definition)
-        d1_obstacles = active_av_levels(d1, definition=self.config.obstacle_av_definition) if self.config.enable_d1_storyline_levels else []
-        h4_obstacles = active_av_levels(h4, definition=self.config.obstacle_av_definition) if not h4.empty else []
+        anchor_count = int(effective_max_window / delta) + 2
+        cache = getattr(self, '_cycle_history_cache', None)
+        def _get_active_av(frame, tf, definition):
+            if frame.empty:
+                return []
+            if cache is not None:
+                av_k = ('active_av', tf, len(frame), str(frame.iloc[-1].time), round(float(frame.iloc[-1].close), 6), definition)
+                if av_k in cache:
+                    return cache[av_k]
+                res = active_av_levels(frame, definition=definition)
+                cache[av_k] = res
+                return res
+            return active_av_levels(frame, definition=definition)
+
+        h1_obstacles = _get_active_av(h1, self.config.structure_timeframe, self.config.obstacle_av_definition)
+        d1_obstacles = _get_active_av(d1, self.config.macro_timeframe, self.config.obstacle_av_definition) if self.config.enable_d1_storyline_levels else []
+        h4_obstacles = _get_active_av(h4, 'H4', self.config.obstacle_av_definition) if not h4.empty else []
         h4_obstacle_checked = not h4.empty or self.config.h4_obstacle_mode == 'off'
         observations = []
         shadow_candidates = []
@@ -468,13 +492,13 @@ class MalaysianSNRStrategy:
                            'entry_timeframe':self.config.entry_timeframe,
                            'runtime_settings_version': settings_version,
                            'structure_closed_at': break_closed_at.isoformat(),
-                           'expires_at': (break_closed_at + window).isoformat(),
-                           'remaining_minutes': round(max(0., (window - age).total_seconds() / 60), 1)}
+                           'expires_at': (break_closed_at + (effective_max_window if structural_freshness else window)).isoformat(),
+                           'remaining_minutes': round(max(0., ((effective_max_window if structural_freshness else window) - age).total_seconds() / 60), 1)}
                 def wait(reason):
                     return {**base, 'reason': reason, 'scenario': setup['scenario'],
                             'direction': direction, 'break_level': setup['level'],
                             'diagnostics': {**details, 'stage': reason}}
-                if age > window + grace:
+                if age > (effective_max_window if structural_freshness else window) + grace:
                     observations.append(wait('SETUP_EXPIRED'))
                     continue
                 if setup.get('blocked_reason'):
@@ -492,6 +516,17 @@ class MalaysianSNRStrategy:
                         continue
                     if sym_l in step_sell_only and direction != "SELL":
                         observations.append(wait('DIRECTION_ASYMMETRY_STEP_SELL_ONLY'))
+                        continue
+                    crash_sell_only = {str(s).strip().lower() for s in getattr(self.config, "crash_sell_only_symbols", ())}
+                    if sym_l in crash_sell_only and direction != "SELL":
+                        observations.append(wait('DIRECTION_ASYMMETRY_CRASH_SELL_ONLY'))
+                        continue
+                    boom_buy_only = {str(s).strip().lower() for s in getattr(self.config, "boom_buy_only_symbols", ())}
+                    if sym_l in boom_buy_only and direction != "BUY":
+                        observations.append(wait('DIRECTION_ASYMMETRY_BOOM_BUY_ONLY'))
+                        continue
+                    if sym_l.startswith("step") and float(setup.get('adx', 0.0)) < float(getattr(self.config, "step_min_adx", 25.0)):
+                        observations.append(wait('STEP_ADX_BELOW_THRESHOLD'))
                         continue
                 macro_shadow = False
                 if daily_bias_enforced and (daily_direction is None or daily_direction != direction):
@@ -514,6 +549,8 @@ class MalaysianSNRStrategy:
                 effective_tolerance_atr = self.config.retest_tolerance_atr
                 if getattr(self.config, 'dynamic_retest_buffer_enabled', False):
                     effective_tolerance_atr += getattr(self.config, 'dynamic_retest_buffer_atr', 0.20)
+                elif getattr(self.config, 'retest_contact_buffer_atr', 0.0) > 0:
+                    effective_tolerance_atr += getattr(self.config, 'retest_contact_buffer_atr', 0.15)
                 evidence = retest_confirmation(
                     recent, setup['level'], direction, setup['atr'],
                     effective_tolerance_atr, setup['max_entry_distance_atr'],
@@ -554,7 +591,8 @@ class MalaysianSNRStrategy:
                         observations.append(wait('SETUP_ALREADY_CONFIRMED'))
                         continue
                 confirmed_at = recent.iloc[-1].time + entry_delta
-                if confirmed_at > break_closed_at + window:
+                effective_expiry = break_closed_at + (effective_max_window if structural_freshness else window)
+                if confirmed_at > effective_expiry:
                     observations.append(wait('SETUP_EXPIRED'))
                     continue
                 entry = float(recent.iloc[-1].close)
@@ -686,6 +724,8 @@ class MalaysianSNRStrategy:
                 signal['micro_stop_applied'] = micro_stop_applied
                 signal['price_action_confirmations'] = confirmations
                 signal['confirmations'] = confirmations.copy()
+                signal['_cached_df_h1'] = h1
+                signal['_cached_df_ltf'] = m15
                 result['diagnostics'] = {**details, 'stage': 'RETEST_CONFIRMED'}
                 controls = self._runtime_controls
                 extra_shadow = (getattr(self, '_asset_mode', None)=='shadow' or
@@ -726,38 +766,56 @@ class MalaysianSNRStrategy:
     def _setups_at_break(self, h1: pd.DataFrame, fractal_min_body_ratio: float | None = None,
                         fractal_max_entry_distance_atr: float | None = None) -> list[dict]:
         key = None
-        if self.config.enable_structure_cache:
-            fingerprint = pd.util.hash_pandas_object(h1[['time','open','high','low','close']], index=False).values.tobytes()
-            # Pinbar parameters affect only entry confirmation. Reuse the same
-            # immutable H1 formation in its regular and observation branches.
-            formation_config = {k:v for k,v in asdict(self.config).items() if not k.startswith('retest_pinbar_')}
-            key = (hashlib.blake2b(fingerprint,digest_size=16).digest(),
-                   json.dumps(formation_config,sort_keys=True), fractal_min_body_ratio, fractal_max_entry_distance_atr)
+        if self.config.enable_structure_cache and not h1.empty:
+            last = h1.iloc[-1]
+            first = h1.iloc[0]
+            # Clave ultra-rápida O(1) de memoria sin hash_pandas_object ni serialización JSON recursiva
+            key = (
+                len(h1),
+                str(first.time),
+                str(last.time),
+                round(float(last.close), 8),
+                round(float(last.high), 8),
+                round(float(last.low), 8),
+                round(float(h1.high.sum()), 4),
+                round(float(h1.low.sum()), 4),
+                round(float(fractal_min_body_ratio or 0.0), 4),
+                round(float(fractal_max_entry_distance_atr or 0.0), 4),
+                getattr(self.config, 'continuation_mode', ''),
+                getattr(self.config, 'role_flip_mode', ''),
+                getattr(self.config, 'qm_extended_mode', ''),
+                getattr(self.config, 'enable_fakeout_trap', True),
+                getattr(self.config, 'enable_qmc_pattern', True),
+                getattr(self.config, 'continuation_fresh_only', True),
+                getattr(self.config, 'enable_tested_level_entries', True),
+            )
             with self._structure_cache_lock:
                 if key in self._structure_cache:
-                    return deepcopy(self._structure_cache[key])
+                    cached = self._structure_cache[key]
+                    return [dict(s) for s in cached]
         setups = self._compute_setups_at_break(h1, fractal_min_body_ratio, fractal_max_entry_distance_atr)
         if key is not None:
             with self._structure_cache_lock:
-                if len(self._structure_cache)>=256:
+                if len(self._structure_cache) >= 512:
                     self._structure_cache.clear()
-                self._structure_cache[key] = deepcopy(setups)
+                self._structure_cache[key] = [dict(s) for s in setups]
         return setups
 
     def _h1_diagnostics(self, h1):
         key = None
-        if self.config.enable_structure_cache:
-            fingerprint = pd.util.hash_pandas_object(h1[['time','open','high','low','close']],index=False).values.tobytes()
-            key = ('diagnostics',hashlib.blake2b(fingerprint,digest_size=16).digest(),json.dumps(asdict(self.config),sort_keys=True))
+        if self.config.enable_structure_cache and not h1.empty:
+            last = h1.iloc[-1]
+            first = h1.iloc[0]
+            key = ('diag', len(h1), str(first.time), str(last.time), round(float(last.close), 8))
             with self._structure_cache_lock:
                 if key in self._structure_cache:
-                    return deepcopy(self._structure_cache[key])
+                    return dict(self._structure_cache[key])
         diagnostic = self._compute_h1_diagnostics(h1)
         if key is not None:
             with self._structure_cache_lock:
-                if len(self._structure_cache)>=256:
+                if len(self._structure_cache) >= 512:
                     self._structure_cache.clear()
-                self._structure_cache[key] = deepcopy(diagnostic)
+                self._structure_cache[key] = dict(diagnostic)
         return diagnostic
 
     def _compute_h1_diagnostics(self, h1):
@@ -805,7 +863,8 @@ class MalaysianSNRStrategy:
                            if scenario == 'ESC_3_FRACTAL' else self.config.continuation_max_entry_distance_atr
                            if scenario.startswith('ESC_1_') else self.config.max_entry_distance_atr})
         if self.config.enable_scenario_1_continuation and adx >= self.config.continuation_min_adx:
-            for level in reversed(av_levels(h1)):
+            level_def = getattr(self.config, 'av_level_definition', 'engulfing')
+            for level in reversed(av_levels(h1, definition=level_def)):
                 if not 2 < len(h1) - 1 - level['idx'] <= self.config.level_lookback_candles:
                     continue
                 direction = 'BUY' if level['type'] == 'A_RESISTANCE' else 'SELL'
@@ -995,6 +1054,11 @@ class MalaysianSNRStrategy:
                 return reject("DIRECTION_ASYMMETRY_JUMP_BUY_ONLY")
             if sym_l in step_sell_only and direction != "SELL":
                 return reject("DIRECTION_ASYMMETRY_STEP_SELL_ONLY")
+            crash_sell_only = {str(s).strip().lower() for s in getattr(self.config, "crash_sell_only_symbols", ())}
+            if sym_l in crash_sell_only and direction != "SELL":
+                return reject("DIRECTION_ASYMMETRY_CRASH_SELL_ONLY")
+            if sym_l.startswith("step") and adx < float(getattr(self.config, "step_min_adx", 25.0)):
+                return reject("STEP_ADX_BELOW_THRESHOLD")
         # Piso estructural de SL en sintéticos contra mechas mínimas de ruido M15
         min_sl_atr = float(getattr(self.config, "min_sl_atr_h1", 0.0) or 0.0)
         if is_synthetic_symbol(symbol) and min_sl_atr > 0 and current_atr > 0 and (risk_dist / current_atr) < min_sl_atr - 1e-9:

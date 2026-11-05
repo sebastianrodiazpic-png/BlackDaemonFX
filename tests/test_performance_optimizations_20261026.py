@@ -19,7 +19,7 @@ def test_skip_disabled_worker_processes_by_default(monkeypatch):
 
     repo = SimpleNamespace(open_trades=lambda source="DEMO": [])
 
-    for disabled_prof in ("FOREX_2", "FOREX_3", "FOREX_4", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "GOLD", "DRIFT", "FLIP"):
+    for disabled_prof in ("FOREX_2", "FOREX_3", "FOREX_4", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "GOLD", "DRIFT", "FLIP", "TREND_PULLBACK"):
         skip, reason = main_mod._should_skip_disabled_worker_process(disabled_prof, repo)
         assert skip is True, f"{disabled_prof} debería omitirse cuando no tiene posiciones abiertas"
         assert reason
@@ -39,7 +39,7 @@ def test_disabled_worker_with_open_positions_is_never_skipped(monkeypatch):
     skip, _ = main_mod._should_skip_disabled_worker_process("GOLD", repo_by_profile)
     assert skip is False
 
-    gold_magic = main_mod.BOT_PROFILES["GOLD"]["magic"]
+    gold_magic = main_mod.BOT_PROFILES["FOREX_2"]["magic"]
     repo_by_magic = SimpleNamespace(
         open_trades=lambda source="DEMO": [
             {"id": 2, "instrument": "XAUUSD", "daemon_magic": gold_magic, "details": {}}

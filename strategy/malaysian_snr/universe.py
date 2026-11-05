@@ -3,10 +3,12 @@ FAMILIES = {
     'synthetics': (
         'Step Index', 'Step Index 200', 'Step Index 400', 'Step Index 500',
         'Jump 10 Index', 'Jump 25 Index', 'Jump 50 Index', 'Jump 75 Index', 'Jump 100 Index',
-        'Volatility 10 Index', 'Volatility 15 Index', 'Volatility 25 Index',
+        'Volatility 5 Index', 'Volatility 10 Index', 'Volatility 15 Index', 'Volatility 25 Index',
         'Volatility 50 Index', 'Volatility 75 Index', 'Volatility 100 Index',
-        'Volatility 50 (1s) Index', 'Volatility 75 (1s) Index',
-        'Volatility 90 Index', 'Volatility 250 (1s) Index',
+        'Volatility 50 (1s) Index', 'Volatility 75 (1s) Index', 'Volatility 90 (1s) Index',
+        'Volatility 90 Index', 'Volatility 150 (1s) Index', 'Volatility 250 (1s) Index',
+        'Vol over Boom 550', 'Vol over Crash 550', 'VolSwitch High Vol Index',
+        'High Frequency Vol 50 Index', 'High Frequency Vol 100 Index',
         'Boom 300 Index', 'Boom 500 Index', 'Boom 600 Index', 'Boom 900 Index', 'Boom 1000 Index',
         'Crash 300 Index', 'Crash 500 Index', 'Crash 600 Index', 'Crash 900 Index', 'Crash 1000 Index'),
     'forex': ('EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'AUDUSD',
@@ -15,7 +17,7 @@ FAMILIES = {
         'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD'),
     'crypto': ('BTCUSD',),
     'metals': ('XAUUSD', 'XAGUSD'),
-    'indices': ('US SP 500', 'US Tech 100', 'Wall Street 30'),
+    'indices': ('Germany 40', 'US SP 500', 'US Tech 100', 'Wall Street 30'),
     'commodities': ('US Oil',),
 }
 CATALOG_SYMBOLS = tuple(symbol for group in FAMILIES.values() for symbol in group)

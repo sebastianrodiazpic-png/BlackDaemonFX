@@ -13,6 +13,7 @@ os.environ.setdefault("DAEMONBLACKFX_DB_PATH", os.path.join(_test_tmp_dir, "trad
 # Los tests ejercitan la lógica de todos los workers; en producción algunos están desactivados para entradas nuevas
 # (DAEMONBLACKFX_DISABLED_WORKERS, 24-oct-2026). Su valor por defecto se prueba en test_disabled_workers.py.
 os.environ.setdefault("DAEMONBLACKFX_DISABLED_WORKERS", "")
+os.environ.setdefault("DAEMONBLACKFX_TREND_PULLBACK_ENABLED", "1")
 
 # Modos clásicos de ORB previos a la Fase 1 (18-oct-2026). Los tests de mecánica
 # breakout/momentum/retest los activan explícitamente, porque en producción la Fase 1

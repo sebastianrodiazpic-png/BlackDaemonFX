@@ -42,17 +42,25 @@ def _make_dummy_provider(direction="BUY", adx=30.0, atr=2.0, sl_distance=3.0, pb
 
 
 def test_jump_and_step_excluded_from_malaysian_snr():
-    """Verifica que Jump y Step fueron retirados de Malaysian SNR para evitar duplicidad unidireccional."""
+    """Verifica que los activos con rentabilidad <= 50% permanezcan excluidos de Malaysian SNR y los >50% activos."""
     excluded = set(MALAYSIAN_SNR_EXCLUDED)
     active = set(MALAYSIAN_SNR_SYNTHETICS)
     
-    transferred_to_workers = [
-        "Jump 50 Index", "Jump 75 Index",
-        "Step Index 200", "Step Index 400", "Step Index 500"
+    # Activos con WR <= 50.0% deben estar excluidos:
+    wr50_or_unidirectional_pruned = [
+        "Jump 50 Index",  # WR 40.0% <= 50%
+        "Step Index",     # WR 34.6% <= 50%
+        "Crash 900 Index" # WR 49.1% <= 50%
     ]
-    for sym in transferred_to_workers:
+    for sym in wr50_or_unidirectional_pruned:
         assert sym in excluded, f"{sym} debería estar excluido de Malaysian SNR"
         assert sym not in active, f"{sym} NO debería estar activo en Malaysian SNR"
+
+    # Activos con WR > 50.0% rescatados por rentabilidad institucional acordada:
+    rescued_above_50 = ["Jump 75 Index", "Step Index 200", "Step Index 400", "Step Index 500"]
+    for sym in rescued_above_50:
+        assert sym in active, f"{sym} debería estar activo en Malaysian SNR (>50% WR)"
+        assert sym not in excluded, f"{sym} NO debería estar excluido de Malaysian SNR"
 
 
 def test_jump_and_step_excluded_from_trend_pullback():

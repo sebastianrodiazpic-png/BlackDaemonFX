@@ -39,7 +39,15 @@ def late_fractal(retest_minutes=75):
         h1 = pd.concat([h1,pd.DataFrame([{'time':closed,'open':105.4,'high':106.,
                                         'low':105.2,'close':105.8}])],ignore_index=True)
     frames = {'H1':h1,'M15':pd.concat([m15,post],ignore_index=True)}
-    cfg = MalaysianSNRConfig(allowed_symbols=(), enable_daily_storyline_filter=False)
+    cfg = MalaysianSNRConfig(
+        allowed_symbols=(),
+        enable_daily_storyline_filter=False,
+        retest_window_minutes=90,
+        confirmation_tolerance_bars=0,
+        enable_structural_freshness=False,
+        enable_m15_micro_stop=False,
+        step_min_adx=0.0,
+    )
     return Provider(frames), cfg, closed + pd.Timedelta(minutes=retest_minutes), closed
 
 

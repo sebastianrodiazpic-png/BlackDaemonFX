@@ -53,20 +53,26 @@ ICT_5Y_RESCUED_SYNTHETICS = (
         "Boom 1000 Index",
         "Vol over Boom 550",
         "Vol over Crash 550",
+        "Volatility Boom 550 Index",
+        "Volatility Crash 550 Index",
         "Volatility 50 Index",
         "Jump 50 Index",
         "Wall Street 30",
+        "VolSwitch High Vol Index",  # Rescatado por decisión del usuario (WR = 61.1 % con Criterio Humano)
     )
     if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
     else ()
 )
 
-# Poda multianual 5 años en sintéticos e índices US: únicamente los activos con WR <= 47 %.
+# Poda multianual 5 años en sintéticos e índices US: activos con WR <= 50 % bajo estrategia y criterio humano.
 ICT_5Y_SYNTH_PRUNED = (
     (
         "Crash 1000 Index",             # WR = 44.60 %, -0.129 R/op, -27.5 R
         "Volatility 90 (1s) Index",     # WR = 45.71 %, -0.088 R/op, -9.2 R
         "High Frequency Vol 50 Index",  # WR = 42.39 %, -0.179 R/op, -16.5 R
+        "Volatility 100 Index",         # WR con criterio humano = 49.7 % (<= 51.0 %)
+        "Boom 500 Index",               # WR con criterio humano = 50.4 % (<= 51.0 %)
+        "Crash 900 Index",              # WR con criterio humano = 50.5 % (<= 51.0 %)
     )
     if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
     else ()
@@ -100,7 +106,7 @@ ICT_SYNTHETIC_FAMILIES = {
         "Volatility 10 Index", "Volatility 15 Index", "Volatility 5 Index", "Volatility 250 (1s) Index",
         "High Frequency Vol 100 Index", "Volatility 75 (1s) Index", "Volatility 50 (1s) Index",
         "Volatility 50 Index", "Volatility 150 (1s) Index", "Volatility 75 Index",
-        "Vol over Boom 550", "Vol over Crash 550", "Volatility 100 Index",
+        "Vol over Boom 550", "Vol over Crash 550", "Volatility Boom 550 Index", "Volatility Crash 550 Index", "Volatility 100 Index",
         "Volatility 90 (1s) Index", "High Frequency Vol 50 Index",
     ),
     "BOOM": _keep("Boom 900 Index", "Boom 600 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 500 Index"),
@@ -112,12 +118,13 @@ ICT_VOLATILITY_ACTIVE_SYMBOLS = ICT_SYNTHETIC_FAMILIES["VOLATILITY"]
 ICT_VOLATILITY_PRUNED_SYMBOLS = (
     "Volatility 90 (1s) Index",
     "High Frequency Vol 50 Index",
+    "Volatility 100 Index",
 )
 
 # Forex: pares con WR > 47 % y R/op > 0 en el replay fiel de 5 años tras las 6 mejoras operados por FOREX_1;
 # el resto queda en FOREX_2 (desactivado por defecto, activable de forma selectiva desde /Instruments).
 ICT_FOREX_ACTIVE_BASES = (
-    ("GBPUSD", "USDCHF", "EURJPY", "CADCHF", "NZDUSD", "EURGBP", "GBPJPY", "GBPCHF", "AUDJPY")
+    ("GBPUSD", "USDCHF", "EURJPY", "CADCHF", "NZDUSD", "EURGBP", "GBPJPY")
     if ICT_5Y_AUDIT_ENABLED
     else ("EURUSD", "USDJPY", "GBPUSD", "USDCAD", "USDCHF", "GBPCAD", "AUDUSD")
 )
@@ -175,21 +182,43 @@ def _msnr_real_market_symbols() -> tuple:
 
 MSNR_REAL_MARKET_SYMBOLS = _msnr_real_market_symbols()
 
-# Malaysian SNR por acierto > 47 % (25-oct-2026, decisión del usuario): sintéticos con acierto > 47 % en el replay
-# fiel D+A+B (dic-2023 → oct-2026). Solo gobierna la pestaña/worker Malaysian SNR; el worker MSNR (vídeos) sigue con
-# MSNR_ACTIVE. DAEMONBLACKFX_MSNR_ACIERTO47=off vuelve a MSNR_ACTIVE + DEX; DAEMONBLACKFX_MSNR_SYNTHETICS_ACTIVE
-# (lista separada por comas) sustituye la lista completa.
-# NOTA (30-oct-2026): Jump 50/75 y Step 200/400/500 transferidos a workers dedicados JUMP y STEP
-# con lógica bidireccional (>51% WR), excluidos de Malaysian SNR para evitar duplicidad unidireccional.
+# Malaysian SNR por acierto > 50 % bajo estrategia y criterio humano (31-oct-2026):
+# 21 sintéticos activos que superan el 50.0% de rentabilidad y expectativa positiva en el replay multianual.
+# Podados por WR <= 50.0%: Crash 900 (49.1%), Vol 50 (1s) (49.6%), Vol 10 (50.0%), Step Index (34.6%), Jump 50 (40.0%), etc.
 MSNR_ACIERTO47_SYNTHETICS = (
-    "High Frequency Vol 100 Index", "VolSwitch High Vol Index", "Volatility 5 Index",
-    "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 300 Index",
-    "Volatility 150 (1s) Index", "Jump 25 Index",
-    "Volatility 25 Index", "Volatility 75 Index", "Volatility 250 (1s) Index", "Crash 900 Index",
-    "High Frequency Vol 50 Index", "Volatility 10 Index", "Jump 10 Index", "Boom 500 Index",
-    "Volatility 15 Index", "Volatility 75 (1s) Index",
+    "High Frequency Vol 100 Index",  # 63.3% WR, +10.8 R
+    "VolSwitch High Vol Index",      # 62.9% WR, +9.3 R
+    "Volatility 5 Index",            # 60.9% WR, +14.7 R
+    "Volatility 90 Index",           # 59.4% WR, +7.4 R
+    "Jump 75 Index",                 # 58.3% WR, +27.2 R
+    "Vol over Boom 550",             # 56.7% WR, +1.6 R
+    "High Frequency Vol 50 Index",   # 54.6% WR, +1.9 R
+    "Jump 25 Index",                 # 53.7% WR, +8.7 R
+    "Boom 500 Index",                # 53.5% WR, +7.4 R
+    "Step Index 200",                # 53.4% WR, +8.4 R
+    "Volatility 75 Index",           # 53.0% WR, +6.9 R
+    "Step Index 500",                # 52.9% WR, +5.9 R
+    "Volatility 75 (1s) Index",      # 52.8% WR, +10.3 R
+    "Step Index 400",                # 52.7% WR, +9.2 R
+    "Jump 10 Index",                 # 52.5% WR, +7.4 R
+    "Volatility 250 (1s) Index",     # 52.2% WR, +8.7 R
+    "Volatility 15 Index",           # 52.1% WR, +0.2 R
+    "Volatility 25 Index",           # 51.2% WR, +0.5 R
+
 )
 MSNR_ACIERTO47_ENABLED = os.getenv("DAEMONBLACKFX_MSNR_ACIERTO47", "on").strip().lower() not in ("0", "false", "off")
+
+# Canasta Élite Cuantitativa Malaysian SNR (Replay fiel 1.368 ops, alta expectativa y win rate positivo):
+# Ganadores top probados: Boom 1000 (+21.0 R), Crash 1000 (+14.4 R), Vol 25 (+15.8 R), Vol 10 (+14.2 R), Step Index (+5.5 R).
+# Excluidos por destrucción probada: Jump 25 (-43.0 R) y Volatility 75 (-27.4 R).
+MSNR_ELITE_SYNTHETICS = (
+    "Boom 1000 Index", "Crash 1000 Index", "Step Index", "Volatility 25 Index", "Volatility 10 Index",
+    "Volatility 90 Index", "Volatility 50 (1s) Index", "Boom 500 Index", "Crash 900 Index",
+    "Boom 300 Index", "Crash 600 Index", "VolSwitch High Vol Index", "High Frequency Vol 100 Index",
+    "High Frequency Vol 50 Index", "Volatility 15 Index", "Volatility 75 (1s) Index",
+    "Volatility 150 (1s) Index", "Volatility 250 (1s) Index", "Volatility 5 Index", "Jump 10 Index", "Crash 500 Index", "Boom 900 Index",
+)
+MSNR_ELITE_BASKET_ENABLED = os.getenv("DAEMONBLACKFX_MSNR_ELITE_BASKET", "1").strip().lower() in ("1", "true", "on")
 
 
 def _malaysian_snr_synthetics() -> tuple:
@@ -267,12 +296,12 @@ def preventive_prune_reason(symbol: str, profile: str) -> str:
     if is_ict_active(sym, profile):
         return ""
     low = sym.lower()
-    if sym in REAL_SPREAD_PRUNED and str(profile).upper() != "MALAYSIAN_SNR":
+    if sym in REAL_SPREAD_PRUNED and sym not in set(ICT_5Y_RESCUED_SYNTHETICS) and str(profile).upper() != "MALAYSIAN_SNR":
         return (f"{PREVENTIVE_PRUNE_LABEL}: spread real (ticks) ~4× el de las velas; supera siempre el tope "
                 "spread/SL 2 % del motor (0 operaciones posibles).")
     if str(profile).upper() == "MALAYSIAN_SNR":
         if MSNR_ACIERTO47_ENABLED and sym in MALAYSIAN_SNR_EXCLUDED:
-            why = "acierto <= 47 % en el replay fiel de Malaysian SNR (dic-2023 → oct-2026, tope spread/SL 2 %)."
+            why = "acierto <= 51.0 % bajo estrategia y criterio humano en Malaysian SNR (tope spread/SL 2 %)."
         elif sym in MSNR_DEMO_TEST_CANDIDATES:
             why = "prueba demo desactivada (DAEMONBLACKFX_MSNR_DEMO_TEST_SYMBOLS=off)."
         elif sym in MSNR_WR45_PRUNED:
@@ -290,13 +319,13 @@ def preventive_prune_reason(symbol: str, profile: str) -> str:
     elif sym in ICT_PHASE1_EXCLUDED:
         why = "Fase 1 / auditoría 5 años: expectativa negativa en el replay fiel multianual (XAGUSD WR = 0.00 %)."
     elif sym in ICT_5Y_SYNTH_PRUNED:
-        why = "auditoría multianual ICT (5 años): expectativa negativa R/op < 0 o WR <= 47 % tras las 6 mejoras (asignado a worker podado OFF)."
+        why = "auditoría multianual ICT (5 años): expectativa negativa R/op < 0 o WR <= 51.0 % tras las 6 mejoras (asignado a worker podado OFF)."
     elif sym in ICT_WR45_PRUNED and sym not in set(ICT_5Y_RESCUED_SYNTHETICS):
         why = "acierto <= 45 % en el replay fiel ICT (entrada limitada + tope spread/SL 2 %)."
     elif any(k in low for k in _CRYPTO_KEYS):
         why = "ICT en cripto desactivado (ict_crypto_enabled=False): sin ventaja en el replay fiel."
     elif str(profile).upper() == "FOREX":
-        why = "par con expectativa negativa o WR <= 47 % en el replay fiel de 5 años ICT (asignado a FOREX_2 OFF; activable de forma selectiva)."
+        why = "par con expectativa negativa o WR <= 51.0 % en el replay fiel de 5 años ICT (asignado a FOREX_2 OFF; activable de forma selectiva)."
     elif str(profile).upper() == "ICT" and any(k in low for k in ("boom", "crash", "step", "jump", "vol")):
         why = "los sintéticos se operan desde la pestaña Sintéticos con su worker de familia."
     else:

@@ -108,7 +108,7 @@ def test_candle_errors_keep_lock_and_unlocked_symbol_passes():
 
 def test_defaults_and_env():
     cfg = LiveTradingConfig()
-    assert cfg.ict_spread_block_lock_enabled is True and cfg.ict_spread_block_lock_max_hours == 50.0
+    assert cfg.ict_spread_block_lock_enabled is True and cfg.ict_spread_block_lock_max_hours == 1.0
     code = "from strategy.execution.live_trading_engine import LiveTradingConfig as C; print(C().ict_spread_block_lock_enabled)"
     env = {**os.environ, "DAEMONBLACKFX_ICT_SPREAD_LOCK": "0"}
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=os.getcwd())

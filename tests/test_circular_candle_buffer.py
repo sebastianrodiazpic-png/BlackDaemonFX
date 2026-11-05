@@ -95,3 +95,15 @@ def test_buffered_candle_provider_wrapper():
     # Delegación de otros métodos sin modificar
     tick = buffered_provider.get_current_tick("BOOM_1000_INDEX")
     assert tick["bid"] == 100.0
+
+
+def test_circular_candle_buffer_timeframe_adaptive_ttl():
+    """Verifica que las temporalidades mayores gocen de un TTL adaptativo extendido."""
+    buffer = CircularCandleBuffer(max_candles=300, ttl_seconds=2.5, enabled=True)
+    assert buffer.get_timeframe_ttl("M5") == 2.5
+    assert buffer.get_timeframe_ttl("M1") == 2.5
+    assert buffer.get_timeframe_ttl("M15") >= 12.0
+    assert buffer.get_timeframe_ttl("H1") >= 45.0
+    assert buffer.get_timeframe_ttl("H4") >= 120.0
+    assert buffer.get_timeframe_ttl("D1") >= 120.0
+

@@ -46,7 +46,7 @@ def none_signal():
 def test_defaults():
     cfg = LiveTradingConfig()
     assert cfg.ict_virtual_limit_enabled is True
-    assert cfg.ict_virtual_limit_bars == 8
+    assert cfg.ict_virtual_limit_bars == 12
 
 
 def test_signal_waits_then_triggers_when_ask_touches_limit():

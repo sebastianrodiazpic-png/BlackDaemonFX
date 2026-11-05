@@ -445,16 +445,7 @@ class ICTSabriMalleStrategy:
         if str(symbol).strip().lower() in wr_pruned:
             return {**base_response, "reason": "ICT_SYMBOL_PRUNED_WINRATE_LE_45"}
 
-        # 1. Obtener velas históricas H1
-        try:
-            raw_h1 = self.provider.get_candles(symbol, self.config.structure_timeframe, count=81)
-        except Exception as exc:
-            return {**base_response, "reason": f"PROVIDER_ERROR_H1: {exc}"}
-
-        if raw_h1 is None or len(raw_h1) < 30:
-            return {**base_response, "reason": "INSUFFICIENT_H1_CANDLES"}
-
-        # 2. Filtro Horario, Cierres de Mercado y Killzones Institucionales (New York Time)
+        # 1. Filtro Horario, Cierres de Mercado y Killzones Institucionales (Fast-Exit sin I/O de velas)
         is_synthetic = is_synthetic_asset(symbol)
         now_ny = now.tz_convert(NEW_YORK)
         ny_hour = now_ny.hour
@@ -483,9 +474,17 @@ class ICTSabriMalleStrategy:
         in_ny_kz = (self.config.ny_kz_start_ny <= ny_hour <= self.config.ny_kz_end_ny)
 
         # Reglas de Sesiones Oficiales ICT:
-        # 1. Gold: Preserva exactamente su configuración (Londres y New York Killzone)
+        # 1. Gold: Preserva su configuración oficial ICT (Londres, NY Killzone, London Close y Silver Bullet)
         if is_gold:
-            session_active = in_london_kz or (in_ny_kz and self.config.ny_killzone_enabled)
+            in_london_close = False
+            if getattr(self.config, "london_close_reversal_enabled", True):
+                if ny_hour == 11 or (ny_hour == 12 and now_ny.minute <= 30):
+                    in_london_close = True
+            in_silver_bullet = False
+            if getattr(self.config, "silver_bullet_enabled", True):
+                if ny_hour in tuple(getattr(self.config, "silver_bullet_hours_ny", (3, 10, 14))):
+                    in_silver_bullet = True
+            session_active = in_london_kz or (in_ny_kz and self.config.ny_killzone_enabled) or in_silver_bullet or in_london_close
         elif is_synthetic:
             # Sintéticos (Volatility 1-4, Jump, Step, Boom, Crash): Operación continua 24/7 sin barreras bancarias
             session_active = True
@@ -514,7 +513,22 @@ class ICTSabriMalleStrategy:
                 if 0 <= ny_hour <= 2:
                     in_tokyo_london_jpy = True
 
-            session_active = in_london_kz or ny_kz_active or in_london_close or in_silver_bullet or in_tokyo_london_jpy
+            # Sesión Asiática oficial (Tokyo / Sydney) para pares JPY y AUD (19:00 - 02:00 NY)
+            in_asian_session_jpy_aud = False
+            is_jpy_or_aud = is_forex and any(curr in sym_u for curr in ("JPY", "AUD"))
+            if is_jpy_or_aud and getattr(self.config, "asian_session_jpy_aud_enabled", True):
+                asian_kz_hours = getattr(self.config, "asian_kz_hours_ny", (19, 20, 21, 22, 23, 0, 1, 2))
+                if ny_hour in asian_kz_hours:
+                    in_asian_session_jpy_aud = True
+
+            session_active = (
+                in_london_kz
+                or ny_kz_active
+                or in_london_close
+                or in_silver_bullet
+                or in_tokyo_london_jpy
+                or in_asian_session_jpy_aud
+            )
 
         if not is_synthetic and self.config.killzone_filter_enabled:
             if not session_active:
@@ -524,10 +538,37 @@ class ICTSabriMalleStrategy:
                     "diagnostics": {"session_killzone_active": 0.0, "ny_hour": ny_hour}
                 }
 
+        # 2. Obtener velas históricas H1 (solo si la sesión y el horario están activos)
+        try:
+            raw_h1 = self.provider.get_candles(symbol, self.config.structure_timeframe, count=81)
+        except Exception as exc:
+            return {**base_response, "reason": f"PROVIDER_ERROR_H1: {exc}"}
+
+        if raw_h1 is None or len(raw_h1) < 30:
+            return {**base_response, "reason": "INSUFFICIENT_H1_CANDLES"}
+
         df_h1 = closed_candles_only(raw_h1, self.config.structure_timeframe, now, count=80)
 
         if len(df_h1) < 28:
             return {**base_response, "reason": "INSUFFICIENT_HISTORICAL_H1"}
+
+        # Optimización Early-Exit: Si min_adx_h1 > 0 y el régimen H1 es insuficiente,
+        # salir antes de descargar H4, calcular EMAs, swings y pedir LTF candles por red.
+        min_adx = float(getattr(self.config, "min_adx_h1", 0.0) or 0.0)
+        early_adx = None
+        if len(df_h1) >= 28:
+            try:
+                from strategy.indicators import calculate_adx
+                adx_series = calculate_adx(df_h1)
+                if not adx_series.empty:
+                    val = float(adx_series.iloc[-1])
+                    if math.isfinite(val):
+                        early_adx = round(val, 2)
+            except Exception:
+                early_adx = None
+
+        if min_adx > 0 and early_adx is not None and early_adx > 0 and early_adx < min_adx:
+            return {**base_response, "reason": f"INSUFFICIENT_H1_ADX_REGIME ({early_adx:.1f} < {min_adx:.1f})"}
 
         # Velas H4 para Macro Bias
         df_h4 = None
@@ -605,22 +646,45 @@ class ICTSabriMalleStrategy:
 
         range_high = None
         range_low = None
+        asia_high = None
+        asia_low = None
+        pdh = None
+        pdl = None
 
         if not is_synthetic:
             df_h1_ny = df_h1.copy()
             df_h1_ny["ny_hour"] = df_h1_ny["time"].dt.tz_convert(NEW_YORK).dt.hour
+            df_h1_ny["ny_date"] = df_h1_ny["time"].dt.tz_convert(NEW_YORK).dt.date
             
+            # 1. Asian Range más reciente (20:00 a 00:00 NY)
+            asian_bars = []
+            for look_back in range(1, min(36, len(df_h1_ny))):
+                chk_idx = len(df_h1_ny) - 1 - look_back
+                chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
+                if chk_h >= self.config.asian_range_start_ny or chk_h <= self.config.asian_range_end_ny:
+                    asian_bars.append(df_h1_ny.iloc[chk_idx])
+                elif len(asian_bars) > 0:
+                    break
+            if len(asian_bars) >= 2:
+                df_asia = pd.DataFrame(asian_bars)
+                asia_high = float(df_asia["high"].max())
+                asia_low = float(df_asia["low"].min())
+
+            # 2. Previous Day High / Low (PDH / PDL)
+            prior_df = df_h1_ny[df_h1_ny["ny_date"] < now_ny.date()]
+            if not prior_df.empty:
+                last_prior_date = prior_df["ny_date"].iloc[-1]
+                prev_day = prior_df[prior_df["ny_date"] == last_prior_date]
+                if len(prev_day) >= 4:
+                    pdh = float(prev_day["high"].max())
+                    pdl = float(prev_day["low"].min())
+
             if 2 <= ny_hour <= 5:
                 # London KZ barre el Rango Asiático (20:00 a 00:00 NY)
-                asian_bars = []
-                for look_back in range(1, min(24, len(df_h1_ny))):
-                    chk_idx = len(df_h1_ny) - 1 - look_back
-                    chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
-                    if chk_h >= self.config.asian_range_start_ny or chk_h <= self.config.asian_range_end_ny:
-                        asian_bars.append(df_h1_ny.iloc[chk_idx])
-                    elif len(asian_bars) > 0:
-                        break
-                if len(asian_bars) >= 2:
+                if asia_high is not None and asia_low is not None:
+                    range_high = asia_high
+                    range_low = asia_low
+                elif len(asian_bars) >= 2:
                     df_asia = pd.DataFrame(asian_bars)
                     range_high = float(df_asia["high"].max())
                     range_low = float(df_asia["low"].min())
@@ -652,6 +716,23 @@ class ICTSabriMalleStrategy:
                     df_ny_am = pd.DataFrame(ny_am_bars)
                     range_high = float(df_ny_am["high"].max())
                     range_low = float(df_ny_am["low"].min())
+            elif in_asian_session_jpy_aud:
+                # Sesión Asiática (Tokyo / Sydney) para pares JPY y AUD (19:00 - 02:00 NY)
+                ny_pm_bars = []
+                for look_back in range(1, min(24, len(df_h1_ny))):
+                    chk_idx = len(df_h1_ny) - 1 - look_back
+                    chk_h = df_h1_ny["ny_hour"].iloc[chk_idx]
+                    if 12 <= chk_h <= 17:
+                        ny_pm_bars.append(df_h1_ny.iloc[chk_idx])
+                    elif len(ny_pm_bars) > 0:
+                        break
+                if len(ny_pm_bars) >= 2:
+                    df_ny_pm = pd.DataFrame(ny_pm_bars)
+                    range_high = float(df_ny_pm["high"].max())
+                    range_low = float(df_ny_pm["low"].min())
+                elif pdh is not None and pdl is not None:
+                    range_high = pdh
+                    range_low = pdl
         else:
             # Sintéticos (Volatility 1-4, Jump, Step, Boom, Crash):
             # Utilizar rango rodante dinámico (8 velas H1 por defecto) para capturar ciclos intradía
@@ -672,7 +753,21 @@ class ICTSabriMalleStrategy:
             range_low = float(np.min(r_slice_low))
 
         range_height = range_high - range_low
-        if curr_atr <= 0 or range_height < (self.config.min_atr_factor * curr_atr) or range_height > (self.config.max_atr_factor * curr_atr):
+        is_range_height_valid = (
+            curr_atr > 0
+            and (self.config.min_atr_factor * curr_atr) <= range_height <= (self.config.max_atr_factor * curr_atr)
+        )
+        if not is_range_height_valid and not is_synthetic:
+            # Si el rango de sesión principal excede los límites, pero el Asian Range está en bounds, se adopta como rango efectivo
+            if asia_high is not None and asia_low is not None:
+                ar_height = asia_high - asia_low
+                if (self.config.min_atr_factor * curr_atr) <= ar_height <= (self.config.max_atr_factor * curr_atr):
+                    range_high = asia_high
+                    range_low = asia_low
+                    range_height = ar_height
+                    is_range_height_valid = True
+
+        if not is_range_height_valid:
             return {**base_response, "reason": "RANGE_HEIGHT_OUTSIDE_ATR_BOUNDS"}
 
         # 5. Manipulación (M - Judas Swing): Barrido en las últimas 4 velas H1
@@ -706,6 +801,7 @@ class ICTSabriMalleStrategy:
                 sweep_peak = float(recent_synth_h1["low"].min())
                 sweep_idx = int(len(df_h1) - len(recent_synth_h1) + int(np.argmin(recent_synth_h1["low"].values)))
         else:
+            swept_liquidity_source = "NONE"
             recent_bars = df_h1.iloc[-4:].reset_index(drop=True)
             for idx in range(len(recent_bars)):
                 c_high = float(recent_bars["high"].iloc[idx])
@@ -714,29 +810,49 @@ class ICTSabriMalleStrategy:
                 c_close = float(recent_bars["close"].iloc[idx])
                 c_range = c_high - c_low + 1e-9
 
-                if bias_bearish and c_high > range_high:
-                    fvg_mitigated = any(
-                        fvg["type"] == "BEARISH" and c_high >= fvg["bottom"] and c_high <= (fvg["top"] + 0.1 * fvg["height"])
-                        for fvg in fvgs
-                    )
-                    upper_wick = (c_high - max(c_open, c_close)) / c_range
-                    if fvg_mitigated or (upper_wick >= wick_threshold):
-                        manipulation_found = True
-                        sweep_peak = c_high
-                        sweep_idx = len(df_h1) - 4 + idx
-                        break
+                if bias_bearish:
+                    swept_levels = []
+                    if range_high is not None and c_high > range_high:
+                        swept_levels.append("SESSION_RANGE_HIGH")
+                    if getattr(self.config, "asian_range_sweep_enabled", True) and asia_high is not None and c_high > asia_high:
+                        swept_levels.append("ASIAN_RANGE_HIGH")
+                    if getattr(self.config, "pdh_pdl_sweep_enabled", True) and pdh is not None and c_high > pdh:
+                        swept_levels.append("PREVIOUS_DAY_HIGH")
 
-                elif bias_bullish and c_low < range_low:
-                    fvg_mitigated = any(
-                        fvg["type"] == "BULLISH" and c_low <= fvg["top"] and c_low >= (fvg["bottom"] - 0.1 * fvg["height"])
-                        for fvg in fvgs
-                    )
-                    lower_wick = (min(c_open, c_close) - c_low) / c_range
-                    if fvg_mitigated or (lower_wick >= wick_threshold):
-                        manipulation_found = True
-                        sweep_peak = c_low
-                        sweep_idx = len(df_h1) - 4 + idx
-                        break
+                    if swept_levels:
+                        fvg_mitigated = any(
+                            fvg["type"] == "BEARISH" and c_high >= fvg["bottom"] and c_high <= (fvg["top"] + 0.1 * fvg["height"])
+                            for fvg in fvgs
+                        )
+                        upper_wick = (c_high - max(c_open, c_close)) / c_range
+                        if fvg_mitigated or (upper_wick >= wick_threshold):
+                            manipulation_found = True
+                            sweep_peak = c_high
+                            sweep_idx = len(df_h1) - 4 + idx
+                            swept_liquidity_source = "+".join(swept_levels)
+                            break
+
+                elif bias_bullish:
+                    swept_levels = []
+                    if range_low is not None and c_low < range_low:
+                        swept_levels.append("SESSION_RANGE_LOW")
+                    if getattr(self.config, "asian_range_sweep_enabled", True) and asia_low is not None and c_low < asia_low:
+                        swept_levels.append("ASIAN_RANGE_LOW")
+                    if getattr(self.config, "pdh_pdl_sweep_enabled", True) and pdl is not None and c_low < pdl:
+                        swept_levels.append("PREVIOUS_DAY_LOW")
+
+                    if swept_levels:
+                        fvg_mitigated = any(
+                            fvg["type"] == "BULLISH" and c_low <= fvg["top"] and c_low >= (fvg["bottom"] - 0.1 * fvg["height"])
+                            for fvg in fvgs
+                        )
+                        lower_wick = (min(c_open, c_close) - c_low) / c_range
+                        if fvg_mitigated or (lower_wick >= wick_threshold):
+                            manipulation_found = True
+                            sweep_peak = c_low
+                            sweep_idx = len(df_h1) - 4 + idx
+                            swept_liquidity_source = "+".join(swept_levels)
+                            break
 
         is_ifvg_bpr = False
         ifvg_bpr_scenario = None
@@ -807,6 +923,7 @@ class ICTSabriMalleStrategy:
                 ob_five_star = None
 
         fvg_aligned = False
+        micro_stop_applied = False
         if is_ifvg_bpr and ifvg_bpr_entry is not None and ifvg_bpr_sl is not None:
             entry_price = ifvg_bpr_entry
             stop_loss = ifvg_bpr_sl
@@ -832,14 +949,27 @@ class ICTSabriMalleStrategy:
                 fvg_mitigation = (curr_low + mitigation_ratio * (prev_high - curr_low)) if prev_high > curr_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
                 candidate_entry = min(local_support, fvg_ce)
-                if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
-                    candidate_entry = min(candidate_entry, ob_five_star["mean_threshold"])
+                mitigation_candidate = min(local_support, fvg_mitigation)
+                if ob_five_star and ob_five_star.get("valid"):
+                    if ob_five_star.get("mean_threshold"):
+                        candidate_entry = min(candidate_entry, ob_five_star["mean_threshold"])
+                    if getattr(self.config, "ob_mitigation_entry_enabled", True) and ob_five_star.get("bottom"):
+                        mitigation_candidate = min(mitigation_candidate, ob_five_star["bottom"])
                 entry_price = candidate_entry
-                mitigation_entry_price = min(local_support, fvg_mitigation)
+                mitigation_entry_price = mitigation_candidate
             else:
                 entry_price = curr_close
                 mitigation_entry_price = curr_close
             stop_loss = sweep_peak + spread
+            micro_stop_applied = False
+            if is_synthetic and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
+                buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
+                min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
+                m15_extreme = float(eval_df["high"].iloc[-4:].max())
+                m15_cand_stop = m15_extreme + buffer_dist + spread
+                if m15_cand_stop < stop_loss and (m15_cand_stop - candidate_entry) >= min_risk_floor:
+                    stop_loss = m15_cand_stop
+                    micro_stop_applied = True
             fvg_aligned = True
 
         else:
@@ -862,26 +992,40 @@ class ICTSabriMalleStrategy:
                 fvg_mitigation = (curr_high - mitigation_ratio * (curr_high - prev_low)) if curr_high > prev_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
                 candidate_entry = max(local_resistance, fvg_ce)
-                if ob_five_star and ob_five_star.get("valid") and ob_five_star.get("mean_threshold"):
-                    candidate_entry = max(candidate_entry, ob_five_star["mean_threshold"])
+                mitigation_candidate = max(local_resistance, fvg_mitigation)
+                if ob_five_star and ob_five_star.get("valid"):
+                    if ob_five_star.get("mean_threshold"):
+                        candidate_entry = max(candidate_entry, ob_five_star["mean_threshold"])
+                    if getattr(self.config, "ob_mitigation_entry_enabled", True) and ob_five_star.get("top"):
+                        mitigation_candidate = max(mitigation_candidate, ob_five_star["top"])
                 entry_price = candidate_entry
-                mitigation_entry_price = max(local_resistance, fvg_mitigation)
+                mitigation_entry_price = mitigation_candidate
             else:
                 entry_price = curr_close
                 mitigation_entry_price = curr_close
             stop_loss = sweep_peak - spread
+            micro_stop_applied = False
+            if is_synthetic and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
+                buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
+                min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
+                m15_extreme = float(eval_df["low"].iloc[-4:].min())
+                m15_cand_stop = m15_extreme - buffer_dist - spread
+                if m15_cand_stop > stop_loss and (candidate_entry - m15_cand_stop) >= min_risk_floor:
+                    stop_loss = m15_cand_stop
+                    micro_stop_applied = True
             fvg_aligned = True
 
         risk = abs(entry_price - stop_loss)
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):
             return {**base_response, "reason": "INVALID_RISK_SPREAD_RATIO"}
 
-        # Mejora 1 (26-oct-2026): piso estructural de SL en sintéticos (sl_atr_h1 >= min_sl_atr_h1)
+        # Mejora 1 (26-oct-2026): piso estructural de SL en sintéticos (sl_atr_h1 >= min_sl_atr_h1 o piso micro-stop)
         min_sl_atr = float(getattr(self.config, "min_sl_atr_h1", 0.0) or 0.0)
-        if is_synthetic and min_sl_atr > 0 and curr_atr > 0:
+        effective_min_sl_atr = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) if micro_stop_applied else min_sl_atr
+        if is_synthetic and effective_min_sl_atr > 0 and curr_atr > 0:
             sl_atr_ratio = risk / curr_atr
-            if sl_atr_ratio < min_sl_atr:
-                return {**base_response, "reason": f"SL_ATR_H1_TOO_TIGHT ({sl_atr_ratio:.2f} < {min_sl_atr:.2f})"}
+            if sl_atr_ratio < effective_min_sl_atr:
+                return {**base_response, "reason": f"SL_ATR_H1_TOO_TIGHT ({sl_atr_ratio:.2f} < {effective_min_sl_atr:.2f})"}
 
         # Mejora 2 (26-oct-2026): tope de profundidad de retroceso (signed_pullback_r <= max_signed_pullback_r)
         max_pb_r = float(getattr(self.config, "max_signed_pullback_r", 0.0) or 0.0)
@@ -891,17 +1035,20 @@ class ICTSabriMalleStrategy:
                 return {**base_response, "reason": f"PULLBACK_DEPTH_EXCEEDS_MAX_R ({signed_pb_r:.2f} > {max_pb_r:.2f})"}
 
         # 7. Objetivos (TP1 = tp1_rr, TP2 = runner_rr; hoy 1R / 2R) y validación Fibonacci
+        ref_low = min(v for v in (range_low, asia_low, pdl) if v is not None) if any(v is not None for v in (range_low, asia_low, pdl)) else range_low
+        ref_high = max(v for v in (range_high, asia_high, pdh) if v is not None) if any(v is not None for v in (range_high, asia_high, pdh)) else range_high
+
         if intended_direction == "SELL":
             swing_low_impulse = float(df_h1["low"].iloc[sweep_idx:].min())
             fibo_50 = (sweep_peak + swing_low_impulse) / 2.0
-            if range_low >= fibo_50:
+            if ref_low is not None and ref_low >= fibo_50:
                 return {**base_response, "reason": "TARGET_NOT_IN_DISCOUNT_ZONE"}
             tp1_price = entry_price - (self.config.tp1_rr * risk)
             tp2_price = entry_price - (self.config.runner_rr * risk)
         else:
             swing_high_impulse = float(df_h1["high"].iloc[sweep_idx:].max())
             fibo_50 = (sweep_peak + swing_high_impulse) / 2.0
-            if range_high <= fibo_50:
+            if ref_high is not None and ref_high <= fibo_50:
                 return {**base_response, "reason": "TARGET_NOT_IN_PREMIUM_ZONE"}
             tp1_price = entry_price + (self.config.tp1_rr * risk)
             tp2_price = entry_price + (self.config.runner_rr * risk)
@@ -922,15 +1069,16 @@ class ICTSabriMalleStrategy:
         # validada en replay). Ver registro, auditoría del 24-oct-2026.
         real_features = {"atr_h1": round(curr_atr, 8), "sl_atr_h1": round(risk / curr_atr, 4) if curr_atr > 0 else None,
                          "range_atr_h1": round(range_height / curr_atr, 4) if curr_atr > 0 else None,
-                         "spread_sl": round(spread / risk, 6) if risk > 0 else None, "adx_h1": None}
-        try:
-            from strategy.indicators import calculate_adx
-            adx_value = float(calculate_adx(df_h1).iloc[-1])
-            real_features["adx_h1"] = round(adx_value, 2) if math.isfinite(adx_value) else None
-        except Exception:
-            adx_value = None
+                         "spread_sl": round(spread / risk, 6) if risk > 0 else None, "adx_h1": early_adx}
+        if real_features["adx_h1"] is None:
+            try:
+                from strategy.indicators import calculate_adx
+                adx_value = float(calculate_adx(df_h1).iloc[-1])
+                real_features["adx_h1"] = round(adx_value, 2) if math.isfinite(adx_value) else None
+            except Exception:
+                pass
 
-        # Mejora 5 (26-oct-2026): filtro de régimen ADX H1 >= min_adx_h1
+        # Mejora 5 (26-oct-2026): filtro de régimen ADX H1 >= min_adx_h1 (doble chequeo defensivo)
         min_adx = float(getattr(self.config, "min_adx_h1", 0.0) or 0.0)
         if min_adx > 0 and real_features["adx_h1"] is not None and real_features["adx_h1"] > 0 and real_features["adx_h1"] < min_adx:
             return {**base_response, "reason": f"INSUFFICIENT_H1_ADX_REGIME ({real_features['adx_h1']:.1f} < {min_adx:.1f})"}
@@ -960,6 +1108,8 @@ class ICTSabriMalleStrategy:
             "entry_price": round(entry_price, 5),
             "mitigation_entry_price": round(mitigation_entry_price, 5) if 'mitigation_entry_price' in locals() else round(entry_price, 5),
             "dual_entry_mitigation_enabled": bool(getattr(self.config, "dual_entry_mitigation_enabled", True)),
+            "micro_stop_applied": bool(micro_stop_applied if 'micro_stop_applied' in locals() else False),
+            "micro_stop_timeframe": "M15" if ('micro_stop_applied' in locals() and micro_stop_applied) else None,
             "stop_loss": round(stop_loss, 5),
             "take_profit": round(tp2_price, 5),
             "tp1_price": round(tp1_price, 5),
@@ -996,13 +1146,22 @@ class ICTSabriMalleStrategy:
             "leg1_risk_ratio": self.config.leg1_risk_ratio,
             "leg2_risk_ratio": self.config.leg2_risk_ratio,
             "session_killzone_active": 1.0 if session_active else 0.0,
-            "asian_range_swept": True,
+            "swept_liquidity_source": swept_liquidity_source if not is_synthetic else "SYNTHETIC_ROLLING_EXTREME",
+            "asian_range_swept": bool("ASIAN_RANGE" in (swept_liquidity_source if not is_synthetic else "") or (not is_synthetic and swept_liquidity_source != "NONE")),
+            "pdh_pdl_swept": bool("PREVIOUS_DAY" in (swept_liquidity_source if not is_synthetic else "")),
+            "in_asian_session": bool(in_asian_session_jpy_aud if not is_synthetic else False),
+            "pdh": pdh,
+            "pdl": pdl,
+            "asia_high": asia_high,
+            "asia_low": asia_low,
             "fvg_consequent_encroachment_aligned": fvg_aligned,
             "displacement_body_ratio": round(displacement_ratio, 3),
             "ob_five_star": ob_five_star.get("stars") if ob_five_star else None,
             "ict_real_features": real_features,
             "strategy_name": self.config.strategy_name,
             "strategy_version": self.config.strategy_version,
+            "_cached_df_h1": df_h1,
+            "_cached_df_ltf": df_ltf,
         }
 
         return {

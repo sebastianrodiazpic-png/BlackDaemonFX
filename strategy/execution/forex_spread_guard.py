@@ -68,7 +68,8 @@ class ForexSpreadGuard:
         self.state['updated_at']=now.isoformat()
         self.state['limits']={'max_pips':self.max_pips,'max_multiple':self.multiplier,'minimum_samples':self.minimum_samples,'stable_samples':self.stable_samples}
         self.path.parent.mkdir(parents=True,exist_ok=True)
-        temp=self.path.with_suffix('.'+uuid.uuid4().hex+'.tmp')
+        # Optimización I/O: PID determinista en vez de UUID para evitar miles de .tmp huérfanos en Windows
+        temp = self.path.with_suffix(f'.{os.getpid()}.tmp')
         health = {'worker':self.state.get('worker'), 'at':now.isoformat(), 'status':'OK'}
         try:
             temp.write_text(json.dumps(self.state,ensure_ascii=False),encoding='utf-8')
@@ -89,12 +90,12 @@ class ForexSpreadGuard:
             except OSError:
                 pass
             try:
-                health_path=self.path.with_suffix('.health.json')
-                health_tmp=health_path.with_suffix('.'+uuid.uuid4().hex+'.tmp')
+                health_path = self.path.with_suffix('.health.json')
+                health_tmp = health_path.with_suffix(f'.{os.getpid()}.tmp')
                 health_tmp.write_text(json.dumps(health),encoding='utf-8')
                 health_tmp.replace(health_path)
             except OSError:
-                pass  # The original exception is still emitted by the worker audit.
+                pass
 
         return dict(item)
 

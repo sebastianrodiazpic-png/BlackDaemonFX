@@ -472,6 +472,20 @@ class LiveTradingConfig:
     jump_require_strong_close: bool = True
     jump_allow_single_fallback: bool = False
 
+    # Motor de Criterio Humano (Macro/Noticias en FX/Commodities y Tendencia en Sintéticos)
+    human_criteria_enabled: bool = (
+        os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    human_criteria_mode: str = os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_MODE", "FILTER").strip().upper()
+    human_criteria_min_score: float = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_MIN_SCORE", "65.0"))
+    human_criteria_synthetic_min_score: float = float(
+        os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE", "75.0")
+    )
+    human_criteria_msnr_min_score: float = float(
+        os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_MSNR_MIN_SCORE", "60.0")
+    )
+
     magic: int = 26082026
     bot_profile: str = "SYNTHETICS"
     deviation: int = 20
@@ -620,6 +634,7 @@ class LiveTradingConfig:
     orb_break_even_enabled: bool = True
     orb_break_even_trigger_rr: float = 1.0
     orb_momentum_enabled: bool = True
+    orb_mss_lookback_bars: int = int(os.getenv("DAEMONBLACKFX_ORB_MSS_LOOKBACK_BARS", "5"))
     orb_strategy_version: str = ORB_STRATEGY_VERSION
     orb_asset_profiles: dict = field(default_factory=default_asset_profiles)
 
@@ -653,14 +668,17 @@ class LiveTradingConfig:
     # Sintéticos: tope de spread / distancia al SL. Replay fiel ICT 365d (21.409 trades): R/trade cae de forma
     # monótona con spread/SL (<=1%: -0.015; 2-3%: -0.048; >8%: -0.17 a -0.27; p<0.002). 2% conserva ~54% de trades.
     synthetic_spread_guard_enabled: bool = True
-    synthetic_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_SPREAD_MAX_SL_RATIO", "0.02"))
+    synthetic_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_SPREAD_MAX_SL_RATIO", "0.025"))
     # Sintéticos: multiplicador de riesgo (contrato operativo: 1% total en 2 patas -> 1.0). Acotado a [0.1, 1.0].
     synthetic_risk_multiplier: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_RISK_MULT", "1.0"))
     # ICT en sintéticos: entrada LIMITADA virtual en signal["entry_price"] (50% FVG / nivel / mean threshold OB).
     # Replay fiel 365d (tools/replay_ict_limit_entry.py): con tope spread/SL 2%, mercado -0.028 R/trade vs
     # límite +0.032 R/trade (t=2.9, positivo en ambas mitades). Se envía a mercado al tocar el precio.
     ict_virtual_limit_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT", "1").strip().lower() not in ("0", "false", "off")
-    ict_virtual_limit_bars: int = int(os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT_BARS", "8"))
+    ict_virtual_limit_bars: int = int(os.getenv("DAEMONBLACKFX_ICT_VIRTUAL_LIMIT_BARS", "12"))
+    ict_dual_entry_mitigation_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_DUAL_ENTRY_MITIGATION", "1").strip().lower() not in ("0", "false", "off")
+    )
     # Una señal = un solo límite (como el replay): un límite caducado o invalidado (SL tocado antes del fill) no se
     # vuelve a crear en el ciclo siguiente aunque la vela de señal siga siendo la última cerrada. Antes se recreaba y,
     # si el precio volvía al límite, se llenaba una operación que el replay no hace (allí el límite se llena antes de
@@ -681,7 +699,7 @@ class LiveTradingConfig:
     # muestra) +0,004 -> +0,022 R/t y R total +39 -> +191; último año +0,015 -> +0,047 R/t. Las señales que se
     # evitan pierden -0,11/-0,16 R/t. DAEMONBLACKFX_ICT_SPREAD_LOCK=0 lo desactiva.
     ict_spread_block_lock_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_SPREAD_LOCK", "1").strip().lower() not in ("0", "false", "off")
-    ict_spread_block_lock_max_hours: float = float(os.getenv("DAEMONBLACKFX_ICT_SPREAD_LOCK_MAX_HOURS", "50"))
+    ict_spread_block_lock_max_hours: float = float(os.getenv("DAEMONBLACKFX_ICT_SPREAD_LOCK_MAX_HOURS", "1.0"))
     # Misma ocupación para cualquier señal ICT de sintéticos que dispara su límite y no se abre (huecos, riesgo...):
     # fidelidad con el replay (un trade por símbolo hasta su resultado). DAEMONBLACKFX_ICT_TRIGGER_LOCK=0 lo desactiva.
     ict_trigger_block_lock_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_TRIGGER_LOCK", "1").strip().lower() not in ("0", "false", "off")
@@ -699,6 +717,8 @@ class LiveTradingConfig:
     # el activo si su R/operación <= mínimo. Ver strategy/orb/asset_rules.py:ORB_SWEEP_FORWARD_TEST_SYMBOLS.
     # MSNR: runner hacia TP3/TP4 con stop progresivo (2R->+1R, 3R->+2.5R, máx 4R) en vez de TP2 fijo.
     msnr_runner_max_target_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_RUNNER_MAX_RR", "4.0"))
+    # Escaneo concurrente intra-worker: acelera el análisis de símbolos con pool de hilos I/O (1 = secuencial).
+    concurrent_scan_workers: int = int(os.getenv("DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS", "2"))
     # ICT en sintéticos: el meta-etiquetado puntúa y registra pero no bloquea. El replay positivo (límite + tope 2%,
     # +0.032 R/t) se midió sin este filtro; en vivo las rechazadas tenían el mismo acierto que las aceptadas.
     ict_synthetic_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_ICT_SYNTH_META_SHADOW", "1").strip().lower() not in ("0", "false", "off")
@@ -734,7 +754,7 @@ class LiveTradingConfig:
     policy_cycle_filter: bool = os.getenv("DAEMONBLACKFX_POLICY_CYCLE_FILTER", "1").strip().lower() not in ("0", "false", "off")
     disabled_entry_profiles: tuple = tuple(p.strip().upper() for p in os.getenv(
         "DAEMONBLACKFX_DISABLED_WORKERS",
-        "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN",
+        "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK",
     ).split(",") if p.strip())
     ict_broker_candle_symbols: tuple = tuple(s.strip() for s in os.getenv(
         "DAEMONBLACKFX_ICT_BROKER_CANDLE_SYMBOLS", "US SP 500,US Tech 100,Wall Street 30").split(",") if s.strip())
@@ -811,8 +831,8 @@ class LiveTradingConfig:
     carry_min_r: float = float(os.getenv("DAEMONBLACKFX_CARRY_MIN_R", "0.0"))
     carry_runner_extension: bool = os.getenv("DAEMONBLACKFX_CARRY_RUNNER_EXTENSION", "1").strip().lower() in {"1", "true", "yes", "on"}
     # Estrategia Trend Pullback H1 + M15 en Sintéticos (strategy/trend_pullback). Modo: off | demo_test | live.
-    trend_pullback_enabled: bool = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
-    trend_pullback_mode: str = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_MODE", "demo_test").strip().lower()
+    trend_pullback_enabled: bool = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+    trend_pullback_mode: str = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_MODE", "off").strip().lower()
     trend_pullback_split: bool = os.getenv("DAEMONBLACKFX_TREND_PULLBACK_SPLIT", "1").strip().lower() in {"1", "true", "yes", "on"}
     drift_test_start: str = os.getenv("DAEMONBLACKFX_DRIFT_START", "2026-10-21T00:00:00+00:00")
     drift_review_trades: int = int(os.getenv("DAEMONBLACKFX_DRIFT_REVIEW_TRADES", "200"))
@@ -1101,6 +1121,7 @@ class LiveTradingEngine:
                 break_even_enabled=bool(getattr(self.config, "orb_break_even_enabled", True)),
                 break_even_trigger_rr=float(getattr(self.config, "orb_break_even_trigger_rr", 1.0)),
                 momentum_enabled=bool(self.config.orb_momentum_enabled),
+                mss_lookback_bars=int(getattr(self.config, "orb_mss_lookback_bars", 5)),
                 gold_quarter_level_enabled=True,
                 gold_quarter_level_increment=float(self.config.gold_quarter_level_increment),
                 gold_quarter_level_tolerance_price=float(self.config.gold_quarter_level_tolerance_price),
@@ -1153,7 +1174,7 @@ class LiveTradingEngine:
                 c2_fx_metals_max_sl_atr=1.2,
                 c2_default_max_sl_atr=1.5,
             ),
-            runtime_settings_loader=(lambda: self.repository.latest_msnr_runtime_settings(source=self.config.source))
+            runtime_settings_loader=self._cached_msnr_runtime_settings
                 if callable(getattr(self.repository, 'latest_msnr_runtime_settings', None)) else None,
         )
 
@@ -1227,11 +1248,34 @@ class LiveTradingEngine:
                 forex_strict_filter=bool(getattr(self.config, "market_regime_forex_strict_filter", True)),
             )
         )
+        from strategy.human_criteria import HumanCriteriaEngine, HumanCriteriaConfig
+        self.human_criteria_engine = HumanCriteriaEngine(
+            HumanCriteriaConfig(
+                enabled=bool(getattr(self.config, "human_criteria_enabled", True)),
+                mode=str(getattr(self.config, "human_criteria_mode", "FILTER")),
+                min_score_threshold=float(getattr(self.config, "human_criteria_min_score", 65.0)),
+                synthetic_min_score_threshold=float(getattr(self.config, "human_criteria_synthetic_min_score", 75.0)),
+                malaysian_snr_min_score_threshold=float(getattr(self.config, "human_criteria_msnr_min_score", 60.0)),
+                news_calendar_path=str(getattr(self.config, "forex_high_impact_news_calendar_path", "storage/dashboard/financial_news.json")),
+            )
+        )
         from strategy.execution.daily_profit_target import DailyProfitTargetManager
         self.daily_profit_target_manager = DailyProfitTargetManager(
             repository=self.repository,
             source=self.config.source,
         )
+
+    def _cached_msnr_runtime_settings(self) -> dict:
+        """Caché TTL de 5s para ajustes de runtime de MSNR (evita consultas redundantes a SQLite por símbolo)."""
+        now_m = time.monotonic()
+        if (now_m - getattr(self, "_msnr_settings_cached_at", 0.0) < 5.0) and hasattr(self, "_msnr_settings_cache"):
+            return self._msnr_settings_cache
+        if not hasattr(self, "repository") or not callable(getattr(self.repository, "latest_msnr_runtime_settings", None)):
+            return {}
+        settings = self.repository.latest_msnr_runtime_settings(source=self.config.source)
+        self._msnr_settings_cache = settings
+        self._msnr_settings_cached_at = now_m
+        return settings
 
     def _quarantine_file(self) -> Path:
         """Resuelve la ruta absoluta del fichero de cuarentena y crea su carpeta.
@@ -1675,16 +1719,33 @@ class LiveTradingEngine:
                         "El worker no tiene instrumentos seleccionados/configurados"
                     )
             elif event_name == "SYMBOL_PROCESS_START":
-                index = audit_payload.get("index")
-                state_kwargs["symbols_processed"] = max(0, int(index or 1) - 1)
-                state_kwargs["symbols_total"] = audit_payload.get("total")
-                state_kwargs["last_action"] = "ANALYZANDO"
+                # Optimización I/O: omite transacción SQLite síncrona en inicio efímero (<0.2s);
+                # SYMBOL_PROCESS_RESULT persiste el estado final del símbolo sin contención de disco.
+                return
             elif event_name == "SYMBOL_PROCESS_RESULT":
-                state_kwargs["symbols_processed"] = audit_payload.get("index")
-                state_kwargs["symbols_total"] = audit_payload.get("total")
+                idx = int(audit_payload.get("index") or 0)
+                tot = int(audit_payload.get("total") or 0)
+                state_kwargs["symbols_processed"] = idx
+                state_kwargs["symbols_total"] = tot
                 state_kwargs["last_elapsed_seconds"] = audit_payload.get("elapsed_seconds")
                 # Sólo un resultado terminado reemplaza el último candidato auditado.
                 state_kwargs["details"] = audit_payload
+
+                # Optimización I/O: Throttle de base de datos para mitigar contención masiva de locks SQLite
+                throttle_sec = float(os.getenv("DAEMONBLACKFX_RUNTIME_STATE_THROTTLE_SECONDS", "3.0"))
+                if throttle_sec > 0.0:
+                    now_mono = time.monotonic()
+                    last_update_mono = float(getattr(self, "_last_runtime_updater_monotonic", 0.0) or 0.0)
+                    is_milestone = (idx <= 1 or idx >= tot)
+                    compact_res = audit_payload.get("result") if isinstance(audit_payload.get("result"), dict) else {}
+                    compact_action = str(compact_res.get("action") or "").upper()
+                    is_critical = bool(
+                        compact_res.get("valid")
+                        or any(t in compact_action for t in ("ORDER_", "SPLIT_", "ERROR", "REJECTED", "MARGIN", "SIGNAL_READY"))
+                    )
+                    if not is_milestone and not is_critical and (now_mono - last_update_mono) < throttle_sec:
+                        return
+                    self._last_runtime_updater_monotonic = now_mono
             elif event_name == "POSITION_MONITOR":
                 state_kwargs["last_action"] = "MONITOR_POSICIONES"
 
@@ -2854,6 +2915,82 @@ class LiveTradingEngine:
     # MSNR (estrategia de los vídeos) se validó en replay sin el centinela de régimen.
     _ICT_SYNTHETIC_PROFILES = ("ICT", "STEP", "JUMP", "BOOM", "CRASH")
     _NATIVE_META_SHADOW_STRATEGIES = frozenset({"OVERNIGHT_DRIFT", "DRIFT_BREAKOUT", "CONNORS_RSI2", "FX_CARRY", "TREND_PULLBACK"})
+
+    def _human_criteria_entry_gate(
+        self,
+        symbol: str,
+        direction: str,
+        signal: dict[str, Any],
+        analysis: dict[str, Any] | None,
+        key: str,
+    ) -> dict[str, Any] | None:
+        """Criterio Humano (Comité Evaluador de Calidad y Confluencia).
+
+        Evalúa Macro/Noticias para Forex y Materias Primas, y Tendencia H1/Régimen para Sintéticos.
+        IMPORTANTE: No altera Stop Loss ni Take Profit definidos por la estrategia.
+        """
+        engine = getattr(self, "human_criteria_engine", None)
+        if engine is None or not bool(getattr(engine.config, "enabled", True)):
+            return None
+
+        mode = str(getattr(engine.config, "mode", "FILTER")).upper()
+        if mode == "OFF":
+            return None
+
+        df_h1 = signal.get("_cached_df_h1")
+        df_ltf = signal.get("_cached_df_ltf")
+        if df_h1 is None or df_ltf is None:
+            try:
+                regime_provider = _symbol_routed_provider(self.provider, getattr(self.config, "ict_broker_candle_symbols", ()))
+                get_candles = getattr(regime_provider, "get_candles", None)
+                if callable(get_candles):
+                    if df_h1 is None:
+                        df_h1 = get_candles(symbol, timeframe="H1", count=40)
+                    if df_ltf is None:
+                        ltf = str(signal.get("timeframe") or "M15").upper()
+                        df_ltf = get_candles(symbol, timeframe=ltf, count=40)
+            except Exception:
+                pass
+
+        spread_info = self._meta_execution_spread(symbol) if hasattr(self, "_meta_execution_spread") else {}
+        current_spread = spread_info.get("spread")
+
+        decision = engine.evaluate_candidate(
+            symbol=symbol,
+            direction=direction,
+            signal=signal,
+            df_h1=df_h1,
+            df_ltf=df_ltf,
+            current_spread=current_spread,
+            current_time=datetime.now(timezone.utc),
+            repository=getattr(self, "repository", None),
+        )
+
+        signal.pop("_cached_df_h1", None)
+        signal.pop("_cached_df_ltf", None)
+        signal["human_criteria"] = decision.to_dict()
+
+        if hasattr(self, "_persist_audit_event") and getattr(self, "repository", None) is not None:
+            self._persist_audit_event(
+                "HUMAN_CRITERIA_EVALUATED",
+                instrument=str(symbol),
+                action=decision.action,
+                reason=decision.reason,
+                payload={"score": decision.score, "grade": decision.grade, "breakdown": decision.breakdown.to_dict()},
+            )
+
+        if not decision.allowed:
+            return {
+                "symbol": str(symbol),
+                "action": "HUMAN_CRITERIA_FILTER_REJECTED",
+                "reason": decision.reason,
+                "execution_key": key,
+                "direction": direction,
+                "human_criteria": decision.to_dict(),
+                "analysis": analysis if self.config.diagnostic_mode else None,
+            }
+
+        return None
 
     def _market_regime_observe_only(self, symbol: str) -> bool:
         """El centinela solo registra (no veta) en workers de la Estrategia ICT sobre sintéticos y ORB."""
@@ -4614,17 +4751,32 @@ class LiveTradingEngine:
             if is_msnr_runner:
                 completed_stages.add(stage_name)
                 metadata["runner_extension_completed_stages"] = sorted(completed_stages)
-                # Misma etiqueta que el resto de estrategias (informes y dashboard): MSNR no evalúa continuación,
-                # solo sube el stop de forma progresiva hacia su objetivo máximo.
-                metadata["runner_extension_stage"] = "EXTENDED_TO_3R" if stage_name == "2R_TO_3R" else "EXTENDED_TO_4R"
+                # Gestión progresiva de 2 patas para MSNR: etapa 1 asegura 1.5R y busca 3.0R; etapa 2 asegura 2.5R y busca 4.0R
+                metadata["runner_extension_stage"] = "EXTENDED_TO_3R" if is_stage1 else "EXTENDED_TO_4R"
+                metadata["runner_logical_target_rr"] = float(next_target_rr)
+                metadata["runner_candidate_target_rr"] = None
+                metadata["runner_profit_lock_rr"] = float(lock_rr)
+                metadata["runner_profit_lock_price"] = float(protected_sl)
+                details = dict(trade.get("details") or {})
+                details["metadata"] = metadata
+                self.repository.update_trade(
+                    int(trade["id"]),
+                    {
+                        "stop_loss": float(protected_sl),
+                        "take_profit": float(target_price),
+                        "planned_rr": float(next_target_rr),
+                        "details": details,
+                    },
+                )
                 result.update({
                     "managed": True,
                     "extended": True,
                     "stage": stage_name,
                     "profit_lock_rr": float(lock_rr),
                     "profit_lock_price": float(protected_sl),
-                    "target_rr": max_target_rr,
+                    "target_rr": float(next_target_rr),
                     "target_price": float(target_price),
+                    "next_target_rr": next_target_rr,
                 })
                 return result
 
@@ -7345,7 +7497,7 @@ class LiveTradingEngine:
         """
         if not bool(getattr(self.config, "synthetic_spread_guard_enabled", False)) or not self._is_synthetic_symbol(symbol):
             return None
-        max_ratio = float(getattr(self.config, "synthetic_spread_max_risk_ratio", 0.02))
+        max_ratio = float(getattr(self.config, "synthetic_spread_max_risk_ratio", 0.025))
         quote = self._meta_execution_spread(symbol)
         report = {"symbol": str(symbol), "direction": str(direction), "stop_loss": stop,
                   "max_risk_ratio": max_ratio, "spread": quote.get("spread"),
@@ -8872,7 +9024,7 @@ class LiveTradingEngine:
                         "strategy_version": fresh.get("strategy_version"),
                         "action": "ICT_VIRTUAL_LIMIT_CONSUMED", "reason": "SIGNAL_LIMIT_ALREADY_CONSUMED"}
             if current is None or current["identity"] != identity:
-                bars = max(1, int(getattr(self.config, "ict_virtual_limit_bars", 8)))
+                bars = max(1, int(getattr(self.config, "ict_virtual_limit_bars", 12)))
                 mitigation_price = float(signal.get("mitigation_entry_price", signal["entry_price"]))
                 pending_map[symbol] = {
                     "identity": identity, "analysis": fresh, "direction": str(signal["direction"]).upper(),
@@ -8919,6 +9071,15 @@ class LiveTradingEngine:
                 "spread": max(0.0, float(ask) - float(bid))}
             fill_ref = ask if buy else bid
             analysis["virtual_limit"] = {**base["virtual_limit"], "triggered_at": now.isoformat(), "trigger_price": fill_ref}
+            if analysis.get("signal") and effective_limit != pending["limit"]:
+                analysis["signal"]["entry_price"] = effective_limit
+                risk_eff = abs(effective_limit - pending["stop_loss"])
+                if risk_eff > 0:
+                    tp1_rr = float(analysis["signal"].get("tp1_rr", 1.0))
+                    runner_rr = float(analysis["signal"].get("runner_rr", 2.0))
+                    analysis["signal"]["tp1_price"] = round(effective_limit + (tp1_rr * risk_eff) if buy else effective_limit - (tp1_rr * risk_eff), 5)
+                    analysis["signal"]["tp2_price"] = round(effective_limit + (runner_rr * risk_eff) if buy else effective_limit - (runner_rr * risk_eff), 5)
+                    analysis["signal"]["risk_amount"] = risk_eff
             self._persist_audit_event("ICT_VIRTUAL_LIMIT", instrument=symbol, action="TRIGGERED", reason="LIMIT_TOUCHED",
                                       payload=analysis["virtual_limit"])
             return analysis
@@ -9261,7 +9422,6 @@ class LiveTradingEngine:
           el `TradeExecutor` configurado y `trade_lifecycle_manager`.
         """
         exact_symbol = self.provider.resolve_symbol(symbol)
-        self.provider.ensure_symbol(exact_symbol)
 
         daily_mgr = getattr(self, "daily_profit_target_manager", None)
         if daily_mgr is not None:
@@ -9297,6 +9457,8 @@ class LiveTradingEngine:
         forex_news_gate = self._forex_high_impact_news_entry_gate(exact_symbol)
         if forex_news_gate is not None:
             return forex_news_gate
+
+        self.provider.ensure_symbol(exact_symbol)
 
         spread_lock_gate = self._ict_spread_lock_gate(exact_symbol)
         if spread_lock_gate is not None:
@@ -9726,6 +9888,12 @@ class LiveTradingEngine:
                 limit_result["sync"] = sync_info
                 limit_result["analysis"] = analysis
             return limit_result
+
+        human_criteria_gate = self._human_criteria_entry_gate(
+            exact_symbol, direction, signal, analysis, key
+        )
+        if human_criteria_gate is not None:
+            return human_criteria_gate
 
         account = self._account_and_guard()
         tick = None
@@ -11110,6 +11278,103 @@ class LiveTradingEngine:
             import logging
             logging.getLogger('SMC_Telemetry').exception('M5 first-cycle report failed')
 
+    def _process_single_symbol_entry(
+        self,
+        index: int,
+        total: int,
+        symbol: str,
+        before_symbol=None,
+        progress_callback=None,
+        after_symbol=None,
+    ) -> dict:
+        symbol_started = time.monotonic()
+        if before_symbol is not None:
+            before_symbol(index=index, total=total, symbol=symbol)
+
+        try:
+            cooldown = getattr(self, "_pre_send_risk_cooldowns", {}).get(symbol, 0)
+            if time.monotonic() < cooldown:
+                result = {"symbol": symbol, "action": "RISK_RETRY_COOLDOWN",
+                          "reason": "PRE_SEND_RISK_WAIT_NEXT_M5", "retry_after_seconds": round(cooldown - time.monotonic(), 1)}
+            else:
+                result = self.process_symbol(symbol, sync_before_execution=False)
+        except Exception as exc:
+            if str(exc).startswith("PRE_SEND_RISK_CAP_BREACH"):
+                if not hasattr(self, "_pre_send_risk_cooldowns"):
+                    self._pre_send_risk_cooldowns = {}
+                self._pre_send_risk_cooldowns[symbol] = time.monotonic() + 300
+            import traceback
+            result = {
+                "symbol": symbol, "action": "EXECUTABLE_RR_BLOCKED" if str(exc).startswith("PRE_SEND_RR_BLOCKED") else "ERROR", "error": str(exc),
+                "strategy_name": "ORB_NEW_YORK" if str(self.config.bot_profile).upper() == "ORB" else "UNKNOWN",
+                "exception_details": {
+                    "type": type(exc).__name__,
+                    "errno": getattr(exc, "errno", None),
+                    "filename": str(getattr(exc, "filename", None) or ""),
+                    "traceback": traceback.format_exc(),
+                },
+            }
+
+        compact_result = self._compact_symbol_result(result)
+        try:
+            from dashboard.orb_audit import record as record_orb
+            record_orb(compact_result)
+            from dashboard.smc_trial import record
+            compact_result = record(self.config.bot_profile, compact_result,
+                   self.config.smc_entry_location_policy, self.config.retest_tolerance_mode,
+                   quote_reader=self._meta_execution_spread)
+        except Exception as audit_error:
+            result["trial_audit_error"] = str(audit_error)
+            compact_result['trial_audit_error'] = str(audit_error)
+            self._persist_audit_event('TRIAL_AUDIT_ERROR', instrument=str(symbol),
+                action='AUDIT_DEGRADED', reason=str(audit_error),
+                payload={'error_type': type(audit_error).__name__})
+
+        elapsed_seconds = time.monotonic() - symbol_started
+
+        self._persist_audit_event(
+            "SYMBOL_PROCESS_RESULT",
+            instrument=str(symbol),
+            action=result.get("action") if isinstance(result, dict) else None,
+            reason=(
+                result.get("reason") or result.get("error")
+                if isinstance(result, dict) else None
+            ),
+            execution_key=(
+                result.get("execution_key")
+                if isinstance(result, dict) else None
+            ),
+            payload={
+                "schema_version": "strategy-evaluation-v1",
+                "bot_profile": str(self.config.bot_profile).upper() if getattr(self, "config", None) else None,
+                "daemon_magic": int(self.config.magic) if getattr(self, "config", None) else None,
+                "result": compact_result,
+                "exception_details": result.get("exception_details"),
+                "elapsed_seconds": elapsed_seconds,
+                "index": index,
+                "total": total,
+            },
+        )
+
+        if progress_callback is not None:
+            progress_callback(
+                result=result,
+                index=index,
+                total=total,
+                elapsed_seconds=elapsed_seconds,
+            )
+
+        if after_symbol is not None:
+            after_symbol(
+                index=index,
+                total=total,
+                symbol=symbol,
+                result=result,
+                elapsed_seconds=elapsed_seconds,
+            )
+
+        return result
+
     def process_symbols(
         self,
         symbols,
@@ -11160,103 +11425,51 @@ class LiveTradingEngine:
         results = []
         total = len(symbols)
         self._meta_label_cycle_decisions = []
-        for index, symbol in enumerate(symbols, start=1):
-            symbol_started = time.monotonic()
-            if before_symbol is not None:
-                before_symbol(index=index, total=total, symbol=symbol)
 
-            try:
-                cooldown = getattr(self, "_pre_send_risk_cooldowns", {}).get(symbol, 0)
-                if time.monotonic() < cooldown:
-                    result = {"symbol":symbol,"action":"RISK_RETRY_COOLDOWN",
-                              "reason":"PRE_SEND_RISK_WAIT_NEXT_M5", "retry_after_seconds":round(cooldown-time.monotonic(),1)}
-                else:
-                    result = self.process_symbol(symbol, sync_before_execution=False)
-            except Exception as exc:
-                if str(exc).startswith("PRE_SEND_RISK_CAP_BREACH"):
-                    if not hasattr(self, "_pre_send_risk_cooldowns"):
-                        self._pre_send_risk_cooldowns = {}
-                    self._pre_send_risk_cooldowns[symbol] = time.monotonic() + 300
-                import traceback
-                result = {
-                    "symbol": symbol, "action": "EXECUTABLE_RR_BLOCKED" if str(exc).startswith("PRE_SEND_RR_BLOCKED") else "ERROR", "error": str(exc),
-                    "strategy_name": "ORB_NEW_YORK" if str(self.config.bot_profile).upper() == "ORB" else "UNKNOWN",
-                    "exception_details": {
-                        "type": type(exc).__name__,
-                        "errno": getattr(exc, "errno", None),
-                        "filename": str(getattr(exc, "filename", None) or ""),
-                        "traceback": traceback.format_exc(),
-                    },
-                }
+        concurrent_workers = int(getattr(self.config, "concurrent_scan_workers", 2) or 2)
+        adaptive_enabled = os.getenv("DAEMONBLACKFX_ADAPTIVE_CONCURRENCY", "1").strip().lower() not in ("0", "false", "no", "off")
+        if adaptive_enabled and concurrent_workers > 1:
+            if total >= 20:
+                concurrent_workers = max(concurrent_workers, min(4, os.cpu_count() or 4))
+            elif total >= 10:
+                concurrent_workers = max(concurrent_workers, min(3, os.cpu_count() or 3))
 
-            compact_result = self._compact_symbol_result(result)
-            try:
-                from dashboard.orb_audit import record as record_orb
-                record_orb(compact_result)
-                from dashboard.smc_trial import record
-                compact_result = record(self.config.bot_profile, compact_result,
-                       self.config.smc_entry_location_policy, self.config.retest_tolerance_mode,
-                       quote_reader=self._meta_execution_spread)
-            except Exception as audit_error:
-                # Monitoring failure must never retry or interrupt an order.
-                result["trial_audit_error"] = str(audit_error)
-                compact_result['trial_audit_error'] = str(audit_error)
-                self._persist_audit_event('TRIAL_AUDIT_ERROR', instrument=str(symbol),
-                    action='AUDIT_DEGRADED', reason=str(audit_error),
-                    payload={'error_type':type(audit_error).__name__})
+        if concurrent_workers > 1 and not (batch_size and int(batch_size) > 0) and total > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            cb_lock = threading.Lock()
+            def safe_before(**kw):
+                if before_symbol:
+                    with cb_lock: before_symbol(**kw)
+            def safe_progress(**kw):
+                if progress_callback:
+                    with cb_lock: progress_callback(**kw)
+            def safe_after(**kw):
+                if after_symbol:
+                    with cb_lock: after_symbol(**kw)
 
-            elapsed_seconds = time.monotonic() - symbol_started
-            results.append(result)
-
-            self._persist_audit_event(
-                "SYMBOL_PROCESS_RESULT",
-                instrument=str(symbol),
-                action=result.get("action") if isinstance(result, dict) else None,
-                reason=(
-                    result.get("reason") or result.get("error")
-                    if isinstance(result, dict) else None
-                ),
-                execution_key=(
-                    result.get("execution_key")
-                    if isinstance(result, dict) else None
-                ),
-                payload={
-                    "schema_version": "strategy-evaluation-v1",
-                    "bot_profile": str(self.config.bot_profile).upper() if getattr(self, "config", None) else None,
-                    "daemon_magic": int(self.config.magic) if getattr(self, "config", None) else None,
-                    "result": compact_result,
-                    "exception_details": result.get("exception_details"),
-                    "elapsed_seconds": elapsed_seconds,
-                    "index": index,
-                    "total": total,
-                },
-            )
-
-            if progress_callback is not None:
-                progress_callback(
-                    result=result,
-                    index=index,
-                    total=total,
-                    elapsed_seconds=elapsed_seconds,
+            with ThreadPoolExecutor(max_workers=min(total, concurrent_workers)) as executor:
+                futures = [
+                    executor.submit(
+                        self._process_single_symbol_entry,
+                        idx, total, sym, safe_before, safe_progress, safe_after
+                    )
+                    for idx, sym in enumerate(symbols, start=1)
+                ]
+                results = [f.result() for f in futures]
+        else:
+            for index, symbol in enumerate(symbols, start=1):
+                res = self._process_single_symbol_entry(
+                    index, total, symbol, before_symbol, progress_callback, after_symbol
                 )
-
-            if after_symbol is not None:
-                after_symbol(
-                    index=index,
-                    total=total,
-                    symbol=symbol,
-                    result=result,
-                    elapsed_seconds=elapsed_seconds,
-                )
-
-            if (
-                batch_size
-                and int(batch_size) > 0
-                and index < total
-                and index % int(batch_size) == 0
-                and batch_delay_seconds > 0
-            ):
-                time.sleep(float(batch_delay_seconds))
+                results.append(res)
+                if (
+                    batch_size
+                    and int(batch_size) > 0
+                    and index < total
+                    and index % int(batch_size) == 0
+                    and batch_delay_seconds > 0
+                ):
+                    time.sleep(float(batch_delay_seconds))
 
         self._refresh_learning_audit()
 
@@ -11509,7 +11722,8 @@ class LiveTradingEngine:
 
     def _selected_cycle_symbols(self, base_symbols):
         selected = self._selected_base_cycle_symbols(base_symbols)
-        if str(self.config.bot_profile).upper() == 'MALAYSIAN_SNR':
+        bot_prof = str(self.config.bot_profile).upper()
+        if bot_prof == 'MALAYSIAN_SNR':
             daily_mgr = getattr(self, 'daily_profit_target_manager', None)
             if daily_mgr is not None and not daily_mgr.is_entry_allowed()[0]:
                 return []
@@ -11518,7 +11732,33 @@ class LiveTradingEngine:
                 return cycle_symbols(self, selected)
             except Exception:
                 return []
+        elif bot_prof == 'ORB':
+            return self._prioritize_orb_symbols(selected)
         return selected
+
+    def _prioritize_orb_symbols(self, symbols):
+        """Prioriza los índices americanos en el escaneo ORB si está habilitado."""
+        if not bool(os.getenv("DAEMONBLACKFX_ORB_PRIORITIZE_INDICES", "1").strip().lower() in ("1", "true", "on")):
+            return symbols
+        from strategy.orb.new_york_orb import is_orb_index_symbol
+        indices = []
+        others = []
+        for s in symbols:
+            if is_orb_index_symbol(s):
+                indices.append(s)
+            else:
+                others.append(s)
+        def index_rank(s):
+            sl = str(s).lower()
+            if "30" in sl or "dow" in sl or "wall" in sl:
+                return 1
+            if "tech" in sl or "100" in sl or "nas" in sl:
+                return 2
+            if "500" in sl or "sp" in sl:
+                return 3
+            return 4
+        indices.sort(key=index_rank)
+        return indices + others
 
     def _selected_base_cycle_symbols(self, base_symbols):
         """Selección del usuario (ver `_selected_base_cycle_symbols_from_selection`) filtrada por la política única de

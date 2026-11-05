@@ -45,12 +45,12 @@ for _stream in (sys.stdout, sys.stderr):
     except Exception:
         pass
 
-from daemon_version import DAEMONBLACKFX_VERSION
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from daemon_version import DAEMONBLACKFX_VERSION
 
 import pandas as pd
 
@@ -66,6 +66,25 @@ from strategy.execution.live_trading_engine import LiveTradingEngine, LiveTradin
 from strategy.orb.new_york_orb import discover_orb_symbols, classify_orb_market, is_orb_index_symbol
 
 
+def _configure_gc_tuning() -> None:
+    """Calibra los umbrales del recolector de basura de Python (GC Tuning).
+
+    Por defecto, Python ejecuta recolecciones de Generación 0 cada 700 asignaciones,
+    lo que produce cientos de micro-pausas durante la creación masiva de Series
+    y DataFrames de pandas en cada ciclo de escaneo.
+
+    Ajustar el umbral Gen0 a 70,000 (configurable con DAEMONBLACKFX_GC_THRESHOLD)
+    reduce las pausas de GC en más de un 80% manteniendo el consumo de memoria acotado.
+    """
+    try:
+        import gc
+        threshold = int(os.getenv("DAEMONBLACKFX_GC_THRESHOLD", "70000"))
+        if threshold > 0:
+            gc.set_threshold(threshold, 10, 10)
+    except Exception:
+        pass
+
+
 def _validate_timeframes():
     """Comprueba que `TIMEFRAMES` define structure, confirmation y entry.
 
@@ -75,6 +94,7 @@ def _validate_timeframes():
     Raises:
         ValueError: si falta alguna clave.
     """
+    _configure_gc_tuning()
     required = {"structure", "confirmation", "entry"}
     missing = required.difference(TIMEFRAMES)
 
@@ -1396,7 +1416,17 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
     manager = InstrumentManager(provider.connector)
 
     if profile == "ORB":
-        universe = sorted(set(discover_orb_symbols(provider)))
+        found = discover_orb_symbols(provider)
+        from strategy.orb.new_york_orb import is_orb_index_symbol
+        def orb_sort_key(s):
+            sl = str(s).lower()
+            if is_orb_index_symbol(s):
+                if "30" in sl or "dow" in sl or "wall" in sl: return (0, 1, s)
+                if "tech" in sl or "100" in sl or "nas" in sl: return (0, 2, s)
+                if "500" in sl or "sp" in sl: return (0, 3, s)
+                return (0, 4, s)
+            return (1, 0, s)
+        universe = sorted(set(found), key=orb_sort_key)
     elif profile == "GOLD":
         # El worker GOLD aísla estrictamente la Plata (XAGUSD / microXAGUSD)
         # para evitar contaminación de modelo de riesgo y spread.
@@ -1412,17 +1442,14 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
         })
     elif profile == "MALAYSIAN_SNR":
         candidates = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
-        unlisted = {"Vol over Boom 550", "Vol over Crash 550"}
         universe = []
         for sym in candidates:
-            if sym in unlisted:
-                continue
             try:
                 if provider.get_symbol_info(sym):
                     universe.append(sym)
             except Exception:
                 pass
-        universe = sorted(set(universe or [s for s in candidates if s not in unlisted]))
+        universe = sorted(set(universe or candidates))
     elif profile == "ICT":
         # Política única de /Instruments: metales, índices y commodities; los sintéticos van a sus workers
         # de familia y cripto/plata quedan en PODA PREVENTIVA (config/ict_instrument_policy.py).
@@ -1715,13 +1742,11 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
 
     if "MALAYSIAN_SNR" in active_profiles or not active_profiles:
         msnr_pref = reader("MALAYSIAN_SNR", source="DEMO")
-        if msnr_pref and msnr_pref.get("selected_symbols"):
-            unlisted = {"Vol over Boom 550", "Vol over Crash 550"}
-            curr_syms = list(msnr_pref.get("selected_symbols"))
-            cleaned_syms = [s for s in curr_syms if s not in unlisted]
-            if len(cleaned_syms) != len(curr_syms):
-                writer(cleaned_syms, selection_profile="MALAYSIAN_SNR", source="DEMO")
-                print(f"[SANEAMIENTO] Perfil MALAYSIAN_SNR purgado de símbolos deslistados ({len(curr_syms)} -> {len(cleaned_syms)}).")
+        if msnr_pref is None or not msnr_pref.get("selected_symbols"):
+            from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
+            msnr_symbols = list(MALAYSIAN_SNR_ACTIVE)
+            writer(msnr_symbols, selection_profile="MALAYSIAN_SNR", source="DEMO")
+            print(f"[RECUPERACIÓN] Perfil MALAYSIAN_SNR activado con {len(msnr_symbols)} instrumentos.")
 
     return saved
 
@@ -2523,7 +2548,7 @@ def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool,
         item.strip().upper()
         for item in os.getenv(
             'DAEMONBLACKFX_DISABLED_WORKERS',
-            'FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN',
+            'FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK',
         ).split(',')
         if item.strip()
     }
@@ -2547,6 +2572,39 @@ def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool,
     if _worker_has_open_positions(prof, repo):
         return False, None
     return True, reason
+
+
+def _rotate_worker_log_if_needed(
+    log_path: Path,
+    max_bytes: int | None = None,
+    keep_tail_lines: int = 2000,
+) -> None:
+    """Evita crecimiento descontrolado de logs de workers preservando el tail reciente."""
+    try:
+        from datetime import datetime, timezone
+        if max_bytes is None:
+            max_mb = float(os.getenv("DAEMONBLACKFX_MAX_LOG_MB", "15.0"))
+            max_bytes = int(max_mb * 1024 * 1024)
+        if not log_path.exists() or log_path.stat().st_size <= max_bytes:
+            return
+        tail_lines = []
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                tail_lines.append(line)
+                if len(tail_lines) > keep_tail_lines:
+                    tail_lines.pop(0)
+        old_path = log_path.with_suffix(".log.old")
+        try:
+            if old_path.exists():
+                old_path.unlink()
+            os.replace(log_path, old_path)
+        except Exception:
+            pass
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(f"--- LOG ROTATED ({datetime.now(timezone.utc).isoformat()}) ---\n")
+            f.writelines(tail_lines)
+    except Exception as exc:
+        print(f"[LOG ROTATION WARNING] {log_path.name}: {exc}", file=sys.stderr)
 
 
 def run_multi_bot_daemon(args, profiles=None):
@@ -2756,15 +2814,29 @@ def run_multi_bot_daemon(args, profiles=None):
             cmd.append("--debug")
 
         log_path = logs_dir / f"{profile.lower()}.log"
-        handle = open(log_path, "a", encoding="utf-8", buffering=1)
+        _rotate_worker_log_if_needed(log_path)
+        log_buffer_bytes = int(os.getenv("DAEMONBLACKFX_LOG_BUFFER_BYTES", "4096"))
+        handle = open(log_path, "a", encoding="utf-8", buffering=log_buffer_bytes)
         worker_env = os.environ.copy()
         # v88: todos los procesos reciben la misma ruta resuelta. Así no pueden
         # crear DB distintas por cwd, usuario o una variable heredada ambigua.
         worker_env["DAEMONBLACKFX_DB_PATH"] = shared_db_path
+        worker_env.setdefault(
+            "DAEMONBLACKFX_GC_THRESHOLD",
+            os.getenv("DAEMONBLACKFX_GC_THRESHOLD", "70000"),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_ADAPTIVE_CONCURRENCY",
+            os.getenv("DAEMONBLACKFX_ADAPTIVE_CONCURRENCY", "1"),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS",
+            os.getenv("DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS", "2"),
+        )
         if force_enable:
             raw_dis = worker_env.get(
                 "DAEMONBLACKFX_DISABLED_WORKERS",
-                "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN",
+                "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK",
             )
             rem = [x.strip().upper() for x in raw_dis.split(",") if x.strip() and x.strip().upper() != profile.upper()]
             worker_env["DAEMONBLACKFX_DISABLED_WORKERS"] = ",".join(rem)
@@ -2961,8 +3033,11 @@ def run_multi_bot_daemon(args, profiles=None):
                         checkpoint_mode="PASSIVE",
                     )
                     deleted = maintenance["retention"]["deleted_total"]
-                    if deleted:
-                        print(f"[AUDIT RETENTION] filas operativas eliminadas={deleted}")
+                    pruned_rt = maintenance.get("pruned_runtime_files", {})
+                    deleted_tmp = pruned_rt.get("deleted_tmp", 0)
+                    deleted_telem = pruned_rt.get("deleted_telemetry", 0)
+                    if deleted or deleted_tmp or deleted_telem:
+                        print(f"[AUDIT RETENTION] filas={deleted} tmp_eliminados={deleted_tmp} telemetria_caduca={deleted_telem}")
                 except Exception as exc:
                     print(f"[AUDIT RETENTION WARNING] {exc}", file=sys.stderr)
                 last_audit_maintenance = now

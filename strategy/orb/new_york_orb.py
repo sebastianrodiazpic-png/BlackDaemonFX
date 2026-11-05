@@ -95,6 +95,8 @@ def classify_orb_market(symbol: str) -> str | None:
     if name == "btcusd":
         return "BTCUSD"
 
+    if name in {"usdcadmicro", "microusdcad"}:
+        return None
     if name == "usdcad":
         return "USDCAD"
 
@@ -362,6 +364,20 @@ class ORBConfig:
     require_high_quality_retest: bool = False
     break_even_enabled: bool = True
     break_even_trigger_rr: float = 1.0
+    # Expansión a Apertura de Londres (08:00 London / 03:00 NY)
+    london_session_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_LONDON_ENABLED", "1").strip().lower() in ("1", "true", "on"))
+    london_opening_hour: int = 3
+    london_opening_minute: int = 0
+    london_opening_range_minutes: int = 15
+    london_session_close_hour: int = 9
+    london_session_close_minute: int = 0
+    london_entry_cutoff_hour: int = 7
+    london_entry_cutoff_minute: int = 30
+    # Tolerancia y confirmación de Retest con Mecha de Rechazo:
+    retest_tolerance_atr: float = 0.10
+    retest_wick_rejection_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_RETEST_WICK_REJECTION", "1").strip().lower() in ("1", "true", "on"))
+    retest_micro_stop_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_RETEST_MICRO_STOP", "0").strip().lower() in ("1", "true", "on"))
+    mss_lookback_bars: int = field(default_factory=lambda: int(os.getenv("DAEMONBLACKFX_ORB_MSS_LOOKBACK_BARS", "3")))
 
 
 class NewYorkORBStrategy:
@@ -401,15 +417,18 @@ class NewYorkORBStrategy:
                 str(session_date), str(breakout_key)
             )
 
-    def _session_bounds(self, now_utc: datetime):
+    def _session_bounds(self, now_utc: datetime, symbol: str | None = None):
         """Calcula los hitos horarios de la sesión para el día en curso.
 
-        Todo el calculo se hace en hora de Nueva York para que los cambios de
-        horario de verano no desplacen la sesion.
+        Soporta sesión dual:
+        - Sesión de Londres (03:00 - 09:00 NY / 08:00 - 14:00 London): para Forex, Metales y Materias Primas.
+          (Los índices americanos abren en la sesión cash de Nueva York a las 09:30 NY).
+        - Sesión de Nueva York (09:30 - 16:00 NY): para todos los activos autorizados.
 
         Args:
             now_utc: instante actual, con o sin zona horaria; se asume UTC si
                 viene desnudo.
+            symbol: símbolo opcional para discriminar si aplica sesión de Londres o NY.
 
         Returns:
             Tupla `(ahora_ny, apertura, fin_del_rango, cierre)` como
@@ -422,9 +441,21 @@ class NewYorkORBStrategy:
             now_utc = now_utc.tz_convert("UTC")
         now_ny = now_utc.tz_convert(self.tz)
         d = now_ny.date()
-        open_ny = pd.Timestamp(datetime.combine(d, time(self.config.opening_hour, self.config.opening_minute)), tz=self.tz)
-        range_end_ny = open_ny + pd.Timedelta(minutes=int(self.config.opening_range_minutes))
-        close_ny = pd.Timestamp(datetime.combine(d, time(self.config.session_close_hour, self.config.session_close_minute)), tz=self.tz)
+
+        # Identificar si es índice americano (que solo opera cash NY 09:30)
+        is_index = bool(symbol and is_orb_index_symbol(symbol))
+        london_on = bool(getattr(self.config, "london_session_enabled", True))
+
+        # Si la sesión de Londres está activa, no es índice US y estamos antes de las 09:00 NY:
+        if london_on and not is_index and now_ny.hour < 9:
+            open_ny = pd.Timestamp(datetime.combine(d, time(self.config.london_opening_hour, self.config.london_opening_minute)), tz=self.tz)
+            range_end_ny = open_ny + pd.Timedelta(minutes=int(self.config.london_opening_range_minutes))
+            close_ny = pd.Timestamp(datetime.combine(d, time(self.config.london_session_close_hour, self.config.london_session_close_minute)), tz=self.tz)
+        else:
+            open_ny = pd.Timestamp(datetime.combine(d, time(self.config.opening_hour, self.config.opening_minute)), tz=self.tz)
+            range_end_ny = open_ny + pd.Timedelta(minutes=int(self.config.opening_range_minutes))
+            close_ny = pd.Timestamp(datetime.combine(d, time(self.config.session_close_hour, self.config.session_close_minute)), tz=self.tz)
+
         return now_ny, open_ny, range_end_ny, close_ny
 
     @staticmethod
@@ -648,6 +679,7 @@ class NewYorkORBStrategy:
         bar_ny = pd.Timestamp(bar["time_ny"])
         # Ventana institucional depurada: entradas hasta las 11:30 NY (690 min) por defecto; configurable con DAEMONBLACKFX_ORB_MAX_MINUTE_NY
         import os
+        import os
         max_entry_min = int(os.getenv("DAEMONBLACKFX_ORB_MAX_MINUTE_NY", str(getattr(self.config, "entry_cutoff_minute_ny", 955))))
         if bar_ny.hour * 60 + bar_ny.minute >= max_entry_min:
             return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": f"SWEEP_FUERA_DE_VENTANA_HASTA_{max_entry_min//60:02d}_{max_entry_min%60:02d}_NY"}
@@ -659,7 +691,8 @@ class NewYorkORBStrategy:
         buffer = float(cfg.get("atr_buffer", 0.05)) * float(atr_reference)
         bar_pos = df.index.get_loc(bar.name)
         offset = len(post_range) - 1
-        for earlier in range(max(0, offset - 3), offset):
+        mss_lookback_bars = int(os.getenv("DAEMONBLACKFX_ORB_MSS_LOOKBACK_BARS", str(getattr(self.config, "mss_lookback_bars", 3))))
+        for earlier in range(max(0, offset - mss_lookback_bars), offset):
             sweep = post_range.iloc[earlier]
             sweep_pos = df.index.get_loc(sweep.name)
             before = df.iloc[max(0, sweep_pos - 3):sweep_pos]
@@ -668,6 +701,15 @@ class NewYorkORBStrategy:
             sell = float(sweep["high"]) > range_high + buffer and float(bar["close"]) < min(float(before["low"].min()), midpoint)
             buy = float(sweep["low"]) < range_low - buffer and float(bar["close"]) > max(float(before["high"].max()), midpoint)
             if not sell and not buy:
+                continue
+            # Asimetría direccional institucional (ej. US Oil y USDCHF solo BUY)
+            allowed_dirs = cfg.get("allowed_directions")
+            if allowed_dirs:
+                if sell and "SELL" not in allowed_dirs:
+                    continue
+                if buy and "BUY" not in allowed_dirs:
+                    continue
+                continue
                 continue
             # Asimetría direccional institucional (ej. US Oil y USDCHF solo BUY)
             allowed_dirs = cfg.get("allowed_directions")
@@ -792,7 +834,9 @@ class NewYorkORBStrategy:
         if now_utc is None:
             tick = self.data_provider.get_current_tick(symbol)
             now_utc = pd.Timestamp(tick["time"]).to_pydatetime()
-        now_ny, open_ny, range_end_ny, close_ny = self._session_bounds(now_utc)
+        now_ny, open_ny, range_end_ny, close_ny = self._session_bounds(now_utc, symbol)
+        is_london = bool(open_ny.hour == getattr(self.config, "london_opening_hour", 3))
+        session_name = "LONDON" if is_london else "NEW_YORK"
 
         base = {
             "valid": False,
@@ -801,6 +845,7 @@ class NewYorkORBStrategy:
             "symbol": symbol,
             "orb_market": market,
             "timezone": self.config.timezone_name,
+            "session_name": session_name,
             "session_date_ny": str(now_ny.date()),
             "session_open_ny": open_ny.isoformat(),
             "opening_range_end_ny": range_end_ny.isoformat(),
@@ -810,17 +855,25 @@ class NewYorkORBStrategy:
         if now_ny.weekday() >= 5:
             return {**base, "action": "NO_ORB_SESSION", "reason": "FIN_DE_SEMANA_NEW_YORK"}
         if now_ny < open_ny:
-            return {**base, "action": "WAITING_NEW_YORK_OPEN", "reason": "ANTES_DE_09_30_NEW_YORK"}
+            action_name = "WAITING_LONDON_OPEN" if is_london else "WAITING_NEW_YORK_OPEN"
+            reason_name = "ANTES_DE_03_00_LONDRES" if is_london else "ANTES_DE_09_30_NEW_YORK"
+            return {**base, "action": action_name, "reason": reason_name}
         if now_ny >= close_ny:
-            return {**base, "action": "NO_ORB_SESSION", "reason": "SESION_NEW_YORK_FINALIZADA"}
+            reason_name = "SESION_LONDRES_FINALIZADA" if is_london else "SESION_NEW_YORK_FINALIZADA"
+            return {**base, "action": "NO_ORB_SESSION", "reason": reason_name}
 
-        cutoff_hour = int(getattr(self.config, "entry_cutoff_hour", 11))
-        cutoff_minute = int(getattr(self.config, "entry_cutoff_minute", 30))
+        if is_london:
+            cutoff_hour = int(getattr(self.config, "london_entry_cutoff_hour", 7))
+            cutoff_minute = int(getattr(self.config, "london_entry_cutoff_minute", 30))
+        else:
+            cutoff_hour = int(getattr(self.config, "entry_cutoff_hour", 11))
+            cutoff_minute = int(getattr(self.config, "entry_cutoff_minute", 30))
         entry_cutoff_ny = pd.Timestamp(datetime.combine(now_ny.date(), time(cutoff_hour, cutoff_minute)), tz=self.tz)
         base["entry_cutoff_ny"] = entry_cutoff_ny.isoformat()
         sweep_profile_enabled = bool((self.config.asset_profiles.get(self._profile_key_for_market(market)) or {}).get("sweep_enabled"))
         if bool(getattr(self.config, "entry_cutoff_enabled", False)) and now_ny >= entry_cutoff_ny and not sweep_profile_enabled:
-            return {**base, "action": "ORB_ENTRY_WINDOW_CLOSED", "reason": "DESPUES_DE_VENTANA_OPTIMA_NEW_YORK"}
+            reason_cutoff = "DESPUES_DE_VENTANA_OPTIMA_LONDRES" if is_london else "DESPUES_DE_VENTANA_OPTIMA_NEW_YORK"
+            return {**base, "action": "ORB_ENTRY_WINDOW_CLOSED", "reason": reason_cutoff}
 
         df = self._prepare_candles(symbol, now_utc)
         session = df[(df["time_ny"] >= open_ny) & (df["time_ny"] < close_ny)].copy()
@@ -988,9 +1041,29 @@ class NewYorkORBStrategy:
             spread = spread if math.isfinite(spread) and spread >= 0 else 0.0
         except (KeyError, TypeError, ValueError, AttributeError):
             spread = 0.0
-        tolerance = max(2 * spread, 0.10 * (signal_atr or 0.0))
-        retest_buy_ok = bool(breakout_up and midpoint < retest_low <= range_high + tolerance and retest_close > range_high + buffer)
-        retest_sell_ok = bool(breakout_down and midpoint > retest_high >= range_low - tolerance and retest_close < range_low - buffer)
+        tolerance_ratio = float(getattr(self.config, "retest_tolerance_atr", 0.15))
+        tolerance = max(2 * spread, tolerance_ratio * (signal_atr or 0.0))
+
+        # Validación con Mecha de Rechazo en Retest (02-nov-2026):
+        retest_body = abs(retest_close - float(retest["open"]))
+        retest_range = max(1e-9, retest_high - retest_low)
+        lower_wick = min(float(retest["open"]), retest_close) - retest_low
+        upper_wick = retest_high - max(float(retest["open"]), retest_close)
+        lower_wick_ratio = max(0.0, lower_wick) / retest_range
+        upper_wick_ratio = max(0.0, upper_wick) / retest_range
+        wick_rejection_on = bool(getattr(self.config, "retest_wick_rejection_enabled", True))
+
+        retest_buy_touch = (midpoint < retest_low <= range_high + tolerance)
+        retest_buy_close = (retest_close > range_high + buffer) or (
+            wick_rejection_on and retest_close >= range_high and lower_wick_ratio >= 0.20
+        )
+        retest_buy_ok = bool(breakout_up and retest_buy_touch and retest_buy_close)
+
+        retest_sell_touch = (midpoint > retest_high >= range_low - tolerance)
+        retest_sell_close = (retest_close < range_low - buffer) or (
+            wick_rejection_on and retest_close <= range_low and upper_wick_ratio >= 0.20
+        )
+        retest_sell_ok = bool(breakout_down and retest_sell_touch and retest_sell_close)
         retest_buy_ok = retest_buy_ok and "RETEST" in allowed_modes
         retest_sell_ok = retest_sell_ok and "RETEST" in allowed_modes
         direction = "BUY" if retest_buy_ok else "SELL" if retest_sell_ok else None
@@ -1250,9 +1323,18 @@ class NewYorkORBStrategy:
             }
 
 
-        # v61: protección exacta en el 50% del Opening Range.
-        # Sin buffer adicional: el midpoint es el nivel estructural de invalidación.
-        stop_loss = midpoint
+        # v61: protección exacta en el 50% del Opening Range o micro-stop de rechazo
+        retest_micro_stop_enabled = bool(getattr(self.config, "retest_micro_stop_enabled", False))
+        if retest_micro_stop_enabled and entry_mode == "ORB_BREAKOUT_RETEST":
+            micro_buffer = (atr_reference or 0.0) * float(getattr(self.config, "breakout_atr_buffer_fraction", 0.05))
+            if direction == "BUY":
+                cand_stop = retest_low - micro_buffer
+                stop_loss = max(cand_stop, midpoint)
+            else:
+                cand_stop = retest_high + micro_buffer
+                stop_loss = min(cand_stop, midpoint)
+        else:
+            stop_loss = midpoint
         entry_price = retest_close
         risk_distance = abs(entry_price - stop_loss)
         if risk_distance <= 0:

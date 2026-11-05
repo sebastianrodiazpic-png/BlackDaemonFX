@@ -46,6 +46,9 @@ MSNR_DEFAULT_SETTINGS = {
     'continuation_fresh_only': True,
     'continuation_direct_trigger': True,
     'retest_window_minutes': 360,
+    'enable_structural_freshness': True,
+    'structural_max_window_minutes': 720,
+    'retest_contact_buffer_atr': 0.15,
     'confirmation_tolerance_bars': 2,
     'confirmation_tolerance_max_atr': 0.35,
     'enable_setup_diagnostics': True,
@@ -203,8 +206,15 @@ def validate_msnr_patch(settings):
                 raise ValueError('El ADX mínimo debe estar entre 0 y 100')
             value = float(value)
         elif key == 'retest_window_minutes':
-            if type(value) is not int or not 15 <= value <= 480:
-                raise ValueError('La ventana de retest debe ser un número entero entre 15 y 480 minutos')
+            if type(value) is not int or not 15 <= value <= 720:
+                raise ValueError('La ventana de retest debe ser un número entero entre 15 y 720 minutos')
+        elif key == 'structural_max_window_minutes':
+            if type(value) is not int or not 15 <= value <= 1440:
+                raise ValueError('La ventana estructural máxima debe ser un número entero entre 15 y 1440 minutos')
+        elif key == 'retest_contact_buffer_atr':
+            if type(value) not in (int, float) or not 0.0 <= value <= 1.0 or not math.isfinite(value):
+                raise ValueError('El buffer de contacto debe ser un número entre 0.0 y 1.0 ATR')
+            value = float(value)
         elif key == 'confirmation_tolerance_bars':
             if type(value) is not int or not 0 <= value <= 5:
                 raise ValueError('La tolerancia de velas debe ser un número entero entre 0 y 5')

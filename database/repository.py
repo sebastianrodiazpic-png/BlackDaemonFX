@@ -954,12 +954,44 @@ class TradingRepository:
             retention_days=retention_days,
             max_rows=min(max_rows, 50_000),
         )
+        pruned_files = self.prune_runtime_storage_files(retention_days=min(retention_days, 3))
         return {
             "retention": retention,
             "retention_snapshots": retention_snapshots,
+            "pruned_runtime_files": pruned_files,
             "checkpoint": self.checkpoint_database(checkpoint_mode),
             "database": self.database_diagnostics(),
         }
+
+    def prune_runtime_storage_files(self, retention_days: int = 3) -> dict:
+        """Poda archivos temporales .tmp huérfanos y telemetría caduca en storage/runtime."""
+        import time
+        runtime_dir = Path(__file__).resolve().parent.parent / "storage" / "runtime"
+        deleted_tmp = 0
+        deleted_telemetry = 0
+        now_ts = time.time()
+        cutoff_sec = max(1.0, float(retention_days)) * 86400.0
+
+        if runtime_dir.exists():
+            for p in runtime_dir.rglob("*.tmp"):
+                try:
+                    p.unlink(missing_ok=True)
+                    deleted_tmp += 1
+                except OSError:
+                    pass
+
+            telemetry_dir = runtime_dir / "smc_telemetry"
+            if telemetry_dir.exists():
+                for f in telemetry_dir.glob("*"):
+                    if f.is_file():
+                        try:
+                            if (now_ts - f.stat().st_mtime) > cutoff_sec:
+                                f.unlink(missing_ok=True)
+                                deleted_telemetry += 1
+                        except OSError:
+                            pass
+
+        return {"deleted_tmp": deleted_tmp, "deleted_telemetry": deleted_telemetry}
 
     def recent_symbol_evaluation_events(
         self,

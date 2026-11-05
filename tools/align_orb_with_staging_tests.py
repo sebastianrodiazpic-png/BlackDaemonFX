@@ -7,8 +7,8 @@ p_orb = ROOT / 'strategy/orb/new_york_orb.py'
 code_orb = p_orb.read_bytes().decode('utf-8')
 
 # Asegurar import os en cabecera
-if 'import os\n' not in code_orb:
-    code_orb = 'import os\n' + code_orb
+if 'import os' not in code_orb:
+    code_orb = code_orb.replace('from __future__ import annotations', 'from __future__ import annotations\nimport os')
     print('import os agregado.')
 
 # Razón exacta del cutoff para paridad con tests de replay

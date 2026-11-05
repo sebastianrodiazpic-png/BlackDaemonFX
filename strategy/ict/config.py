@@ -1,6 +1,6 @@
 """Configuración para la estrategia institucional ICT (Sabri Malle - AMD & FVG Rejection v2)."""
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from config.ict_instrument_policy import (
     ICT_5Y_RESCUED_SYNTHETICS,
@@ -37,9 +37,10 @@ class ICTSabriMalleConfig:
     forex_ny_killzone_enabled: bool = False  # NY Killzone desactivada también para Forex
     london_close_reversal_enabled: bool = False  # Ventana 11:00-12:30 NY (horas 11-12 negativas en replay fiel)
     silver_bullet_enabled: bool = True  # Ventanas Silver Bullet restringidas a silver_bullet_hours_ny
-    # Mejora 3 (26-oct-2026): se retira también la ventana 14:00 NY (-54,8 R en 5 años, sin bloque de rango y 34-43% de timeouts a 16:30 NY).
+    # Ventanas Silver Bullet oficiales de Michael Huddleston: London (03:00 NY) y New York AM (10:00 NY).
+    # Configurable por DAEMONBLACKFX_ICT_SB_HOURS_NY (por defecto "3,10").
     silver_bullet_hours_ny: tuple = tuple(
-        int(h.strip()) for h in os.getenv("DAEMONBLACKFX_ICT_SB_HOURS_NY", "3").split(",") if h.strip()
+        int(h.strip()) for h in os.getenv("DAEMONBLACKFX_ICT_SB_HOURS_NY", "3,10").split(",") if h.strip()
     )
 
     # Activos con expectativa negativa en el replay fiel multianual (excluidos solo para ICT)
@@ -114,8 +115,20 @@ class ICTSabriMalleConfig:
     # Mejora 7 (27-oct-2026): Entrada Dual Escalonada (Mitigación al 25% y Consequent Encroachment al 50%)
     dual_entry_mitigation_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_DUAL_ENTRY_MITIGATION", "1").strip().lower() not in ("0", "false", "off")
     mitigation_fvg_ratio: float = float(os.getenv("DAEMONBLACKFX_ICT_MITIGATION_FVG_RATIO", "0.25"))
+    # Mitigación de Order Blocks (Sabri Malle Video 9): entrada en extremo/borde de OB 5 estrellas y FVG
+    ob_mitigation_entry_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_OB_MITIGATION", "1").strip().lower() not in ("0", "false", "off")
     # Mejora 8 (27-oct-2026): Apertura Killzone Tokio-Londres (00:00 - 02:00 NY) para pares Forex con JPY
     tokyo_london_kz_enabled: bool = os.getenv("DAEMONBLACKFX_ICT_TOKYO_LONDON_KZ", "1").strip().lower() not in ("0", "false", "off")
+    # Sesión Asiática oficial (Tokyo / Sydney) para pares JPY y AUD (19:00 - 02:00 NY)
+    asian_session_jpy_aud_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_ASIAN_SESSION_JPY_AUD", "1").strip().lower() not in ("0", "false", "off", "no"))
+    asian_kz_hours_ny: tuple = field(default_factory=lambda: tuple(int(h.strip()) for h in os.getenv("DAEMONBLACKFX_ICT_ASIAN_KZ_HOURS_NY", "19,20,21,22,23,0,1,2").split(",") if h.strip()))
+    # Manipulación Institucional por barrido de Asian Range y Previous Day High / Low (PDH / PDL)
+    asian_range_sweep_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_ASIAN_RANGE_SWEEP", "1").strip().lower() not in ("0", "false", "off", "no"))
+    pdh_pdl_sweep_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_PDH_PDL_SWEEP", "1").strip().lower() not in ("0", "false", "off", "no"))
+    # Micro-Stops por Mecha de Rechazo en M15 para Sintéticos (02-nov-2026)
+    enable_m15_micro_stop: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP", "1").strip().lower() in ("1", "true", "on"))
+    m15_micro_stop_buffer_atr: float = field(default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_BUFFER_ATR", "0.10")))
+    m15_micro_stop_min_risk_atr: float = field(default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_MIN_RISK_ATR", "0.20")))
     
     # Gestión Asimétrica Dual y Salidas
     min_rr_planned: float = 1.0
@@ -158,3 +171,47 @@ class ICTSabriMalleConfig:
         "Volatility 5 Index", "High Frequency Vol 100 Index", "Volatility 10 Index",
         "US Tech 100", "Volatility 100 Index", "CHFJPY", "GBPJPY", "XAUUSD",
     )
+
+    def __post_init__(self):
+        raw_sb = os.getenv("DAEMONBLACKFX_ICT_SB_HOURS_NY", "")
+        if raw_sb:
+            self.silver_bullet_hours_ny = tuple(int(h.strip()) for h in raw_sb.split(",") if h.strip())
+        raw_dual = os.getenv("DAEMONBLACKFX_ICT_DUAL_ENTRY_MITIGATION", "")
+        if raw_dual:
+            self.dual_entry_mitigation_enabled = raw_dual.strip().lower() not in ("0", "false", "off")
+        raw_ob_mit = os.getenv("DAEMONBLACKFX_ICT_OB_MITIGATION", "")
+        if raw_ob_mit:
+            self.ob_mitigation_entry_enabled = raw_ob_mit.strip().lower() not in ("0", "false", "off")
+        raw_mit_ratio = os.getenv("DAEMONBLACKFX_ICT_MITIGATION_FVG_RATIO", "")
+        if raw_mit_ratio:
+            try:
+                self.mitigation_fvg_ratio = float(raw_mit_ratio.strip())
+            except ValueError:
+                pass
+        raw_mstop = os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP", "")
+        if raw_mstop:
+            self.enable_m15_micro_stop = raw_mstop.strip().lower() in ("1", "true", "on")
+        raw_mstop_buf = os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_BUFFER_ATR", "")
+        if raw_mstop_buf:
+            try:
+                self.m15_micro_stop_buffer_atr = float(raw_mstop_buf.strip())
+            except ValueError:
+                pass
+        raw_mstop_floor = os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_MIN_RISK_ATR", "")
+        if raw_mstop_floor:
+            try:
+                self.m15_micro_stop_min_risk_atr = float(raw_mstop_floor.strip())
+            except ValueError:
+                pass
+        raw_asian_jpy_aud = os.getenv("DAEMONBLACKFX_ICT_ASIAN_SESSION_JPY_AUD", "")
+        if raw_asian_jpy_aud:
+            self.asian_session_jpy_aud_enabled = raw_asian_jpy_aud.strip().lower() not in ("0", "false", "off", "no")
+        raw_asian_kz_hours = os.getenv("DAEMONBLACKFX_ICT_ASIAN_KZ_HOURS_NY", "")
+        if raw_asian_kz_hours:
+            self.asian_kz_hours_ny = tuple(int(h.strip()) for h in raw_asian_kz_hours.split(",") if h.strip())
+        raw_ar_sweep = os.getenv("DAEMONBLACKFX_ICT_ASIAN_RANGE_SWEEP", "")
+        if raw_ar_sweep:
+            self.asian_range_sweep_enabled = raw_ar_sweep.strip().lower() not in ("0", "false", "off", "no")
+        raw_pdh_sweep = os.getenv("DAEMONBLACKFX_ICT_PDH_PDL_SWEEP", "")
+        if raw_pdh_sweep:
+            self.pdh_pdl_sweep_enabled = raw_pdh_sweep.strip().lower() not in ("0", "false", "off", "no")

@@ -31,15 +31,16 @@ class MalaysianSNRConfig:
     strategy_name: str = "MALAYSIAN_SNR"
     strategy_version: str = "msnr-v3.2-hybrid-alchemist"
     # Isolated historical configurations retain the old geometry unless opted in.
-    breaker_pair_mode: str = 'off'
+    breaker_pair_mode: str = os.getenv("DAEMONBLACKFX_MSNR_BREAKER_PAIR_MODE", "off").strip().lower()
     breaker_pair_min_body_ratio: float = .50
     breaker_pair_min_displacement_atr: float = .50
-    retest_pinbar_mode: str = 'off'
+    retest_pinbar_mode: str = os.getenv("DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE", "off").strip().lower()
     retest_pinbar_min_wick_ratio: float = .55
     retest_pinbar_min_close_ratio: float = .75
     session_policy: str = 'legacy_utc'
     obstacle_av_definition: str = 'engulfing'
     h4_obstacle_mode: str = 'off'
+    av_level_definition: str = os.getenv("DAEMONBLACKFX_MSNR_AV_LEVEL_DEFINITION", "engulfing").strip().lower()
     
     # Marcos temporales
     macro_timeframe: str = "D1"
@@ -55,14 +56,14 @@ class MalaysianSNRConfig:
     max_entry_distance_atr: float = 0.50
     obstacle_buffer_atr: float = 0.10
     qm_swing_radius: int = 2
-    retest_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES", "90"))
+    retest_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES", os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW", "360")))
     entry_execution_grace_seconds: int = 60
-    retest_recovery_bars: int = 3
-    confirmation_tolerance_bars: int = 0
+    retest_recovery_bars: int = int(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_BARS", "4"))
+    confirmation_tolerance_bars: int = int(os.getenv("DAEMONBLACKFX_MSNR_CONFIRMATION_TOLERANCE_BARS", "2"))
     confirmation_tolerance_max_atr: float = 0.35
     enable_zone_rejection_trigger: bool = True
     max_retest_penetration_atr: float = 0.35
-    retest_min_body_ratio: float = 0.35
+    retest_min_body_ratio: float = float(os.getenv("DAEMONBLACKFX_MSNR_RETEST_MIN_BODY_RATIO", "0.25"))
     enable_tested_level_entries: bool = True
     max_tested_wick_penetration_atr: float = 0.20
     tested_level_displacement_atr: float = 0.20
@@ -71,32 +72,41 @@ class MalaysianSNRConfig:
     enable_strict_fresh_filter: bool = True       # Consumidos bloqueados; una visita admite excepción reforzada configurable
     enable_session_killzones_filter: bool = True   # Solo operar Londres (07:00-11:00 UTC) y NY (12:30-17:00 UTC) en activos no sintéticos
     enable_daily_storyline_filter: bool = True     # Confluencia con sesgo macro D1
-    enable_synthetic_daily_storyline_filter: bool = False  # Veto D1 opcional para sintéticos; obstáculos D1 se conservan
+    enable_synthetic_daily_storyline_filter: bool = os.getenv("DAEMONBLACKFX_MSNR_STORYLINE_FILTER", "1").strip().lower() in ("1", "true", "on")  # Sesgo macro D1/H4 Alchemist
     enable_d1_storyline_levels: bool = True        # Storyline A/V de D1 para detección de Key Levels macro contrarios
     enable_crt_sweep_rejection: bool = True        # Candle Range Theory (CRT): M15 exige barrido de mecha + absorción de cierre
     enable_quasimodo_pattern: bool = True          # Patrón Quasimodo estructural de swing (Left Shoulder retest)
     enable_qmc_pattern: bool = True                # Quasimodo de Continuación (QMC en tendencia)
     enable_fakeout_trap: bool = os.getenv("DAEMONBLACKFX_MSNR_FAKEOUT_TRAP", "1").strip().lower() in ("1", "true", "on")  # Barridos fakeout activados con absorción
+    enable_structural_freshness: bool = os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_FRESHNESS", "1").strip().lower() in ("1", "true", "on")
+    structural_max_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_MINUTES", "720"))
+    retest_contact_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_CONTACT_BUFFER_ATR", "0.15"))
     dynamic_retest_buffer_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER", "0").strip().lower() in ("1", "true", "on")  # Buffer dinámico ATR H1 (0.20 ATR)
     dynamic_retest_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER_ATR", "0.20"))  # Tolerancia dinámica de 0.20 ATR H1
     min_sl_atr_h1: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_SL_ATR_H1", "0.0"))  # Piso estructural opcional de SL en sintéticos
     max_fakeout_penetration_atr: float = 0.60      # Penetración máxima permitida en Fakeout Trap (0.60 ATR)
     fakeout_min_wick_ratio: float = 0.50           # Absorción mínima de mecha en Fakeout Trap (>= 50%)
-    enable_m15_micro_stop: bool = False             # Stop Loss micro-estructural anclado a mecha M15
-    m15_micro_stop_buffer_atr: float = 0.10        # Buffer protector sobre extremo de mecha M15 (0.10 ATR)
-    m15_micro_stop_min_risk_atr: float = 0.20      # Piso mínimo de riesgo micro para evitar stops sub-spread (0.20 ATR)
+    enable_m15_micro_stop: bool = os.getenv("DAEMONBLACKFX_MSNR_MICRO_STOP", "1").strip().lower() in ("1", "true", "on")  # Stop Loss micro-estructural anclado a mecha M15 de rechazo
+    m15_micro_stop_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MICRO_STOP_BUFFER_ATR", "0.10"))        # Buffer protector sobre extremo de mecha M15 (0.10 ATR)
+    m15_micro_stop_min_risk_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MICRO_STOP_MIN_RISK_ATR", "0.20"))      # Piso mínimo de riesgo micro para evitar stops sub-spread (0.20 ATR)
     enable_runner_trailing_lock: bool = True       # SIN EFECTO: ningún código la lee. El runner MSNR usa la extensión progresiva del motor (2R→+1R, 3R→+2,5R)
     enable_h1_ema_confluence: bool = True          # Confluencia dinámica con EMA 50 en H1
     h1_ema_period: int = 50                        # Periodo de la EMA dinámica (50)
     h1_ema_tolerance_atr: float = 0.40             # Tolerancia de proximidad hacia la EMA 50 (0.40 ATR)
     enable_obstacle_awareness: bool = True         # Ajuste dinámico de TP2 al detectar Key Level contrario intermedio
     min_obstacle_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR", "2.0"))  # Clearance mínimo exigido hacia el obstáculo D1 opuesto (>= 2.0R base)
-    directional_asymmetry_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECTIONAL_ASYMMETRY", "0").strip().lower() in ("1", "true", "on")
-    jump_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY", "Jump 50 Index,Jump 75 Index").split(",") if s.strip())
-    step_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_STEP_SELL_ONLY", "Step Index 200,Step Index 400,Step Index 500").split(",") if s.strip())
+    directional_asymmetry_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECTIONAL_ASYMMETRY", "1").strip().lower() in ("1", "true", "on")
+    jump_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY", "").split(",") if s.strip())
+    step_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_STEP_SELL_ONLY", "").split(",") if s.strip())
+    crash_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_CRASH_SELL_ONLY", "Crash 500 Index").split(",") if s.strip())
+    boom_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_BOOM_BUY_ONLY", "Boom 500 Index,Boom 900 Index,Boom 1000 Index").split(",") if s.strip())
+    step_min_adx: float = float(os.getenv("DAEMONBLACKFX_MSNR_STEP_MIN_ADX", "25.0"))
+    enable_midnight_guard: bool = os.getenv("DAEMONBLACKFX_MSNR_MIDNIGHT_GUARD", "1").strip().lower() in ("1", "true", "on")
+    midnight_guard_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_MIDNIGHT_GUARD_MINUTES", "15"))
+    max_level_touches: int = int(os.getenv("DAEMONBLACKFX_MSNR_MAX_LEVEL_TOUCHES", "1"))
     
     # Escenarios habilitados
-    enable_scenario_1_continuation: bool = False
+    enable_scenario_1_continuation: bool = os.getenv("DAEMONBLACKFX_MSNR_ENABLE_CONTINUATION", "1").strip().lower() in ("1", "true", "on")
     continuation_min_adx: float = 20.0
     continuation_max_entry_distance_atr: float = 0.50
     continuation_fresh_only: bool = True
@@ -104,9 +114,9 @@ class MalaysianSNRConfig:
     enable_setup_diagnostics: bool = True
     enable_structure_cache: bool = True
     # Isolated replays retain legacy rules; runtime preferences enable observation.
-    av_entry_mode: str = 'off'
-    av_entry_definition: str = 'body_turns'
-    role_flip_mode: str = 'off'
+    av_entry_mode: str = os.getenv("DAEMONBLACKFX_MSNR_AV_ENTRY_MODE", "off").strip().lower()
+    av_entry_definition: str = os.getenv("DAEMONBLACKFX_MSNR_AV_ENTRY_DEFINITION", "body_turns").strip().lower()
+    role_flip_mode: str = os.getenv("DAEMONBLACKFX_MSNR_ROLE_FLIP_MODE", "off").strip().lower()
     role_flip_max_changes: int = 1
     role_flip_min_displacement_atr: float = .20
     qm_extended_mode: str = 'off'
@@ -127,8 +137,8 @@ class MalaysianSNRConfig:
     history_min_d1: int = 30
     history_max_request: int = 320
     m5_confirmation_mode: str = 'off'
-    recovery_window_minutes: int = 45
-    recovery_min_body_ratio: float = 0.35
+    recovery_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_WINDOW_MINUTES", "60"))
+    recovery_min_body_ratio: float = float(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_MIN_BODY_RATIO", "0.25"))
     h4_neutral_fallback_mode: str = 'off'
     ai_mode: str = 'filter'
     ai_incompatible_policy: str = 'observe'  # solo DEMO; ver runtime_settings.DEFAULT_AI_INCOMPATIBLE_POLICY
@@ -175,7 +185,7 @@ class MalaysianSNRConfig:
         "DAEMONBLACKFX_MSNR_REAL_SYMBOLS",
         # Decisión del usuario (25-oct-2026): acierto > 47 % en el replay con el cierre de las 16:45 NY, más los
         # forex con acierto > 47 % en el replay fiel de 3 años (NZDUSD ... CHFJPY).
-        "Germany 40,XAUUSD,USDJPY,GBPUSD,NZDUSD,GBPCAD,CADCHF,EURGBP,GBPCHF,CADJPY,GBPJPY"
+        "Germany 40,XAUUSD,USDJPY,GBPUSD,NZDUSD,GBPCAD,CADCHF,EURGBP,GBPCHF"
     ).split(",") if s.strip())
     real_markets_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_REAL_MARKETS", "demo_test").strip().lower() not in ("off", "0", "false")
     real_market_default_settings: bool = True
@@ -213,13 +223,38 @@ class MalaysianSNRConfig:
         "Step Index 400", "Crash 1000 Index", "Jump 25 Index", "Boom 300 Index",
         "Volatility 250 (1s) Index", "Step Index", "Jump 10 Index",
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
-        "Step Index 200", "Crash 600 Index",
+        "Step Index 200", "Crash 600 Index", "Crash 500 Index", "Boom 500 Index", "Boom 900 Index",
         # Metales
         "XAGUSD", "XAUUSD",
         # Forex e índices
         "GBPJPY", "EURUSD", "USDJPY", "AUDNZD", "GBPUSD", "GBPAUD",
-        "Wall Street 30", "EURCHF", "EURGBP",
-    )
+        "Wall Street 30", "EURCHF", "EURGBP")
+
+    def __post_init__(self):
+        if "DAEMONBLACKFX_MSNR_AV_LEVEL_DEFINITION" in os.environ:
+            self.av_level_definition = os.environ["DAEMONBLACKFX_MSNR_AV_LEVEL_DEFINITION"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_BREAKER_PAIR_MODE" in os.environ:
+            self.breaker_pair_mode = os.environ["DAEMONBLACKFX_MSNR_BREAKER_PAIR_MODE"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE" in os.environ:
+            self.retest_pinbar_mode = os.environ["DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_AV_ENTRY_MODE" in os.environ:
+            self.av_entry_mode = os.environ["DAEMONBLACKFX_MSNR_AV_ENTRY_MODE"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_ROLE_FLIP_MODE" in os.environ:
+            self.role_flip_mode = os.environ["DAEMONBLACKFX_MSNR_ROLE_FLIP_MODE"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_STEP_SELL_ONLY" in os.environ:
+            self.step_sell_only_symbols = tuple(s.strip() for s in os.environ["DAEMONBLACKFX_MSNR_STEP_SELL_ONLY"].split(",") if s.strip())
+        if "DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY" in os.environ:
+            self.jump_buy_only_symbols = tuple(s.strip() for s in os.environ["DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY"].split(",") if s.strip())
+        if "DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES" in os.environ or "DAEMONBLACKFX_MSNR_RETEST_WINDOW" in os.environ:
+            self.retest_window_minutes = int(os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES", os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW", "360")))
+        if "DAEMONBLACKFX_MSNR_STRUCTURAL_FRESHNESS" in os.environ:
+            self.enable_structural_freshness = os.environ["DAEMONBLACKFX_MSNR_STRUCTURAL_FRESHNESS"].strip().lower() in ("1", "true", "on")
+        if "DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_WINDOW" in os.environ or "DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_MINUTES" in os.environ:
+            self.structural_max_window_minutes = int(os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_WINDOW", os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_MINUTES", "720")))
+        if "DAEMONBLACKFX_MSNR_CONTACT_BUFFER_ATR" in os.environ:
+            self.retest_contact_buffer_atr = float(os.environ["DAEMONBLACKFX_MSNR_CONTACT_BUFFER_ATR"])
+        if "DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER" in os.environ:
+            self.dynamic_retest_buffer_enabled = os.environ["DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER"].strip().lower() in ("1", "true", "on")
 
 
 def msnr_c2_staging_config(**overrides) -> MalaysianSNRConfig:
@@ -229,8 +264,7 @@ def msnr_c2_staging_config(**overrides) -> MalaysianSNRConfig:
         enable_c2_fx_metals_atr_cap=True,
         c2_fx_metals_max_sl_atr=1.2,
         c2_default_max_sl_atr=1.5,
-        continuation_min_adx=30.0,
-    )
+        continuation_min_adx=30.0)
     params.update(overrides)
     return MalaysianSNRConfig(**params)
 

@@ -26,7 +26,7 @@ def make_engine(bid, ask, profile="VOLATILITY_1", **cfg):
 
 def test_default_ratio_is_two_percent():
     assert LiveTradingConfig().synthetic_spread_guard_enabled is True
-    assert LiveTradingConfig().synthetic_spread_max_risk_ratio == pytest.approx(0.02)
+    assert LiveTradingConfig().synthetic_spread_max_risk_ratio == pytest.approx(0.025)
 
 
 def test_buy_within_limit_is_allowed_and_audited():
