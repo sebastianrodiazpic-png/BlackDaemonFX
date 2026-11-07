@@ -35,6 +35,7 @@ Vinculaciones:
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
+import os
 from datetime import datetime, timezone
 import threading
 import time
@@ -425,6 +426,28 @@ class MultiTimeframeAnalyzer:
 
         if df is None or df.empty:
             return pd.DataFrame()
+
+        fast_path = os.getenv("DAEMONBLACKFX_ZERO_COPY_CANDLES_OPTIMIZATION", "1").strip().lower() not in ("0", "false", "no", "off")
+        if fast_path:
+            # Optimizacion Zero-Redundancy: evitar re-parseo O(N) y copias si ya es datetime UTC
+            if not pd.api.types.is_datetime64_any_dtype(df["time"]):
+                df = df.copy()
+                df["time"] = pd.to_datetime(df["time"], utc=True)
+            elif getattr(df["time"].dt, "tz", None) is None:
+                df = df.copy()
+                df["time"] = df["time"].dt.tz_localize("UTC")
+
+            # Solo ordenar o descartar duplicados si no es monótono creciente
+            if not df["time"].is_monotonic_increasing:
+                df = df.sort_values("time").drop_duplicates("time").reset_index(drop=True)
+            elif df["time"].duplicated().any():
+                df = df.drop_duplicates("time").reset_index(drop=True)
+
+            # Eliminar la vela posiblemente abierta en una sola operacion
+            if len(df) > 1:
+                return df.iloc[:-1].reset_index(drop=True)
+
+            return df.reset_index(drop=True)
 
         df = df.copy()
 

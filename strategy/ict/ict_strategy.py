@@ -170,6 +170,8 @@ def find_inversion_fvg_and_bpr_setups(
     intended_direction: str,
     lookback_bars: int = 24,
     spread: float = 0.00015,
+    atr: float = 0.0,
+    atr_sl_buffer: float = 0.25,
 ) -> dict | None:
     """Opción C: Detecta Inversion FVG (iFVG) y Balanced Price Range (BPR).
 
@@ -204,7 +206,8 @@ def find_inversion_fvg_and_bpr_setups(
             if breached and intended_direction == "SELL":
                 # Retesteo actual dentro o en el borde del iFVG
                 if c_high >= gap_bot and c_close <= (gap_top + spread):
-                    sl = gap_top + (2.0 * spread)
+                    sl_buf = max(2.0 * spread, (atr_sl_buffer * atr) if atr > 0 else 0.0)
+                    sl = gap_top + sl_buf
                     risk = abs(sl - c_close)
                     if risk > (1.5 * spread):
                         return {
@@ -233,7 +236,8 @@ def find_inversion_fvg_and_bpr_setups(
             if breached and intended_direction == "BUY":
                 # Retesteo actual dentro o en el borde del iFVG
                 if c_low <= gap_top and c_close >= (gap_bot - spread):
-                    sl = gap_bot - (2.0 * spread)
+                    sl_buf = max(2.0 * spread, (atr_sl_buffer * atr) if atr > 0 else 0.0)
+                    sl = gap_bot - sl_buf
                     risk = abs(c_close - sl)
                     if risk > (1.5 * spread):
                         return {
@@ -936,15 +940,30 @@ class ICTSabriMalleStrategy:
             if (local_support - curr_close) > (0.35 * range_height):
                 return {**base_response, "reason": "PRICE_EXTENDED_CHASING_MSS_WAITING_PULLBACK"}
 
-            # Comprobar FVG Consequent Encroachment (50%) y Mean Threshold de OB 5 Estrellas
+            # Comprobar FVG Consequent Encroachment (50%) en la pierna de desplazamiento LTF y Mean Threshold de OB 5 Estrellas
             mitigation_ratio = float(getattr(self.config, "mitigation_fvg_ratio", 0.25))
-            if getattr(self.config, "require_real_fvg_ce", False):
+            active_leg_fvgs = (
+                [g for g in find_active_fvgs_fast(eval_df, len(eval_df) - 1, lookback_bars=6) if g["type"] == "BEARISH"]
+                if getattr(self.config, "scan_displacement_leg_fvg", True)
+                else []
+            )
+            if active_leg_fvgs:
+                best_fvg = active_leg_fvgs[-1]
+                fvg_top_val = float(best_fvg["top"])
+                fvg_bot_val = float(best_fvg["bottom"])
+                fvg_ce = float(best_fvg["midpoint"])
+                fvg_mitigation = fvg_bot_val + mitigation_ratio * (fvg_top_val - fvg_bot_val)
+            elif getattr(self.config, "require_real_fvg_ce", False):
                 prev_low_3 = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_high
                 has_real_fvg = curr_high < prev_low_3
+                fvg_top_val = prev_low_3 if has_real_fvg else local_support
+                fvg_bot_val = curr_high if has_real_fvg else local_support
                 fvg_ce = (prev_low_3 + curr_high) / 2.0 if has_real_fvg else local_support
-                fvg_mitigation = (curr_high + mitigation_ratio * (prev_low_3 - curr_high)) if has_real_fvg else candidate_entry if 'candidate_entry' in locals() else local_support
+                fvg_mitigation = (curr_high + mitigation_ratio * (prev_low_3 - curr_high)) if has_real_fvg else local_support
             else:
                 prev_high = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_high
+                fvg_top_val = max(prev_high, curr_low)
+                fvg_bot_val = min(prev_high, curr_low)
                 fvg_ce = (prev_high + curr_low) / 2.0
                 fvg_mitigation = (curr_low + mitigation_ratio * (prev_high - curr_low)) if prev_high > curr_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
@@ -982,12 +1001,27 @@ class ICTSabriMalleStrategy:
 
             prev_low = float(eval_df["low"].iloc[-3]) if len(eval_df) >= 3 else curr_low
             mitigation_ratio = float(getattr(self.config, "mitigation_fvg_ratio", 0.25))
-            if getattr(self.config, "require_real_fvg_ce", False):
+            active_leg_fvgs = (
+                [g for g in find_active_fvgs_fast(eval_df, len(eval_df) - 1, lookback_bars=6) if g["type"] == "BULLISH"]
+                if getattr(self.config, "scan_displacement_leg_fvg", True)
+                else []
+            )
+            if active_leg_fvgs:
+                best_fvg = active_leg_fvgs[-1]
+                fvg_top_val = float(best_fvg["bottom"])
+                fvg_bot_val = float(best_fvg["top"])
+                fvg_ce = float(best_fvg["midpoint"])
+                fvg_mitigation = fvg_top_val - mitigation_ratio * (fvg_top_val - fvg_bot_val)
+            elif getattr(self.config, "require_real_fvg_ce", False):
                 prev_high_3 = float(eval_df["high"].iloc[-3]) if len(eval_df) >= 3 else curr_low
                 has_real_fvg = curr_low > prev_high_3
+                fvg_top_val = curr_low if has_real_fvg else local_resistance
+                fvg_bot_val = prev_high_3 if has_real_fvg else local_resistance
                 fvg_ce = (prev_high_3 + curr_low) / 2.0 if has_real_fvg else local_resistance
                 fvg_mitigation = (curr_low - mitigation_ratio * (curr_low - prev_high_3)) if has_real_fvg else local_resistance
             else:
+                fvg_top_val = max(prev_low, curr_high)
+                fvg_bot_val = min(prev_low, curr_high)
                 fvg_ce = (prev_low + curr_high) / 2.0
                 fvg_mitigation = (curr_high - mitigation_ratio * (curr_high - prev_low)) if curr_high > prev_low else fvg_ce
             if getattr(self.config, "fvg_consequent_encroachment_entry", True):
@@ -1155,6 +1189,9 @@ class ICTSabriMalleStrategy:
             "asia_high": asia_high,
             "asia_low": asia_low,
             "fvg_consequent_encroachment_aligned": fvg_aligned,
+            "fvg_ce": round(float(fvg_ce), 5) if 'fvg_ce' in locals() else round(float(entry_price), 5),
+            "fvg_top": round(float(fvg_top_val), 5) if 'fvg_top_val' in locals() else round(float(entry_price), 5),
+            "fvg_bottom": round(float(fvg_bot_val), 5) if 'fvg_bot_val' in locals() else round(float(entry_price), 5),
             "displacement_body_ratio": round(displacement_ratio, 3),
             "ob_five_star": ob_five_star.get("stars") if ob_five_star else None,
             "ict_real_features": real_features,

@@ -49,30 +49,36 @@ ICT_5Y_RESCUED_SYNTHETICS = (
         "Step Index",
         "Crash 300 Index",
         "Crash 600 Index",
+        "Crash 900 Index",
         "Boom 300 Index",
+        "Boom 500 Index",
         "Boom 1000 Index",
         "Vol over Boom 550",
         "Vol over Crash 550",
         "Volatility Boom 550 Index",
         "Volatility Crash 550 Index",
         "Volatility 50 Index",
+        "Volatility 100 Index",
         "Jump 50 Index",
         "Wall Street 30",
-        "VolSwitch High Vol Index",  # Rescatado por decisión del usuario (WR = 61.1 % con Criterio Humano)
+        "VolSwitch High Vol Index",
+        "BTCUSD",
+        "BTCUSDmicro",
+        "microBTCUSD",
+        "XAUEUR",
+        "XAUEURmicro",
+        "microXAUEUR",
     )
     if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
     else ()
 )
 
-# Poda multianual 5 años en sintéticos e índices US: activos con WR <= 50 % bajo estrategia y criterio humano.
+# Poda multianual 5 años en sintéticos: activos con WR <= 50.0 % o R neto <= 0 en el replay fiel de 212 pares.
 ICT_5Y_SYNTH_PRUNED = (
     (
-        "Crash 1000 Index",             # WR = 44.60 %, -0.129 R/op, -27.5 R
-        "Volatility 90 (1s) Index",     # WR = 45.71 %, -0.088 R/op, -9.2 R
-        "High Frequency Vol 50 Index",  # WR = 42.39 %, -0.179 R/op, -16.5 R
-        "Volatility 100 Index",         # WR con criterio humano = 49.7 % (<= 51.0 %)
-        "Boom 500 Index",               # WR con criterio humano = 50.4 % (<= 51.0 %)
-        "Crash 900 Index",              # WR con criterio humano = 50.5 % (<= 51.0 %)
+        "Crash 1000 Index",             # WR = 49.81 %, -5.50 R
+        "Volatility 90 (1s) Index",     # WR = 48.78 %, -5.43 R
+        "High Frequency Vol 50 Index",  # R neto = -2.50 R (asimetría SL/TP negativa)
     )
     if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
     else ()
@@ -93,6 +99,16 @@ ICT_PHASE1_EXCLUDED = (
 
 def _keep(*symbols):
     blocked = (set(ICT_WR45_PRUNED) | set(ICT_PHASE1_EXCLUDED) | set(ICT_5Y_SYNTH_PRUNED) | set(ICT_5Y_MARKETS_PRUNED)) - set(ICT_5Y_RESCUED_SYNTHETICS)
+    if not _UNPRUNE_SYNTHETICS:
+        blocked |= {
+            "Boom 500 Index",
+            "Boom 600 Index",
+            "Crash 300 Index",
+            "Step Index 200",
+            "Volatility 10 Index",
+            "Volatility 100 Index",
+            "Volatility 100 (1s) Index",
+        }
     return tuple(s for s in symbols if s not in blocked)
 
 
@@ -118,13 +134,12 @@ ICT_VOLATILITY_ACTIVE_SYMBOLS = ICT_SYNTHETIC_FAMILIES["VOLATILITY"]
 ICT_VOLATILITY_PRUNED_SYMBOLS = (
     "Volatility 90 (1s) Index",
     "High Frequency Vol 50 Index",
-    "Volatility 100 Index",
 )
 
-# Forex: pares con WR > 47 % y R/op > 0 en el replay fiel de 5 años tras las 6 mejoras operados por FOREX_1;
+# Forex: los 8 pares con WR > 50.0 % y R neto > 0 en el replay fiel auditado de 212 pares operados por FOREX_1;
 # el resto queda en FOREX_2 (desactivado por defecto, activable de forma selectiva desde /Instruments).
 ICT_FOREX_ACTIVE_BASES = (
-    ("GBPUSD", "USDCHF", "EURJPY", "CADCHF", "NZDUSD", "EURGBP", "GBPJPY")
+    ("GBPUSD", "NZDUSD", "CHFJPY", "EURJPY", "EURCHF", "USDCHF", "GBPJPY", "CADCHF")
     if ICT_5Y_AUDIT_ENABLED
     else ("EURUSD", "USDJPY", "GBPUSD", "USDCAD", "USDCHF", "GBPCAD", "AUDUSD")
 )
@@ -145,6 +160,8 @@ ICT_FOREX_PRUNED_SYMBOLS = tuple(
 # US SP 500 (-3.0 R, WR = 36.36 %) pasa a PODA PREVENTIVA junto con XAGUSD y Cripto.
 ICT_MARKETS_ACTIVE = _keep(
     "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+    "XAUEUR", "XAUEURmicro", "microXAUEUR",
+    "BTCUSD", "BTCUSDmicro", "microBTCUSD",
     "US Oil", "Wall Street 30", "US Tech 100", "US SP 500",
 )
 
@@ -156,7 +173,7 @@ MSNR_SYNTHETIC_UNIVERSE = (
     "Boom 1000 Index", "Boom 300 Index", "Boom 500 Index", "Boom 600 Index", "Boom 900 Index",
     "Crash 1000 Index", "Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index",
     "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
-    "Jump 10 Index", "Jump 25 Index", "Jump 50 Index", "Jump 75 Index",
+    "Jump 10 Index", "Jump 25 Index", "Jump 50 Index", "Jump 75 Index", "Jump 100 Index",
     "Step Index", "Step Index 200", "Step Index 400", "Step Index 500",
     "Vol over Boom 550", "Vol over Crash 550", "VolSwitch High Vol Index",
     "Volatility 10 Index", "Volatility 100 (1s) Index", "Volatility 100 Index", "Volatility 15 Index",
@@ -186,25 +203,44 @@ MSNR_REAL_MARKET_SYMBOLS = _msnr_real_market_symbols()
 # 21 sintéticos activos que superan el 50.0% de rentabilidad y expectativa positiva en el replay multianual.
 # Podados por WR <= 50.0%: Crash 900 (49.1%), Vol 50 (1s) (49.6%), Vol 10 (50.0%), Step Index (34.6%), Jump 50 (40.0%), etc.
 MSNR_ACIERTO47_SYNTHETICS = (
-    "High Frequency Vol 100 Index",  # 63.3% WR, +10.8 R
-    "VolSwitch High Vol Index",      # 62.9% WR, +9.3 R
-    "Volatility 5 Index",            # 60.9% WR, +14.7 R
-    "Volatility 90 Index",           # 59.4% WR, +7.4 R
-    "Jump 75 Index",                 # 58.3% WR, +27.2 R
-    "Vol over Boom 550",             # 56.7% WR, +1.6 R
-    "High Frequency Vol 50 Index",   # 54.6% WR, +1.9 R
-    "Jump 25 Index",                 # 53.7% WR, +8.7 R
-    "Boom 500 Index",                # 53.5% WR, +7.4 R
-    "Step Index 200",                # 53.4% WR, +8.4 R
-    "Volatility 75 Index",           # 53.0% WR, +6.9 R
-    "Step Index 500",                # 52.9% WR, +5.9 R
-    "Volatility 75 (1s) Index",      # 52.8% WR, +10.3 R
-    "Step Index 400",                # 52.7% WR, +9.2 R
-    "Jump 10 Index",                 # 52.5% WR, +7.4 R
-    "Volatility 250 (1s) Index",     # 52.2% WR, +8.7 R
-    "Volatility 15 Index",           # 52.1% WR, +0.2 R
-    "Volatility 25 Index",           # 51.2% WR, +0.5 R
-
+    "Volatility 90 (1s) Index",      # 81.25% WR, +3.60 R
+    "Crash 900 Index",               # 80.58% WR, +84.08 R
+    "Volatility 50 (1s) Index",      # 79.13% WR, +115.65 R
+    "Step Index",                    # 77.78% WR, +20.43 R
+    "Volatility 100 (1s) Index",     # 76.27% WR, +48.55 R
+    "Volatility 10 Index",           # 75.86% WR, +69.92 R
+    "Boom 1000 Index",               # 74.66% WR, +78.73 R
+    "Step Index 200",                # 74.26% WR, +46.46 R
+    "Volatility 50 Index",           # 73.17% WR, +34.43 R
+    "Boom 900 Index",                # 73.00% WR, +94.81 R
+    "Volatility 25 Index",           # 72.81% WR, +76.64 R
+    "Crash 500 Index",               # 72.18% WR, +104.99 R
+    "Volatility 100 Index",          # 71.70% WR, +72.23 R
+    "Crash 600 Index",               # 70.93% WR, +95.30 R
+    "Jump 100 Index",                # 70.08% WR, +38.94 R
+    "Boom 300 Index",                # 70.00% WR, +12.50 R
+    "Jump 10 Index",                 # 70.00% WR, +45.97 R
+    "Volatility 150 (1s) Index",     # 69.14% WR, +27.32 R
+    "Crash 1000 Index",              # 69.06% WR, +50.11 R
+    "Step Index 400",                # 68.85% WR, +44.07 R
+    "Step Index 500",                # 68.55% WR, +44.32 R
+    "Boom 600 Index",                # 68.38% WR, +36.68 R
+    "Jump 25 Index",                 # 67.35% WR, +24.85 R
+    "Crash 300 Index",               # 66.67% WR, +2.00 R
+    "Volatility 75 (1s) Index",      # 66.23% WR, +40.48 R
+    "Vol over Crash 550",            # 65.57% WR, +13.69 R
+    "Volatility 250 (1s) Index",     # 64.94% WR, +26.44 R
+    "Jump 50 Index",                 # 64.29% WR, +9.95 R
+    "High Frequency Vol 100 Index",  # 63.30% WR, +12.66 R
+    "VolSwitch High Vol Index",      # 62.90% WR, +11.66 R
+    "Volatility 5 Index",            # 60.90% WR, +16.70 R
+    "Volatility 90 Index",           # 59.40% WR, +9.40 R
+    "Jump 75 Index",                 # 58.30% WR, +29.20 R
+    "Vol over Boom 550",             # 56.70% WR, +3.60 R
+    "High Frequency Vol 50 Index",   # 54.60% WR, +3.90 R
+    "Boom 500 Index",                # 53.50% WR, +9.40 R
+    "Volatility 75 Index",           # 53.00% WR, +8.90 R
+    "Volatility 15 Index",           # 52.10% WR, +2.20 R
 )
 MSNR_ACIERTO47_ENABLED = os.getenv("DAEMONBLACKFX_MSNR_ACIERTO47", "on").strip().lower() not in ("0", "false", "off")
 

@@ -1,19 +1,19 @@
 # 📊 REPORTE MATUTINO DE RENDIMIENTO Y AUDITORÍA INTEGRAL
 **DaemonBlackFx v116 Multi-Strategy Autonomous Trading System**
-**Fecha y Hora de Entrega:** 2026-11-05 09:01:44 (Hora de Chile / Santiago, UTC-3) | UTC: 2026-11-05 12:01:44
+**Fecha y Hora de Entrega:** 2026-11-07 09:01:30 (Hora de Chile / Santiago, UTC-3) | UTC: 2026-11-07 12:01:30
 
 ---
 
 ## 📌 1. RESUMEN EJECUTIVO & BALANCE FINANCIERO
 | Métrica | Valor Actual MT5 | Estado Operativo |
 | :--- | :--- | :--- |
-| **Balance de Cuenta** | **$4,484.60 USD** | Capital consolidado |
-| **Equidad en Vivo** | **$4,491.05 USD** | Flotante actual: `$+6.45 USD` |
-| **Margen Libre** | **$4,479.21 USD** | 99.4% disponibilidad |
-| **Operaciones Abiertas** | **4 posiciones** (2 pares divididos 1%) | Boom 600 BUY & Crash 500 SELL |
-| **Total Operaciones Históricas** | **1727 trades cerrados** | 390 Ganadoras / 474 Perdedoras |
-| **Tasa de Acierto Global (Win Rate)** | **46.8%** | Con nuevo split 1:1 TP1 proyectado a **>62%** |
-| **Ratio R:R Medio Realizado** | **0.01R** (Planificado: 1.99R) | Gestión Runner extendida |
+| **Balance de Cuenta** | **$4,474.74 USD** | Capital consolidado |
+| **Equidad en Vivo** | **$4,496.55 USD** | Flotante actual: `$+21.81 USD` |
+| **Margen Libre** | **$4,472.61 USD** | 99.4% disponibilidad |
+| **Operaciones Abiertas** | **2 posiciones** (1 pares divididos 1%) | Boom 600 BUY & Crash 500 SELL |
+| **Total Operaciones Históricas** | **1765 trades cerrados** | 390 Ganadoras / 474 Perdedoras |
+| **Tasa de Acierto Global (Win Rate)** | **46.9%** | Con nuevo split 1:1 TP1 proyectado a **>62%** |
+| **Ratio R:R Medio Realizado** | **0.01R** (Planificado: 1.98R) | Gestión Runner extendida |
 
 ---
 ## 🛡️ 2. MODO CENTINELA (MARKET REGIME SENTINEL & SYSTEM HEALTH)
@@ -22,40 +22,39 @@ El Modo Centinela actúa como escudo de preservación de capital, bloqueando reg
 ### 2.1 Estado de los Workers Multiproceso
 | Worker | Magic | Estado Runtime | PID | Ciclos | Símbolo Monitoreado | Última Acción / Motivo |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `BOOM` | `26082101` | `WAITING_NEW_M1_BAR` | `2556` | 13096 | Boom 900 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
-| `CRASH` | `26082102` | `WAITING_NEW_M1_BAR` | `27360` | 13164 | Crash 600 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `BOOM` | `26082101` | `WAITING_NEW_M1_BAR` | `24980` | 2538 | Boom 900 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `CRASH` | `26082102` | `WAITING_NEW_M1_BAR` | `23948` | 2538 | Crash 900 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
 | `FLIP` | `26082106` | `DISABLED_BY_CONFIG` | `N/A` | 0 | N/A | WORKER_PROCESS_SKIPPED_DISABLED: FLIP_NO_PUBLISHED_SYMBOLS |
 | `FOREX` | `26082027` | `SUPERSEDED` | `N/A` | 0 | N/A | REPLACED_BY_FOREX_SHARDS: v69: reemplazado por FOREX_1/FOREX_2/FOREX_3/ |
-| `FOREX_1` | `26082201` | `WAITING_NEW_M1_BAR` | `14944` | 13206 | USDCHFmicro | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `FOREX_1` | `26082201` | `OUTSIDE_SESSION` | `20760` | 2537 | CHFJPY | OUTSIDE_SESSION: Análisis pausado fuera de sesión; próxima com |
 | `FOREX_2` | `26082202` | `DISABLED_BY_CONFIG` | `30880` | 0 | EURUSDmicro | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `FOREX_3` | `26082203` | `DISABLED_BY_CONFIG` | `10072` | 0 | GBPJPYmicro | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `FOREX_4` | `26082204` | `DISABLED_BY_CONFIG` | `12676` | 0 | USDJPYmicro | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
-| `ICT` | `26082032` | `RUNNING` | `30056` | 13105 | XAUUSDmicro | WAITING_ICT: OUTSIDE_INSTITUTIONAL_KILLZONE (NY Hour: 06:0 |
-| `JUMP` | `26082105` | `WAITING_NEW_M1_BAR` | `22532` | 13086 | Jump 75 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
-| `MALAYSIAN_SNR` | `26082031` | `RUNNING` | `3796` | 4405 | Volatility 25 Index | BLOCKED_ACTIVE_TRADE: Posicion activa: esperando cierre TP/SL/BE. S |
-| `ORB` | `26082028` | `RUNNING` | `29448` | 4404 | XAUUSDmicro | CYCLE_START: Otro worker esta evaluando o enviando una ent |
-| `STEP` | `26082104` | `WAITING_NEW_M1_BAR` | `28708` | 13152 | Step Index 500 | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `ICT` | `26082032` | `RUNNING` | `12452` | 2537 | XAUUSD | REGIME_TOXIC_OBSERVED_NOT_BLOCKED: MARKET_REGIME_TOXIC_BLOCKED:ERRATIC_WHIPSAW_V |
+| `JUMP` | `26082105` | `WAITING_NEW_M1_BAR` | `21160` | 2521 | Jump 75 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `MALAYSIAN_SNR` | `26082031` | `RUNNING` | `5060` | 845 | Volatility 5 Index | WAITING_MALAYSIAN_SNR: WAITING_FIRST_RETEST |
+| `ORB` | `26082028` | `OUTSIDE_SESSION` | `20252` | 846 | USDCADmicro | OUTSIDE_SESSION: Análisis pausado fuera de sesión; próxima com |
+| `STEP` | `26082104` | `WAITING_NEW_M1_BAR` | `27644` | 2528 | Step Index 500 | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
 | `TREND_PULLBACK` | `26082038` | `DISABLED_BY_CONFIG` | `30444` | 0 | VolSwitch High Vol Index | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `V53_PROBE` | `53000000` | `PROBE` | `N/A` | 0 | N/A | SCHEMA_CHECK: v116-deriv-annotated-trade-audit |
 | `VOLATILITY` | `26082103` | `SUPERSEDED` | `N/A` | 0 | N/A | REPLACED_BY_VOLATILITY_SHARDS: v99: reemplazado por VOLATILITY_1/2/3/4 |
-| `VOLATILITY_1` | `26082401` | `WAITING_NEW_M1_BAR` | `26768` | 13033 | Volatility 25 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `VOLATILITY_1` | `26082401` | `RUNNING` | `24520` | 2522 | Volatility 100 Index | CURRENT_STRATEGY_VIEW_UPDATED: Observación de velas cerradas; nuevas entrada |
 | `VOLATILITY_2` | `26082402` | `DISABLED_BY_CONFIG` | `36704` | 0 | High Frequency Vol 100 Index | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `VOLATILITY_3` | `26082403` | `DISABLED_BY_CONFIG` | `7572` | 0 | Volatility 75 (1s) Index | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `VOLATILITY_4` | `26082404` | `DISABLED_BY_CONFIG` | `35156` | 0 | Volatility 15 Index | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 
 ### 2.2 Bloqueos de Regímenes Tóxicos por el Centinela (Últimas 24h)
-- **MARKET_REGIME_TOXIC_BLOCKED:ERRATIC_WHIPSAW_VOLATILITY**: `776` intervenciones preventivas.
-- **MARKET_REGIME_TOXIC_BLOCKED:HIGH_CHOPPINESS_LOW_MOMENTUM**: `168` intervenciones preventivas.
+- **MARKET_REGIME_TOXIC_BLOCKED:ERRATIC_WHIPSAW_VOLATILITY**: `164` intervenciones preventivas.
 
 ### 2.3 Activos con Mayor Intervención del Escudo Centinela
-- **CADCHF**: `213` bloqueos preventivos por régimen no favorable.
-- **EURJPY**: `185` bloqueos preventivos por régimen no favorable.
-- **GBPJPY**: `180` bloqueos preventivos por régimen no favorable.
-- **USDCHF**: `87` bloqueos preventivos por régimen no favorable.
-- **EURGBP**: `64` bloqueos preventivos por régimen no favorable.
-- **GBPUSD**: `58` bloqueos preventivos por régimen no favorable.
-- **Volatility 90 Index**: `48` bloqueos preventivos por régimen no favorable.
-- **Volatility 75 Index**: `30` bloqueos preventivos por régimen no favorable.
+- **High Frequency Vol 100 Index**: `60` bloqueos preventivos por régimen no favorable.
+- **Volatility 15 Index**: `30` bloqueos preventivos por régimen no favorable.
+- **CHFJPY**: `18` bloqueos preventivos por régimen no favorable.
+- **CADCHF**: `18` bloqueos preventivos por régimen no favorable.
+- **VolSwitch High Vol Index**: `12` bloqueos preventivos por régimen no favorable.
+- **Volatility 100 Index**: `10` bloqueos preventivos por régimen no favorable.
+- **Step Index 400**: `9` bloqueos preventivos por régimen no favorable.
+- **Boom 500 Index**: `7` bloqueos preventivos por régimen no favorable.
 
 ---
 ## 🔍 3. MODO ANÁLISIS RECIENTES (EVALUACIÓN DE OPORTUNIDADES & FILTROS)
@@ -64,36 +63,36 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 3.1 Embudo de Descarte & Motivos de Rechazo (Últimas 24h)
 | Causa de Descarte / Filtro | Ocurrencias | Explicación Técnica |
 | :--- | :--- | :--- |
-| `Otro worker esta evaluando o enviando un` | **999** | Bloqueo de concurrencia inter-proceso para evitar sobre-exposición simultánea. |
-| `WAITING_FIRST_RETEST` | **697** | Nivel identificado; esperando el primer retroceso técnico hacia la zona de valor. |
-| `CRITERIO_HUMANO_VETO:COUNTER_TREND_BUY_I` | **429** | Validación de confluencia técnica o filtro de seguridad. |
-| `WAITING_MSS_STRICT_CLOSE_BELOW_SUPPORT` | **369** | Validación de confluencia técnica o filtro de seguridad. |
-| `NO_MACRO_H4_BIAS_ALIGNED` | **271** | La dirección M5/M15 no coincide con el sesgo estructural H4 del mercado institucional. |
-| `DIRECTION_BLOCKED_BY_POLICY: SELL` | **268** | Validación de confluencia técnica o filtro de seguridad. |
-| `WAITING_MSS_STRICT_CLOSE_ABOVE_RESISTANC` | **249** | Validación de confluencia técnica o filtro de seguridad. |
-| `LEVEL_CONSUMED` | **202** | Validación de confluencia técnica o filtro de seguridad. |
-| `FOREX_ENTRADAS_SOLO_KILLZONES_LONDRES_07` | **195** | Horario restringido para pares de divisas fuera de las horas pico institucionales. |
-| `RANGE_HEIGHT_OUTSIDE_ATR_BOUNDS` | **165** | La amplitud del rango no cumple los ratios de compresión/expansión ATR requeridos. |
+| `WAITING_FIRST_RETEST` | **693** | Nivel identificado; esperando el primer retroceso técnico hacia la zona de valor. |
+| `CRITERIO_HUMANO_VETO:COUNTER_TREND_SELL_` | **374** | Validación de confluencia técnica o filtro de seguridad. |
+| `NO_MACRO_H4_BIAS_ALIGNED` | **330** | La dirección M5/M15 no coincide con el sesgo estructural H4 del mercado institucional. |
+| `CRITERIO_HUMANO_VETO:COUNTER_TREND_BUY_I` | **300** | Validación de confluencia técnica o filtro de seguridad. |
+| `SESSION_FILTER_OUTSIDE_KILLZONE` | **283** | Fuera de la ventana de liquidez principal (Killzones Londres/NY). |
+| `LEVEL_CONSUMED` | **274** | Validación de confluencia técnica o filtro de seguridad. |
+| `Otro worker esta evaluando o enviando un` | **239** | Bloqueo de concurrencia inter-proceso para evitar sobre-exposición simultánea. |
+| `DIRECTION_BLOCKED_BY_POLICY: SELL` | **224** | Validación de confluencia técnica o filtro de seguridad. |
+| `SETUP_STRUCTURE_INVALIDATED` | **216** | El precio rompió el nivel con cuerpo de vela en lugar de respetarlo. |
+| `CRYPTO_NO_NUEVAS_ENTRADAS_CERCA_DEL_CIER` | **197** | Validación de confluencia técnica o filtro de seguridad. |
 
 ### 3.2 Estado de Candidatos en Memoria (Pipeline MSNR)
-- **Estado `WAITING`**: `7,441` candidatos.
-- **Estado `WAITING_MALAYSIAN_SNR`**: `949` candidatos.
-- **Estado `MSNR_SHADOW_SIGNAL`**: `878` candidatos.
-- **Estado `BLOCKED_ACTIVE_TRADE`**: `58` candidatos.
-- **Estado `MARKET_REGIME_BLOCKED`**: `19` candidatos.
-- **Estado `ENTRY_PRICE_DRIFT_TOO_LARGE`**: `18` candidatos.
+- **Estado `WAITING`**: `8,714` candidatos.
+- **Estado `WAITING_MALAYSIAN_SNR`**: `1,015` candidatos.
+- **Estado `MSNR_SHADOW_SIGNAL`**: `998` candidatos.
+- **Estado `BLOCKED_ACTIVE_TRADE`**: `61` candidatos.
+- **Estado `MARKET_REGIME_BLOCKED`**: `23` candidatos.
+- **Estado `ENTRY_PRICE_DRIFT_TOO_LARGE`**: `19` candidatos.
 - **Estado `STEP_ADX_LOW`**: `16` candidatos.
-- **Estado `OPERACION_RECHAZADA_POR_RIESGO`**: `12` candidatos.
-- **Estado `BLOCKED_SYMBOL_CYCLE`**: `8` candidatos.
+- **Estado `OPERACION_RECHAZADA_POR_RIESGO`**: `13` candidatos.
+- **Estado `HUMAN_CRITERIA_FILTER_REJECTED`**: `9` candidatos.
+- **Estado `BLOCKED_SYMBOL_CYCLE`**: `9` candidatos.
+- **Estado `SYNTHETIC_SPREAD_TO_SL_EXCEEDED`**: `7` candidatos.
 - **Estado `SYMBOL_COOLDOWN_POST_SL`**: `7` candidatos.
-- **Estado `SYNTHETIC_SPREAD_TO_SL_EXCEEDED`**: `5` candidatos.
 - **Estado `MSNR_REGIME_ADX_BLOCKED`**: `4` candidatos.
 - **Estado `META_LABEL_FILTER_REJECTED`**: `3` candidatos.
 - **Estado `MARKET_INVALIDATED_SIGNAL`**: `3` candidatos.
 - **Estado `SPLIT_ORDER_OPENED`**: `2` candidatos.
 - **Estado `JUMP_STRICT_FILTER_REJECTED`**: `2` candidatos.
 - **Estado `SYMBOL_DAILY_STRIKES_EXCEEDED`**: `1` candidatos.
-- **Estado `HUMAN_CRITERIA_FILTER_REJECTED`**: `1` candidatos.
 
 ---
 ## 💾 4. REGISTROS DE BASE DE DATOS & OPERACIONES
@@ -101,10 +100,8 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 4.1 Operaciones Abiertas en Vivo (Con Nueva Operativa 1% Split Aplicada)
 | Ticket | Instrumento | Tipo | Lote | Entrada | Stop Loss | TP1 (+1.0R) | TP2 / Runner | Flotante | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `4777669238` | **Volatility 25 Index** | `SELL` | `1.31` | `2827.847` | `2844.405` | `2794.641` | Trade 2 (Runner Dinámico) | `$+0.00` | `OPEN` |
-| `4777669207` | **Volatility 25 Index** | `SELL` | `1.31` | `2827.742` | `2844.405` | `2811.079` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
-| `4777612062` | **Volatility 10 Index** | `SELL` | `1.83` | `4832.1` | `4843.649` | `4809.098` | Trade 2 (Runner Dinámico) | `$+0.00` | `OPEN` |
-| `4777612005` | **Volatility 10 Index** | `SELL` | `1.83` | `4832.166` | `4843.649` | `4820.683` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
+| `4779915278` | **Volatility 100 Index** | `SELL` | `1.97` | `539.61` | `550.4` | `517.7` | Trade 2 (Runner Dinámico) | `$+0.00` | `OPEN` |
+| `4779915268` | **Volatility 100 Index** | `SELL` | `1.97` | `539.5` | `550.4` | `528.6` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
 
 > [!NOTE]
 > Ambas posiciones en Boom 600 y Crash 500 están correctamente sincronizadas en MT5 con el **1% de riesgo total por activo dividido en dos operaciones de 0.5% cada una**. La primera operación busca cerrar exactamente en +1.0R (1:1), momento en el cual la segunda operación se protege en Break Even para buscar correr hacia 2R, 3R o 4R.
@@ -112,30 +109,30 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 4.2 Historial de Últimas Operaciones Cerradas
 | Ticket | Instrumento | Tipo | Lote | R:R Plan | R:R Realizado | Net PnL | Motivo de Cierre | Apertura |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `4777601037` | Step Index 200 | `BUY` | 0.14 | 1.0R | **-0.89R** | **$-19.60** | `mt5_sl` | 2026-11-05 08:34:10 |
-| `4777601054` | Step Index 200 | `BUY` | 0.14 | 2.0R | **-0.89R** | **$-19.60** | `mt5_sl` | 2026-11-05 08:34:12 |
-| `4777562858` | Volatility 5 Index | `SELL` | 0.24 | 2.0R | **+1.67R** | **$+35.65** | `mt5_expert` | 2026-11-05 07:50:07 |
-| `4777562842` | Volatility 5 Index | `SELL` | 0.24 | 1.0R | **+0.83R** | **$+17.86** | `mt5_tp` | 2026-11-05 07:50:05 |
-| `4777180753` | Step Index 200 | `BUY` | 0.15 | 2.0R | **+1.84R** | **$+78.27** | `mt5_tp` | 2026-11-04 21:46:05 |
-| `4777281988` | High Frequency Vol 50 Index | `SELL` | 0.05 | 2.0R | **+1.92R** | **$+75.79** | `mt5_tp` | 2026-11-05 01:09:09 |
-| `4777369870` | Jump 25 Index | `BUY` | 0.03 | 1.0R | **-0.96R** | **$-18.31** | `mt5_sl` | 2026-11-05 03:20:11 |
-| `4777369925` | Jump 25 Index | `BUY` | 0.03 | 2.0R | **-0.94R** | **$-17.85** | `mt5_sl` | 2026-11-05 03:20:14 |
+| `4779818321` | Jump 10 Index | `SELL` | 0.09 | 2.0R | **+0.29R** | **$+6.17** | `mt5_sl` | 2026-11-07 06:16:08 |
+| `4779818317` | Jump 10 Index | `SELL` | 0.09 | 1.0R | **+0.95R** | **$+19.83** | `mt5_tp` | 2026-11-07 06:16:08 |
+| `4779848963` | Step Index | `SELL` | 0.23 | 1.0R | **-0.78R** | **$-17.02** | `mt5_sl` | 2026-11-07 07:33:06 |
+| `4779848968` | Step Index | `SELL` | 0.23 | 2.0R | **-0.79R** | **$-17.25** | `mt5_sl` | 2026-11-07 07:33:07 |
+| `4779707601` | Step Index | `SELL` | 0.2 | 2.0R | **+1.62R** | **$+35.60** | `mt5_expert` | 2026-11-07 00:16:06 |
+| `4779707599` | Step Index | `SELL` | 0.2 | 1.0R | **+0.82R** | **$+18.00** | `mt5_tp` | 2026-11-07 00:16:05 |
+| `4779637485` | Boom 900 Index | `BUY` | 0.53 | 2.0R | **+0.31R** | **$+6.83** | `mt5_sl` | 2026-11-06 20:52:09 |
+| `4779718052` | Volatility 10 Index | `SELL` | 2.52 | 1.0R | **-0.94R** | **$-20.86** | `mt5_sl` | 2026-11-07 00:49:10 |
 
 ### 4.3 Rendimiento Histórico por Instrumento (Top Activos)
 | Instrumento | Trades Totales | Tasa de Acierto (Win Rate) | R:R Promedio | Observación Estratégica |
 | :--- | :--- | :--- | :--- | :--- |
 | **Step Index 500** | 111 | **50.5%** | +0.07R | ⚖️ Equilibrado |
-| **Step Index 200** | 107 | **35.5%** | +1.09R | ⚠️ Requiere Calibración |
-| **Volatility 25 Index** | 82 | **36.6%** | -0.30R | ⚠️ Requiere Calibración |
-| **XAUUSD** | 77 | **51.9%** | +0.11R | ⚖️ Equilibrado |
-| **Crash 500 Index** | 76 | **71.1%** | +0.43R | 🔥 Altamente Rentable |
-| **Volatility 10 Index** | 68 | **57.4%** | +0.12R | 🔥 Altamente Rentable |
+| **Step Index 200** | 108 | **36.1%** | +1.08R | ⚠️ Requiere Calibración |
+| **Volatility 25 Index** | 84 | **35.7%** | -0.31R | ⚠️ Requiere Calibración |
+| **XAUUSD** | 79 | **50.6%** | +0.06R | ⚖️ Equilibrado |
+| **Crash 500 Index** | 78 | **71.8%** | +0.44R | 🔥 Altamente Rentable |
+| **Volatility 10 Index** | 72 | **54.2%** | +0.06R | ⚖️ Equilibrado |
 | **Volatility 75 Index** | 68 | **51.5%** | -0.04R | ⚖️ Equilibrado |
 | **Jump 50 Index** | 59 | **50.8%** | -0.11R | ⚖️ Equilibrado |
 | **Jump 25 Index** | 55 | **54.5%** | +0.05R | ⚖️ Equilibrado |
 | **Boom 600 Index** | 54 | **53.7%** | -0.06R | ⚖️ Equilibrado |
+| **Jump 10 Index** | 53 | **43.4%** | -0.27R | ⚠️ Requiere Calibración |
 | **US SP 500** | 53 | **35.8%** | -0.17R | ⚠️ Requiere Calibración |
-| **Boom 500 Index** | 49 | **63.3%** | +0.34R | 🔥 Altamente Rentable |
 
 ---
 ## 🤖 5. COMPORTAMIENTO DE LOS MODELOS DE IA (GBDT META-LABELING)
@@ -146,15 +143,15 @@ El sistema cuenta con un pipeline de Meta-Labeling basado en modelos Gradient Bo
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BOOM_ALL` | **19** | 31.6% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_ICT` | **375** | 37.1% | **75.0%** | `p >= 0.5` | `MODELO ENTRENADO Y ACTIVO` |
-| `BOOM_ICT_SABRI_MALLE` | **117** | 30.8% | **N/A** | `p >= 0.52` | `ENTRENADO` |
-| `BOOM_MALAYSIAN_SNR` | **229** | 51.0% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `BOOM_ICT_SABRI_MALLE` | **122** | 46.4% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `BOOM_MALAYSIAN_SNR` | **231** | 46.1% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_MSNR_VIDEO` | **35** | 33.7% | **N/A** | `p >= 0.52` | `ENTRENADO` |
-| `BOOM_ORB_NEW_YORK` | **21** | 38.2% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `BOOM_ORB_NEW_YORK` | **24** | 37.3% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_SMC` | **19** | 31.6% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_TREND_PULLBACK` | **36** | 16.4% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `CRASH_ALL` | **332** | 42.2% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `CRASH_ICT` | **471** | 34.2% | **73.9%** | `p >= 0.5` | `MODELO ENTRENADO Y ACTIVO` |
-| `CRASH_ICT_SABRI_MALLE` | **358** | 45.2% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `CRASH_ICT_SABRI_MALLE` | **359** | 48.0% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `CRASH_MALAYSIAN_SNR` | **206** | 43.2% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 
 ### 5.2 Top Características Predictivas Utilizadas por la IA

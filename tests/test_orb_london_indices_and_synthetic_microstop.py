@@ -29,8 +29,9 @@ class FakeProvider:
         return {"trade_mode": 4}
 
 
-def test_orb_indices_asset_rules_and_profiles():
-    """Valida que los índices americanos (US30, NAS100, US500) tienen RETEST habilitado."""
+def test_orb_indices_asset_rules_and_profiles(monkeypatch):
+    """Valida que los índices americanos (US30, NAS100, US500) tienen RETEST habilitado cuando DAEMONBLACKFX_ORB_INDICES_ENABLED=1."""
+    monkeypatch.setenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "1")
     profiles = default_asset_profiles()
     for idx_key in ("US30", "NAS100", "US500"):
         assert idx_key in profiles
@@ -87,8 +88,9 @@ def test_orb_london_open_expansion():
     assert "03:00" in res["session_open_ny"] or "07:00" in res["session_open_ny"]
 
 
-def test_orb_retest_scenario_with_rejection_wick():
+def test_orb_retest_scenario_with_rejection_wick(monkeypatch):
     """Valida el escenario de retest del rango de apertura con mecha de rechazo."""
+    monkeypatch.setenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "1")
     times = pd.date_range("2026-08-28 13:30:00+00:00", periods=5, freq="5min")
     history = pd.DataFrame([
         dict(time=t, open=100., high=102., low=99., close=100., tick_volume=100, real_volume=0)

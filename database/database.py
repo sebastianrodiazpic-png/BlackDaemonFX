@@ -303,6 +303,9 @@ def get_engine(db_path: str | Path | None = None):
             cursor.execute("PRAGMA journal_size_limit=67108864")
             cursor.execute("PRAGMA temp_store=MEMORY")
             cursor.execute("PRAGMA cache_size=-32768")
+            mmap_bytes = int(os.getenv("DAEMONBLACKFX_SQLITE_MMAP_SIZE_BYTES", "268435456"))
+            if mmap_bytes > 0:
+                cursor.execute(f"PRAGMA mmap_size={mmap_bytes}")
         finally:
             cursor.close()
 
@@ -318,7 +321,8 @@ def get_session_factory(db_path: str | Path | None = None):
     explicitas: nada llega a disco hasta que se confirma la transaccion.
     """
     engine = get_engine(db_path)
-    return sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    expire_on_commit = os.getenv("DAEMONBLACKFX_EXPIRE_ON_COMMIT", "0").strip().lower() in ("1", "true", "yes")
+    return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=expire_on_commit, future=True)
 
 
 def _ensure_trade_columns(engine):
@@ -379,6 +383,14 @@ def _ensure_performance_indexes(engine):
         "ON trade_journal (source, source_trade_id)",
         "CREATE INDEX IF NOT EXISTS ix_trades_source_status "
         "ON trades (source, status)",
+        "CREATE INDEX IF NOT EXISTS ix_trades_source_status_entry "
+        "ON trades (source, status, entry_time, id)",
+        "CREATE INDEX IF NOT EXISTS ix_trade_journal_source_status_time "
+        "ON trade_journal (source, status, entry_time DESC, id DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_position_visual_audits_composite "
+        "ON position_visual_audits (source, bot_profile, instrument)",
+        "CREATE INDEX IF NOT EXISTS ix_signals_instrument_time "
+        "ON signals (instrument, signal_time DESC)",
         "CREATE INDEX IF NOT EXISTS ix_runtime_source_profile "
         "ON worker_runtime_states (source, bot_profile)",
     )

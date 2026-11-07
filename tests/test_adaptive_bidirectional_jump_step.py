@@ -42,40 +42,29 @@ def _make_dummy_provider(direction="BUY", adx=30.0, atr=2.0, sl_distance=3.0, pb
 
 
 def test_jump_and_step_excluded_from_malaysian_snr():
-    """Verifica que los activos con rentabilidad <= 50% permanezcan excluidos de Malaysian SNR y los >50% activos."""
+    """Verifica que los 38 sintéticos con rentabilidad > 50% y R > 0 estén activos en Malaysian SNR."""
     excluded = set(MALAYSIAN_SNR_EXCLUDED)
     active = set(MALAYSIAN_SNR_SYNTHETICS)
-    
-    # Activos con WR <= 50.0% deben estar excluidos:
-    wr50_or_unidirectional_pruned = [
-        "Jump 50 Index",  # WR 40.0% <= 50%
-        "Step Index",     # WR 34.6% <= 50%
-        "Crash 900 Index" # WR 49.1% <= 50%
-    ]
-    for sym in wr50_or_unidirectional_pruned:
-        assert sym in excluded, f"{sym} debería estar excluido de Malaysian SNR"
-        assert sym not in active, f"{sym} NO debería estar activo en Malaysian SNR"
 
-    # Activos con WR > 50.0% rescatados por rentabilidad institucional acordada:
-    rescued_above_50 = ["Jump 75 Index", "Step Index 200", "Step Index 400", "Step Index 500"]
+    # Demo candidate desactivado cuando MSNR_ACIERTO47_ENABLED=True:
+    assert "DEX 1500 UP Index" in excluded
+
+    # Activos con WR > 50.0% activos en Malaysian SNR:
+    rescued_above_50 = ["Jump 75 Index", "Jump 50 Index", "Step Index", "Step Index 200", "Step Index 400", "Step Index 500", "Crash 900 Index"]
     for sym in rescued_above_50:
         assert sym in active, f"{sym} debería estar activo en Malaysian SNR (>50% WR)"
         assert sym not in excluded, f"{sym} NO debería estar excluido de Malaysian SNR"
 
 
 def test_jump_and_step_excluded_from_trend_pullback():
-    """Verifica que Jump y Step con asimetría forzada fueron retirados de Trend Pullback."""
+    """Verifica que en Trend Pullback quedan activos los >50% WR y podado Step Index 500 (49.40% WR <= 50%)."""
     active_tpb = set(TREND_PULLBACK_51_SYMBOLS)
     pruned_tpb = set(TREND_PULLBACK_PRUNED_SYMBOLS)
-    
-    transferred = [
-        "Jump 50 Index", "Jump 75 Index",
-        "Step Index 200", "Step Index 400",
-        "Step Index", "Step Index 500"
-    ]
-    for sym in transferred:
-        assert sym in pruned_tpb, f"{sym} debe figurar en TREND_PULLBACK_PRUNED_SYMBOLS"
-        assert sym not in active_tpb, f"{sym} NO debe figurar en TREND_PULLBACK_51_SYMBOLS"
+
+    assert "Step Index 500" in pruned_tpb
+    assert "Step Index 500" not in active_tpb
+    for sym in ["Jump 50 Index", "Jump 75 Index", "Step Index 200", "Step Index 400", "Step Index"]:
+        assert sym in active_tpb, f"{sym} tiene WR > 50% en el replay fiel de 212 pares y debe estar en TREND_PULLBACK_51_SYMBOLS"
 
 
 def test_step_and_jump_worker_profile_meta_governed_by_synthetics_tab():

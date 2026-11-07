@@ -55,6 +55,12 @@ class Rsi2Config:
     # como disparada en la estrategia impedía reintentarla si el motor la bloqueaba por algo pasajero (pico de spread,
     # máximo de posiciones): 22-oct-2026 DRIFT perdió así sus 2 primeras señales. Por defecto, sin marcado.
     setup_dedupe: bool = os.getenv("DAEMONBLACKFX_RSI2_SETUP_DEDUPE", "0").strip().lower() in {"1", "true", "yes", "on"}
+    # Reglas oficiales adicionales de Larry Connors (Cumulative RSI(2) < 15 y patrón R3 de 3 días bajistas)
+    cumulative_rsi2_enabled: bool = os.getenv("DAEMONBLACKFX_RSI2_CUMULATIVE_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+    cumulative_rsi2_threshold: float = float(os.getenv("DAEMONBLACKFX_RSI2_CUMULATIVE_THRESHOLD", "15.0"))
+    r3_pattern_enabled: bool = os.getenv("DAEMONBLACKFX_RSI2_R3_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+    r3_rsi_ceiling: float = float(os.getenv("DAEMONBLACKFX_RSI2_R3_CEILING", "14.0"))
+    require_close_below_sma5: bool = os.getenv("DAEMONBLACKFX_RSI2_REQUIRE_BELOW_SMA5", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _rsi(close: pd.Series, n: int) -> pd.Series:
@@ -85,8 +91,35 @@ def daily_indicators(d1: pd.DataFrame, cfg: Rsi2Config | None = None) -> pd.Data
     d["sma_trend"] = c.rolling(cfg.trend_sma).mean()
     d["sma_exit"] = c.rolling(cfg.exit_sma).mean()
     d["rsi2"] = _rsi(c, cfg.rsi_period)
+    d["cum2_rsi2"] = d["rsi2"] + d["rsi2"].shift(1)
     d["atr"] = _atr(d, cfg.atr_period)
-    d["signal"] = (c > d["sma_trend"]) & (d["rsi2"] < cfg.rsi_threshold)
+    base_sig = (c > d["sma_trend"]) & (d["rsi2"] < cfg.rsi_threshold)
+    if getattr(cfg, "require_close_below_sma5", False):
+        base_sig = base_sig & (c < d["sma_exit"])
+    if getattr(cfg, "cumulative_rsi2_enabled", False):
+        span = (d["high"] - d["low"]).replace(0, np.nan) if ("high" in d and "low" in d) else pd.Series(1.0, index=d.index)
+        close_pos = (((c - d["low"]) / span).fillna(0.5)) if ("high" in d and "low" in d) else pd.Series(0.5, index=d.index)
+        cum_sig = (
+            (c > d["sma_trend"])
+            & (c < d["sma_exit"])
+            & (d["cum2_rsi2"] < float(getattr(cfg, "cumulative_rsi2_threshold", 15.0)))
+            & (d["rsi2"] < 15.0)
+            & (close_pos >= 0.25)
+        )
+        base_sig = base_sig | cum_sig
+    if getattr(cfg, "r3_pattern_enabled", False):
+        span = (d["high"] - d["low"]).replace(0, np.nan) if ("high" in d and "low" in d) else pd.Series(1.0, index=d.index)
+        close_pos = (((c - d["low"]) / span).fillna(0.5)) if ("high" in d and "low" in d) else pd.Series(0.5, index=d.index)
+        three_down = (c < c.shift(1)) & (c.shift(1) < c.shift(2)) & (c.shift(2) < c.shift(3))
+        r3_sig = (
+            (c > d["sma_trend"])
+            & (c < d["sma_exit"])
+            & three_down
+            & (d["rsi2"] < float(getattr(cfg, "r3_rsi_ceiling", 14.0)))
+            & (close_pos >= 0.30)
+        )
+        base_sig = base_sig | r3_sig
+    d["signal"] = base_sig
     return d
 
 

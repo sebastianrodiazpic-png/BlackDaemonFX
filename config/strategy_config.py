@@ -87,12 +87,9 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    # Fase 1 (18-oct-2026) + Auditoría 5 años (26-oct-2026):
-    # STEP (Estrategia ICT): Step Index 200 (+55.1R), Step Index 500 (+32.2R) y Step Index 400 (+26.9R).
-    "STEP": ("Step Index 400", "Step Index 500", "Step Index 200", "Step Index 100"),
-    # JUMP (Estrategia ICT): Jump 25 (+61.2R rescatado), Jump 75 (+35.9R), Jump 10 (+34.6R) y Jump 50 (+11.0R).
-    "JUMP": ("Jump 75 Index", "Jump 25 Index", "Jump 10 Index", "Jump 50 Index"),
-    # VOLATILITY (Estrategia ICT): 13 activos rentables operados por VOLATILITY_1.
+    # Auditoría Integral 212 Pares (05-nov-2026): todos los instrumentos con WR > 50.0% y R > 0 activos.
+    "STEP": ("Step Index 200", "Step Index", "Step Index 400", "Step Index 500"),
+    "JUMP": ("Jump 50 Index", "Jump 75 Index", "Jump 10 Index", "Jump 25 Index"),
     "VOLATILITY": (
         "Volatility 10 Index",
         "Volatility 25 Index",
@@ -105,52 +102,54 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 50 Index",
         "Volatility 100 Index",
         "Volatility 5 Index",
-        "Volatility 90 (1s) Index",
         "High Frequency Vol 100 Index",
         "Vol over Boom 550",
-        "High Frequency Vol 50 Index",
         "Vol over Crash 550",
         "VolSwitch High Vol Index",
         "Volatility 150 (1s) Index",
         "Volatility 100 (1s) Index",
     ),
-    # BOOM (Estrategia ICT): Boom 900 (+65.1R), Boom 500 (+24.7R) y Boom 600 (+6.5R).
-    "BOOM": ("Boom 500 Index", "Boom 300 Index", "Boom 900 Index", "Boom 600 Index", "Boom 1000 Index"),
-    # CRASH (Estrategia ICT): Crash 900 (+67.8R) y Crash 500 (+9.1R).
-    "CRASH": ("Crash 600 Index", "Crash 300 Index", "Crash 500 Index", "Crash 900 Index", "Crash 1000 Index"),
-    # FOREX (Estrategia ICT): Pares con WR > 47% y R/op > 0 en auditoría multi-anual de 4 años (FOREX_1).
+    "BOOM": ("Boom 900 Index", "Boom 600 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 500 Index"),
+    "CRASH": ("Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index"),
     "FOREX": (
+        "GBPUSD", "GBPUSDmicro",
+        "NZDUSD", "NZDUSDmicro",
         "CHFJPY", "CHFJPYmicro",
-        "GBPJPY", "GBPJPYmicro",
-        "EURCAD", "EURCADmicro",
-        "GBPAUD", "GBPAUDmicro",
+        "EURJPY", "EURJPYmicro",
         "EURCHF", "EURCHFmicro",
+        "USDCHF", "USDCHFmicro",
+        "GBPJPY", "GBPJPYmicro",
+        "CADCHF", "CADCHFmicro",
     ),
-    # GOLD: Conservado 100% intacto según requerimiento estricto.
     "GOLD": (
         "XAUUSD", "XAGUSD",
         "XAUUSDmicro", "XAGUSDmicro",
     ),
-    # ICT SABRI MALLE (Metales, Índices & Commodities): US Oil (+54.1R), US Tech 100 (+14.6R), XAUUSD (+4.0R).
     "ICT": (
         "XAUUSD", "XAUUSDmicro", "microXAUUSD",
-        "US Oil", "US Tech 100",
+        "XAUEUR", "XAUEURmicro", "microXAUEUR",
+        "BTCUSD", "BTCUSDmicro", "microBTCUSD",
+        "US Oil", "Wall Street 30", "US Tech 100",
     ),
-    # MALAYSIAN SNR (M15 Fresh/Break - Variante C2): 23 activos canónicos rentables/marginales (60.6% WR, +37.64R).
     "MALAYSIAN_SNR": (
-        "Step Index 400", "XAGUSD", "AUDNZD", "Crash 1000 Index", "Jump 25 Index",
+        "Step Index 400", "Crash 1000 Index", "Jump 25 Index",
         "GBPJPY", "USDJPY", "GBPUSD", "Boom 300 Index", "Volatility 250 (1s) Index",
-        "Step Index", "Jump 10 Index", "GBPAUD", "Wall Street 30", "EURUSD",
+        "Step Index", "Jump 10 Index", "Wall Street 30", "EURUSD",
         "Volatility 50 (1s) Index", "Volatility 90 Index", "Boom 1000 Index",
-        "Step Index 200", "EURCHF", "EURGBP", "XAUUSD", "Crash 600 Index",
+        "Step Index 200", "EURGBP", "XAUUSD", "Crash 600 Index",
     ),
-    # ORB NEW YORK: Activos Rentables con modo SWEEP y RETEST en Índices Americanos
     "ORB": (
-        "Wall Street 30", "US Tech 100", "US SP 500",
-        "XAUUSD", "XAUUSDmicro",
-        "BTCUSD", "USDCAD",
-        "AUDUSD", "GBPUSD",
-        "XAGUSD", "US Oil", "USDCHF",
+        "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+        "XAUEUR", "XAUEURmicro", "microXAUEUR",
+        "BTCUSD", "BTCUSDmicro",
+        "USDCAD", "USDCADmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "GBPUSD", "GBPUSDmicro",
+        "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+        "US Oil",
+        "USDCHF", "USDCHFmicro",
+        "USDJPY", "USDJPYmicro",
+        "ETHUSD", "ETHUSDmicro",
     ),
 }
 
@@ -167,11 +166,17 @@ TRI_MOTOR_TIER_S_ASSETS = {
     ),
     # ORB NEW YORK: Activos Rentables con modo SWEEP y RETEST en Índices Americanos
     "ORB": (
-        "Wall Street 30", "US Tech 100", "US SP 500",
-        "XAUUSD", "XAUUSDmicro",
-        "BTCUSD", "USDCAD",
-        "AUDUSD", "GBPUSD",
-        "XAGUSD", "US Oil", "USDCHF",
+        "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+        "XAUEUR", "XAUEURmicro", "microXAUEUR",
+        "BTCUSD", "BTCUSDmicro",
+        "USDCAD", "USDCADmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "GBPUSD", "GBPUSDmicro",
+        "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+        "US Oil",
+        "USDCHF", "USDCHFmicro",
+        "USDJPY", "USDJPYmicro",
+        "ETHUSD", "ETHUSDmicro",
     ),
     "ICT": (
         "Crash 900 Index",
@@ -236,9 +241,10 @@ def _without(symbols, pruned):
     return tuple(s for s in symbols if s not in set(pruned))
 
 
+from config.ict_instrument_policy import ICT_5Y_RESCUED_SYNTHETICS as _RESCUED_SYNTHS, MALAYSIAN_SNR_ACTIVE as _MSNR_ACTIVE_ALL  # noqa: E402
 for _family in ("STEP", "JUMP", "VOLATILITY", "BOOM", "CRASH", "ICT"):
-    PRUNED_ASSET_UNIVERSE[_family] = _without(PRUNED_ASSET_UNIVERSE[_family], ICT_WR45_PRUNED)
-PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"] = _without(PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"], MSNR_WR45_PRUNED)
+    PRUNED_ASSET_UNIVERSE[_family] = _without(PRUNED_ASSET_UNIVERSE[_family], set(ICT_WR45_PRUNED) - set(_RESCUED_SYNTHS))
+PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"] = tuple(_MSNR_ACTIVE_ALL)
 
 # Política única de /Instruments ICT (config/ict_instrument_policy.py, 26-oct-2026): los universos de familia
 # coinciden con lo que operan los workers; lo demás queda en PODA PREVENTIVA.

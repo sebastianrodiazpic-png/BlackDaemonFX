@@ -1,4 +1,4 @@
-"""Punto de entrada y orquestador de procesos de BlackDaemonFX.
+﻿"""Punto de entrada y orquestador de procesos de BlackDaemonFX.
 
 Expone la CLI del proyecto (`main()`), que selecciona uno de los modos de
 ejecucion: recoleccion de datos, analisis historico, backtest, bot demo, papel
@@ -37,7 +37,7 @@ import sys
 import threading
 import time
 
-# Windows puede usar cp1252 en procesos redirigidos. El daemon genera diagnósticos
+# Windows puede usar cp1252 en procesos redirigidos. El daemon genera diagnÃ³sticos
 # Unicode; forzamos UTF-8 para que un print nunca rompa el ciclo operativo.
 for _stream in (sys.stdout, sys.stderr):
     try:
@@ -69,12 +69,12 @@ from strategy.orb.new_york_orb import discover_orb_symbols, classify_orb_market,
 def _configure_gc_tuning() -> None:
     """Calibra los umbrales del recolector de basura de Python (GC Tuning).
 
-    Por defecto, Python ejecuta recolecciones de Generación 0 cada 700 asignaciones,
-    lo que produce cientos de micro-pausas durante la creación masiva de Series
+    Por defecto, Python ejecuta recolecciones de GeneraciÃ³n 0 cada 700 asignaciones,
+    lo que produce cientos de micro-pausas durante la creaciÃ³n masiva de Series
     y DataFrames de pandas en cada ciclo de escaneo.
 
     Ajustar el umbral Gen0 a 70,000 (configurable con DAEMONBLACKFX_GC_THRESHOLD)
-    reduce las pausas de GC en más de un 80% manteniendo el consumo de memoria acotado.
+    reduce las pausas de GC en mÃ¡s de un 80% manteniendo el consumo de memoria acotado.
     """
     try:
         import gc
@@ -131,11 +131,11 @@ def _normalize_categories(categories):
 
 def _resolve_symbols(provider, symbol=None, categories=None):
     """
-    Resuelve los símbolos después de conectar MT5.
+    Resuelve los sÃ­mbolos despuÃ©s de conectar MT5.
 
     Prioridad:
-      1. --symbol explícito.
-      2. Instrumentos sintéticos y Forex tradeables descubiertos dinámicamente.
+      1. --symbol explÃ­cito.
+      2. Instrumentos sintÃ©ticos y Forex tradeables descubiertos dinÃ¡micamente.
     """
     if symbol:
         return [provider.ensure_symbol(symbol)]
@@ -145,7 +145,7 @@ def _resolve_symbols(provider, symbol=None, categories=None):
     normalized_categories = _normalize_categories(categories)
     symbols = manager.get_active_symbols(categories=normalized_categories)
 
-    # Sin filtro explícito de categorías, el daemon incorpora también los
+    # Sin filtro explÃ­cito de categorÃ­as, el daemon incorpora tambiÃ©n los
     # cuatro mercados permitidos para ORB New York, si existen en este MT5.
     if normalized_categories is None:
         symbols = sorted(set(symbols).union(discover_orb_symbols(provider)))
@@ -153,7 +153,7 @@ def _resolve_symbols(provider, symbol=None, categories=None):
     if not symbols:
         raise RuntimeError(
             "No se encontraron instrumentos tradeables "
-            "(sintéticos/Forex/ORB) para las categorías solicitadas."
+            "(sintÃ©ticos/Forex/ORB) para las categorÃ­as solicitadas."
         )
 
     return symbols
@@ -171,7 +171,7 @@ def _require_symbol_for_offline_mode(symbol, mode):
     if not symbol:
         raise ValueError(
             f"El modo '{mode}' requiere --symbol porque no abre "
-            "una conexión MT5 para descubrir instrumentos."
+            "una conexiÃ³n MT5 para descubrir instrumentos."
         )
 
     return str(symbol)
@@ -265,7 +265,7 @@ def run_collector(
         )
 
         while True:
-            print("\n=== CICLO DE RECOLECCIÓN ===")
+            print("\n=== CICLO DE RECOLECCIÃ“N ===")
 
             collect_once(
                 provider,
@@ -279,7 +279,7 @@ def run_collector(
             time.sleep(interval_seconds)
 
     except KeyboardInterrupt:
-        print("Automatización detenida por el usuario.")
+        print("AutomatizaciÃ³n detenida por el usuario.")
 
     finally:
         provider.disconnect()
@@ -310,7 +310,7 @@ def analyze_historical(
 
     if not path.exists():
         raise FileNotFoundError(
-            f"No existe el histórico: {path}"
+            f"No existe el histÃ³rico: {path}"
         )
 
     df = pd.read_csv(path)
@@ -384,13 +384,13 @@ def analyze_historical(
         index=False,
     )
 
-    print("\n=== ANÁLISIS SMC COMPLETO ===")
+    print("\n=== ANÃLISIS SMC COMPLETO ===")
 
     for key, value in result["summary"].items():
         print(f"{key}: {value}")
 
     print(
-        f"Nuevos registros de señales guardados: {saved}"
+        f"Nuevos registros de seÃ±ales guardados: {saved}"
     )
     print(
         f"Resultados CSV: {output_dir}"
@@ -522,8 +522,8 @@ def run_demo_bot(
         magic=int(magic),
         min_rr=min_rr,
         # v100: reserva de fill y banda inferior calibrada con los cuatro
-        # incidentes reales de granularidad observados (exceso máximo 0.74%
-        # sobre el hard cap). Reduce falsos cierres sin elevar el límite duro.
+        # incidentes reales de granularidad observados (exceso mÃ¡ximo 0.74%
+        # sobre el hard cap). Reduce falsos cierres sin elevar el lÃ­mite duro.
         pre_fill_risk_buffer=0.01,
         min_actual_risk_ratio=0.97,
         execution_enabled=execute,
@@ -590,39 +590,46 @@ def run_demo_bot(
                 )
                 categorized.setdefault(category, []).append(discovered_symbol)
             # Grupo separado para la estrategia ORB NY. Se descubre directamente
-            # desde MT5 porque no forma parte del catálogo de sintéticos.
+            # desde MT5 porque no forma parte del catÃ¡logo de sintÃ©ticos.
             for orb_symbol in discover_orb_symbols(provider):
                 market = classify_orb_market(orb_symbol) or "ORB"
-                categorized.setdefault(f"orb_ny_{market.lower()}", []).append(orb_symbol)
-            # v56: no convertir el universo completo del worker en selección global.
+                m_lower = str(market).lower()
+                if m_lower in ("micro_xauusd", "xaueur", "xauusd"):
+                    cat_key = "orb_ny_xauusd"
+                elif m_lower in ("micro_xagusd", "xagusd"):
+                    cat_key = "orb_ny_xagusd"
+                else:
+                    cat_key = f"orb_ny_{m_lower}"
+                categorized.setdefault(cat_key, []).append(orb_symbol)
+            # v56: no convertir el universo completo del worker en selecciÃ³n global.
             dashboard_service.set_instrument_catalog(categorized, selected_symbols=None)
             dashboard_url = dashboard_service.start(live=True)
             print(f"Dashboard de calidad en tiempo real: {dashboard_url}")
-            print(f"Gestión modular de instrumentos: {dashboard_service.instruments_url}")
-            print(f"Cuenta activa y estadísticas: {dashboard_service.account_url}")
-            print("La selección de instrumentos se aplica desde el siguiente ciclo.")
+            print(f"GestiÃ³n modular de instrumentos: {dashboard_service.instruments_url}")
+            print(f"Cuenta activa y estadÃ­sticas: {dashboard_service.account_url}")
+            print("La selecciÃ³n de instrumentos se aplica desde el siguiente ciclo.")
 
         account = engine.executor.assert_demo_account()
 
         print(
-            f"MARKET DATA: {market_data_settings.mode.upper()} · "
-            f"PROVIDER={market_data_settings.provider.upper()} · MT5=EXECUTION_ONLY"
+            f"MARKET DATA: {market_data_settings.mode.upper()} Â· "
+            f"PROVIDER={market_data_settings.provider.upper()} Â· MT5=EXECUTION_ONLY"
         )
 
-        # Cuenta activa v24: NO reconstruye ni importa automáticamente el
+        # Cuenta activa v24: NO reconstruye ni importa automÃ¡ticamente el
         # historial completo de la cuenta MT5. La vista de Cuenta activa se
         # alimenta exclusivamente de registros que pasaron por la base
         # operativa local y fueron archivados en trade_journal.
         #
-        # La reconciliación de posiciones ABIERTAS se mantiene abajo porque
+        # La reconciliaciÃ³n de posiciones ABIERTAS se mantiene abajo porque
         # permite recuperar el estado operativo actual del daemon sin poblar
         # el historial completo de la cuenta del broker.
 
         # Descubrimiento inverso MT5 -> SQLAlchemy. Esto recupera posiciones que
-        # siguen abiertas en el terminal pero no existen todavía en la base local
-        # (por ejemplo, si la DB fue limpiada, reemplazada o el daemon se cerró
+        # siguen abiertas en el terminal pero no existen todavÃ­a en la base local
+        # (por ejemplo, si la DB fue limpiada, reemplazada o el daemon se cerrÃ³
         # antes de persistirlas). Las posiciones con el magic del daemon se
-        # adoptan como DEMO; las demás se guardan sólo para visualización.
+        # adoptan como DEMO; las demÃ¡s se guardan sÃ³lo para visualizaciÃ³n.
         try:
             imported = repo.import_open_mt5_positions(
                 execution_provider,
@@ -632,25 +639,25 @@ def run_demo_bot(
             )
             if imported.get("imported_daemon") or imported.get("imported_external"):
                 print(
-                    "Importación MT5/SQLAlchemy: "
-                    f"{imported.get('imported_daemon', 0)} posición(es) del daemon recuperada(s), "
-                    f"{imported.get('imported_external', 0)} posición(es) externa(s) guardada(s) sólo para visualización."
+                    "ImportaciÃ³n MT5/SQLAlchemy: "
+                    f"{imported.get('imported_daemon', 0)} posiciÃ³n(es) del daemon recuperada(s), "
+                    f"{imported.get('imported_external', 0)} posiciÃ³n(es) externa(s) guardada(s) sÃ³lo para visualizaciÃ³n."
                 )
         except Exception as exc:
             if debug:
                 print(f"Advertencia al importar posiciones abiertas desde MT5: {exc}")
 
-        # Reconciliación al reconectar: SQLite conserva las posiciones OPEN
-        # durante una desconexión; al volver MT5 determina cuáles siguen vivas.
+        # ReconciliaciÃ³n al reconectar: SQLite conserva las posiciones OPEN
+        # durante una desconexiÃ³n; al volver MT5 determina cuÃ¡les siguen vivas.
         try:
             reconciliation = repo.reconcile_open_trades(execution_provider, source="DEMO")
             if reconciliation.get("closed_synced"):
                 print(
-                    "Reconciliación MT5/SQLAlchemy: "
-                    f"{reconciliation['closed_synced']} operación(es) cerrada(s) sincronizada(s)."
+                    "ReconciliaciÃ³n MT5/SQLAlchemy: "
+                    f"{reconciliation['closed_synced']} operaciÃ³n(es) cerrada(s) sincronizada(s)."
                 )
-            # También cerramos en SQLite las posiciones externas que se hubieran
-            # importado anteriormente para visualización y ya no estén en MT5.
+            # TambiÃ©n cerramos en SQLite las posiciones externas que se hubieran
+            # importado anteriormente para visualizaciÃ³n y ya no estÃ©n en MT5.
             try:
                 repo.reconcile_open_trades(execution_provider, source="MT5_EXTERNAL")
             except Exception:
@@ -659,7 +666,7 @@ def run_demo_bot(
                 dashboard_service.mark_live()
         except Exception as exc:
             if debug:
-                print(f"Advertencia de reconciliación MT5/SQLAlchemy: {exc}")
+                print(f"Advertencia de reconciliaciÃ³n MT5/SQLAlchemy: {exc}")
 
         print(f"DAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
         if config.orb_enabled:
@@ -713,7 +720,7 @@ def run_demo_bot(
 
     finally:
         if dashboard_service is not None:
-            dashboard_service.mark_offline("DAEMON DESCONECTADO · ESTADO PERSISTIDO")
+            dashboard_service.mark_offline("DAEMON DESCONECTADO Â· ESTADO PERSISTIDO")
             dashboard_service.stop()
         provider.disconnect()
 
@@ -837,7 +844,7 @@ def run_live_paper(
             f"Servidor: {account['server']}"
         )
         print(
-            "IMPORTANTE: no se enviarán órdenes al broker; "
+            "IMPORTANTE: no se enviarÃ¡n Ã³rdenes al broker; "
             "las posiciones son PAPER."
         )
         print(
@@ -979,10 +986,10 @@ def run_live_demo_smoke(symbol, direction, volume, auto_close):
 
 def _resolve_live_symbols(args):
     """
-    Descubre símbolos dinámicamente para modos que usan MT5.
+    Descubre sÃ­mbolos dinÃ¡micamente para modos que usan MT5.
 
-    Se crea una conexión temporal solamente para resolver la lista.
-    Los motores vuelven a abrir su propia conexión para ejecutar.
+    Se crea una conexiÃ³n temporal solamente para resolver la lista.
+    Los motores vuelven a abrir su propia conexiÃ³n para ejecutar.
     """
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
@@ -1006,9 +1013,9 @@ def _resolve_live_symbols(args):
             categories=args.categories,
         )
 
-        # Las preferencias persistentes del módulo Instrumentos actúan como
-        # selección predeterminada únicamente cuando el usuario no fuerza
-        # --symbol ni --categories en la línea de comandos.
+        # Las preferencias persistentes del mÃ³dulo Instrumentos actÃºan como
+        # selecciÃ³n predeterminada Ãºnicamente cuando el usuario no fuerza
+        # --symbol ni --categories en la lÃ­nea de comandos.
         if not args.symbol and not args.categories:
             try:
                 repo = TradingRepository()
@@ -1021,8 +1028,8 @@ def _resolve_live_symbols(args):
                 resolved_set = set(resolved)
                 filtered = [s for s in preferred if s in resolved_set]
 
-                # Si algún instrumento cambió de nombre/dejó de existir, no
-                # bloqueamos el daemon. Se usan sólo los que siguen disponibles.
+                # Si algÃºn instrumento cambiÃ³ de nombre/dejÃ³ de existir, no
+                # bloqueamos el daemon. Se usan sÃ³lo los que siguen disponibles.
                 if filtered:
                     print(
                         "Preferencias persistentes de instrumentos recuperadas "
@@ -1041,7 +1048,7 @@ def _resolve_live_symbols(args):
 
 BOT_PROFILES = {
     # Perfil agregado conservado por compatibilidad. No se usa en el nuevo
-    # coordinador dividido salvo que el usuario lo ejecute explícitamente.
+    # coordinador dividido salvo que el usuario lo ejecute explÃ­citamente.
     "SYNTHETICS": {
         "mode": "synthetic-daemon",
         "magic": 26082026,
@@ -1143,7 +1150,7 @@ BOT_PROFILES = {
         "magic": 26082031,
         "categories": [],
         "symbols": [
-            # Malaysian SNR solo en sintéticos (replay fiel 2 años: sintéticos + tope spread/SL 2% -0.020/+0.015
+            # Malaysian SNR solo en sintÃ©ticos (replay fiel 2 aÃ±os: sintÃ©ticos + tope spread/SL 2% -0.020/+0.015
             # R/trade vs lista 23 + C2 -0.126/-0.117). Desactivable con DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY=0.
             "Boom 1000 Index",
             "Boom 300 Index",
@@ -1182,7 +1189,7 @@ BOT_PROFILES = {
             "Volatility 90 Index",
         ],
         "pruned_symbols": [
-            # Mercados reales: expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade)
+            # Mercados reales: expectativa negativa en ambos aÃ±os del replay fiel (-0.157 / -0.079 R/trade)
             "XAGUSD",
             "AUDNZD",
             "GBPJPY",
@@ -1223,6 +1230,8 @@ BOT_PROFILES = {
         "symbols": [
             "XAUUSD",
             "XAUUSDmicro",
+            "XAUEUR",
+            "XAUEURmicro",
             "BTCUSD",
             "BTCUSDmicro",
             "US Oil",
@@ -1297,14 +1306,14 @@ MULTIBOT_SYNTHETIC_PROFILES = (
     "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
 )
 FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
-# v109: IDX_OPEN se retiró de la arquitectura multi-bot activa (desactivado
+# v109: IDX_OPEN se retirÃ³ de la arquitectura multi-bot activa (desactivado
 # a pedido del usuario, no eliminado). El perfil sigue existiendo en
-# `BOT_PROFILES` y toda su lógica (estrategia, worker, dashboard) permanece
+# `BOT_PROFILES` y toda su lÃ³gica (estrategia, worker, dashboard) permanece
 # intacta por si se quiere reactivar: solo se excluye de la lista que arranca
-# automáticamente con `multi-bot-daemon`/`unified-multibot-daemon`, y su
-# `LiveTradingConfig.idx_open_enabled` quedó en `False` por defecto (ver
+# automÃ¡ticamente con `multi-bot-daemon`/`unified-multibot-daemon`, y su
+# `LiveTradingConfig.idx_open_enabled` quedÃ³ en `False` por defecto (ver
 # ese campo en `strategy/execution/live_trading_engine.py`). Para reactivar:
-# volver a incluir "IDX_OPEN" aquí y restaurar `idx_open_enabled=True`.
+# volver a incluir "IDX_OPEN" aquÃ­ y restaurar `idx_open_enabled=True`.
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
@@ -1313,7 +1322,7 @@ FULL_MULTI_BOT_PROFILES = (
 
 
 def _assert_synthetic_split_architecture():
-    """Falla temprano si se rompe la separación 1 familia = 1 proceso."""
+    """Falla temprano si se rompe la separaciÃ³n 1 familia = 1 proceso."""
     expected = {
         "BOOM": ("boom-daemon", 26082101, ("boom",)),
         "CRASH": ("crash-daemon", 26082102, ("crash",)),
@@ -1337,7 +1346,7 @@ def _assert_synthetic_split_architecture():
 
 
 def _assert_full_multibot_architecture(profiles):
-    """Garantiza un solo coordinador con todos los workers esperados y únicos."""
+    """Garantiza un solo coordinador con todos los workers esperados y Ãºnicos."""
     profiles = tuple(str(p).upper() for p in (profiles or ()))
     expected = tuple(FULL_MULTI_BOT_PROFILES)
     if profiles != expected:
@@ -1365,7 +1374,7 @@ def _selection_profile_for_bot(profile: str) -> str:
 
 
 def _stable_symbol_shard(symbols, shard_index: int, shard_count: int):
-    """Distribuye símbolos de forma determinista y estable entre workers."""
+    """Distribuye sÃ­mbolos de forma determinista y estable entre workers."""
     shard_count = max(1, int(shard_count))
     shard_index = int(shard_index)
     ordered = sorted({str(s) for s in symbols if s}, key=lambda s: s.upper())
@@ -1375,9 +1384,9 @@ def _stable_symbol_shard(symbols, shard_index: int, shard_count: int):
 def _forex_native_family_key(symbol):
     """Agrupa contratos MT5 que comparten el mismo mercado Deriv.
 
-    No se elimina ninguna variante de ejecución: el usuario puede seleccionar
-    el contrato standard o micro según su lotaje. La clave sólo garantiza que
-    ambas variantes pertenezcan al mismo worker y no dupliquen el análisis
+    No se elimina ninguna variante de ejecuciÃ³n: el usuario puede seleccionar
+    el contrato standard o micro segÃºn su lotaje. La clave sÃ³lo garantiza que
+    ambas variantes pertenezcan al mismo worker y no dupliquen el anÃ¡lisis
     entre procesos distintos.
     """
     normalized = "".join(ch for ch in str(symbol).casefold() if ch.isalnum())
@@ -1388,7 +1397,7 @@ def _forex_native_family_key(symbol):
 
 
 def _stable_grouped_symbol_shard(symbols, shard_index: int, shard_count: int, key):
-    """Reparte familias completas sin separar sus variantes de ejecución."""
+    """Reparte familias completas sin separar sus variantes de ejecuciÃ³n."""
     shard_count = max(1, int(shard_count))
     shard_index = int(shard_index)
     groups = {}
@@ -1428,8 +1437,8 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             return (1, 0, s)
         universe = sorted(set(found), key=orb_sort_key)
     elif profile == "GOLD":
-        # El worker GOLD aísla estrictamente la Plata (XAGUSD / microXAGUSD)
-        # para evitar contaminación de modelo de riesgo y spread.
+        # El worker GOLD aÃ­sla estrictamente la Plata (XAGUSD / microXAGUSD)
+        # para evitar contaminaciÃ³n de modelo de riesgo y spread.
         universe = sorted({
             s for s in discover_orb_symbols(provider)
             if not ("xag" in s.lower() or "silver" in s.lower())
@@ -1451,7 +1460,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
                 pass
         universe = sorted(set(universe or candidates))
     elif profile == "ICT":
-        # Política única de /Instruments: metales, índices y commodities; los sintéticos van a sus workers
+        # PolÃ­tica Ãºnica de /Instruments: metales, Ã­ndices y commodities; los sintÃ©ticos van a sus workers
         # de familia y cripto/plata quedan en PODA PREVENTIVA (config/ict_instrument_policy.py).
         from config.ict_instrument_policy import ict_active_symbols
         candidates = list(ict_active_symbols("ICT"))
@@ -1528,7 +1537,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
 
 
 def _resolve_live_symbols_for_profile(args, profile: str):
-    """Resuelve únicamente el universo perteneciente al bot solicitado."""
+    """Resuelve Ãºnicamente el universo perteneciente al bot solicitado."""
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
 
@@ -1546,7 +1555,7 @@ def _resolve_live_symbols_for_profile(args, profile: str):
             exact = provider.ensure_symbol(args.symbol)
             if exact not in set(universe):
                 raise ValueError(
-                    f"El símbolo {exact} no pertenece al bot {profile}."
+                    f"El sÃ­mbolo {exact} no pertenece al bot {profile}."
                 )
             return [exact]
 
@@ -1561,7 +1570,7 @@ def _resolve_live_symbols_for_profile(args, profile: str):
 
 
 def _build_multi_bot_dashboard_catalog(profiles):
-    """Descubre el catálogo completo que debe mostrar el dashboard coordinador."""
+    """Descubre el catÃ¡logo completo que debe mostrar el dashboard coordinador."""
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
 
@@ -1575,15 +1584,28 @@ def _build_multi_bot_dashboard_catalog(profiles):
         for profile in profiles:
             spec = BOT_PROFILES[profile]
             if profile == "ORB":
-                for symbol in discover_orb_symbols(provider):
+                from strategy.orb.asset_rules import ORB_PROFITABLE_SWEEP_SYMBOLS
+                orb_symbols = list(discover_orb_symbols(provider))
+                for sym in ORB_PROFITABLE_SWEEP_SYMBOLS:
+                    if sym not in orb_symbols:
+                        try:
+                            if provider.get_symbol_info(sym):
+                                orb_symbols.append(sym)
+                        except Exception:
+                            pass
+                for symbol in orb_symbols:
                     market = classify_orb_market(symbol) or "ORB"
-                    categorized.setdefault(
-                        f"orb_ny_{str(market).lower()}",
-                        [],
-                    ).append(symbol)
+                    m_lower = str(market).lower()
+                    if m_lower in ("micro_xauusd", "xaueur", "xauusd"):
+                        cat_key = "orb_ny_xauusd"
+                    elif m_lower in ("micro_xagusd", "xagusd"):
+                        cat_key = "orb_ny_xagusd"
+                    else:
+                        cat_key = f"orb_ny_{m_lower}"
+                    categorized.setdefault(cat_key, []).append(symbol)
                 continue
             if profile == "GOLD":
-                # Categoría visual propia para la estrategia de Cuartos (XAUUSD / XAGUSD).
+                # CategorÃ­a visual propia para la estrategia de Cuartos (XAUUSD / XAGUSD).
                 for sym in ("XAUUSD", "XAUUSDmicro", "microXAUUSD", "Gold", "GOLD", "XAGUSD", "XAGUSDmicro", "microXAGUSD"):
                     try:
                         if provider.get_symbol_info(sym):
@@ -1593,14 +1615,14 @@ def _build_multi_bot_dashboard_catalog(profiles):
                         pass
                 continue
             if profile == "ICT":
-                # Categorías visuales para la estrategia ICT (Metales, Cripto e Índices)
+                # CategorÃ­as visuales para la estrategia ICT (Metales, Cripto e Ãndices)
                 for sym in ("XAGUSD", "XAGUSDmicro", "microXAGUSD"):
                     try:
                         if provider.get_symbol_info(sym):
                             categorized.setdefault("ict_metals_xagusd", []).append(sym)
                     except Exception:
                         pass
-                for sym in ("XAUUSD", "XAUUSDmicro", "microXAUUSD"):
+                for sym in ("XAUUSD", "XAUUSDmicro", "microXAUUSD", "XAUEUR", "XAUEURmicro", "microXAUEUR"):
                     try:
                         if provider.get_symbol_info(sym):
                             categorized.setdefault("ict_metals_xauusd", []).append(sym)
@@ -1639,7 +1661,7 @@ def _build_multi_bot_dashboard_catalog(profiles):
                         categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
-                    elif "volatility" in sym_lower:
+                    elif "volatility" in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
@@ -1647,7 +1669,7 @@ def _build_multi_bot_dashboard_catalog(profiles):
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
                     elif sym_lower.startswith(("xau", "xag", "xpt")):
                         categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
-                    elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
+                    elif any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
                         categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
                         categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
@@ -1669,7 +1691,7 @@ def _build_multi_bot_dashboard_catalog(profiles):
 
 
 def _recover_empty_synthetic_selection(repo, catalog, profiles):
-    """Restaura el catálogo sintético y perfiles dedicados si su preferencia persistida quedó vacía."""
+    """Restaura el catÃ¡logo sintÃ©tico y perfiles dedicados si su preferencia persistida quedÃ³ vacÃ­a."""
     reader = getattr(repo, "latest_instrument_selection_profile", None)
     writer = getattr(repo, "save_instrument_selection_profile", None)
     if not callable(reader) or not callable(writer):
@@ -1701,7 +1723,7 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
                         "EMPTY_SYNTHETIC_SELECTION_RECOVERED",
                         source="DEMO",
                         action="RESTORED_ALL_SYNTHETIC_SYMBOLS",
-                        reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacío",
+                        reason="El coordinador no puede iniciar seis familias con SYNTHETICS vacÃ­o",
                         payload={
                             "symbols_restored": len(synthetic_symbols),
                             "previous_version": (preference or {}).get("version"),
@@ -1712,33 +1734,33 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
                 except Exception:
                     pass
                 print(
-                    "[RECUPERACIÓN] SYNTHETICS estaba vacío: "
-                    f"se habilitaron {len(synthetic_symbols)} instrumentos del catálogo."
+                    "[RECUPERACIÃ“N] SYNTHETICS estaba vacÃ­o: "
+                    f"se habilitaron {len(synthetic_symbols)} instrumentos del catÃ¡logo."
                 )
 
-    # v110: Garantizar que los workers GOLD y ORB cuenten con selección activa en DEMO
+    # v110: Garantizar que los workers GOLD y ORB cuenten con selecciÃ³n activa en DEMO
     if "GOLD" in active_profiles or not active_profiles:
         gold_pref = reader("GOLD", source="DEMO")
         if gold_pref is None or not gold_pref.get("selected_symbols"):
             gold_symbols = ["XAUUSD", "XAUUSDmicro", "microXAUUSD"]
             writer(gold_symbols, selection_profile="GOLD", source="DEMO")
-            print("[RECUPERACIÓN] Perfil GOLD activado con instrumentos XAUUSD.")
+            print("[RECUPERACIÃ“N] Perfil GOLD activado con instrumentos XAUUSD.")
 
     if "ORB" in active_profiles or not active_profiles:
         orb_pref = reader("ORB", source="DEMO")
         if orb_pref is None or not orb_pref.get("selected_symbols"):
             orb_symbols = ["Wall Street 30", "XAUUSD", "XAUUSDmicro", "microXAUUSD", "US Tech 100", "BTCUSD"]
             writer(orb_symbols, selection_profile="ORB", source="DEMO")
-            print("[RECUPERACIÓN] Perfil ORB activado con instrumentos principales NY.")
+            print("[RECUPERACIÃ“N] Perfil ORB activado con instrumentos principales NY.")
 
-    # Saneamiento y recuperación de TREND_PULLBACK y MALAYSIAN_SNR
+    # Saneamiento y recuperaciÃ³n de TREND_PULLBACK y MALAYSIAN_SNR
     if "TREND_PULLBACK" in active_profiles or not active_profiles:
         tp_pref = reader("TREND_PULLBACK", source="DEMO")
         if tp_pref is None or not tp_pref.get("selected_symbols"):
             from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
             tp_symbols = list(DEFAULT_PULLBACK_SYMBOLS)
             writer(tp_symbols, selection_profile="TREND_PULLBACK", source="DEMO")
-            print(f"[RECUPERACIÓN] Perfil TREND_PULLBACK activado con {len(tp_symbols)} instrumentos.")
+            print(f"[RECUPERACIÃ“N] Perfil TREND_PULLBACK activado con {len(tp_symbols)} instrumentos.")
 
     if "MALAYSIAN_SNR" in active_profiles or not active_profiles:
         msnr_pref = reader("MALAYSIAN_SNR", source="DEMO")
@@ -1746,13 +1768,13 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
             from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
             msnr_symbols = list(MALAYSIAN_SNR_ACTIVE)
             writer(msnr_symbols, selection_profile="MALAYSIAN_SNR", source="DEMO")
-            print(f"[RECUPERACIÓN] Perfil MALAYSIAN_SNR activado con {len(msnr_symbols)} instrumentos.")
+            print(f"[RECUPERACIÃ“N] Perfil MALAYSIAN_SNR activado con {len(msnr_symbols)} instrumentos.")
 
     return saved
 
 
 def _assert_v53_runtime_compatibility(repo):
-    """Falla temprano si la carpeta contiene módulos de versiones mezcladas."""
+    """Falla temprano si la carpeta contiene mÃ³dulos de versiones mezcladas."""
     missing = []
     if not hasattr(repo, "upsert_worker_runtime_state"):
         missing.append("TradingRepository.upsert_worker_runtime_state")
@@ -1769,7 +1791,7 @@ def _assert_v53_runtime_compatibility(repo):
     if missing:
         raise RuntimeError(
             "INSTALACION_INCONSISTENTE_V53: se detectaron archivos de versiones mezcladas. "
-            "Extrae el ZIP v53 en una carpeta NUEVA y no sobre una instalación anterior. "
+            "Extrae el ZIP v53 en una carpeta NUEVA y no sobre una instalaciÃ³n anterior. "
             "Faltan: " + ", ".join(missing)
         )
 
@@ -1796,7 +1818,7 @@ def _assert_v53_runtime_compatibility(repo):
 
 
 def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
-    """Resuelve el universo de un perfil usando una conexión MT5 ya abierta."""
+    """Resuelve el universo de un perfil usando una conexiÃ³n MT5 ya abierta."""
     profile = str(profile or "").upper()
     universe = _resolve_universe_for_profile_provider(provider, profile)
     selection_profile = _selection_profile_for_bot(profile)
@@ -1814,7 +1836,7 @@ def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
 
 
 def _run_startup_database_maintenance(repo, args):
-    """Aplica retención antes de crear dashboard/workers del coordinador."""
+    """Aplica retenciÃ³n antes de crear dashboard/workers del coordinador."""
     try:
         maintenance = repo.maintain_operational_audits(
             retention_days=getattr(args, "audit_retention_days", 14),
@@ -1835,13 +1857,13 @@ def _run_startup_database_maintenance(repo, args):
         )
         return maintenance
     except Exception as exc:
-        # La retención es mantenimiento defensivo: nunca impide arrancar trading.
+        # La retenciÃ³n es mantenimiento defensivo: nunca impide arrancar trading.
         print(f"[DB MAINTENANCE WARNING] {exc}", file=sys.stderr)
         return None
 
 
 def run_unified_multibot_daemon(args, profiles=None):
-    """v76: un solo proceso con workers lógicos independientes."""
+    """v76: un solo proceso con workers lÃ³gicos independientes."""
     _warn_possible_parallel_daemon_instances()
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
@@ -1911,7 +1933,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                         categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
-                    elif "volatility" in sym_lower:
+                    elif "volatility" in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
@@ -1919,7 +1941,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
                     elif sym_lower.startswith(("xau", "xag", "xpt")):
                         categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
-                    elif any(c in sym_lower for c in ("btc", "eur", "usd", "gbp", "jpy")):
+                    elif any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
                         categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
                         categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
@@ -1942,7 +1964,7 @@ def run_unified_multibot_daemon(args, profiles=None):
         }
         dashboard.set_instrument_catalog(categorized, selected_symbols=None)
         dashboard_url = dashboard.start(live=True)
-        dashboard.update_status("MULTIBOT UNIFICADO ACTIVO · 1 PROCESO")
+        dashboard.update_status("MULTIBOT UNIFICADO ACTIVO Â· 1 PROCESO")
         print(f"Dashboard central: {dashboard_url}")
         print(f"Instrumentos: {dashboard.instruments_url}")
         print(f"Cuenta activa: {dashboard.account_url}")
@@ -2030,7 +2052,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 symbols_processed=0,
                 current_symbol=None,
                 last_action="UNIFIED_WORKER_READY",
-                last_reason="v76: worker lógico dentro del proceso MultiBot",
+                last_reason="v76: worker lÃ³gico dentro del proceso MultiBot",
                 details={"version": DAEMONBLACKFX_VERSION, "runtime_mode": "UNIFIED_PROCESS"},
             )
 
@@ -2040,10 +2062,10 @@ def run_unified_multibot_daemon(args, profiles=None):
             f"MULTIBOT UNIFICADO PID={pid} | perfiles={len(engines)}"
         )
         print(
-            f"MARKET DATA: {market_data_settings.mode.upper()} · "
-            f"PROVIDER={market_data_settings.provider.upper()} · MT5=EXECUTION_ONLY"
+            f"MARKET DATA: {market_data_settings.mode.upper()} Â· "
+            f"PROVIDER={market_data_settings.provider.upper()} Â· MT5=EXECUTION_ONLY"
         )
-        print(f"Cuenta DEMO: {account.get('login')} · {account.get('server')}")
+        print(f"Cuenta DEMO: {account.get('login')} Â· {account.get('server')}")
 
         last_report = 0.0
         while True:
@@ -2067,9 +2089,9 @@ def run_unified_multibot_daemon(args, profiles=None):
                     monitor = engine._monitor_break_even_positions()
                     current_audit = engine._refresh_current_strategy_views()
 
-                    # Actualiza gráficos de auditoría sin crear otro servidor/front.
+                    # Actualiza grÃ¡ficos de auditorÃ­a sin crear otro servidor/front.
                     # v109: cadencia 30s->60s y menos velas por snapshot (punto 3
-                    # de la optimización de memoria: reduce el tamaño del JSON
+                    # de la optimizaciÃ³n de memoria: reduce el tamaÃ±o del JSON
                     # persistido en trade_visual_audits y servido por /api/state).
                     visual_updated = 0
                     if time.monotonic() - float(last_visual_by_profile.get(profile) or 0.0) >= 60.0:
@@ -2114,13 +2136,13 @@ def run_unified_multibot_daemon(args, profiles=None):
                     daily_status = daily_mgr.get_status() if daily_mgr else {}
                     if daily_status.get("is_locked"):
                         worker_status = "PAUSED_DAILY_TARGET_REACHED"
-                        worker_reason = daily_status.get("status_message", "Meta diaria alcanzada. Entradas bloqueadas hasta sesión de Asia.")
+                        worker_reason = daily_status.get("status_message", "Meta diaria alcanzada. Entradas bloqueadas hasta sesiÃ³n de Asia.")
                     elif not session.get("active", True):
                         worker_status = session.get("state")
-                        worker_reason = f"Próxima apertura UTC: {session.get('next_activation')}; gestión de posiciones activa"
+                        worker_reason = f"PrÃ³xima apertura UTC: {session.get('next_activation')}; gestiÃ³n de posiciones activa"
                     else:
                         worker_status = "RUNNING_UNIFIED"
-                        worker_reason = "Proceso único MultiBot"
+                        worker_reason = "Proceso Ãºnico MultiBot"
 
                     repo.upsert_worker_runtime_state(
                         profile,
@@ -2185,7 +2207,7 @@ def run_unified_multibot_daemon(args, profiles=None):
         print("MultiBot unificado detenido por el usuario.")
     finally:
         try:
-            dashboard.mark_offline("MULTIBOT UNIFICADO DESCONECTADO · ESTADO PERSISTIDO")
+            dashboard.mark_offline("MULTIBOT UNIFICADO DESCONECTADO Â· ESTADO PERSISTIDO")
             dashboard.stop()
         except Exception:
             pass
@@ -2225,8 +2247,8 @@ def _warn_possible_parallel_daemon_instances():
         if others:
             print(
                 "[ADVERTENCIA] Se detectaron otras instancias Python de DaemonBlackFx "
-                "ejecutándose en paralelo. Esto puede aumentar CPU, lecturas MT5 y "
-                "contención SQLite."
+                "ejecutÃ¡ndose en paralelo. Esto puede aumentar CPU, lecturas MT5 y "
+                "contenciÃ³n SQLite."
             )
             for row in others[:12]:
                 print(
@@ -2234,19 +2256,19 @@ def _warn_possible_parallel_daemon_instances():
                     f"{str(row.get('CommandLine') or '')[:180]}"
                 )
             print(
-                "Recomendación: cerrar procesos antiguos antes de iniciar el MultiBot actual."
+                "RecomendaciÃ³n: cerrar procesos antiguos antes de iniciar el MultiBot actual."
             )
     except Exception:
         return
 
 
 class _MultiBotInstanceGuard:
-    """Bloqueo atómico que permite un solo coordinador por proyecto.
+    """Bloqueo atÃ³mico que permite un solo coordinador por proyecto.
 
     En Windows usa un mutex del sistema operativo, que desaparece incluso si el
     proceso termina abruptamente. En POSIX usa ``flock`` sobre un archivo
-    persistente. El JSON es sólo diagnóstico; nunca decide por sí solo si una
-    instancia está viva, por lo que un PID antiguo no bloquea el arranque.
+    persistente. El JSON es sÃ³lo diagnÃ³stico; nunca decide por sÃ­ solo si una
+    instancia estÃ¡ viva, por lo que un PID antiguo no bloquea el arranque.
     """
 
     def __init__(self, project_root: Path):
@@ -2422,7 +2444,7 @@ def _acquire_multibot_instance_guard():
 
 
 def _find_other_multibot_coordinators_windows():
-    """Devuelve coordinadores externos, excluyendo todo el árbol lanzador actual."""
+    """Devuelve coordinadores externos, excluyendo todo el Ã¡rbol lanzador actual."""
     if os.name != "nt":
         return []
     try:
@@ -2450,8 +2472,8 @@ def _find_other_multibot_coordinators_windows():
             parent_pid=os.getppid(),
         )
     except Exception as exc:
-        # Fallar cerrado es preferible: sin esta validación podríamos volver a
-        # duplicar órdenes. El mensaje permite corregir PowerShell/CIM.
+        # Fallar cerrado es preferible: sin esta validaciÃ³n podrÃ­amos volver a
+        # duplicar Ã³rdenes. El mensaje permite corregir PowerShell/CIM.
         raise SystemExit(
             "MULTIBOT_INSTANCE_SCAN_FAILED: no fue posible validar procesos "
             f"multi-bot-daemon existentes ({exc}). Arranque cancelado por seguridad."
@@ -2459,11 +2481,11 @@ def _find_other_multibot_coordinators_windows():
 
 
 def _filter_external_multibot_coordinators(rows, current_pid, parent_pid):
-    """Separa coordinadores reales de los launchers del intérprete actual.
+    """Separa coordinadores reales de los launchers del intÃ©rprete actual.
 
-    En algunos virtualenv de Windows ``python.exe`` actúa como launcher y crea
-    otro proceso Python con la misma línea de comando. Ese launcher es ancestro
-    del intérprete actual, no una segunda instancia. Se reconstruye toda la
+    En algunos virtualenv de Windows ``python.exe`` actÃºa como launcher y crea
+    otro proceso Python con la misma lÃ­nea de comando. Ese launcher es ancestro
+    del intÃ©rprete actual, no una segunda instancia. Se reconstruye toda la
     cadena ParentProcessId antes de evaluar candidatos.
     """
     normalized = [row for row in rows if isinstance(row, dict)]
@@ -2504,7 +2526,7 @@ def _filter_external_multibot_coordinators(rows, current_pid, parent_pid):
 
 
 def _worker_has_open_positions(profile: str, repo) -> bool:
-    """Devuelve True si el perfil tiene al menos una posición abierta en DEMO."""
+    """Devuelve True si el perfil tiene al menos una posiciÃ³n abierta en DEMO."""
     if repo is None or not hasattr(repo, "open_trades"):
         return False
     prof = str(profile or "").strip().upper()
@@ -2535,7 +2557,7 @@ def _worker_has_open_positions(profile: str, repo) -> bool:
 def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool, str | None]:
     """Indica si el coordinador puede omitir lanzar el subproceso de un worker desactivado.
 
-    Salvaguarda crítica: NUNCA omite un worker si tiene posiciones abiertas en DEMO,
+    Salvaguarda crÃ­tica: NUNCA omite un worker si tiene posiciones abiertas en DEMO,
     para que su hilo monitor siga gestionando Break Even, trailing y cierres.
     Controlado por DAEMONBLACKFX_SKIP_DISABLED_WORKER_PROCESSES (activo por defecto).
     """
@@ -2610,7 +2632,7 @@ def _rotate_worker_log_if_needed(
 def run_multi_bot_daemon(args, profiles=None):
     """Orquesta perfiles como procesos independientes.
 
-    Los workers escriben sólo DB. Este coordinador es el único escritor periódico
+    Los workers escriben sÃ³lo DB. Este coordinador es el Ãºnico escritor periÃ³dico
     del XLSX consolidado para evitar colisiones entre procesos.
     """
     _warn_possible_parallel_daemon_instances()
@@ -2639,7 +2661,7 @@ def run_multi_bot_daemon(args, profiles=None):
     if profiles == tuple(SYNTHETIC_SPLIT_PROFILES):
         _assert_synthetic_split_architecture()
         # El dashboard no debe interpretar un estado persistido del antiguo
-        # worker agregado como un séptimo worker activo.
+        # worker agregado como un sÃ©ptimo worker activo.
         try:
             repo.upsert_worker_runtime_state(
                 "SYNTHETICS",
@@ -2693,7 +2715,7 @@ def run_multi_bot_daemon(args, profiles=None):
         except Exception as exc:
             print(f"[LEGACY RUNTIME CLEANUP ERROR] VOLATILITY: {exc}", file=sys.stderr)
 
-    # v58: los coordinadores multi-bot siempre exponen un único dashboard central.
+    # v58: los coordinadores multi-bot siempre exponen un Ãºnico dashboard central.
     # Los workers usan --coordinated-worker y no abren puertos propios.
     dashboard_service = None
     coordinator_dashboard_enabled = True
@@ -2716,7 +2738,7 @@ def run_multi_bot_daemon(args, profiles=None):
                 reason=str(exc),
             )
 
-        # v82: evita workers sintéticos RUNNING con ciclos permanentes 0/0.
+        # v82: evita workers sintÃ©ticos RUNNING con ciclos permanentes 0/0.
         _recover_empty_synthetic_selection(repo, catalog, profiles)
 
         # v56: el dashboard recupera SYNTHETICS / FOREX / ORB por separado.
@@ -2818,7 +2840,7 @@ def run_multi_bot_daemon(args, profiles=None):
         log_buffer_bytes = int(os.getenv("DAEMONBLACKFX_LOG_BUFFER_BYTES", "4096"))
         handle = open(log_path, "a", encoding="utf-8", buffering=log_buffer_bytes)
         worker_env = os.environ.copy()
-        # v88: todos los procesos reciben la misma ruta resuelta. Así no pueden
+        # v88: todos los procesos reciben la misma ruta resuelta. AsÃ­ no pueden
         # crear DB distintas por cwd, usuario o una variable heredada ambigua.
         worker_env["DAEMONBLACKFX_DB_PATH"] = shared_db_path
         worker_env.setdefault(
@@ -2930,8 +2952,8 @@ def run_multi_bot_daemon(args, profiles=None):
                     return {
                         "ok": False,
                         "error": (
-                            f"{profile} tiene {len(open_positions)} posición(es) abierta(s). "
-                            "Ciérralas antes de detener su gestión."
+                            f"{profile} tiene {len(open_positions)} posiciÃ³n(es) abierta(s). "
+                            "CiÃ©rralas antes de detener su gestiÃ³n."
                         ),
                     }
                 disabled_profiles.add(profile)
@@ -2985,11 +3007,11 @@ def run_multi_bot_daemon(args, profiles=None):
     print(f"\nDAEMONBLACKFX VERSION: {DAEMONBLACKFX_VERSION}")
     print("COORDINADOR MULTI-BOT ACTIVO")
     print("DB compartida: SQLAlchemy/SQLite WAL")
-    print(f"DB persistente única: {shared_db_path}")
-    print("XLSX: escritor único desde el coordinador")
+    print(f"DB persistente Ãºnica: {shared_db_path}")
+    print("XLSX: escritor Ãºnico desde el coordinador")
     print(f"Workers: {', '.join(profiles)}")
     if profiles == tuple(SYNTHETIC_SPLIT_PROFILES):
-        print("ARQUITECTURA SINTETICOS: 6 PROCESOS INDEPENDIENTES · 1 FAMILIA POR PID")
+        print("ARQUITECTURA SINTETICOS: 6 PROCESOS INDEPENDIENTES Â· 1 FAMILIA POR PID")
         print("PID por familia: " + " | ".join(
             f"{profile}={workers[profile].pid if profile in workers else 'SKIPPED'}"
             for profile in SYNTHETIC_SPLIT_PROFILES
@@ -3082,7 +3104,7 @@ def run_multi_bot_daemon(args, profiles=None):
                     try:
                         existing = runtime_states_snapshot.get(profile, {})
 
-                        # El progreso se mide con telemetría del propio worker,
+                        # El progreso se mide con telemetrÃ­a del propio worker,
                         # no con mtime del log: stdout se almacena en bloques en
                         # Windows y puede permanecer sin cambios varios minutos.
                         fingerprint = (
@@ -3118,7 +3140,7 @@ def run_multi_bot_daemon(args, profiles=None):
                             if now - last_warning >= 60.0:
                                 worker_stall_warning_at[profile] = now
                                 reason = (
-                                    f"Sin avance de telemetría durante {progress_age:.0f}s; "
+                                    f"Sin avance de telemetrÃ­a durante {progress_age:.0f}s; "
                                     f"posiciones_abiertas={len(open_positions)}"
                                 )
                                 print(f"[WORKER STALL] {profile}: {reason}", file=sys.stderr)
@@ -3212,15 +3234,15 @@ def run_multi_bot_daemon(args, profiles=None):
                             last_action="PREFLIGHT_BLOCKED",
                             last_reason=(
                                 "Preflight rechazado; revise el log del worker y "
-                                "reactívelo después de corregir la causa"
+                                "reactÃ­velo despuÃ©s de corregir la causa"
                             ),
                             details={"exit_code": code, "restart_suppressed": True},
                         )
                     except Exception:
                         pass
                     print(
-                        f"[BLOCKED] {profile} no superó el preflight (código 2). "
-                        "No se reiniciará automáticamente; revise su log."
+                        f"[BLOCKED] {profile} no superÃ³ el preflight (cÃ³digo 2). "
+                        "No se reiniciarÃ¡ automÃ¡ticamente; revise su log."
                     )
                     continue
                 repo.save_audit_event(
@@ -3242,7 +3264,7 @@ def run_multi_bot_daemon(args, profiles=None):
                     )
                 except Exception:
                     pass
-                print(f"[WARN] {profile} terminó con código {code}. Reinicio en 5s.")
+                print(f"[WARN] {profile} terminÃ³ con cÃ³digo {code}. Reinicio en 5s.")
                 try:
                     log_handles[profile].close()
                 except Exception:
@@ -3287,7 +3309,7 @@ def run_multi_bot_daemon(args, profiles=None):
         if dashboard_service is not None:
             try:
                 dashboard_service.mark_offline(
-                    "COORDINADOR MULTI-BOT DETENIDO · ESTADO PERSISTIDO"
+                    "COORDINADOR MULTI-BOT DETENIDO Â· ESTADO PERSISTIDO"
                 )
                 dashboard_service.stop()
             except Exception:
@@ -3296,7 +3318,7 @@ def run_multi_bot_daemon(args, profiles=None):
 
 
 def run_report_daemon(report_interval: int = 30):
-    """Único escritor continuo del XLSX cuando los bots se ejecutan por separado."""
+    """Ãšnico escritor continuo del XLSX cuando los bots se ejecutan por separado."""
     from reporting.trade_reporting_service import TradeReportingConfig, TradeReportingService
 
     repo = TradingRepository()
@@ -3338,8 +3360,8 @@ def run_report_daemon(report_interval: int = 30):
 
 def run_dashboard_only(dashboard_port: int = 8765):
     """
-    Levanta únicamente la interfaz web usando SQLAlchemy + último snapshot
-    persistido. No abre conexión con MetaTrader5 ni ejecuta operaciones.
+    Levanta Ãºnicamente la interfaz web usando SQLAlchemy + Ãºltimo snapshot
+    persistido. No abre conexiÃ³n con MetaTrader5 ni ejecuta operaciones.
     """
     from dashboard.realtime_dashboard import RealtimeDashboardService
 
@@ -3352,19 +3374,19 @@ def run_dashboard_only(dashboard_port: int = 8765):
 
     try:
         dashboard_url = dashboard_service.start(live=False)
-        print("=== BLACKDAEMONFX · DASHBOARD OFFLINE ===")
+        print("=== BLACKDAEMONFX Â· DASHBOARD OFFLINE ===")
         print(f"Dashboard: {dashboard_url}")
         print(f"Cuenta activa: {dashboard_service.account_url}")
         print(f"Instrumentos: {dashboard_service.instruments_url}")
-        print("MT5 NO está conectado. Las posiciones OPEN provienen de SQLAlchemy.")
-        print("Los precios, salud y gráficos son el último estado persistido y pueden estar desactualizados.")
-        print("Presiona Ctrl+C para cerrar sólo la interfaz.")
+        print("MT5 NO estÃ¡ conectado. Las posiciones OPEN provienen de SQLAlchemy.")
+        print("Los precios, salud y grÃ¡ficos son el Ãºltimo estado persistido y pueden estar desactualizados.")
+        print("Presiona Ctrl+C para cerrar sÃ³lo la interfaz.")
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Dashboard offline detenido por el usuario.")
     finally:
-        dashboard_service.mark_offline("DASHBOARD OFFLINE DETENIDO · ESTADO PERSISTIDO")
+        dashboard_service.mark_offline("DASHBOARD OFFLINE DETENIDO Â· ESTADO PERSISTIDO")
         dashboard_service.stop()
 
 
@@ -3388,7 +3410,7 @@ def run_reset_database(confirm: bool, force_open_trades: bool = False):
     if not confirm:
         raise SystemExit(
             "BLOQUEADO: reset-db requiere --confirm-reset-database. "
-            "Detén el daemon antes de limpiar la base."
+            "DetÃ©n el daemon antes de limpiar la base."
         )
 
     from database.database import DEFAULT_DB_PATH
@@ -3407,7 +3429,7 @@ def run_reset_database(confirm: bool, force_open_trades: bool = False):
 
     print("BASE SQLALCHEMY LIMPIADA CORRECTAMENTE")
     print(f"Trades eliminados: {result['trades']}")
-    print(f"Señales eliminadas: {result['signals']}")
+    print(f"SeÃ±ales eliminadas: {result['signals']}")
     print(f"Snapshots de cuenta eliminados: {result['account_snapshots']}")
     print(f"Historial permanente conservado: {result.get('trade_journal_preserved', 0)} trade(s)")
     if backup_path is not None:
@@ -3422,7 +3444,7 @@ def run_database_maintenance(
     retention_days: int,
     max_rows: int,
 ):
-    """Mantenimiento manual seguro para compactar una DB histórica grande."""
+    """Mantenimiento manual seguro para compactar una DB histÃ³rica grande."""
     if not confirm:
         raise SystemExit(
             "BLOQUEADO: db-maintenance requiere --confirm-db-maintenance y el daemon detenido."
@@ -3452,7 +3474,7 @@ def run_database_maintenance(
 def run_train_meta_labeling(profiles=None, strategy_name: str = "ALL"):
     """Entrena el meta-etiquetado de cada worker con su propio historial.
 
-    Cada perfil aprende sólo de sus operaciones: un modelo nunca mezcla el
+    Cada perfil aprende sÃ³lo de sus operaciones: un modelo nunca mezcla el
     comportamiento de dos workers distintos.
     """
     from database.repository import TradingRepository
@@ -3482,36 +3504,36 @@ def run_train_meta_labeling(profiles=None, strategy_name: str = "ALL"):
 
 
 def run_reset_account_stats(confirm: bool = False):
-    """Reinicia la ventana estadística de Cuenta activa sin borrar el historial físico."""
+    """Reinicia la ventana estadÃ­stica de Cuenta activa sin borrar el historial fÃ­sico."""
     from database.database import DEFAULT_DB_PATH
 
     if not confirm:
-        print("Se reiniciarán las estadísticas visibles de Cuenta activa.")
-        print("Se conservarán las posiciones ABIERTAS, snapshots y el historial físico en SQLAlchemy.")
-        print("Win Rate, cerrados, PnL, TP1/TP2, SL, BE y emergencias comenzarán desde cero.")
+        print("Se reiniciarÃ¡n las estadÃ­sticas visibles de Cuenta activa.")
+        print("Se conservarÃ¡n las posiciones ABIERTAS, snapshots y el historial fÃ­sico en SQLAlchemy.")
+        print("Win Rate, cerrados, PnL, TP1/TP2, SL, BE y emergencias comenzarÃ¡n desde cero.")
         try:
             answer = input("Escriba RESET para continuar: ").strip()
         except EOFError:
             raise SystemExit(
-                "BLOQUEADO: no fue posible leer confirmación interactiva. "
-                "Use --confirm-reset-account-stats para confirmar explícitamente."
+                "BLOQUEADO: no fue posible leer confirmaciÃ³n interactiva. "
+                "Use --confirm-reset-account-stats para confirmar explÃ­citamente."
             )
         if answer != "RESET":
-            raise SystemExit("RESET CANCELADO: no se escribió RESET.")
+            raise SystemExit("RESET CANCELADO: no se escribiÃ³ RESET.")
 
     repo = TradingRepository(db_path=Path(DEFAULT_DB_PATH))
     result = repo.reset_account_statistics(source="DEMO", reason="CLI_MANUAL_RESET")
 
-    print("ESTADÍSTICAS DE CUENTA ACTIVA REINICIADAS")
+    print("ESTADÃSTICAS DE CUENTA ACTIVA REINICIADAS")
     print(f"Fecha de corte UTC: {result['reset_time']}")
     print(f"Posiciones abiertas conservadas: {result['open_positions_preserved']}")
     print(f"Cierres anteriores ocultos de la nueva ventana: {result['closed_rows_hidden_from_new_window']}")
-    print(f"Filas históricas preservadas físicamente: {result['historical_rows_preserved']}")
-    print("El historial no fue borrado; sólo se inició una nueva ventana estadística.")
+    print(f"Filas histÃ³ricas preservadas fÃ­sicamente: {result['historical_rows_preserved']}")
+    print("El historial no fue borrado; sÃ³lo se iniciÃ³ una nueva ventana estadÃ­stica.")
     return result
 
 def run_market_data_preflight(args, symbols=None):
-    """Valida Deriv Charts contra los símbolos ejecutables de MT5 sin órdenes."""
+    """Valida Deriv Charts contra los sÃ­mbolos ejecutables de MT5 sin Ã³rdenes."""
     from brokers.mt5_connector import MT5Connector
     from brokers.mt5_data import MT5DataProvider
     from marketdata.factory import ExternalMarketDataSettings, build_market_data_provider
@@ -3543,9 +3565,9 @@ def run_market_data_preflight(args, symbols=None):
         return any(marker in value for marker in (
             "rate limit",
             "too many request",
-            "no devolvió ticks",
+            "no devolviÃ³ ticks",
             "no closed",
-            "websocket no respondió",
+            "websocket no respondiÃ³",
             "websocket no respondio",
             "timed out",
             "timeout",
@@ -3560,9 +3582,9 @@ def run_market_data_preflight(args, symbols=None):
             try:
                 symbol = provider.ensure_symbol(requested)
                 timeframes = {}
-                # M5 valida resolución, histórico, vela cerrada y normalización.
-                # Pedir cuatro timeframes aquí quintuplicaba el arranque; los
-                # demás se validan naturalmente en el primer ciclo del motor.
+                # M5 valida resoluciÃ³n, histÃ³rico, vela cerrada y normalizaciÃ³n.
+                # Pedir cuatro timeframes aquÃ­ quintuplicaba el arranque; los
+                # demÃ¡s se validan naturalmente en el primer ciclo del motor.
                 for timeframe, count in (("M5", 40),):
                     frame = provider.get_candles(symbol, timeframe=timeframe, count=count)
                     closed = frame[frame["complete"].astype(bool)]
@@ -3621,7 +3643,7 @@ def run_market_data_preflight(args, symbols=None):
     deferred = [row for row in results if not row["ok"] and row.get("deferred")]
     failed = [row for row in results if not row["ok"] and not row.get("deferred")]
     print("=" * 72)
-    print("DAEMONBLACKFX · PREFLIGHT DERIV CHARTS → MT5")
+    print("DAEMONBLACKFX Â· PREFLIGHT DERIV CHARTS â†’ MT5")
     print("=" * 72)
     for row in results:
         if row["ok"]:
@@ -3640,7 +3662,7 @@ def run_market_data_preflight(args, symbols=None):
     runnable = successful + deferred
     return {
         # Un instrumento exclusivo de MT5 no debe detener una familia entera.
-        # Sólo los símbolos verificados pasan al worker de análisis/ejecución.
+        # SÃ³lo los sÃ­mbolos verificados pasan al worker de anÃ¡lisis/ejecuciÃ³n.
         "ready": bool(runnable),
         "all_supported": not failed,
         "symbols": [row["symbol"] for row in runnable],
@@ -3736,7 +3758,7 @@ def main():
         choices=["external", "shadow", "mt5", "feeder", "zmq"],
         default=None,
         help=(
-            "Fuente de análisis: external=Deriv, shadow=Deriv comparado con MT5, "
+            "Fuente de anÃ¡lisis: external=Deriv, shadow=Deriv comparado con MT5, "
             "feeder/zmq=Gateway central ZeroMQ, mt5=legado. v113.1 usa shadow por defecto."
         ),
     )
@@ -3755,9 +3777,9 @@ def main():
         "--symbol",
         default=None,
         help=(
-            "Símbolo exacto o nombre resoluble por MT5. "
+            "SÃ­mbolo exacto o nombre resoluble por MT5. "
             "Si se omite en modos live/demo/collect, "
-            "se descubren sintéticos dinámicamente."
+            "se descubren sintÃ©ticos dinÃ¡micamente."
         ),
     )
 
@@ -3765,7 +3787,7 @@ def main():
         "--categories",
         default=None,
         help=(
-            "Categorías separadas por coma para descubrimiento dinámico. "
+            "CategorÃ­as separadas por coma para descubrimiento dinÃ¡mico. "
             "Ejemplo: boom,crash,volatility"
         ),
     )
@@ -3786,27 +3808,27 @@ def main():
     parser.add_argument(
         "--confirm-live-demo",
         action="store_true",
-        help="Confirmación explícita obligatoria para abrir una orden real en DEMO.",
+        help="ConfirmaciÃ³n explÃ­cita obligatoria para abrir una orden real en DEMO.",
     )
 
     parser.add_argument(
         "--direction",
         choices=["BUY", "SELL"],
         default="BUY",
-        help="Dirección usada únicamente por live-demo-smoke.",
+        help="DirecciÃ³n usada Ãºnicamente por live-demo-smoke.",
     )
 
     parser.add_argument(
         "--keep-open",
         action="store_true",
-        help="En live-demo-smoke no cierra automáticamente la posición.",
+        help="En live-demo-smoke no cierra automÃ¡ticamente la posiciÃ³n.",
     )
 
     parser.add_argument(
         "--execute",
         action="store_true",
         help=(
-            "Permite enviar órdenes únicamente "
+            "Permite enviar Ã³rdenes Ãºnicamente "
             "en modo DEMO."
         ),
     )
@@ -3823,8 +3845,8 @@ def main():
         type=float,
         default=0.0,
         help=(
-            "Volumen para live-demo-smoke. 0 = usar automáticamente "
-            "el volumen mínimo permitido por el símbolo."
+            "Volumen para live-demo-smoke. 0 = usar automÃ¡ticamente "
+            "el volumen mÃ­nimo permitido por el sÃ­mbolo."
         ),
     )
 
@@ -3859,10 +3881,10 @@ def main():
         default=0.035,
         help=(
             "Tolerancia (0-1) sobre el riesgo objetivo antes de considerar "
-            "que el fill excedió el tope duro (hard cap). Ej: 0.035 permite "
+            "que el fill excediÃ³ el tope duro (hard cap). Ej: 0.035 permite "
             "hasta un 3.5%% de exceso tras el fill sin marcarlo como breach. "
-            "Súbelo si un símbolo entra seguido en cuarentena por la "
-            "granularidad de su lote mínimo (ej. Step Index 500)."
+            "SÃºbelo si un sÃ­mbolo entra seguido en cuarentena por la "
+            "granularidad de su lote mÃ­nimo (ej. Step Index 500)."
         ),
     )
     parser.add_argument(
@@ -3873,7 +3895,7 @@ def main():
             "Tolerancia adicional (0-1), sumada a --hard-risk-tolerance, "
             "hasta la cual un breach de riesgo post-fill se clasifica como "
             "RECUPERABLE (cuarentena temporal que expira sola) en vez de "
-            "requerir revisión manual. Ej: con hard-risk-tolerance=0.035 y "
+            "requerir revisiÃ³n manual. Ej: con hard-risk-tolerance=0.035 y "
             "este valor en 0.025, un exceso de hasta 6%% se auto-recupera."
         ),
     )
@@ -3883,7 +3905,7 @@ def main():
         type=int,
         default=DEFAULT_MAX_OPEN_POSITIONS,
         help=(
-            "Límite máximo de posiciones físicas abiertas simultáneas "
+            "LÃ­mite mÃ¡ximo de posiciones fÃ­sicas abiertas simultÃ¡neas "
             "(por defecto: 10, correspondiente a 5 instrumentos x 2 piernas)."
         ),
     )
@@ -3891,13 +3913,13 @@ def main():
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Muestra rechazos y detalles adicionales de cada símbolo.",
+        help="Muestra rechazos y detalles adicionales de cada sÃ­mbolo.",
     )
 
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Muestra el diagnóstico técnico completo de cada resultado.",
+        help="Muestra el diagnÃ³stico tÃ©cnico completo de cada resultado.",
     )
 
     parser.add_argument(
@@ -3917,8 +3939,8 @@ def main():
         "--reset-account-stats",
         action="store_true",
         help=(
-            "Reinicia Win Rate y estadísticas persistentes de Cuenta activa "
-            "sin borrar posiciones abiertas ni el historial físico."
+            "Reinicia Win Rate y estadÃ­sticas persistentes de Cuenta activa "
+            "sin borrar posiciones abiertas ni el historial fÃ­sico."
         ),
     )
 
@@ -3927,32 +3949,32 @@ def main():
         action="store_true",
         help=(
             "Confirma reset-account-stats sin solicitar escribir RESET. "
-            "Útil para scripts/automatizaciones."
+            "Ãštil para scripts/automatizaciones."
         ),
     )
 
     parser.add_argument(
         "--confirm-reset-database",
         action="store_true",
-        help="Confirmación explícita para vaciar trades, signals y account_snapshots.",
+        help="ConfirmaciÃ³n explÃ­cita para vaciar trades, signals y account_snapshots.",
     )
 
     parser.add_argument(
         "--force-reset-open-trades",
         action="store_true",
-        help="Permite reset-db aun si SQLite contiene trades OPEN. Usar sólo con MT5 sin posiciones activas.",
+        help="Permite reset-db aun si SQLite contiene trades OPEN. Usar sÃ³lo con MT5 sin posiciones activas.",
     )
 
     parser.add_argument(
         "--confirm-db-maintenance",
         action="store_true",
-        help="Confirma retención/checkpoint y respaldo consistente con el daemon detenido.",
+        help="Confirma retenciÃ³n/checkpoint y respaldo consistente con el daemon detenido.",
     )
 
     parser.add_argument(
         "--vacuum",
         action="store_true",
-        help="En db-maintenance compacta físicamente SQLite después de crear respaldo.",
+        help="En db-maintenance compacta fÃ­sicamente SQLite despuÃ©s de crear respaldo.",
     )
 
     parser.add_argument(
@@ -3972,21 +3994,21 @@ def main():
         "--audit-retention-days",
         type=int,
         default=14,
-        help="Días de telemetría operacional a conservar; no afecta trades ni auditorías visuales.",
+        help="DÃ­as de telemetrÃ­a operacional a conservar; no afecta trades ni auditorÃ­as visuales.",
     )
 
     parser.add_argument(
         "--audit-retention-max-rows",
         type=int,
         default=250000,
-        help="Máximo de eventos operacionales de alta frecuencia conservados.",
+        help="MÃ¡ximo de eventos operacionales de alta frecuencia conservados.",
     )
 
     parser.add_argument(
         "--audit-maintenance-interval",
         type=int,
         default=3600,
-        help="Segundos entre retención/checkpoint SQLite coordinados.",
+        help="Segundos entre retenciÃ³n/checkpoint SQLite coordinados.",
     )
 
     parser.add_argument(
@@ -4060,9 +4082,9 @@ def main():
         run_report_daemon(args.report_interval)
         return
 
-    # v60: cualquier entrada de daemon sintético agregado se redirige al
+    # v60: cualquier entrada de daemon sintÃ©tico agregado se redirige al
     # coordinador por familias. Evita volver accidentalmente al worker legacy
-    # SYNTHETICS (magic 26082026) al usar comandos históricos.
+    # SYNTHETICS (magic 26082026) al usar comandos histÃ³ricos.
     synthetic_split_modes = {
         "synthetics-split-daemon",
         "synthetic-daemon",
@@ -4073,11 +4095,11 @@ def main():
             raise SystemExit("Los intervalos deben ser >= 1 segundo.")
         # v90: el bloqueo se adquiere antes de crear dashboard, DB writer o
         # workers. Aunque Windows ejecute el comando dos veces casi al mismo
-        # tiempo, sólo un coordinador puede continuar.
+        # tiempo, sÃ³lo un coordinador puede continuar.
         instance_guard = _acquire_multibot_instance_guard()
         print(
-            "[v77] MULTIBOT HÍBRIDO: workers de cálculo independientes + "
-            "un único dashboard central liviano."
+            "[v77] MULTIBOT HÃBRIDO: workers de cÃ¡lculo independientes + "
+            "un Ãºnico dashboard central liviano."
         )
         try:
             run_multi_bot_daemon(args, profiles=FULL_MULTI_BOT_PROFILES)
@@ -4090,7 +4112,7 @@ def main():
             raise SystemExit("Los intervalos deben ser >= 1 segundo.")
         print(
             "[EXPERIMENTAL] MultiBot unificado en un solo proceso. "
-            "No recomendado para operación normal por latencia acumulativa."
+            "No recomendado para operaciÃ³n normal por latencia acumulativa."
         )
         run_unified_multibot_daemon(args, profiles=FULL_MULTI_BOT_PROFILES)
         return
@@ -4102,7 +4124,7 @@ def main():
         if args.mode in {"synthetic-daemon", "demo-daemon"}:
             print(
                 f"[v60] {args.mode} es alias protegido de synthetics-split-daemon: "
-                "se iniciarán 6 procesos por familia."
+                "se iniciarÃ¡n 6 procesos por familia."
             )
         run_multi_bot_daemon(args, profiles=profiles)
         return
@@ -4110,7 +4132,7 @@ def main():
     if args.mode in {"forex-daemon", "forex-split-daemon"}:
         if args.interval < 1 or args.position_monitor_interval < 1:
             raise SystemExit("Los intervalos deben ser >= 1 segundo.")
-        print("[v69] FOREX EVENT SCHEDULER: 4 workers independientes + caché H1/M15 + eventos M5.")
+        print("[v69] FOREX EVENT SCHEDULER: 4 workers independientes + cachÃ© H1/M15 + eventos M5.")
         run_multi_bot_daemon(args, profiles=FOREX_SPLIT_PROFILES)
         return
 
@@ -4139,7 +4161,7 @@ def main():
         profile = strategy_worker_modes[args.mode]
         symbols = _resolve_live_symbols_for_profile(args, profile)
         if not symbols:
-            print(f"{profile}: sin instrumentos seleccionados; worker queda activo sólo para monitor/auditoría.")
+            print(f"{profile}: sin instrumentos seleccionados; worker queda activo sÃ³lo para monitor/auditorÃ­a.")
         if args.execute and symbols:
             preflight = run_demo_preflight(symbols)
             if not preflight["ready"]:
@@ -4152,7 +4174,7 @@ def main():
                 print(
                     f"[MARKET DATA DEGRADED] {profile}: "
                     f"{len(market_preflight['failed'])} instrumento(s) excluido(s); "
-                    f"{len(symbols)} validado(s) continúan."
+                    f"{len(symbols)} validado(s) continÃºan."
                 )
         run_demo_bot(
             symbols,
@@ -4199,10 +4221,10 @@ def main():
             if not args.confirm_live_demo:
                 raise SystemExit(
                     "BLOQUEADO: live-demo-smoke requiere --confirm-live-demo. "
-                    "Esta acción abre una orden real en la cuenta DEMO."
+                    "Esta acciÃ³n abre una orden real en la cuenta DEMO."
                 )
             if not args.symbol:
-                raise SystemExit("live-demo-smoke requiere --symbol explícito")
+                raise SystemExit("live-demo-smoke requiere --symbol explÃ­cito")
             preflight = run_demo_preflight(symbols)
             if not preflight["ready"]:
                 raise SystemExit(2)
@@ -4263,11 +4285,11 @@ def main():
         else:
             if args.interval < 1:
                 raise SystemExit(
-                    "demo-daemon requiere --interval mínimo de 1 segundo."
+                    "demo-daemon requiere --interval mÃ­nimo de 1 segundo."
                 )
             if args.position_monitor_interval < 1:
                 raise SystemExit(
-                    "--position-monitor-interval requiere un mínimo de 1 segundo."
+                    "--position-monitor-interval requiere un mÃ­nimo de 1 segundo."
                 )
             if args.execute:
                 preflight = run_demo_preflight(symbols)
@@ -4310,7 +4332,7 @@ def main():
     elif args.mode == "daemon":
         if args.interval < 30:
             raise ValueError(
-                "El intervalo mínimo es 30 segundos."
+                "El intervalo mÃ­nimo es 30 segundos."
             )
 
         run_collector(
@@ -4386,18 +4408,18 @@ def main():
 def _apply_msnr_wr45_prune():
     from config.strategy_config import MSNR_WR45_PRUNED
     spec = BOT_PROFILES["MALAYSIAN_SNR"]
-    # Universo del worker MSNR (vídeos): sintéticos sin los de acierto <= 45 %.
+    # Universo del worker MSNR (vÃ­deos): sintÃ©ticos sin los de acierto <= 45 %.
     msnr_video_symbols = [s for s in spec["symbols"] if s not in set(MSNR_WR45_PRUNED)]
-    # Malaysian SNR (25-oct-2026): exactamente la política de /Instruments (sintéticos con acierto > 47 % + mercados
-    # reales en prueba demo); el resto del universo sintético pasa a podados.
+    # Malaysian SNR (25-oct-2026): exactamente la polÃ­tica de /Instruments (sintÃ©ticos con acierto > 47 % + mercados
+    # reales en prueba demo); el resto del universo sintÃ©tico pasa a podados.
     from config.ict_instrument_policy import (MALAYSIAN_SNR_ACTIVE, MALAYSIAN_SNR_EXCLUDED, MSNR_DEMO_TEST_SYMBOLS,
                                               MSNR_REAL_MARKET_SYMBOLS)
     pruned = [s for s in (*spec["symbols"], *MALAYSIAN_SNR_EXCLUDED) if s not in set(MALAYSIAN_SNR_ACTIVE)]
     spec["symbols"] = list(dict.fromkeys(MALAYSIAN_SNR_ACTIVE))
     spec["pruned_symbols"] = [s for s in dict.fromkeys([*spec.get("pruned_symbols", []), *pruned])
                               if s not in set(MALAYSIAN_SNR_ACTIVE)]
-    # Worker MSNR (estrategia de los vídeos, 20-oct-2026): mismos instrumentos que la pestaña Malaysian SNR,
-    # pero controlado solo por la pestaña MSNR de /Instruments.
+    # Worker MSNR (estrategia de los vÃ­deos, 20-oct-2026): mismos instrumentos que la pestaÃ±a Malaysian SNR,
+    # pero controlado solo por la pestaÃ±a MSNR de /Instruments.
 
 
 _apply_msnr_wr45_prune()

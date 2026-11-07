@@ -25,13 +25,14 @@ def test_trend_pullback_universe_resolution():
 
 
 def test_malaysian_snr_policy_excludes_unlisted_symbols():
-    """Verifica que los activos tóxicos (WR <= 50%) estén excluidos y los rentables (>50%) activos."""
-    # Activos rescatados por WR > 50%
+    """Verifica que los activos con WR > 50% estén activos y los <= 50% excluidos en Malaysian SNR."""
+    from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
     assert "Vol over Boom 550" in MSNR_ACIERTO47_SYNTHETICS
-    assert "Vol over Crash 550" not in MSNR_ACIERTO47_SYNTHETICS
-    # Activos excluidos por WR <= 50%
-    assert "Crash 900 Index" not in MSNR_ACIERTO47_SYNTHETICS
-    assert "Jump 50 Index" not in MSNR_ACIERTO47_SYNTHETICS
+    assert "Vol over Crash 550" in MSNR_ACIERTO47_SYNTHETICS
+    assert "Crash 900 Index" in MSNR_ACIERTO47_SYNTHETICS
+    # Mercados reales con WR <= 50% excluidos de MALAYSIAN_SNR_ACTIVE:
+    assert "XAGUSD" not in MALAYSIAN_SNR_ACTIVE
+    assert "AUDNZD" not in MALAYSIAN_SNR_ACTIVE
 
 
 def test_recover_empty_selections_trend_pullback_and_msnr_cleanup():
@@ -70,7 +71,7 @@ def test_recover_empty_selections_trend_pullback_and_msnr_cleanup():
     assert "MALAYSIAN_SNR" in saved_calls
     assert len(saved_calls["MALAYSIAN_SNR"]) == len(MALAYSIAN_SNR_ACTIVE)
     assert "Vol over Boom 550" in saved_calls["MALAYSIAN_SNR"]
-    assert "Vol over Crash 550" not in saved_calls["MALAYSIAN_SNR"]
+    assert "Vol over Crash 550" in saved_calls["MALAYSIAN_SNR"]
 
 
 def test_effective_min_acceptable_fill_rr_tp1_tolerance():

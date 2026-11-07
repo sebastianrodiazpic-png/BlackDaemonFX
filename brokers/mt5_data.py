@@ -17,6 +17,7 @@ Vinculaciones:
     - `app.main` lo instancia y lo inyecta en el motor y la estrategia.
 """
 
+import os
 import pandas as pd
 import MetaTrader5 as mt5
 import time
@@ -406,6 +407,12 @@ class MT5DataProvider:
             unit="s",
             utc=True
         )
+
+        monotonic_opt = os.getenv("DAEMONBLACKFX_MT5_MONOTONIC_OPTIMIZATION", "1").strip().lower() not in ("0", "false", "no", "off")
+        if monotonic_opt and len(df) > 1 and df["time"].iloc[0] <= df["time"].iloc[-1]:
+            # MT5 copy_rates_from_pos garantiza orden cronológico ascendente.
+            # Evitamos el sort_values O(N log N) si ya es monótono.
+            return df.reset_index(drop=True)
 
         df = (
             df

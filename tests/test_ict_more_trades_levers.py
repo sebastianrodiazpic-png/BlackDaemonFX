@@ -18,8 +18,8 @@ def test_unpruned_synthetics_in_worker_allowlists():
     allowed = (set(c.step_allowed_symbols) | set(c.volatility_allowed_symbols) | set(c.boom_allowed_symbols)
                | set(c.crash_allowed_symbols))
     assert UNPRUNED <= allowed
-    # Siguen podados: negativos o ~0 en el replay
-    assert "Volatility 50 Index" not in allowed and "Crash 600 Index" not in allowed
+    # Siguen podados: WR <= 50% o R neto <= 0 en el replay fiel de 212 pares
+    assert "Volatility 90 (1s) Index" not in allowed and "Crash 1000 Index" not in allowed
 
 
 def test_env_restores_previous_pruning():

@@ -221,10 +221,17 @@ class TrendPullbackStrategy:
         direction: str | None = None
         trigger_reason: str = ""
 
+        pb_band = float(getattr(cfg, "pullback_band_atr", 0.0) or 0.0) * atr_last
+        min_wick = float(getattr(cfg, "min_rejection_wick_ratio", 0.30) or 0.30)
+        span_last = max(0.0, h_last - l_last)
+
         if is_bullish_h1:
             # Condición de compra:
-            # 1. Retroceso a la EMA(21): el mínimo de la vela actual o anterior tocó o penetró la EMA
-            touched_pullback = (l_last <= ema_last) or (l_prev <= ema_prev)
+            # 1. Retroceso a la EMA(21) o banda de valor dinámica (EMA21 + pullback_band_atr * ATR)
+            exact_touch = (l_last <= ema_last) or (l_prev <= ema_prev)
+            lower_wick_ratio = ((min(o_last, c_last) - l_last) / span_last) if span_last > 0 else 0.0
+            band_touch = (pb_band > 0.0) and ((l_last <= ema_last + pb_band) or (l_prev <= ema_prev + pb_band)) and (lower_wick_ratio >= min_wick)
+            touched_pullback = exact_touch or band_touch
             # 2. Rechazo y cierre alcista sobre la EMA
             rejection_candle = (c_last > o_last) and (c_last > ema_last)
             # 3. RSI en zona de retroceso saludable (no sobrecomprado)
@@ -242,8 +249,11 @@ class TrendPullbackStrategy:
 
         elif is_bearish_h1:
             # Condición de venta:
-            # 1. Retroceso alcista a la EMA(21): el máximo de la vela actual o anterior tocó o penetró la EMA
-            touched_pullback = (h_last >= ema_last) or (h_prev >= ema_prev)
+            # 1. Retroceso alcista a la EMA(21) o banda de valor dinámica (EMA21 - pullback_band_atr * ATR)
+            exact_touch = (h_last >= ema_last) or (h_prev >= ema_prev)
+            upper_wick_ratio = ((h_last - max(o_last, c_last)) / span_last) if span_last > 0 else 0.0
+            band_touch = (pb_band > 0.0) and ((h_last >= ema_last - pb_band) or (h_prev >= ema_prev - pb_band)) and (upper_wick_ratio >= min_wick)
+            touched_pullback = exact_touch or band_touch
             # 2. Rechazo y cierre bajista por debajo de la EMA
             rejection_candle = (c_last < o_last) and (c_last < ema_last)
             # 3. RSI en zona de retroceso saludable (no sobrevendido)

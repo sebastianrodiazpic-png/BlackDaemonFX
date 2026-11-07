@@ -13,7 +13,7 @@ ORB_SWEEP_STRATEGY_VERSION = "orb-ny-v5-sweep"
 def default_asset_profiles():
     profiles = {key: {**value, "allowed_modes": list(value["allowed_modes"])}
                 for key, value in ASSET_CONFIG.items()}
-    if os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "1").strip().lower() in ("1", "true", "on"):
+    if os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "0").strip().lower() in ("1", "true", "on"):
         for k in ("US30", "NAS100", "US500"):
             if k in profiles:
                 profiles[k]["allowed_modes"] = ["RETEST", "MOMENTUM"]
@@ -27,26 +27,29 @@ def default_asset_profiles():
 ORB_BTC_MAX_ATR_RATIO = float(os.getenv("DAEMONBLACKFX_ORB_BTC_MAX_ATR_RATIO", "2.8"))
 
 # Índices Americanos con Escenario de Retest de Apertura (Wall Street Cash 09:30 NY):
-ORB_INDICES_ENABLED = os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "1").strip().lower() in ("1", "true", "on")
+ORB_INDICES_ENABLED = os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "0").strip().lower() in ("1", "true", "on")
 ORB_INDEX_MAX_ATR_RATIO = float(os.getenv("DAEMONBLACKFX_ORB_INDEX_MAX_ATR_RATIO", "3.0"))
 ORB_INDEX_MODES = ["RETEST", "MOMENTUM"] if ORB_INDICES_ENABLED else []
 
-# Fase 1 + Auditoría Cuantitativa Multianual: Núcleo Élite de Activos Rentables con SWEEP y Retest.
+# Fase 1 + Auditoría Cuantitativa Multianual (05-nov-2026): 11 Activos Rentables con WR > 50% y R/op > 0.
 ASSET_CONFIG = {
-    # Activos Élite con WR > 47% y R/op > 0 en el replay multianual
+    # Activos Élite con WR > 50% y R/op > 0 en el replay fiel multianual
     "XAUUSD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
-    "BTCUSD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
-    "USDCAD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=True),
-    "GBPUSD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
-    "AUDUSD": dict(allowed_modes=[], sweep_enabled=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
-    # Activos Rescatados tras auditoría cuantitativa (HTF_SWEEP / Asimetría)
-    "XAGUSD": dict(allowed_modes=[], sweep_enabled=True, htf_aligned=True, atr_buffer=0.08, max_range_atr_ratio=1.8, require_volume=True),
-    "USOIL": dict(allowed_modes=[], sweep_enabled=True, allowed_directions=["BUY"], atr_buffer=0.07, max_range_atr_ratio=1.8, require_volume=True),
-    "USDCHF": dict(allowed_modes=[], sweep_enabled=True, allowed_directions=["BUY"], atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
-    # Activos en Poda Preventiva (WR <= 47% o R/op negativo)
+    "BTCUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "USDCAD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=True),
+    "GBPUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
+    "AUDUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
+    # Activos Rescatados tras auditoría cuantitativa (>50% WR y R > 0)
+    "XAGUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, htf_aligned=True, atr_buffer=0.08, max_range_atr_ratio=1.8, require_volume=True),
+    "USOIL": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, allowed_directions=["BUY"], atr_buffer=0.07, max_range_atr_ratio=1.8, require_volume=True),
+    "USDCHF": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, allowed_directions=["BUY"], atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
+    "USDJPY": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.5, require_volume=False),
+    "ETHUSD": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True),
+    "XAUEUR": dict(allowed_modes=[], sweep_enabled=True, forward_test=True, atr_buffer=0.08, max_range_atr_ratio=1.6, require_volume=False),
+    # Activos en Poda Preventiva (WR <= 50% o R/op negativo)
     "EURUSD": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=False, pruned=True, reason="PRUNED_LOW_EXPECTANCY_NY"),
     "US500": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=1.8, require_volume=True, pruned=True, reason="PRUNED_WHIPSAWS_CASH_OPEN"),
-    "US30": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False, pruned=True, reason="PRUNED_LOW_WINRATE_28PCT"),
+    "US30": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False, pruned=True, reason="PRUNED_LOW_WINRATE_33PCT"),
     "NAS100": dict(allowed_modes=[], atr_buffer=0.05, max_range_atr_ratio=2.0, require_volume=False, pruned=True, reason="PRUNED_USE_ICT_INSTEAD"),
 }
 
@@ -55,19 +58,21 @@ DEFAULT_ORB_PROFILE = dict(atr_buffer=0.05, max_range_atr_ratio=1.5,
                            allowed_modes=["MOMENTUM", "RETEST"], require_volume=True)
 ASSET_RULES = ASSET_CONFIG
 
-# Evidencia de staging y replay multianual para los 8 activos élite
+# Evidencia de staging y replay multianual para los 11 activos con WR > 50% y R > 0
 ORB_SWEEP_OPTIMAL_MODES = {
-    "XAUUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=54.8, net_r_5y=22.8, trades_5y=245),
-    "BTCUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=56.4, net_r_5y=28.5, trades_5y=280),
-    "USDCAD": dict(optimal_mode="HTF_SWEEP", expected_wr=51.2, net_r_5y=18.4, trades_5y=268),
-    "AUDUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=52.7, net_r_5y=14.6, trades_5y=235),
-    "GBPUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=50.8, net_r_5y=11.8, trades_5y=242),
-    "XAGUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=48.9, net_r_5y=9.2, trades_5y=195),
-    "USOIL": dict(optimal_mode="HTF_SWEEP", expected_wr=49.2, net_r_5y=7.8, trades_5y=188),
-    "USDCHF": dict(optimal_mode="HTF_SWEEP", expected_wr=47.9, net_r_5y=5.4, trades_5y=155),
+    "USOIL": dict(optimal_mode="HTF_SWEEP", expected_wr=91.67, net_r_5y=39.75, trades_5y=24),
+    "USDCHF": dict(optimal_mode="HTF_SWEEP", expected_wr=86.84, net_r_5y=21.10, trades_5y=38),
+    "BTCUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=65.85, net_r_5y=16.71, trades_5y=164),
+    "XAUUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=63.55, net_r_5y=29.87, trades_5y=107),
+    "USDJPY": dict(optimal_mode="HTF_SWEEP", expected_wr=58.91, net_r_5y=2.24, trades_5y=129),
+    "AUDUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=58.47, net_r_5y=12.12, trades_5y=118),
+    "USDCAD": dict(optimal_mode="HTF_SWEEP", expected_wr=57.69, net_r_5y=27.41, trades_5y=130),
+    "GBPUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=57.43, net_r_5y=17.87, trades_5y=148),
+    "ETHUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=57.14, net_r_5y=0.39, trades_5y=7),
+    "XAUEUR": dict(optimal_mode="HTF_SWEEP", expected_wr=54.35, net_r_5y=7.30, trades_5y=46),
+    "XAGUSD": dict(optimal_mode="HTF_SWEEP", expected_wr=53.95, net_r_5y=5.40, trades_5y=76),
 }
-# 5 Activos Núcleo Élite Rentables con WR > 55% y R/op > 0 en Replay Multianual (+56.75 R netos acumulados)
-# 8 Activos Rentables con WR > 47% y R/op > 0 en Replay Multianual (+73.4 R netos acumulados)
+# 11 Activos Rentables con WR > 50% y R/op > 0 en Replay Fiel (+180.16 R netos acumulados en activos >50% WR)
 ORB_PROFITABLE_SWEEP_SYMBOLS = (
     "XAUUSD", "XAUUSDmicro", "microXAUUSD",
     "BTCUSD", "BTCUSDmicro", "microBTCUSD",
@@ -77,18 +82,19 @@ ORB_PROFITABLE_SWEEP_SYMBOLS = (
     "XAGUSD", "XAGUSDmicro", "microXAGUSD",
     "US Oil",
     "USDCHF", "USDCHFmicro", "microUSDCHF",
+    "USDJPY", "USDJPYmicro", "microUSDJPY",
+    "ETHUSD", "ETHUSDmicro", "microETHUSD",
+    "XAUEUR", "XAUEURmicro", "microXAUEUR",
 )
-ORB_SWEEP_FORWARD_TEST_SYMBOLS = ("USDCAD", "GBPUSD", "AUDUSD")
-# Activos en Poda Preventiva (descartados por WR <= 47% o balance negativo)
+ORB_SWEEP_FORWARD_TEST_SYMBOLS = ("BTCUSD", "USDCAD", "GBPUSD", "AUDUSD")
+# Activos en Poda Preventiva (descartados por WR <= 50% o balance negativo)
 ORB_PRUNED_LOSING_SYMBOLS = (
     "EURUSD", "EURUSDmicro", "microEURUSD",
-    "USDJPY", "USDJPYmicro", "microUSDJPY",
     "NZDUSD", "NZDUSDmicro", "microNZDUSD",
     "US SP 500", "US500",
     "Wall Street 30", "US30",
     "US Tech 100", "NAS100",
     "UK Brent Oil",
-    "ETHUSD",
     "US Small Cap 2000",
     "US Mid Cap 400",
 )
@@ -106,7 +112,7 @@ def get_asset_rules(symbol):
         logging.getLogger(__name__).warning("ORB fallback profile for %s", symbol)
         profile = DEFAULT_ORB_PROFILE
     res = deepcopy(profile)
-    if key in ("US30", "NAS100", "US500") and os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "1").strip().lower() in ("1", "true", "on"):
+    if key in ("US30", "NAS100", "US500") and os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "0").strip().lower() in ("1", "true", "on"):
         res["allowed_modes"] = ["RETEST", "MOMENTUM"]
         res["sweep_enabled"] = True
         res["pruned"] = False

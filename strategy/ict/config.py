@@ -158,6 +158,8 @@ class ICTSabriMalleConfig:
     ifvg_bpr_enabled: bool = True
     ifvg_lookback_bars: int = 24
     ifvg_bpr_require_gbdt_filter: bool = True
+    ifvg_bpr_atr_sl_buffer: float = field(default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_IFVG_ATR_SL_BUFFER", "0.25")))
+    scan_displacement_leg_fvg: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_SCAN_DISPLACEMENT_FVG", "1").strip().lower() not in ("0", "false", "off"))
 
     # Paso 1.1: Umbral calibrado GBDT LightGBM y activos ACTIVE (26-oct-2026: actualizados con auditoría 5 años)
     gbdt_min_probability: float = 0.55

@@ -1,8 +1,8 @@
-"""Estrategia Opening Range Breakout (ORB) de la sesión cash de Nueva York.
+﻿"""Estrategia Opening Range Breakout (ORB) de la sesiÃ³n cash de Nueva York.
 
 Estrategia INDEPENDIENTE del pipeline SMC: no usa order blocks ni confirmacion
-M5 de `strategy.smc`. Se apoya en un concepto distinto — el rango de apertura
-de Nueva York — y produce su propio dict de senal.
+M5 de `strategy.smc`. Se apoya en un concepto distinto â€” el rango de apertura
+de Nueva York â€” y produce su propio dict de senal.
 
 Idea: el rango que el precio marca en los primeros 15 minutos de la sesion
 cash (09:30-09:45 NY) delimita el equilibrio inicial del dia. Romperlo con
@@ -44,7 +44,7 @@ NEW_YORK = ZoneInfo("America/New_York")
 
 
 def _norm_symbol(symbol: str) -> str:
-    """Reduce el símbolo a minúsculas y sólo caracteres alfanuméricos.
+    """Reduce el sÃ­mbolo a minÃºsculas y sÃ³lo caracteres alfanumÃ©ricos.
 
     Neutraliza las variantes de nomenclatura entre brokers (`US-30`, `US 30`,
     `us30`) para poder compararlas con los alias conocidos.
@@ -53,9 +53,9 @@ def _norm_symbol(symbol: str) -> str:
 
 
 def classify_orb_market(symbol: str) -> str | None:
-    """Clasifica únicamente los contratos ORB autorizados.
+    """Clasifica Ãºnicamente los contratos ORB autorizados.
 
-    Importante: no usamos el término genérico ``gold`` porque Deriv publica
+    Importante: no usamos el tÃ©rmino genÃ©rico ``gold`` porque Deriv publica
     productos distintos (Gold BB, Gold MACO, etc.) que no son XAUUSD y algunos
     tienen trading deshabilitado.
 
@@ -73,8 +73,12 @@ def classify_orb_market(symbol: str) -> str | None:
     """
     name = _norm_symbol(symbol)
 
+    # Oro en Euros (XAUEUR): evaluar antes que XAUUSD para evitar colisiÃ³n por prefijo xau
+    if name in {"xaueur", "xaueurmicro", "microxaueur"} or ("xau" in name and "eur" in name):
+        return "XAUEUR"
+
     # Oro: nombres concretos observados/soportados. Evaluar micro primero evita
-    # que XAUUSDmicro sea absorbido por la familia XAUUSD estándar.
+    # que XAUUSDmicro sea absorbido por la familia XAUUSD estÃ¡ndar.
     if (
         name in {"xauusdmicro", "microxauusd", "xxauusdmicro", "xauusdm", "xxauusdm"}
         or ("xau" in name and ("micro" in name or name.endswith("m") or name.endswith("mic")))
@@ -92,12 +96,13 @@ def classify_orb_market(symbol: str) -> str | None:
     if name in {"xagusd", "silver", "xxagusd"} or ("xag" in name and "usd" in name):
         return "XAGUSD"
 
-    if name == "btcusd":
+    if name in {"btcusd", "btcusdmicro", "microbtcusd"}:
         return "BTCUSD"
 
-    if name in {"usdcadmicro", "microusdcad"}:
-        return None
-    if name == "usdcad":
+    if name in {"ethusd", "ethusdmicro", "microethusd"}:
+        return "ETHUSD"
+
+    if name in {"usdcad", "usdcadmicro", "microusdcad", "uusdcad"} or (name.startswith("usdcad") and ("micro" in name or name.endswith("m"))):
         return "USDCAD"
 
     if name in {"gbpusd", "gbpusdmicro", "microgbpusd"} or (name.startswith("gbp") and "usd" in name):
@@ -108,6 +113,9 @@ def classify_orb_market(symbol: str) -> str | None:
 
     if name in {"usdchf", "usdchfmicro", "microusdchf"} or (name.startswith("usd") and "chf" in name):
         return "USDCHF"
+
+    if name in {"usdjpy", "usdjpymicro", "microusdjpy"} or (name.startswith("usd") and "jpy" in name):
+        return "USDJPY"
 
     if name in {"eurusd", "eur/usd", "eeurusd", "eurusdmicro", "microeurusd"} or (name.startswith("eur") and "usd" in name):
         return "EURUSD"
@@ -128,7 +136,7 @@ def classify_orb_market(symbol: str) -> str | None:
 
 
 def is_orb_eligible_symbol(symbol: str) -> bool:
-    """Indica si el símbolo puede operarse con ORB.
+    """Indica si el sÃ­mbolo puede operarse con ORB.
 
     Es el filtro que aplica el motor antes de invocar la estrategia.
     """
@@ -136,12 +144,12 @@ def is_orb_eligible_symbol(symbol: str) -> bool:
 
 
 def is_orb_gold_symbol(symbol: str) -> bool:
-    """True únicamente para las dos variantes de Oro autorizadas por ORB."""
-    return classify_orb_market(symbol) in {"XAUUSD", "MICRO_XAUUSD"}
+    """True Ãºnicamente para las dos variantes de Oro autorizadas por ORB."""
+    return classify_orb_market(symbol) in {"XAUUSD", "MICRO_XAUUSD", "XAUEUR"}
 
 
 def is_orb_silver_symbol(symbol: str) -> bool:
-    """True únicamente para las dos variantes de Plata autorizadas por ORB."""
+    """True Ãºnicamente para las dos variantes de Plata autorizadas por ORB."""
     return classify_orb_market(symbol) in {"XAGUSD", "MICRO_XAGUSD"}
 
 
@@ -151,12 +159,12 @@ def orb_session_asset(symbol: str) -> str:
 
 
 def is_orb_oil_symbol(symbol: str) -> bool:
-    """True únicamente para el contrato de Petróleo autorizado por ORB."""
+    """True Ãºnicamente para el contrato de PetrÃ³leo autorizado por ORB."""
     return classify_orb_market(symbol) == "US_OIL"
 
 
 def is_orb_commodity_symbol(symbol: str) -> bool:
-    """True para cualquier materia prima autorizada por ORB (oro/plata/petróleo)."""
+    """True para cualquier materia prima autorizada por ORB (oro/plata/petrÃ³leo)."""
     return (
         is_orb_gold_symbol(symbol)
         or is_orb_silver_symbol(symbol)
@@ -165,7 +173,7 @@ def is_orb_commodity_symbol(symbol: str) -> bool:
 
 
 def is_orb_index_symbol(symbol: str) -> bool:
-    """True para cualquiera de los tres índices US autorizados por ORB."""
+    """True para cualquiera de los tres Ã­ndices US autorizados por ORB."""
     return classify_orb_market(symbol) in {"WALL_STREET_30", "US_TECH_100", "US_500"}
 
 
@@ -177,16 +185,16 @@ def score_orb_gold_contract_candidate(
     margin_required: float,
     free_margin: float,
 ) -> dict:
-    """Puntúa la calidad de ejecución del contrato de Oro.
+    """PuntÃºa la calidad de ejecuciÃ³n del contrato de Oro.
 
     Menor score = mejor contrato para representar la MISMA oportunidad ORB.
     Priorizamos:
-      1) precisión del riesgo de 0.5% después del volume_step;
+      1) precisiÃ³n del riesgo de 0.5% despuÃ©s del volume_step;
       2) coste de spread respecto del riesgo de esa pierna;
       3) margen consumido respecto del margen libre.
 
-    La señal técnica no gana puntos por ser XAUUSD o microXAUUSD: la elección es
-    puramente de calidad de ejecución/riesgo para no duplicar exposición.
+    La seÃ±al tÃ©cnica no gana puntos por ser XAUUSD o microXAUUSD: la elecciÃ³n es
+    puramente de calidad de ejecuciÃ³n/riesgo para no duplicar exposiciÃ³n.
     """
     target = max(0.0, float(target_leg_risk))
     actual = max(0.0, float(actual_leg_risk))
@@ -198,7 +206,7 @@ def score_orb_gold_contract_candidate(
     spread_risk_ratio = spread / target if target > 0 else math.inf
     margin_free_ratio = margin / free if free > 0 else math.inf
 
-    # El error de sizing domina. Spread y margen actúan como desempate económico.
+    # El error de sizing domina. Spread y margen actÃºan como desempate econÃ³mico.
     score = (
         risk_error_ratio * 1000.0
         + spread_risk_ratio * 100.0
@@ -218,9 +226,9 @@ def score_orb_gold_contract_candidate(
 
 
 def discover_orb_symbols(data_provider) -> list[str]:
-    """Descubre únicamente contratos ORB operables en la cuenta MT5 actual.
+    """Descubre Ãºnicamente contratos ORB operables en la cuenta MT5 actual.
 
-    Los símbolos con ``trade_mode == 0`` se excluyen antes del preflight para
+    Los sÃ­mbolos con ``trade_mode == 0`` se excluyen antes del preflight para
     que productos Deriv no utilizados (por ejemplo Gold BB/MACO) no bloqueen
     todo el arranque del daemon.
     """
@@ -232,6 +240,19 @@ def discover_orb_symbols(data_provider) -> list[str]:
         "EUR/USD",
         "BTCUSD",
         "USDCAD",
+        "GBPUSD",
+        "AUDUSD",
+        "USDCHF",
+        "USDJPY",
+        "ETHUSD",
+        "XAUEUR",
+        "US Oil",
+        "USOil",
+        "US_Oil",
+        "Oil",
+        "WTI",
+        "CL",
+        "Crude",
         "US30",
         "NAS100",
         "Wall Street",
@@ -255,7 +276,7 @@ def discover_orb_symbols(data_provider) -> list[str]:
         try:
             candidates = data_provider.search_symbols(term)
         except Exception:
-            continue
+            candidates = []
 
         for symbol in candidates:
             if not is_orb_eligible_symbol(symbol):
@@ -270,8 +291,6 @@ def discover_orb_symbols(data_provider) -> list[str]:
                     if trade_mode is not None and int(trade_mode) == 0:
                         continue
                 except Exception:
-                    # Si no podemos validar el contrato, no lo incorporamos
-                    # automáticamente al universo de ejecución.
                     continue
 
             found.add(str(symbol))
@@ -281,7 +300,7 @@ def discover_orb_symbols(data_provider) -> list[str]:
 
 @dataclass
 class ORBConfig:
-    """Parámetros de la sesión, los filtros y la gestión de riesgo del ORB.
+    """ParÃ¡metros de la sesiÃ³n, los filtros y la gestiÃ³n de riesgo del ORB.
 
     Los valores por defecto describen la sesion cash estandar de Nueva York:
     rango 09:30-09:45, operativa hasta las 16:00, analisis en M5.
@@ -295,12 +314,12 @@ class ORBConfig:
 
     `one_signal_per_session` evita reentrar el mismo dia tras una ruptura ya
     aprovechada. Ahora SI se aplica: la estrategia recuerda, por simbolo y
-    fecha NY, la vela de ruptura de la primera señal confirmada del dia y
-    bloquea cualquier señal posterior basada en OTRA ruptura ese mismo dia.
+    fecha NY, la vela de ruptura de la primera seÃ±al confirmada del dia y
+    bloquea cualquier seÃ±al posterior basada en OTRA ruptura ese mismo dia.
 
     `require_breakout_volume_confirmation` exige que la vela de ruptura
     tenga volumen por encima del promedio reciente, evitando operar rupturas
-    "débiles" sin participación real (causa habitual de falsos breakouts).
+    "dÃ©biles" sin participaciÃ³n real (causa habitual de falsos breakouts).
 
     Los perfiles controlan modos, buffer ATR y volumen. El rango amplio
     restringe Momentum; el umbral critico cancela la sesion.
@@ -315,16 +334,16 @@ class ORBConfig:
     session_close_hour: int = 16
     session_close_minute: int = 0
     timeframe: str = "M5"
-    # La estrategia sólo necesita contexto previo para ATR/volumen y las velas
-    # de la sesión vigente. 350 M5 cubren holgadamente ese contrato y evitan
-    # descargar 1000 barras en cada evaluación del worker ORB.
+    # La estrategia sÃ³lo necesita contexto previo para ATR/volumen y las velas
+    # de la sesiÃ³n vigente. 350 M5 cubren holgadamente ese contrato y evitan
+    # descargar 1000 barras en cada evaluaciÃ³n del worker ORB.
     candle_count: int = 350
     breakout_buffer_fraction: float = 0.0
-    # Buffer mínimo adaptativo para no considerar ruptura un cierre de apenas
-    # un tick fuera del rango. Se expresa como fracción del ATR M5 previo.
+    # Buffer mÃ­nimo adaptativo para no considerar ruptura un cierre de apenas
+    # un tick fuera del rango. Se expresa como fracciÃ³n del ATR M5 previo.
     breakout_atr_buffer_fraction: float = 0.05
     # Una ruptura puede retestear el borde durante las siguientes N velas M5.
-    # La ventana sigue siendo corta y cerrada para no perseguir señales viejas.
+    # La ventana sigue siendo corta y cerrada para no perseguir seÃ±ales viejas.
     retest_max_candles: int = 3
     require_retest: bool = True
     momentum_enabled: bool = True
@@ -339,7 +358,7 @@ class ORBConfig:
     vwap_poc_require_both: bool = False
     poc_bins: int = 24
     target_rr: float = 1.5
-    stop_mode: str = "MIDPOINT"  # v61: protección estructural al 50% del ORB
+    stop_mode: str = "MIDPOINT"  # v61: protecciÃ³n estructural al 50% del ORB
     stop_buffer_fraction: float = 0.0
     one_signal_per_session: bool = True
     require_breakout_volume_confirmation: bool = True
@@ -355,7 +374,7 @@ class ORBConfig:
     gold_quarter_level_increment: float = 25.0
     gold_quarter_level_tolerance_price: float = 2.0
     require_gold_quarter_level: bool = False
-    # Mejoras Replay 2 Años: Killzone horaria NY 09:45-11:30, filtro macro HTF (PDH/PDL), retest de alta calidad y gestión BE 1.0R
+    # Mejoras Replay 2 AÃ±os: Killzone horaria NY 09:45-11:30, filtro macro HTF (PDH/PDL), retest de alta calidad y gestiÃ³n BE 1.0R
     entry_cutoff_hour: int = 11
     entry_cutoff_minute: int = 30
     entry_cutoff_enabled: bool = True
@@ -364,7 +383,7 @@ class ORBConfig:
     require_high_quality_retest: bool = False
     break_even_enabled: bool = True
     break_even_trigger_rr: float = 1.0
-    # Expansión a Apertura de Londres (08:00 London / 03:00 NY)
+    # ExpansiÃ³n a Apertura de Londres (08:00 London / 03:00 NY)
     london_session_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_LONDON_ENABLED", "1").strip().lower() in ("1", "true", "on"))
     london_opening_hour: int = 3
     london_opening_minute: int = 0
@@ -373,25 +392,27 @@ class ORBConfig:
     london_session_close_minute: int = 0
     london_entry_cutoff_hour: int = 7
     london_entry_cutoff_minute: int = 30
-    # Tolerancia y confirmación de Retest con Mecha de Rechazo:
+    # Tolerancia y confirmaciÃ³n de Retest con Mecha de Rechazo:
     retest_tolerance_atr: float = 0.10
     retest_wick_rejection_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_RETEST_WICK_REJECTION", "1").strip().lower() in ("1", "true", "on"))
     retest_micro_stop_enabled: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_RETEST_MICRO_STOP", "0").strip().lower() in ("1", "true", "on"))
     mss_lookback_bars: int = field(default_factory=lambda: int(os.getenv("DAEMONBLACKFX_ORB_MSS_LOOKBACK_BARS", "3")))
+    entry_cutoff_minute_ny: int = field(default_factory=lambda: int(os.getenv("DAEMONBLACKFX_ORB_MAX_MINUTE_NY", "955")))
+    separate_london_ny_session_state: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ORB_SEPARATE_SESSION_STATE", "1").strip().lower() in ("1", "true", "on"))
 
 
 class NewYorkORBStrategy:
-    """Opening Range Breakout para la sesión cash de Nueva York.
+    """Opening Range Breakout para la sesiÃ³n cash de Nueva York.
 
     - Rango: 09:30 <= NY < 09:45.
     - Rupturas: desde 09:45 hasta antes de 16:00 NY.
     - Ruptura M5 con retesteo o alternativa de momentum controlada.
     - El retesteo admite max(2 * spread, 0.10 * ATR M5) y cierre fuera del rango.
-    - VWAP de sesión y POC aproximado por perfil de volumen se usan como filtros de contexto.
+    - VWAP de sesiÃ³n y POC aproximado por perfil de volumen se usan como filtros de contexto.
     """
 
     def __init__(self, data_provider, config: ORBConfig | None = None):
-        """Enlaza la estrategia con su proveedor de datos y su configuración.
+        """Enlaza la estrategia con su proveedor de datos y su configuraciÃ³n.
 
         Args:
             data_provider: objeto con `get_candles` y `get_current_tick`.
@@ -401,15 +422,15 @@ class NewYorkORBStrategy:
         self.data_provider = data_provider
         self.config = config or ORBConfig()
         self.tz = ZoneInfo(self.config.timezone_name)
-        # Memoria de "una señal por sesión": sólo se actualiza mediante
-        # `mark_signal_used`, después de un fill confirmado. El analizador no
-        # consume la sesión por construir una candidata que luego puede ser
-        # rechazada por HTF, exposición, riesgo o MT5.
+        # Memoria de "una seÃ±al por sesiÃ³n": sÃ³lo se actualiza mediante
+        # `mark_signal_used`, despuÃ©s de un fill confirmado. El analizador no
+        # consume la sesiÃ³n por construir una candidata que luego puede ser
+        # rechazada por HTF, exposiciÃ³n, riesgo o MT5.
         self._session_signal_memory: dict[str, tuple[str, str]] = {}
         self._frozen_atr_sessions = {}
 
     def mark_signal_used(self, symbol: str, session_date: str, breakout_key: str) -> None:
-        """Marca una tesis ORB como utilizada únicamente tras ejecución real."""
+        """Marca una tesis ORB como utilizada Ãºnicamente tras ejecuciÃ³n real."""
         if not (is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True))):
             return
         if session_date and breakout_key:
@@ -418,17 +439,17 @@ class NewYorkORBStrategy:
             )
 
     def _session_bounds(self, now_utc: datetime, symbol: str | None = None):
-        """Calcula los hitos horarios de la sesión para el día en curso.
+        """Calcula los hitos horarios de la sesiÃ³n para el dÃ­a en curso.
 
-        Soporta sesión dual:
-        - Sesión de Londres (03:00 - 09:00 NY / 08:00 - 14:00 London): para Forex, Metales y Materias Primas.
-          (Los índices americanos abren en la sesión cash de Nueva York a las 09:30 NY).
-        - Sesión de Nueva York (09:30 - 16:00 NY): para todos los activos autorizados.
+        Soporta sesiÃ³n dual:
+        - SesiÃ³n de Londres (03:00 - 09:00 NY / 08:00 - 14:00 London): para Forex, Metales y Materias Primas.
+          (Los Ã­ndices americanos abren en la sesiÃ³n cash de Nueva York a las 09:30 NY).
+        - SesiÃ³n de Nueva York (09:30 - 16:00 NY): para todos los activos autorizados.
 
         Args:
             now_utc: instante actual, con o sin zona horaria; se asume UTC si
                 viene desnudo.
-            symbol: símbolo opcional para discriminar si aplica sesión de Londres o NY.
+            symbol: sÃ­mbolo opcional para discriminar si aplica sesiÃ³n de Londres o NY.
 
         Returns:
             Tupla `(ahora_ny, apertura, fin_del_rango, cierre)` como
@@ -442,11 +463,11 @@ class NewYorkORBStrategy:
         now_ny = now_utc.tz_convert(self.tz)
         d = now_ny.date()
 
-        # Identificar si es índice americano (que solo opera cash NY 09:30)
+        # Identificar si es Ã­ndice americano (que solo opera cash NY 09:30)
         is_index = bool(symbol and is_orb_index_symbol(symbol))
         london_on = bool(getattr(self.config, "london_session_enabled", True))
 
-        # Si la sesión de Londres está activa, no es índice US y estamos antes de las 09:00 NY:
+        # Si la sesiÃ³n de Londres estÃ¡ activa, no es Ã­ndice US y estamos antes de las 09:00 NY:
         if london_on and not is_index and now_ny.hour < 9:
             open_ny = pd.Timestamp(datetime.combine(d, time(self.config.london_opening_hour, self.config.london_opening_minute)), tz=self.tz)
             range_end_ny = open_ny + pd.Timedelta(minutes=int(self.config.london_opening_range_minutes))
@@ -462,16 +483,16 @@ class NewYorkORBStrategy:
     def _volume_column(df: pd.DataFrame) -> pd.Series:
         """Elige la mejor columna de volumen disponible en las velas.
 
-        Delegado a `strategy.smc.volume_utils.select_volume_column` (extraído
+        Delegado a `strategy.smc.volume_utils.select_volume_column` (extraÃ­do
         para que `strategy.smc.volume_confirmation` reutilice la misma
-        lógica sin duplicar código). Se conserva este método como alias por
+        lÃ³gica sin duplicar cÃ³digo). Se conserva este mÃ©todo como alias por
         compatibilidad con el resto de esta clase.
         """
         return select_volume_column(df)
 
     @staticmethod
     def _session_vwap(df: pd.DataFrame) -> float | None:
-        """Precio medio ponderado por volumen de la sesión.
+        """Precio medio ponderado por volumen de la sesiÃ³n.
 
         Usa el precio tipico `(high + low + close) / 3` de cada vela. Sirve
         de filtro direccional: se compra por encima del VWAP y se vende por
@@ -499,7 +520,7 @@ class NewYorkORBStrategy:
 
     @staticmethod
     def _session_poc(df: pd.DataFrame, bins: int = 24) -> float | None:
-        """Point of Control: precio donde se concentró más volumen.
+        """Point of Control: precio donde se concentrÃ³ mÃ¡s volumen.
 
         Aproxima el perfil de volumen dividiendo el recorrido de la sesion en
         `bins` franjas y asignando a cada vela su volumen completo en la
@@ -546,7 +567,7 @@ class NewYorkORBStrategy:
     def _average_true_range(df: pd.DataFrame, period: int = 14) -> float | None:
         """ATR simple sobre las velas recibidas (sin suavizado de Wilder).
 
-        Se usa solo como referencia de amplitud típica reciente para filtrar
+        Se usa solo como referencia de amplitud tÃ­pica reciente para filtrar
         rangos de apertura anormalmente anchos, no como stop.
 
         Returns:
@@ -578,15 +599,15 @@ class NewYorkORBStrategy:
     ) -> tuple[bool | None, float | None, float | None]:
         """Compara el volumen de la vela de ruptura contra el promedio reciente.
 
-        Evita operar rupturas "de baja convicción": sin participación real,
-        el breakout es más propenso a ser una trampa de liquidez que
-        continuación genuina.
+        Evita operar rupturas "de baja convicciÃ³n": sin participaciÃ³n real,
+        el breakout es mÃ¡s propenso a ser una trampa de liquidez que
+        continuaciÃ³n genuina.
 
         Args:
-            df: velas de la sesión ya ordenadas por tiempo.
+            df: velas de la sesiÃ³n ya ordenadas por tiempo.
             breakout_time: timestamp de la vela de ruptura.
-            lookback: cuántas velas previas usar de referencia.
-            multiplier: umbral mínimo (volumen_ruptura >= promedio * multiplier).
+            lookback: cuÃ¡ntas velas previas usar de referencia.
+            multiplier: umbral mÃ­nimo (volumen_ruptura >= promedio * multiplier).
 
         Returns:
             Tupla `(confirmado, volumen_ruptura, promedio_referencia)`.
@@ -628,7 +649,7 @@ class NewYorkORBStrategy:
         return None
 
     def _prepare_candles(self, symbol: str, now_utc: datetime) -> pd.DataFrame:
-        """Descarga las velas y descarta las que aún no han cerrado.
+        """Descarga las velas y descarta las que aÃºn no han cerrado.
 
         FILTRO ANTI-REPINTADO, el punto mas delicado del metodo: solo
         conserva velas cuyo instante de cierre (`time` + duracion) ya ha
@@ -647,7 +668,7 @@ class NewYorkORBStrategy:
         if "time" not in df.columns:
             raise ValueError(f"ORB requiere columna time en las velas {self.config.timeframe}")
         df["time"] = pd.to_datetime(df["time"], utc=True)
-        # Sólo velas cerradas. v61 usa M5 para breakout/retest.
+        # SÃ³lo velas cerradas. v61 usa M5 para breakout/retest.
         tf = str(self.config.timeframe or "M5").upper()
         timeframe_minutes = 5 if tf == "M5" else 1
         now_ts = pd.Timestamp(now_utc)
@@ -668,22 +689,25 @@ class NewYorkORBStrategy:
     def _evaluate_sweep(self, *, symbol, market, df, opening, post_range, cfg, atr_reference,
                         range_high, range_low, midpoint, profile_key, base, now_ny, open_ny,
                         range_end_ny, amplitude, range_atr_ratio):
-        """ORB SWEEP (réplica exacta de `sweep_signal` en tools/replay_orb_nunez_2y.py).
+        """ORB SWEEP (rÃ©plica exacta de `sweep_signal` en tools/replay_orb_nunez_2y.py).
 
         Barrido fuera del ORB por una vela M5 que cierra DENTRO del rango, seguido en 1..3
         velas por un MSS (cierre que rompe los extremos de las 3 velas previas al barrido y
-        el 50% del ORB). SL más allá del extremo barrido (+/- atr_buffer*ATR). VWAP o POC
-        alineado. Ventana de decisión 09:45-15:50 NY. Una oportunidad por sesión.
+        el 50% del ORB). SL mÃ¡s allÃ¡ del extremo barrido (+/- atr_buffer*ATR). VWAP o POC
+        alineado. Ventana de decisiÃ³n 09:45-15:50 NY. Una oportunidad por sesiÃ³n.
         """
         bar = post_range.iloc[-1]
         bar_ny = pd.Timestamp(bar["time_ny"])
-        # Ventana institucional depurada: entradas hasta las 11:30 NY (690 min) por defecto; configurable con DAEMONBLACKFX_ORB_MAX_MINUTE_NY
-        import os
-        import os
+        # Ventana institucional depurada: configurable con DAEMONBLACKFX_ORB_MAX_MINUTE_NY o entry_cutoff_minute_ny
         max_entry_min = int(os.getenv("DAEMONBLACKFX_ORB_MAX_MINUTE_NY", str(getattr(self.config, "entry_cutoff_minute_ny", 955))))
         if bar_ny.hour * 60 + bar_ny.minute >= max_entry_min:
             return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": f"SWEEP_FUERA_DE_VENTANA_HASTA_{max_entry_min//60:02d}_{max_entry_min%60:02d}_NY"}
-        session_date_str = str(now_ny.date())
+        is_london_sess = bool(open_ny.hour == getattr(self.config, "london_opening_hour", 3))
+        session_date_str = (
+            f"{now_ny.date()}_LONDON"
+            if (is_london_sess and bool(getattr(self.config, "separate_london_ny_session_state", True)))
+            else str(now_ny.date())
+        )
         remembered = self._session_signal_memory.get(orb_session_asset(symbol))
         if remembered is not None and remembered[0] == session_date_str:
             return {**base, "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
@@ -702,16 +726,7 @@ class NewYorkORBStrategy:
             buy = float(sweep["low"]) < range_low - buffer and float(bar["close"]) > max(float(before["high"].max()), midpoint)
             if not sell and not buy:
                 continue
-            # Asimetría direccional institucional (ej. US Oil y USDCHF solo BUY)
-            allowed_dirs = cfg.get("allowed_directions")
-            if allowed_dirs:
-                if sell and "SELL" not in allowed_dirs:
-                    continue
-                if buy and "BUY" not in allowed_dirs:
-                    continue
-                continue
-                continue
-            # Asimetría direccional institucional (ej. US Oil y USDCHF solo BUY)
+            # AsimetrÃ­a direccional institucional (ej. US Oil y USDCHF solo BUY)
             allowed_dirs = cfg.get("allowed_directions")
             if allowed_dirs:
                 if sell and "SELL" not in allowed_dirs:
@@ -787,7 +802,7 @@ class NewYorkORBStrategy:
                 "opening_range_high": range_high, "opening_range_low": range_low, "opening_range_midpoint": midpoint}
 
     def analyze_symbol(self, symbol: str, now_utc: datetime | None = None) -> dict:
-        """Evalúa un símbolo y devuelve la señal ORB, válida o no.
+        """EvalÃºa un sÃ­mbolo y devuelve la seÃ±al ORB, vÃ¡lida o no.
 
         Es el PUNTO DE ENTRADA de la estrategia. Secuencia:
 
@@ -904,7 +919,7 @@ class NewYorkORBStrategy:
 
         profile_key = self._profile_key_for_market(market)
         cfg = self.config.asset_profiles.get(profile_key, {
-            # Fase 1: activo sin perfil explícito => sin entradas (ORB solo opera XAUUSD).
+            # Fase 1: activo sin perfil explÃ­cito => sin entradas (ORB solo opera XAUUSD).
             "allowed_modes": [],
             "atr_buffer": self.config.breakout_atr_buffer_fraction,
             "max_range_atr_ratio": self.config.max_opening_range_atr_multiple,
@@ -913,7 +928,12 @@ class NewYorkORBStrategy:
         period = self.config.opening_range_atr_period
         # Anchor to candles CLOSED by range completion (09:40 bar closes 09:45).
         # Reconstructible after restart; later candles never enter this estimate.
-        session_key = (symbol, str(now_ny.date()))
+        session_state_key = (
+            f"{now_ny.date()}_LONDON"
+            if (is_london and bool(getattr(self.config, "separate_london_ny_session_state", True)))
+            else str(now_ny.date())
+        )
+        session_key = (symbol, session_state_key)
         atr_reference = self._frozen_atr_sessions.get(session_key)
         if atr_reference is None:
             opening_history = df[df["time_ny"] < range_end_ny]
@@ -1044,7 +1064,7 @@ class NewYorkORBStrategy:
         tolerance_ratio = float(getattr(self.config, "retest_tolerance_atr", 0.15))
         tolerance = max(2 * spread, tolerance_ratio * (signal_atr or 0.0))
 
-        # Validación con Mecha de Rechazo en Retest (02-nov-2026):
+        # ValidaciÃ³n con Mecha de Rechazo en Retest (02-nov-2026):
         retest_body = abs(retest_close - float(retest["open"]))
         retest_range = max(1e-9, retest_high - retest_low)
         lower_wick = min(float(retest["open"]), retest_close) - retest_low
@@ -1197,10 +1217,14 @@ class NewYorkORBStrategy:
                 reason = "ORB_MOMENTUM_REJECTED:" + ",".join(momentum_failures)
             return {**base, **diagnostics, "action": "WAITING_M5_BREAKOUT_RETEST", "reason": reason}
 
-        # one_signal_per_session: si ya se aprovechó una ruptura distinta ese
-        # mismo día NY para este símbolo, no se generan señales adicionales
-        # basadas en otra vela de ruptura (evita sobre-operar el mismo día).
-        session_date_str = str(now_ny.date())
+        # one_signal_per_session: si ya se aprovechÃ³ una ruptura distinta ese
+        # mismo dÃ­a NY para este sÃ­mbolo, no se generan seÃ±ales adicionales
+        # basadas en otra vela de ruptura (evita sobre-operar el mismo dÃ­a).
+        session_date_str = (
+            f"{now_ny.date()}_LONDON"
+            if (is_london and bool(getattr(self.config, "separate_london_ny_session_state", True)))
+            else str(now_ny.date())
+        )
         breakout_key = str(pd.Timestamp(breakout["time"]).isoformat())
         if is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True)):
             remembered = self._session_signal_memory.get(orb_session_asset(symbol))
@@ -1323,7 +1347,7 @@ class NewYorkORBStrategy:
             }
 
 
-        # v61: protección exacta en el 50% del Opening Range o micro-stop de rechazo
+        # v61: protecciÃ³n exacta en el 50% del Opening Range o micro-stop de rechazo
         retest_micro_stop_enabled = bool(getattr(self.config, "retest_micro_stop_enabled", False))
         if retest_micro_stop_enabled and entry_mode == "ORB_BREAKOUT_RETEST":
             micro_buffer = (atr_reference or 0.0) * float(getattr(self.config, "breakout_atr_buffer_fraction", 0.05))
@@ -1429,14 +1453,14 @@ class NewYorkORBStrategy:
         from strategy.orb.signal_payload import build_signal_payload
         signal.update(build_signal_payload(direction, entry_price, stop_loss,
             entry_price + (1 if direction == "BUY" else -1) * risk_distance, take_profit,
-            {"HIGH_QUALITY": "ALTA", "STANDARD_QUALITY": "ESTÁNDAR", "LOW_QUALITY": "BAJA"}.get(quality, "NO_CLASIFICADA"),
+            {"HIGH_QUALITY": "ALTA", "STANDARD_QUALITY": "ESTÃNDAR", "LOW_QUALITY": "BAJA"}.get(quality, "NO_CLASIFICADA"),
             atr_frozen_m5=atr_reference, volume_status=volume_evidence["status"],
             range_amplitude_ratio=range_atr_ratio,
             be_enabled=bool(getattr(self.config, "break_even_enabled", True))))
 
-        # Evidencia exacta de la decisión ORB. Se entrega al motor únicamente
-        # para congelar la auditoría visual; no participa en el score ni en la
-        # ejecución. Incluye sólo velas ya cerradas para evitar repintado.
+        # Evidencia exacta de la decisiÃ³n ORB. Se entrega al motor Ãºnicamente
+        # para congelar la auditorÃ­a visual; no participa en el score ni en la
+        # ejecuciÃ³n. Incluye sÃ³lo velas ya cerradas para evitar repintado.
         audit_candles = []
         volume_column = next(
             (name for name in ("tick_volume", "real_volume", "volume") if name in df.columns),
@@ -1481,7 +1505,7 @@ class NewYorkORBStrategy:
                     "zones": [{
                         "time": open_ny.isoformat(),
                         "type": "orb_opening_range",
-                        "label": "Rango apertura NY 09:30–09:45",
+                        "label": "Rango apertura NY 09:30â€“09:45",
                         "low": range_low,
                         "high": range_high,
                         "direction": direction,
@@ -1492,8 +1516,8 @@ class NewYorkORBStrategy:
                         {"type": "orb_high", "label": "ORB High", "price": range_high},
                         {"type": "orb_low", "label": "ORB Low", "price": range_low},
                         {"type": "orb_mid", "label": "ORB 50%", "price": midpoint},
-                        {"type": "vwap", "label": "VWAP sesión", "price": vwap},
-                        {"type": "poc", "label": "POC sesión", "price": poc},
+                        {"type": "vwap", "label": "VWAP sesiÃ³n", "price": vwap},
+                        {"type": "poc", "label": "POC sesiÃ³n", "price": poc},
                     ],
                     "smc_context": {
                         "range_high": range_high,

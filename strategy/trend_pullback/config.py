@@ -17,40 +17,49 @@ TREND_PULLBACK_VERSION = "trend-pullback-v1"
 TREND_PULLBACK_SCENARIO = "TREND_PULLBACK_H1_M15"
 
 # Activos con degradación estructural o spread tóxico en sintéticos 5y
-# Activos con degradación estructural o spread tóxico, o transferidos a workers dedicados STEP y JUMP
+# Activos en poda preventiva en Trend Pullback (WR <= 50.0% o R neto <= 0 en replay fiel 5Y)
 TREND_PULLBACK_PRUNED_SYMBOLS = (
-    "Crash 1000 Index",
-    "Volatility 90 (1s) Index",
-    "High Frequency Vol 50 Index",
-    # Transferidos a workers dedicados STEP y JUMP con lógica bidireccional (>51% WR)
-    "Jump 75 Index",
-    "Jump 50 Index",
-    "Step Index 200",
-    "Step Index 400",
-    "Step Index",
-    "Step Index 500",
+    "Crash 900 Index",           # WR 50.00 % (<= 50%), Net -2.50 R
+    "Volatility 50 Index",       # WR 50.77 %, pero Net -2.00 R
+    "Step Index 500",            # WR 49.40 %, Net -6.00 R
+    "Boom 500 Index",            # WR 48.37 %, Net -10.00 R
+    "Volatility 100 Index",      # WR 47.90 %, Net -12.50 R
+    "Volatility 90 (1s) Index",  # WR 46.50 %, Net -12.00 R
+    "Crash 1000 Index",          # WR 45.70 %, Net -25.50 R
+    "High Frequency Vol 50 Index",  # WR 45.30 %, Net -9.50 R
 )
 
-# Núcleo estrictamente rentable de sintéticos validado en replay multianual 5Y
-# con Win Rate > 51.0 % y R neto > 0 (deriv_synthetics_5y_test_evaluation.csv).
+# Universo de 29 sintéticos validados en replay fiel 5Y con Win Rate > 50.0% y R neto > 0 (05-nov-2026).
 TREND_PULLBACK_51_SYMBOLS = (
-    "Crash 300 Index",          # WR 60.10 %, Net +34.50 R
-    "Volatility 25 Index",       # WR 58.50 %, Net +53.30 R
-    "Volatility 100 (1s) Index", # WR 57.80 %, Net +31.00 R
-    "Volatility 90 Index",       # WR 57.00 %, Net +11.50 R
-    "Crash 500 Index",          # WR 55.20 %, Net +23.90 R
-    "VolSwitch High Vol Index",  # WR 54.70 %, Net +10.00 R
-    "Jump 10 Index",             # WR 54.50 %, Net +51.60 R
-    "Boom 900 Index",            # WR 54.40 %, Net +4.20 R
-    "Volatility 10 Index",       # WR 53.70 %, Net +28.00 R
-    "Boom 600 Index",            # WR 53.50 %, Net +6.60 R
-    "Volatility 250 (1s) Index", # WR 53.30 %, Net +35.50 R
-    "Jump 25 Index",             # WR 53.10 %, Net +33.30 R
-    "Volatility 5 Index",        # WR 53.10 %, Net +13.50 R
-    "Crash 600 Index",          # WR 52.80 %, Net +0.90 R
-    "Boom 300 Index",            # WR 52.10 %, Net +24.40 R
-    "Volatility 75 Index",       # WR 51.60 %, Net +10.40 R
-    "Volatility 15 Index",       # WR 51.20 %, Net +0.70 R
+    "Crash 300 Index",             # WR 60.15 %, Net +35.00 R
+    "Volatility 25 Index",          # WR 58.65 %, Net +55.50 R
+    "Volatility 100 (1s) Index",    # WR 58.02 %, Net +33.10 R
+    "Volatility 90 Index",          # WR 57.33 %, Net +13.50 R
+    "Crash 500 Index",             # WR 55.59 %, Net +27.30 R
+    "Jump 50 Index",                # WR 55.17 %, Net +19.50 R
+    "VolSwitch High Vol Index",     # WR 55.02 %, Net +11.60 R
+    "Jump 10 Index",                # WR 54.82 %, Net +55.20 R
+    "Boom 900 Index",               # WR 54.78 %, Net +6.20 R
+    "Jump 75 Index",                # WR 54.70 %, Net +23.70 R
+    "Volatility 10 Index",          # WR 54.17 %, Net +32.10 R
+    "Boom 600 Index",               # WR 53.88 %, Net +9.10 R
+    "Volatility 250 (1s) Index",    # WR 53.78 %, Net +40.40 R
+    "Jump 25 Index",                # WR 53.59 %, Net +38.10 R
+    "Volatility 5 Index",           # WR 53.54 %, Net +16.40 R
+    "Step Index 200",               # WR 53.30 %, Net +33.50 R
+    "Crash 600 Index",             # WR 53.26 %, Net +3.70 R
+    "Boom 300 Index",               # WR 52.66 %, Net +29.50 R
+    "High Frequency Vol 100 Index", # WR 52.43 %, Net +10.50 R
+    "Volatility 75 Index",          # WR 52.14 %, Net +14.80 R
+    "Volatility 15 Index",          # WR 51.78 %, Net +3.90 R
+    "Step Index",                   # WR 51.72 %, Net +19.90 R
+    "Step Index 400",               # WR 51.50 %, Net +11.60 R
+    "Volatility 75 (1s) Index",     # WR 51.00 %, Net +9.70 R
+    "Volatility 50 (1s) Index",     # WR 50.90 %, Net +19.80 R
+    "Vol over Boom 550",            # WR 50.90 %, Net +3.50 R
+    "Volatility 150 (1s) Index",    # WR 50.80 %, Net +10.90 R
+    "Boom 1000 Index",              # WR 50.24 %, Net +9.70 R
+    "Vol over Crash 550",           # WR 50.18 %, Net +6.60 R
 )
 
 DEFAULT_PULLBACK_SYMBOLS = TREND_PULLBACK_51_SYMBOLS
@@ -121,6 +130,9 @@ class TrendPullbackConfig:
 
     # Buffer anti-hunt para el Stop Loss estructural (+0.25 ATR de margen al extremo del swing)
     sl_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_TPB_SL_BUFFER_ATR", "0.25"))
+    # Banda dinámica de valor alrededor de EMA(21) (Al Brooks / Adam Grimes Value Zone: +/- 0.40 ATR M15)
+    pullback_band_atr: float = float(os.getenv("DAEMONBLACKFX_TPB_PULLBACK_BAND_ATR", "0.0"))
+    min_rejection_wick_ratio: float = float(os.getenv("DAEMONBLACKFX_TPB_MIN_WICK_RATIO", "0.30"))
 
     # Contador de velas necesarias para indicadores
     h1_candle_count: int = 300

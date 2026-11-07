@@ -6,7 +6,7 @@ FAMILIES = {
         'Volatility 5 Index', 'Volatility 10 Index', 'Volatility 15 Index', 'Volatility 25 Index',
         'Volatility 50 Index', 'Volatility 75 Index', 'Volatility 100 Index',
         'Volatility 50 (1s) Index', 'Volatility 75 (1s) Index', 'Volatility 90 (1s) Index',
-        'Volatility 90 Index', 'Volatility 150 (1s) Index', 'Volatility 250 (1s) Index',
+        'Volatility 90 Index', 'Volatility 100 (1s) Index', 'Volatility 150 (1s) Index', 'Volatility 250 (1s) Index',
         'Vol over Boom 550', 'Vol over Crash 550', 'VolSwitch High Vol Index',
         'High Frequency Vol 50 Index', 'High Frequency Vol 100 Index',
         'Boom 300 Index', 'Boom 500 Index', 'Boom 600 Index', 'Boom 900 Index', 'Boom 1000 Index',
@@ -15,10 +15,10 @@ FAMILIES = {
         'AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'CADCHF', 'CADJPY', 'CHFJPY',
         'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD',
         'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD'),
-    'crypto': ('BTCUSD',),
+    'crypto': ('BTCUSD', 'ETHUSD'),
     'metals': ('XAUUSD', 'XAGUSD'),
     'indices': ('Germany 40', 'US SP 500', 'US Tech 100', 'Wall Street 30'),
-    'commodities': ('US Oil',),
+    'commodities': ('US Oil', 'UK Brent Oil'),
 }
 CATALOG_SYMBOLS = tuple(symbol for group in FAMILIES.values() for symbol in group)
 RECOVERY_SYMBOLS = ('Crash 500 Index', 'Step Index 500', 'Volatility 10 Index',

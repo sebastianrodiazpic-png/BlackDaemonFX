@@ -1,4 +1,4 @@
-"""Configuración de la Estrategia Malaysian SNR.
+﻿"""Configuración de la Estrategia Malaysian SNR.
 
 Los replays heredados no validan rentabilidad de la versión causal actual.
 - Escenario 1 permanece deshabilitado por defecto.
@@ -94,7 +94,8 @@ class MalaysianSNRConfig:
     h1_ema_period: int = 50                        # Periodo de la EMA dinámica (50)
     h1_ema_tolerance_atr: float = 0.40             # Tolerancia de proximidad hacia la EMA 50 (0.40 ATR)
     enable_obstacle_awareness: bool = True         # Ajuste dinámico de TP2 al detectar Key Level contrario intermedio
-    min_obstacle_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR", "2.0"))  # Clearance mínimo exigido hacia el obstáculo D1 opuesto (>= 2.0R base)
+    min_obstacle_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR", "2.0"))  # Clearance mínimo exigido hacia el obstáculo D1 opuesto (>= 2.0R base; 1.2R con DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR=1.2)
+    direct_touch_require_absorption: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECT_TOUCH_ABSORPTION", "1").strip().lower() in ("1", "true", "on")
     directional_asymmetry_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECTIONAL_ASYMMETRY", "1").strip().lower() in ("1", "true", "on")
     jump_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY", "").split(",") if s.strip())
     step_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_STEP_SELL_ONLY", "").split(",") if s.strip())
@@ -183,9 +184,12 @@ class MalaysianSNRConfig:
     # DEFECTO (los de la base, con Breaker Pair y Pinbar en live, perdían en Forex) y la sesión `real_market_session_policy`.
     real_market_symbols: tuple = tuple(s.strip() for s in os.getenv(
         "DAEMONBLACKFX_MSNR_REAL_SYMBOLS",
-        # Decisión del usuario (25-oct-2026): acierto > 47 % en el replay con el cierre de las 16:45 NY, más los
-        # forex con acierto > 47 % en el replay fiel de 3 años (NZDUSD ... CHFJPY).
-        "Germany 40,XAUUSD,USDJPY,GBPUSD,NZDUSD,GBPCAD,CADCHF,EURGBP,GBPCHF"
+        # Auditoría 05-nov-2026: Mercados reales y pares Forex con Win Rate > 50.0% y R neto > 0 (incluyendo USDCHF, AUDCAD, AUDUSD, Germany 40 y versiones micro)
+        "CADCHF,CADCHFmicro,EURGBP,EURGBPmicro,CADJPY,CADJPYmicro,USDJPY,USDJPYmicro,GBPUSD,GBPUSDmicro,"
+        "GBPJPY,GBPJPYmicro,EURAUD,EURAUDmicro,AUDJPY,AUDJPYmicro,GBPCHF,GBPCHFmicro,CHFJPY,CHFJPYmicro,"
+        "USDCAD,USDCADmicro,EURUSD,EURUSDmicro,EURJPY,EURJPYmicro,EURCAD,EURCADmicro,USDCHF,USDCHFmicro,"
+        "AUDCAD,AUDCADmicro,AUDUSD,AUDUSDmicro,Germany 40,UK Brent Oil,ETHUSD,ETHUSDmicro,"
+        "BTCUSD,BTCUSDmicro,XAUUSD,XAUUSDmicro,XAUEUR,XAUEURmicro,US Oil,US Tech 100,US SP 500,Wall Street 30"
     ).split(",") if s.strip())
     real_markets_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_REAL_MARKETS", "demo_test").strip().lower() not in ("off", "0", "false")
     real_market_default_settings: bool = True

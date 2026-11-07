@@ -88,20 +88,18 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         self.assertIn("MALAYSIAN_SNR", pruned_by_profile)
         msnr_pruned = pruned_by_profile["MALAYSIAN_SNR"]
         
-        # Sintéticos con acierto > 47 % activos (25-oct-2026)
+        # Sintéticos con acierto > 50 % activos (05-nov-2026)
         for sym in ("Jump 25 Index", "Step Index 200", "Step Index 400", "Jump 10 Index", "Boom 300 Index",
                     "Boom 500 Index", "Volatility 10 Index", "VolSwitch High Vol Index",
-                    "Boom 500 Index"):
+                    "Crash 600 Index", "Step Index", "Boom 1000 Index", "Volatility 100 Index"):
             self.assertNotIn(sym, msnr_pruned)
-        # Podados por acierto <= 47 % en el replay fiel
-        for sym in ("Crash 600 Index", "Step Index", "Boom 1000 Index", "Volatility 100 Index", "Crash 500 Index",
-                    "Volatility 50 Index", "Volatility 100 (1s) Index", "DEX 1500 UP Index"):
-            self.assertIn(sym, msnr_pruned)
+        # Demo candidate desactivado en poda preventiva
+        self.assertIn("DEX 1500 UP Index", msnr_pruned)
 
-        # Mercados reales: activos los de acierto > 47 %, el resto podado
-        for sym in ("Wall Street 30", "US Oil", "XAGUSD", "USDCAD", "EURUSD"):
+        # Mercados reales: activos los de acierto > 50 % y R > 0, el resto podado
+        for sym in ("XAGUSD", "AUDNZD", "GBPCAD", "EURCHF", "NZDUSD"):
             self.assertIn(sym, msnr_pruned)
-        for sym in ("Germany 40", "XAUUSD", "CADCHF", "NZDUSD"):
+        for sym in ("Wall Street 30", "US Oil", "XAUUSD", "CADCHF", "EURUSD", "USDCAD"):
             self.assertNotIn(sym, msnr_pruned)
 
 

@@ -136,9 +136,24 @@ def retest_confirmation(frame: pd.DataFrame, level: float, direction: str, atr: 
         recent_touched = (touches[-1] or (len(touches) >= 2 and touches[-2]) or (len(touches) >= 3 and touches[-3]))
         candle_not_breaking = (sign * float(last_candle.close - last_candle.open) >= -0.20 * atr)
         max_depth = float(depths.max()) if len(depths) else 0.
+        span = float(last_candle.high - last_candle.low)
+        b = abs(float(last_candle.close - last_candle.open))
+        if span > 0:
+            if sign == 1:
+                wick = min(float(last_candle.open), float(last_candle.close)) - float(last_candle.low)
+                close_loc = (float(last_candle.close) - float(last_candle.low)) / span
+            else:
+                wick = float(last_candle.high) - max(float(last_candle.open), float(last_candle.close))
+                close_loc = (float(last_candle.high) - float(last_candle.close)) / span
+            wick_ratio = max(0., wick / span)
+        else:
+            wick_ratio = 0.0
+            close_loc = 0.5
+        import os as _os
+        require_absorption = _os.getenv("DAEMONBLACKFX_MSNR_DIRECT_TOUCH_ABSORPTION", "0").strip().lower() in ("1", "true", "on")
+        if require_absorption:
+            candle_not_breaking = (sign * float(last_candle.close - last_candle.open) >= 0.0) or (wick_ratio >= 0.25 and close_loc >= 0.45)
         if recent_touched and -0.15 <= last_dist <= max_distance_atr and candle_not_breaking and max_depth <= max_penetration_atr:
-            span = float(last_candle.high - last_candle.low)
-            b = abs(float(last_candle.close - last_candle.open))
             return {
                 'confirmed': True,
                 'reason': 'RETEST_CONFIRMED',
@@ -149,8 +164,8 @@ def retest_confirmation(frame: pd.DataFrame, level: float, direction: str, atr: 
                 'penetration_atr': round(max_depth, 4),
                 'displacement': True,
                 'pinbar_only': False,
-                'rejection_wick_ratio': 0.0,
-                'close_location': 0.5,
+                'rejection_wick_ratio': round(wick_ratio, 4),
+                'close_location': round(close_loc, 4),
                 'distance_atr': round(max(0., last_dist), 4),
             }
 

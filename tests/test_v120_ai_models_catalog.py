@@ -70,6 +70,8 @@ def test_account_payload_includes_full_ai_models_catalog():
     assert "models_catalog" in meta
     assert len(meta["models_catalog"]) >= 17
     assert meta["models_count"] == len(meta["models_catalog"])
+    assert "coverage_5y_summary" in meta
+    assert meta["coverage_5y_summary"]["total_trades"] == 78155
 
     workers_in_payload = {w["worker"]: w for w in meta["by_worker"]}
     assert "MALAYSIAN_SNR" in workers_in_payload
@@ -87,6 +89,7 @@ def test_account_payload_includes_full_ai_models_catalog():
     assert workers_in_payload["BOOM"]["trained"] is True
     assert workers_in_payload["BOOM"]["in_disk"] is True
     assert workers_in_payload["BOOM"]["model_samples"] >= 50
+    assert "coverage_5y" in workers_in_payload["BOOM"]
 
 
 def test_account_page_contains_catalog_markup_and_filters():
@@ -96,3 +99,24 @@ def test_account_page_contains_catalog_markup_and_filters():
     assert 'setAIFilter(' in ACCOUNT_HTML
     assert 'renderAIWorkersFiltered()' in ACCOUNT_HTML
     assert 'Catálogo de Modelos de IA y Cobertura' in ACCOUNT_HTML
+    # Validar soporte para filtros de las 4 estrategias oficiales
+    assert "setAIFilter('malaysian'" in ACCOUNT_HTML
+    assert "setAIFilter('orb'" in ACCOUNT_HTML
+    assert "setAIFilter('ict'" in ACCOUNT_HTML
+    assert "setAIFilter('trend_pullback'" in ACCOUNT_HTML
+    assert "Cobertura Replay 5 Años" in ACCOUNT_HTML
+
+
+def test_ai_models_catalog_has_5y_replay_coverage():
+    catalog = scan_trained_models_catalog()
+    assert len(catalog) > 0
+    for model in catalog:
+        assert "coverage_5y" in model
+        cov = model["coverage_5y"]
+        assert cov is not None
+        assert "trades_5y" in cov
+        assert cov["trades_5y"] > 0
+        assert "win_rate_5y" in cov
+        assert cov["win_rate_5y"] > 0
+        assert "pnl_r_5y" in cov
+        assert "coverage_badge" in cov

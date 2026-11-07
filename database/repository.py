@@ -537,7 +537,8 @@ class TradingRepository:
             )
             session.add(row)
             session.commit()
-            session.refresh(row)
+            if getattr(session, "expire_on_commit", False):
+                session.refresh(row)
             return int(row.id)
 
     def meta_label_decision_summary(
@@ -2858,20 +2859,20 @@ class TradingRepository:
         el reset salvo confirmación forzada explícita.
         """
         with self.Session() as session:
-            open_count = len(
-                session.execute(select(Trade.id).where(Trade.status == "OPEN")).scalars().all()
-            )
+            open_count = session.scalar(
+                select(func.count(Trade.id)).where(Trade.status == "OPEN")
+            ) or 0
             if open_count and not allow_open_trades:
                 raise RuntimeError(
                     f"LIMPIEZA BLOQUEADA: existen {open_count} trades OPEN en SQLite. "
                     "Cierra/sincroniza las posiciones o usa la confirmación forzada explícita."
                 )
             counts = {
-                "trades": len(session.execute(select(Trade.id)).scalars().all()),
-                "signals": len(session.execute(select(Signal.id)).scalars().all()),
-                "account_snapshots": len(session.execute(select(AccountSnapshot.id)).scalars().all()),
+                "trades": session.scalar(select(func.count(Trade.id))) or 0,
+                "signals": session.scalar(select(func.count(Signal.id))) or 0,
+                "account_snapshots": session.scalar(select(func.count(AccountSnapshot.id))) or 0,
                 "open_trades": open_count,
-                "trade_journal_preserved": len(session.execute(select(TradeJournal.id)).scalars().all()),
+                "trade_journal_preserved": session.scalar(select(func.count(TradeJournal.id))) or 0,
             }
             session.execute(delete(Trade))
             session.execute(delete(Signal))
