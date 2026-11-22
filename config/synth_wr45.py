@@ -10,11 +10,12 @@ REAL_SPREAD_PRUNED = ("VolSwitch High Vol Index",) if REAL_SPREAD_PRUNE_ENABLED 
 _ICT_5Y_AUDIT = _os.getenv("DAEMONBLACKFX_ICT_5Y_AUDIT", "1").strip().lower() not in ("0", "false", "off")
 if _ICT_5Y_AUDIT:
     # 26-oct-2026: Replay fiel 5 años con 6 mejoras rescata Boom 300 (52.49%) y Vol over Boom 550 (50.00%).
-    # Solo Crash 1000 (44.60%), Vol 90 1s (45.71%) y HF Vol 50 (42.39%) quedan en WR <= 47%.
-    ICT_WR45_PRUNED = (("Crash 1000 Index", "Volatility 90 (1s) Index", "High Frequency Vol 50 Index")
+    # 20-nov-2026: Poda solicitada por operador: Crash 300, Crash 600, Vol 15, Vol 25, Vol 50 (1s). Jump 10 rehabilitado como activo. High Frequency Vol 50 Index rehabilitado activo en MultiStrategia.
+    ICT_WR45_PRUNED = (("Volatility 90 (1s) Index", "Crash 300 Index", "Crash 600 Index", "Volatility 15 Index", "Volatility 25 Index", "Volatility 50 (1s) Index")
                        if SYNTH_WR45_PRUNE_ENABLED else ()) + REAL_SPREAD_PRUNED
 else:
-    ICT_WR45_PRUNED = (("Boom 300 Index", "Crash 1000 Index", "Vol over Boom 550", "Volatility 90 (1s) Index")
+    ICT_WR45_PRUNED = (("Boom 300 Index", "Vol over Boom 550", "Volatility 90 (1s) Index", "Crash 300 Index", "Crash 600 Index", "Volatility 15 Index", "Volatility 25 Index", "Volatility 50 (1s) Index")
                        if SYNTH_WR45_PRUNE_ENABLED else ()) + REAL_SPREAD_PRUNED
 MSNR_WR45_PRUNED = (("Step Index", "Volatility 100 Index", "Jump 50 Index", "Crash 300 Index", "Crash 600 Index",
-                     "Boom 1000 Index", "Volatility 90 (1s) Index") if SYNTH_WR45_PRUNE_ENABLED else ()) + REAL_SPREAD_PRUNED
+                     "Boom 1000 Index", "Volatility 90 (1s) Index", "Volatility 25 Index", "Volatility 15 Index",
+                     "Volatility 50 (1s) Index", "Boom 900 Index") if SYNTH_WR45_PRUNE_ENABLED else ()) + REAL_SPREAD_PRUNED

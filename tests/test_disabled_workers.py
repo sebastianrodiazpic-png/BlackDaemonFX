@@ -6,7 +6,8 @@ from types import SimpleNamespace
 
 from strategy.execution.live_trading_engine import LiveTradingConfig, LiveTradingEngine
 
-DEFAULT = ("FOREX_2", "FOREX_3", "FOREX_4", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "GOLD", "IDX_OPEN", "TREND_PULLBACK")
+# FOREX_2, FOREX_3 y FOREX_4 habilitados con MultiStrategia (entran en reposo STANDBY_MARKET_CLOSED dinámicamente cuando el mercado tradicional cierra)
+DEFAULT = ("GOLD", "IDX_OPEN", "TREND_PULLBACK")
 
 
 def _cfg_in_clean_env(value=None):

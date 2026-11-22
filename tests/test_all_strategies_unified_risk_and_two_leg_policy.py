@@ -470,6 +470,7 @@ def test_msnr_runner_locks_1r_at_tp2_and_keeps_running(monkeypatch):
     lifecycle_executor = MockTradeLifecycleExecutor(positions)
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(execution_enabled=True, runner_extension_enabled=True,
+                                      runner_extension_first_trigger_rr=2.0, runner_extension_first_lock_rr=1.0,
                                       runner_extension_max_target_rr=4.0, smc_runner_max_target_rr=4.0)
     engine.repository = MockExecutionRepo()
     engine.executor = MockPositionExecutor(positions)
@@ -693,3 +694,107 @@ def test_msnr_phase1_reduced_risk_multiplier(monkeypatch, env_value, expected):
     engine.config = LiveTradingConfig(risk_percent=1.0, orb_risk_percent=1.0)
     assert engine._risk_percent_for_strategy("MALAYSIAN_SNR") == pytest.approx(expected)
     assert engine._risk_percent_for_strategy("ORB_NEW_YORK") == 1.0
+
+
+def test_msnr_obstacle_awareness_rejects_room_under_2r():
+    """Verifica que si existe un obstáculo antes de 2.0R (ej. 1.58R como ocurrió en Jump 10),
+    el trade es rechazado con MSNR_OBSTACLE_BEFORE_MINIMUM_TP2 y jamás mutila el runner a < 2.0R.
+    """
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(
+        split_entries_enabled=True,
+        first_target_rr=1.0,
+        second_target_rr=2.0,
+        split_entry_risk_fraction=0.50,
+    )
+    engine._is_forex_symbol = lambda s: False
+    engine._is_volatility_symbol = lambda s: True
+    engine._is_jump_symbol = lambda s: "JUMP" in str(s).upper()
+
+    def build_plan(specs, mode):
+        return specs, None
+
+    # Escenario Jump 10: Entry 89797.72, SL 89921.54 (risk = 123.82), tp2_price at 1.58R (room = 195.6)
+    entry = 89797.72
+    sl = 89921.54
+    # Distancia de riesgo SELL: 89921.54 - 89797.72 = 123.82
+    # Obstáculo a 1.58R: 89797.72 - 1.58 * 123.82 = 89602.08
+    signal_insufficient_room = {
+        "tp1_rr": 1.0,
+        "runner_rr": 2.0,
+        "obstacle_level": 89600.0,
+        "tp2_price": 89602.08,  # solo 1.58R de recorrido hacia TP2
+    }
+    legs, failure, single_failure, mode = engine._plan_execution_legs(
+        exact_symbol="Jump 10 Index",
+        direction="SELL",
+        entry=entry,
+        sl=sl,
+        rr=2.0,
+        strategy_name="MALAYSIAN_SNR",
+        signal=signal_insufficient_room,
+        total_risk_amount=37.40,
+        risk_fraction=0.50,
+        silver_risk_cap=False,
+        build_plan=build_plan,
+    )
+    assert legs is None
+    assert failure is not None
+    assert failure["code"] == "MSNR_OBSTACLE_BEFORE_MINIMUM_TP2"
+
+
+def test_msnr_runner_broker_target_is_strictly_tp2_at_open():
+    """Verifica que Leg 2 (RUNNER) nace en el broker con TP estrictamente a 2.0R
+    (ej. $37.40 de ganancia esperada), y NO con objetivos mutilados por obstáculos.
+    """
+    engine = object.__new__(LiveTradingEngine)
+    engine.config = LiveTradingConfig(
+        split_entries_enabled=True,
+        first_target_rr=1.0,
+        second_target_rr=2.0,
+        split_entry_risk_fraction=0.50,
+    )
+    engine._is_forex_symbol = lambda s: False
+    engine._is_volatility_symbol = lambda s: True
+    engine._is_jump_symbol = lambda s: "JUMP" in str(s).upper()
+
+    def build_plan(specs, mode):
+        return specs, None
+
+    entry = 89797.72
+    sl = 89921.54
+    risk_dist = abs(entry - sl)
+    # Obstáculo limpio con room >= 2.0R (ej. a 2.5R)
+    signal_clean = {
+        "tp1_rr": 1.0,
+        "runner_rr": 2.0,
+        "obstacle_level": entry - (2.5 * risk_dist),
+        "tp2_price": entry - (2.5 * risk_dist),
+    }
+    legs, failure, single_failure, mode = engine._plan_execution_legs(
+        exact_symbol="Jump 10 Index",
+        direction="SELL",
+        entry=entry,
+        sl=sl,
+        rr=2.0,
+        strategy_name="MALAYSIAN_SNR",
+        signal=signal_clean,
+        total_risk_amount=37.40,
+        risk_fraction=0.50,
+        silver_risk_cap=False,
+        build_plan=build_plan,
+    )
+    assert failure is None
+    assert legs is not None
+    assert len(legs) == 2
+
+    # TP1: 1.0R
+    assert legs[0][0] == "TP1"
+    assert legs[0][2] == 1.0
+    assert legs[0][3] == 1.0
+
+    # RUNNER: 2.0R inicial en broker
+    assert legs[1][0] == "RUNNER"
+    assert legs[1][2] == 2.0
+    assert legs[1][3] == 2.0
+

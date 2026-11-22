@@ -279,10 +279,14 @@ class LiveTradingConfig:
     second_target_rr: float = 2.0
     volatility_first_target_rr: float = 1.0
     volatility_second_target_rr: float = 2.0
-    # Si el broker no permite dividir el 1% en dos piernas seguras, intentamos
-    # una sola entrada de hasta 1% con TP 2.0R y BE al alcanzar 1R.
+    # Si el broker no permite dividir el 1% en dos piernas seguras o se opera a pierna única,
+    # se arriesga el 1.0% íntegro (1R) para buscar el 1.0% (+1R), optimizando la expectativa matemática.
+    # DAEMONBLACKFX_SINGLE_LEG_FULL_RISK=0 restaura el sub-riesgo fraccional previo.
     single_entry_fallback_enabled: bool = True
-    single_entry_target_rr: float = 2.0
+    single_entry_target_rr: float = float(os.getenv("DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR", "1.0"))
+    single_leg_full_risk_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_SINGLE_LEG_FULL_RISK", "1").strip().lower() not in ("0", "false", "off")
+    )
 
     # Priorización y poda de activos de bajo rendimiento (Replay histórico y auditoría)
     # Listas por familia desde la política única de /Instruments (config/ict_instrument_policy.py): lo que el
@@ -388,6 +392,21 @@ class LiveTradingConfig:
     symbol_loss_cooldown_minutes: float = 60.0
     symbol_daily_strikes_enabled: bool = False
     symbol_max_daily_losses: int = 0
+    # Restricción horaria centinela en Cruce Londres/NY (13:00-14:59 UTC).
+    # Auditoría empírica 2026-11-22: la superposición de apertura NY / cierre Londres concentra
+    # pérdidas acumuladas de -$2,114.74 USD (40.7% WR) en Forex e Índices. Se bloquean nuevas
+    # entradas durante esta ventana horaria excepto para perfiles/estrategias especializadas (ORB).
+    london_ny_crossover_filter_enabled: bool = (
+        os.getenv("DAEMONBLACKFX_LONDON_NY_CROSSOVER_FILTER_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    london_ny_crossover_start_utc_hour: int = int(os.getenv("DAEMONBLACKFX_CROSSOVER_START_UTC_HOUR", "13"))
+    london_ny_crossover_end_utc_hour: int = int(os.getenv("DAEMONBLACKFX_CROSSOVER_END_UTC_HOUR", "15"))
+    london_ny_crossover_exempt_profiles: tuple[str, ...] = ("ORB",)
+    london_ny_crossover_apply_to_synthetics: bool = (
+        os.getenv("DAEMONBLACKFX_CROSSOVER_APPLY_TO_SYNTHETICS", "0").strip().lower()
+        in ("1", "true", "on", "yes")
+    )
     step_min_adx: float = 25.0
     step_confirmation_timeframe: str = "M15"
 
@@ -668,7 +687,7 @@ class LiveTradingConfig:
     # Sintéticos: tope de spread / distancia al SL. Replay fiel ICT 365d (21.409 trades): R/trade cae de forma
     # monótona con spread/SL (<=1%: -0.015; 2-3%: -0.048; >8%: -0.17 a -0.27; p<0.002). 2% conserva ~54% de trades.
     synthetic_spread_guard_enabled: bool = True
-    synthetic_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_SPREAD_MAX_SL_RATIO", "0.025"))
+    synthetic_spread_max_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_SPREAD_MAX_SL_RATIO", "0.035"))
     # Sintéticos: multiplicador de riesgo (contrato operativo: 1% total en 2 patas -> 1.0). Acotado a [0.1, 1.0].
     synthetic_risk_multiplier: float = float(os.getenv("DAEMONBLACKFX_SYNTHETIC_RISK_MULT", "1.0"))
     # ICT en sintéticos: entrada LIMITADA virtual en signal["entry_price"] (50% FVG / nivel / mean threshold OB).
@@ -754,7 +773,7 @@ class LiveTradingConfig:
     policy_cycle_filter: bool = os.getenv("DAEMONBLACKFX_POLICY_CYCLE_FILTER", "1").strip().lower() not in ("0", "false", "off")
     disabled_entry_profiles: tuple = tuple(p.strip().upper() for p in os.getenv(
         "DAEMONBLACKFX_DISABLED_WORKERS",
-        "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK",
+        "GOLD,IDX_OPEN,TREND_PULLBACK",
     ).split(",") if p.strip())
     ict_broker_candle_symbols: tuple = tuple(s.strip() for s in os.getenv(
         "DAEMONBLACKFX_ICT_BROKER_CANDLE_SYMBOLS", "US SP 500,US Tech 100,Wall Street 30").split(",") if s.strip())
@@ -2909,6 +2928,71 @@ class LiveTradingEngine:
                 "reason": decision.reason,
                 "regime": decision.to_dict(),
             }
+
+        return None
+
+    def _london_ny_crossover_sentinel_gate(self, symbol: str, now_utc=None) -> dict | None:
+        """Capa de protección horaria: Restricción Centinela en Cruce Londres/NY (13:00-14:59 UTC).
+
+        Auditoría empírica 2026-11-22: la ventana 13:00-14:59 UTC concentra pérdidas acumuladas de
+        -$2,114.74 USD (40.7% WR) en Forex, Metales e Índices debido a los barridos de liquidez de
+        la apertura de Nueva York superpuestos con el cierre de Londres.
+        Bloquea nuevas entradas en instrumentos tradicionales durante esta ventana horaria.
+        Estrategias especializadas en apertura de rango (ORB) quedan exentas.
+        """
+        cfg = getattr(self, "config", None)
+        if cfg is None or not bool(getattr(cfg, "london_ny_crossover_filter_enabled", True)):
+            return None
+
+        # Exención de perfiles autorizados (ej. ORB)
+        bot_profile = str(getattr(cfg, "bot_profile", "") or "").upper()
+        exempt_profiles = tuple(
+            str(p).upper() for p in getattr(cfg, "london_ny_crossover_exempt_profiles", ("ORB",))
+        )
+        if any(bot_profile.startswith(p) or bot_profile == p for p in exempt_profiles):
+            return None
+
+        # Exención si la estrategia es ORB en oro/plata
+        if bool(getattr(cfg, "orb_enabled", False)):
+            if is_orb_gold_symbol(symbol) or is_orb_silver_symbol(symbol):
+                return None
+
+        # Verificar si aplica a sintéticos o solo a activos tradicionales
+        apply_to_synthetics = bool(getattr(cfg, "london_ny_crossover_apply_to_synthetics", False))
+        is_synthetic = self._is_synthetic_symbol(symbol)
+        if is_synthetic and not apply_to_synthetics:
+            return None
+
+        if not is_synthetic and not self._is_market_closing_symbol(symbol):
+            return None
+
+        current = now_utc or datetime.now(timezone.utc)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+
+        start_hour = int(getattr(cfg, "london_ny_crossover_start_utc_hour", 13))
+        end_hour = int(getattr(cfg, "london_ny_crossover_end_utc_hour", 15))
+
+        if start_hour <= current.hour < end_hour:
+            payload = {
+                "symbol": str(symbol),
+                "action": "LONDON_NY_CROSSOVER_FILTER_BLOCKED",
+                "reason": f"LONDON_NY_CROSSOVER_HIGH_VOLATILITY_WINDOW_{current.hour:02d}:00_UTC",
+                "crossover_window_utc": f"{start_hour:02d}:00-{end_hour:02d}:00",
+                "current_time_utc": current.isoformat(),
+            }
+            if hasattr(self, "_persist_audit_event"):
+                try:
+                    self._persist_audit_event(
+                        "LONDON_NY_CROSSOVER_GATE",
+                        instrument=str(symbol),
+                        action="FILTER_BLOCKED",
+                        reason=payload["reason"],
+                        payload=payload,
+                    )
+                except Exception:
+                    pass
+            return payload
 
         return None
 
@@ -7497,7 +7581,7 @@ class LiveTradingEngine:
         """
         if not bool(getattr(self.config, "synthetic_spread_guard_enabled", False)) or not self._is_synthetic_symbol(symbol):
             return None
-        max_ratio = float(getattr(self.config, "synthetic_spread_max_risk_ratio", 0.025))
+        max_ratio = float(getattr(self.config, "synthetic_spread_max_risk_ratio", 0.035))
         quote = self._meta_execution_spread(symbol)
         report = {"symbol": str(symbol), "direction": str(direction), "stop_loss": stop,
                   "max_risk_ratio": max_ratio, "spread": quote.get("spread"),
@@ -9193,21 +9277,27 @@ class LiveTradingEngine:
                     "bot_profile": profile}
         prepared_msnr = None
         config = getattr(self, 'config', None)
-        if config is not None and (str(getattr(config,'bot_profile','')).upper() == 'MALAYSIAN_SNR' or getattr(config,'malaysian_snr_enabled',False)):
+        is_pure_msnr_worker = bool(config is not None and str(getattr(config, 'bot_profile', '')).upper() == 'MALAYSIAN_SNR')
+        is_msnr_active = bool(config is not None and (is_pure_msnr_worker or getattr(config, 'malaysian_snr_enabled', False)))
+        if is_msnr_active:
             from strategy.malaysian_snr.runtime_engine import observation_result, track_pending
             try:
                 outside_lock = self.malaysian_snr_strategy.settings_snapshot()['analysis_outside_entry_lock']
             except Exception:
                 msnr_res = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
                 msnr_res["context_policy"] = "MALAYSIAN_SNR_NATIVE"
-                return observation_result(exact_symbol, msnr_res)
+                if is_pure_msnr_worker:
+                    return observation_result(exact_symbol, msnr_res)
+                outside_lock = False
             if outside_lock:
                 prepared_msnr = self.malaysian_snr_strategy.analyze_symbol(exact_symbol)
                 prepared_msnr["context_policy"] = "MALAYSIAN_SNR_NATIVE"
                 track_pending(self, exact_symbol, prepared_msnr)
                 self._msnr_audit_local.analysis = prepared_msnr
                 if not prepared_msnr.get('valid') or prepared_msnr.get('shadow_only'):
-                    return observation_result(exact_symbol, prepared_msnr)
+                    if is_pure_msnr_worker:
+                        return observation_result(exact_symbol, prepared_msnr)
+                    prepared_msnr = None
         if not bool(getattr(getattr(self, "config", None), "execution_enabled", True)):
             result = (self._process_symbol_guarded(exact_symbol, sync_before_execution)
                       if prepared_msnr is None else self._process_symbol_guarded(exact_symbol, sync_before_execution, prepared_msnr_analysis=prepared_msnr))
@@ -9362,7 +9452,12 @@ class LiveTradingEngine:
             legs, split_failure = build_plan(split_specs, "SPLIT")
             execution_mode = "SPLIT"
         else:
-            legs, split_failure = build_plan([("FULL", 1.0, rr)], "SINGLE")
+            single_rr = (
+                float(getattr(self.config, "single_entry_target_rr", 1.0))
+                if bool(getattr(self.config, "single_leg_full_risk_enabled", True))
+                else rr
+            )
+            legs, split_failure = build_plan([("FULL", 1.0, single_rr)], "SINGLE")
 
         is_jump = self._is_jump_symbol(exact_symbol) if callable(getattr(self, "_is_jump_symbol", None)) else False
         jump_single_fallback_blocked = (
@@ -9377,7 +9472,8 @@ class LiveTradingEngine:
             and bool(self.config.single_entry_fallback_enabled)
             and not jump_single_fallback_blocked
         ):
-            single_specs = [("SINGLE", 1.0, float(self.config.single_entry_target_rr))]
+            single_target = float(getattr(self.config, "single_entry_target_rr", 1.0))
+            single_specs = [("SINGLE", 1.0, single_target)]
             single_legs, single_failure = build_plan(single_specs, "SINGLE_FALLBACK")
             if single_legs is not None:
                 legs = single_legs
@@ -9468,6 +9564,10 @@ class LiveTradingEngine:
         if regime_gate is not None:
             return regime_gate
 
+        crossover_gate = self._london_ny_crossover_sentinel_gate(exact_symbol)
+        if crossover_gate is not None:
+            return crossover_gate
+
         loss_cooldown_gate = self._symbol_loss_cooldown_gate(exact_symbol)
         if loss_cooldown_gate is not None:
             return loss_cooldown_gate
@@ -9517,10 +9617,11 @@ class LiveTradingEngine:
                 "gold_contract_selection": self._orb_gold_cycle_diagnostics,
             }
 
-        if (
-            str(self.config.bot_profile or "").upper() == "MALAYSIAN_SNR"
-            or bool(self.config.malaysian_snr_enabled)
-        ):
+        is_pure_msnr = str(self.config.bot_profile or "").upper() == "MALAYSIAN_SNR"
+        is_msnr_eligible = is_pure_msnr or bool(self.config.malaysian_snr_enabled)
+        msnr_analysis = None
+
+        if is_msnr_eligible:
             analysis = prepared_msnr_analysis
             # A parameter update or a new M15 close invalidates pre-analysis.
             if analysis is not None:
@@ -9536,8 +9637,18 @@ class LiveTradingEngine:
                 self._msnr_audit_local.analysis = analysis
             from strategy.malaysian_snr.runtime_engine import observation_result, track_pending
             track_pending(self, exact_symbol, analysis)
-            if analysis.get('shadow_only'):
-                return observation_result(exact_symbol, analysis)
+            if is_pure_msnr:
+                if analysis.get('shadow_only') or not analysis.get('valid'):
+                    return observation_result(exact_symbol, analysis)
+                msnr_analysis = analysis
+            else:
+                if analysis.get('valid') and not analysis.get('shadow_only'):
+                    msnr_analysis = analysis
+                else:
+                    analysis = None
+
+        if msnr_analysis is not None:
+            analysis = msnr_analysis
         elif (
             str(self.config.bot_profile or "").upper() == "IDX_OPEN"
             and bool(self.config.idx_open_enabled)
@@ -9574,10 +9685,10 @@ class LiveTradingEngine:
             analysis["context_policy"] = "TREND_PULLBACK_NATIVE"
         elif (
             str(self.config.bot_profile or "").upper() in {
-                "ICT", "BOOM", "CRASH", "STEP", "JUMP", "GOLD",
+                "ICT", "BOOM", "CRASH", "STEP", "STEP_2", "JUMP", "GOLD",
                 "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
-                "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4",
-                "SYNTHETICS", "FOREX",
+                "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5",
+                "SYNTHETICS", "FOREX", "INDICESB_SNR",
             }
             or str(self.config.bot_profile or "").upper().startswith("VOLATILITY")
             or str(self.config.bot_profile or "").upper().startswith("FOREX")
@@ -10072,6 +10183,20 @@ class LiveTradingEngine:
                 a `None` y un dict de error con su codigo, en lugar de lanzar.
             """
             planned_legs = []
+            if len(specs) == 1 and bool(getattr(self.config, "single_leg_full_risk_enabled", True)):
+                # Entrada a pierna única: garantizar riesgo íntegro del 1.0% (fraction = 1.0)
+                # en lugar de sub-arriesgar al 0.5% para ganar el 1:1.
+                mod_specs = []
+                for spec in specs:
+                    if len(spec) == 4:
+                        s_name, s_fraction, s_trr, s_brr = spec
+                        mod_specs.append((s_name, 1.0 if s_fraction < 1.0 else s_fraction, s_trr, s_brr))
+                    elif len(spec) == 3:
+                        s_name, s_fraction, s_trr = spec
+                        mod_specs.append((s_name, 1.0 if s_fraction < 1.0 else s_fraction, s_trr))
+                    else:
+                        mod_specs.append(spec)
+                specs = mod_specs
             leg_volume_cap = self._leg_volume_cap(exact_symbol, direction, len(specs))
             for spec in specs:
                 if len(spec) == 4:

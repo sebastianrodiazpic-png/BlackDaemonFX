@@ -1,0 +1,2311 @@
+_INSTRUMENTS_HTML = r'''
+
+
+
+<!doctype html>
+
+
+
+<html lang="es">
+
+
+
+  <head>
+
+
+
+    <meta charset="utf-8" />
+
+
+
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+
+
+    <title>DaemonBlackFx · Instrumentos</title>
+
+
+
+    <style>
+
+
+
+      :root {
+
+
+
+        color-scheme: dark;
+
+
+
+        --bg: #050708;
+
+
+
+        --panel: #0a0e10;
+
+
+
+        --panel2: #10161a;
+
+
+
+        --text: #f5f5f2;
+
+
+
+        --muted: #9fa2a5;
+
+
+
+        --line: #5b4514;
+
+
+
+        --good: #00db79;
+
+
+
+        --accent: #d79b19;
+
+
+
+      }
+
+
+
+      * {
+
+
+
+        box-sizing: border-box;
+
+
+
+      }
+
+
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      .appShell {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .brandSidebar {
+        border-right: 1px solid #6b4d13;
+        background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        align-self: start;
+        z-index: 50;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .brandSidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .brandSidebar::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
+      }
+      .brandLogo {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1px solid #7b5816;
+        box-shadow: 0 0 28px rgba(215, 155, 25, 0.12);
+      }
+      .brandName {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+      .brandName span {
+        color: #f6cb57;
+      }
+      .brandTag {
+        text-align: center;
+        color: #c9a34a;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .sideNav {
+        display: grid;
+        gap: 7px;
+        margin-top: 4px;
+      }
+      .sideNav a {
+        color: #d9dde0;
+        text-decoration: none;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-weight: 650;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+      }
+      .sideNav a:hover,
+      .sideNav a.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.24), rgba(215, 155, 25, 0.05));
+        border-color: #6f5015;
+        color: #ffd465;
+      }
+      .sideStatus {
+        margin-top: auto;
+        border: 1px solid #725116;
+        background: #0d1214;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .sideStatus b {
+        color: var(--good);
+        font-size: 13px;
+        display: block;
+      }
+      .sideStatus .sub {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .wrap {
+        max-width: none;
+        margin: 0;
+        padding: 18px 24px 28px;
+        min-width: 0;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .title {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .title strong {
+        color: #f6cb57;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .badge {
+        padding: 7px 11px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffd465;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      @media (max-width: 1050px) {
+        .appShell {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          position: relative;
+          height: auto;
+          display: grid;
+          grid-template-columns: 90px 1fr;
+          align-items: center;
+        }
+        .brandLogo {
+          width: 90px;
+        }
+        .sideNav {
+          grid-column: 1/-1;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sideStatus {
+          display: none;
+        }
+      }
+      @media (max-width: 620px) {
+        .sideNav {
+          grid-template-columns: 1fr 1fr;
+        }
+        .brandSidebar {
+          grid-template-columns: 72px 1fr;
+          padding: 10px;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 12px;
+      }
+
+
+
+      .head {
+
+
+
+        display: flex;
+
+
+
+        justify-content: space-between;
+
+
+
+        gap: 12px;
+
+
+
+        align-items: center;
+
+
+
+        flex-wrap: wrap;
+
+
+
+      }
+
+
+
+      .actions {
+
+
+
+        display: flex;
+
+
+
+        gap: 8px;
+
+
+
+        flex-wrap: wrap;
+
+
+
+      }
+
+
+
+      .btn {
+        display: inline-block;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--text);
+        text-decoration: none;
+        border-radius: 7px;
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+
+
+
+      .btn.primary {
+
+
+
+        background: var(--accent);
+
+
+
+        color: #06111b;
+
+
+
+        border-color: transparent;
+
+
+
+        font-weight: 800;
+
+
+
+      }
+
+
+
+      .btn:disabled {
+
+
+
+        opacity: 0.5;
+
+
+
+        cursor: not-allowed;
+
+
+
+      }
+
+
+
+      .stats {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 6px 0;
+      }
+      .metric {
+        background: var(--panel2);
+        border-radius: 7px;
+        padding: 4px 8px;
+        min-width: 95px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .metric .sub {
+        font-size: 10.5px;
+      }
+      .metric b {
+        font-size: 13.5px;
+        display: inline;
+      }
+
+
+
+      .instrumentGrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+        align-items: start;
+      }
+      @media (max-width: 1200px) {
+        .instrumentGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 768px) {
+        .instrumentGrid { grid-template-columns: 1fr; }
+      }
+      .group {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 6px 9px;
+        background: var(--panel2);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .groupHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 5px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      .groupHeader h3 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .groupCount {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      .cardTag {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 4px;
+        white-space: nowrap;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+      }
+      .tagIct { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+      .tagMsnr { background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+      .tagOrb { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+      .tagTp { background: rgba(192, 132, 252, 0.12); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+
+      .groupItems {
+        max-height: none !important;
+        overflow: visible !important;
+        overflow-y: visible !important;
+        padding-right: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .groupItems::-webkit-scrollbar { width: 5px; }
+      .groupItems::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+      .groupItems::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+      .groupItems::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+
+      .item {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        transition: background 0.15s ease, border-color 0.15s ease;
+        cursor: pointer;
+        min-width: 0;
+      }
+      .item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .symName {
+        font-weight: 600;
+        font-size: 12.5px;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 6px;
+      }
+      .pruneBadge {
+        font-size: 10.5px;
+        font-weight: 600;
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-left: auto;
+        white-space: nowrap;
+        flex-shrink: 0;
+        cursor: help;
+      }
+      .activeBadge {
+        font-size: 10.5px;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-left: auto;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .msnrBadge {
+        background: rgba(251, 191, 36, 0.12) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(251, 191, 36, 0.32) !important;
+      }
+      .ictBadge {
+        background: rgba(56, 189, 248, 0.12) !important;
+        color: #38bdf8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.32) !important;
+      }
+      .tpBadge {
+        background: rgba(192, 132, 252, 0.12) !important;
+        color: #c084fc !important;
+        border: 1px solid rgba(192, 132, 252, 0.32) !important;
+      }
+      .orbBadge {
+        background: rgba(16, 185, 129, 0.12) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(16, 185, 129, 0.32) !important;
+      }
+
+
+
+      .prunedItem {
+
+
+
+        opacity: 0.85;
+
+
+
+      }
+
+
+
+      .msg {
+
+
+
+        margin-top: 12px;
+
+
+
+        color: var(--muted);
+
+
+
+        min-height: 22px;
+
+
+
+      }
+
+
+
+      .search {
+        width: 250px;
+        background: #08131c;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 7px;
+        padding: 5px 9px;
+        font-size: 12.5px;
+      }
+
+
+
+      .note {
+
+
+
+        margin-top: 14px;
+
+
+
+        padding: 11px;
+
+
+
+        border-left: 3px solid var(--accent);
+
+
+
+        background: var(--panel2);
+
+
+
+        border-radius: 8px;
+
+
+
+      }
+
+
+
+      @media (max-width: 950px) {
+
+
+
+        .instrumentGrid {
+
+
+
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+
+
+        }
+
+
+
+      }
+
+
+
+      @media (max-width: 600px) {
+
+
+
+        .instrumentGrid {
+
+
+
+          grid-template-columns: 1fr;
+
+
+
+        }
+
+
+
+        .wrap {
+
+
+
+          padding: 10px;
+
+
+
+        }
+
+
+
+        .actions {
+
+
+
+          width: 100%;
+
+
+
+        }
+
+
+
+        .actions .btn {
+
+
+
+          flex: 1;
+
+
+
+          text-align: center;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      .brandStrip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(91, 69, 20, 0.4);
+      }
+      .brandStrip img {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #765719;
+      }
+      .brandStrip b {
+        font-size: 15px;
+        letter-spacing: 0.02em;
+      }
+      .brandStrip .sub {
+        font-size: 11px;
+      }
+
+
+
+      .brandStrip img {
+
+
+
+        width: 72px;
+
+
+
+        height: 72px;
+
+
+
+        object-fit: cover;
+
+
+
+        border-radius: 12px;
+
+
+
+        border: 1px solid #765719;
+
+
+
+      }
+
+
+
+      .brandStrip b {
+
+
+
+        font-size: 22px;
+
+
+
+      }
+
+
+
+      .brandStrip b span {
+
+
+
+        color: #f3c64c;
+
+
+
+      }
+
+
+
+      .card {
+
+
+
+        box-shadow: inset 0 1px 0 rgba(255, 211, 102, 0.03);
+
+
+
+      }
+
+
+
+    </style>
+
+
+
+  </head>
+
+
+
+  <body>
+    <div class="appShell">
+      <aside class="brandSidebar">
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
+        <div>
+          <div class="brandName">BLACKDAEMON<span>FX</span></div>
+          <div class="brandTag">Estrategia · Disciplina · Resultados</div>
+        </div>
+        <nav class="sideNav">
+          <a href="/">📁 Dashboard</a>
+          <a class="active" href="/instruments">📁 Instrumentos</a>
+          <a href="/account">💳 Cuenta en vivo</a>
+          <a href="/performance">📈 Rendimiento</a>
+          <a href="/strategy-bases">🧩 Bases de Estrategias</a>
+          <a href="/#openPositions">◆ Posiciones abiertas</a>
+          <a href="/#recentAnalysis">⏱ Análisis recientes</a>
+        </nav>
+        <div class="sideStatus">
+          <b>● Daemon Online</b>
+          <div class="sub">Panel local conectado al motor</div>
+        </div>
+      </aside>
+      <main class="wrap">
+        <div class="top">
+          <div>
+            <div class="title">BLACKDAEMON<strong>FX</strong> · Instrumentos para nuevas entradas</div>
+            <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Módulo independiente · Catálogo dinámico desde MT5/Deriv</div>
+          </div>
+          <div class="actions">
+            <span style="display:none">Volver al dashboard</span>
+            <div class="badge" id="instrumentsStatusBadge">DATOS EN VIVO</div>
+          </div>
+        </div>
+        <section class="card">
+
+
+
+        <div class="head">
+
+
+
+          <div class="actions" id="profileTabs">
+
+
+
+            <button class="btn profileTab active" data-profile="SYNTHETICS" type="button">
+
+
+
+              SINTÉTICOS <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+
+
+
+            ><button class="btn profileTab" data-profile="FOREX" type="button">
+
+
+
+              FOREX <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+
+
+
+            ><button class="btn profileTab" data-profile="ICT" type="button">
+
+
+
+              ICT (METALES, CRIPTO & ÍNDICES) <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
+
+
+
+            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">
+
+
+
+              MALAYSIAN SNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#fbbf24;">[M15 Fresh/Break]</span></button
+
+
+
+            ><button class="btn profileTab" data-profile="ORB" type="button">
+
+
+
+              ORB NEW YORK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#34d399;">[SWEEP]</span></button
+
+
+
+            ><button class="btn profileTab" data-profile="TREND_PULLBACK" type="button">
+
+
+
+              TREND PULLBACK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#c084fc;">[H1+M15 &gt;51% WR]</span></button>
+
+
+
+          </div>
+
+
+
+          <div class="actions">
+
+
+
+            <button class="btn" id="selectProfitable" type="button" style="border-color:rgba(16,185,129,0.55);color:#34d399;font-weight:700;">
+
+
+
+              ✓ Activar instrumentos ICT (sin PODA PREVENTIVA)</button
+
+
+
+            ><button class="btn" id="selectAll" type="button">Seleccionar todos</button
+
+
+
+            ><button class="btn" id="clearAll" type="button">Limpiar</button
+
+
+
+            ><button class="btn primary" id="save" type="button">Aplicar selección</button>
+
+
+
+          </div>
+
+
+
+        </div>
+
+
+
+        <div id="strategyHighlightBanner" style="display:none;"></div>
+        <section id="tabWorkerPanel" style="display:none;"></section>
+
+
+
+        <div style="margin-top: 12px">
+
+
+
+          <input
+
+
+
+            id="search"
+
+
+
+            class="search"
+
+
+
+            type="search"
+
+
+
+            placeholder="Buscar instrumento…"
+
+
+
+            aria-label="Buscar instrumento"
+
+
+
+          />
+
+
+
+        </div>
+
+
+
+        <div class="stats">
+
+
+
+          <div class="metric">
+
+
+
+            <span class="sub">Seleccionados (Activos)</span><b id="selectedCount" style="color:#34d399;">0</b>
+
+
+
+          </div>
+
+
+
+          <div class="metric">
+
+
+
+            <span class="sub">Podados Desactivados</span><b id="prunedOffCount" style="color:#f87171;">0</b>
+
+
+
+          </div>
+
+
+
+          <div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div>
+
+
+
+          <div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div>
+
+
+
+        </div>
+
+
+
+        <div id="grid" class="instrumentGrid"><div class="sub">Cargando catálogo…</div></div>
+
+
+
+        <div id="msg" class="msg"></div>
+
+
+
+                <details style="margin-top: 8px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px;">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; align-items: center;">
+            <span>📰 Noticias financieras relevantes (Click para ver)</span>
+            <span class="sub" id="newsStatus" style="font-size: 11px;">Cargando…</span>
+          </summary>
+          <div id="newsList" class="msg" style="margin-top: 6px; font-size: 12px;">Cargando noticias…</div>
+        </details>
+
+        <div style="display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: var(--muted); flex-wrap: wrap;">
+          <span id="profileNote"><b>Persistencia:</b> Guardado independiente por perfil.</span>
+          <span><b>Seguridad:</b> Desmarcar impide nuevas entradas; posiciones abiertas siguen activas con SL/TP.</span>
+        </div>
+
+
+
+      </section>
+
+      </main>
+
+    </div>
+
+
+
+    <script>
+
+
+
+      const $ = (id) => document.getElementById(id),
+
+
+
+        esc = (v) =>
+
+
+
+          String(v ?? '').replace(
+
+
+
+            /[&<>"']/g,
+
+
+
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[c],
+
+
+
+          );
+
+
+
+      let state = null,
+
+
+
+        dirty = false,
+
+
+
+        activeProfile = 'SYNTHETICS';
+
+
+
+      const PROFILE_STRATEGY_INFO = {
+
+
+
+        SYNTHETICS: {
+
+
+
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · 24/7)',
+
+
+
+          color: '#38bdf8',
+
+
+
+          workersText: 'CRASH · BOOM · STEP · JUMP · VOLATILITY (1-4)',
+
+
+
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle (Judas Swing + FVG + OTE + GBDT >= 0.55) y controla en paralelo los workers CRASH, BOOM, STEP, JUMP y VOLATILITY (1-4). Los instrumentos rentables permanecen activos y los podados desactivados.',
+
+
+
+        },
+
+
+
+        FOREX: {
+
+
+
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · KILLZONES)',
+
+
+
+          color: '#38bdf8',
+
+
+
+          workersText: 'FOREX (1-4): FOREX_1 · FOREX_2 · FOREX_3 · FOREX_4',
+
+
+
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle con filtro de Killzones Institucionales (Londres/NY) y controla los workers FOREX (1-4) por familia de divisa.',
+
+
+
+        },
+
+
+
+        ICT: {
+
+
+
+          badge: 'ESTRATEGIA ICT (SABRI MALLE · METALES, CRIPTO & ÍNDICES)',
+
+
+
+          color: '#38bdf8',
+
+
+
+          workersText: 'ICT (Metales, Cripto & Índices)',
+
+
+
+          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle dedicada a Metales (XAUUSD, XAGUSD), Cripto (BTCUSD) e Índices/Energía (US Oil, Wall Street 30, US Tech 100, US SP 500) y controla el worker ICT.',
+
+
+
+        },
+
+
+
+        MALAYSIAN_SNR: {
+
+
+
+          badge: 'ESTRATEGIA MALAYSIAN SNR (M15 FRESH/BREAK · C2)',
+
+
+
+          color: '#fbbf24',
+
+
+
+          workersText: 'Malaysian SNR (M15 Fresh/Break)',
+
+
+
+          desc: 'Controla el worker Malaysian SNR (M15 Fresh/Break) con configuración C2 (ADX >= 30, ATR <= 1.2 en Forex/Metales, ATR <= 1.5 en Sintéticos y Wall Street 30, Cap=1). Muestra en paralelo los 23 activos rentables activos y mantiene los 37 podados desactivados.',
+
+
+
+        },
+
+
+
+        ORB: {
+
+
+
+          badge: 'ESTRATEGIA ORB NEW YORK (M5 SWEEP / HTF_SWEEP)',
+
+
+
+          color: '#34d399',
+
+
+
+          workersText: 'ORB · Apertura New York',
+
+
+
+          desc: 'Controla el worker ORB New York enfocado en los 4 activos rentables en modo SWEEP / HTF_SWEEP (XAUUSD, BTCUSD, XAGUSD, US Oil -> 231 trades, 56.7%-59.1% WR, +31.54R) manteniendo podados los índices perdedores.',
+
+
+
+        },
+
+
+
+        TREND_PULLBACK: {
+
+
+
+          badge: 'ESTRATEGIA TREND PULLBACK (H1+M15 · SINTÉTICOS >51% WR)',
+
+
+
+          color: '#c084fc',
+
+
+
+          workersText: 'Trend Pullback [H1+M15]',
+
+
+
+          desc: 'Esta pestaña opera bajo la Estrategia Cuantitativa Trend Pullback H1+M15 (EMA50/200 + ADX>=20 en H1, pullback EMA21 + RSI en M15, 2 patas TP1/TP2 con BE automático). Controla el worker dedicado TREND_PULLBACK con los 21 activos que superan el 51% de Win Rate y R neto > 0 en el replay multianual 5Y.',
+
+
+
+        },
+
+
+
+      };
+
+
+
+      function visibleInstrumentGroups(s) {
+
+
+
+        return (s.instrument_catalog || [])
+
+
+
+          .filter(
+
+
+
+            (g) =>
+
+
+
+              String(g.category || '').toLowerCase() !== 'flip' &&
+
+
+
+              String(g.selection_profile || '').toUpperCase() !== 'IDX_OPEN',
+
+
+
+          )
+
+
+
+          .map((g) => ({
+
+
+
+            ...g,
+
+
+
+            symbols: (g.symbols || []).filter((sym) => {
+
+
+
+              if (String(g.selection_profile || '').toUpperCase() === 'MALAYSIAN_SNR') return true;
+
+
+
+              return !(/boom/i.test(sym) && /crash/i.test(sym));
+
+
+
+            }),
+
+
+
+          }))
+
+
+
+          .filter((g) => g.symbols.length);
+
+
+
+      }
+
+
+
+            function groups(s) {
+        const rawList = visibleInstrumentGroups(s).filter(
+          (g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === activeProfile,
+        );
+
+        if (activeProfile === 'FOREX') {
+          const allForex = rawList.flatMap((g) => g.symbols || []);
+          const majorsSet = new Set(['EURUSD', 'EURUSDmicro', 'GBPUSD', 'GBPUSDmicro', 'USDJPY', 'USDJPYmicro', 'USDCAD', 'USDCADmicro', 'USDCHF', 'USDCHFmicro', 'AUDUSD', 'AUDUSDmicro', 'NZDUSD', 'NZDUSDmicro']);
+          const eurGbpSet = new Set([
+            'EURJPY', 'EURJPYmicro', 'EURCHF', 'EURCHFmicro', 'EURGBP', 'EURGBPmicro', 'EURAUD', 'EURAUDmicro', 'EURCAD', 'EURCADmicro', 'EURNZD', 'EURNZDmicro',
+            'GBPJPY', 'GBPJPYmicro', 'GBPCHF', 'GBPCHFmicro', 'GBPAUD', 'GBPAUDmicro', 'GBPCAD', 'GBPCADmicro', 'GBPNZD', 'GBPNZDmicro'
+          ]);
+          
+          const majors = allForex.filter(x => majorsSet.has(x));
+          const eurGbp = allForex.filter(x => eurGbpSet.has(x));
+          const crossOther = allForex.filter(x => !majorsSet.has(x) && !eurGbpSet.has(x));
+
+          return [
+            { category: 'forex_majors', selection_profile: 'FOREX', label: 'Forex · Pares Mayores (USD)', symbols: majors },
+            { category: 'forex_eurgbp', selection_profile: 'FOREX', label: 'Forex · Cruces EUR & GBP', symbols: eurGbp },
+            { category: 'forex_crosses', selection_profile: 'FOREX', label: 'Forex · Cruces Menores (AUD/NZD/CAD/CHF/JPY)', symbols: crossOther }
+          ].filter(g => g.symbols.length);
+        }
+
+        if (activeProfile === 'TREND_PULLBACK') {
+          const allTpb = rawList.flatMap((g) => g.symbols || []);
+          const crashBoom = allTpb.filter(x => /crash|boom/i.test(x));
+          const stepJump = allTpb.filter(x => /step|jump/i.test(x));
+          const volSpec = allTpb.filter(x => /high frequency|volswitch|vol over/i.test(x));
+          const volStd = allTpb.filter(x => /volatility/i.test(x) && !volSpec.includes(x));
+
+          return [
+            { category: 'tpb_crash_boom', selection_profile: 'TREND_PULLBACK', label: 'Trend Pullback · Crash & Boom', symbols: crashBoom },
+            { category: 'tpb_vol_std', selection_profile: 'TREND_PULLBACK', label: 'Trend Pullback · Volatility Index', symbols: volStd },
+            { category: 'tpb_step_jump', selection_profile: 'TREND_PULLBACK', label: 'Trend Pullback · Step & Jump', symbols: stepJump },
+            { category: 'tpb_vol_spec', selection_profile: 'TREND_PULLBACK', label: 'Trend Pullback · Especiales & HF', symbols: volSpec }
+          ].filter(g => g.symbols.length);
+        }
+
+        if (activeProfile === 'SYNTHETICS') {
+          const res = [];
+          for (const g of rawList) {
+            if (g.category === 'volatility') {
+              const allVol = g.symbols || [];
+              const vol1s = allVol.filter(x => /\(1s\)/i.test(x));
+              const volSpec = allVol.filter(x => /high frequency|volswitch|vol over/i.test(x));
+              const volStd = allVol.filter(x => !vol1s.includes(x) && !volSpec.includes(x));
+
+              if (volStd.length) res.push({ category: 'vol_std', selection_profile: 'SYNTHETICS', label: 'Volatility Index (Estándar)', symbols: volStd });
+              if (vol1s.length) res.push({ category: 'vol_1s', selection_profile: 'SYNTHETICS', label: 'Volatility Index (1s)', symbols: vol1s });
+              if (volSpec.length) res.push({ category: 'vol_spec', selection_profile: 'SYNTHETICS', label: 'Volatility Especiales & HF', symbols: volSpec });
+            } else {
+              res.push(g);
+            }
+          }
+          return res;
+        }
+
+        if (activeProfile === 'ORB') {
+          const orbOrder = {
+            'orb_ny_xauusd': 1,
+            'orb_ny_xagusd': 2,
+            'orb_ny_us_oil': 3,
+            'orb_ny_btcusd': 4,
+            'orb_ny_ethusd': 5,
+            'orb_ny_eurusd': 6,
+            'orb_ny_gbpusd': 7,
+            'orb_ny_audusd': 8,
+            'orb_ny_usdcad': 9,
+            'orb_ny_usdchf': 10,
+            'orb_ny_usdjpy': 11,
+            'orb_ny_wall_street_30': 12,
+            'orb_ny_us_tech_100': 13,
+            'orb_ny_us_500': 14,
+          };
+          return rawList.sort((a, b) => (orbOrder[a.category] || 99) - (orbOrder[b.category] || 99));
+        }
+
+        return rawList;
+      }
+
+
+
+      function selectionSummary(s) {
+
+
+
+        return (
+
+
+
+          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR', 'ICT', 'TREND_PULLBACK']
+
+
+
+            .map((p, i) => {
+
+
+
+              const allowed = new Set(
+
+
+
+                visibleInstrumentGroups(s)
+
+
+
+                  .filter((g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === p)
+
+
+
+                  .flatMap((g) => g.symbols),
+
+
+
+              );
+
+
+
+              return (
+
+
+
+                ['Sintéticos [ICT]', 'Forex [ICT]', 'ORB', 'Malaysian SNR', 'ICT (Metales, Cripto & Índices)', 'Trend Pullback (>51% WR)'][i] +
+
+
+
+                ': ' +
+
+
+
+                ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
+
+
+
+              );
+
+
+
+            })
+
+
+
+            .join(' · ') + ' · selecciones independientes'
+
+
+
+        );
+
+
+
+      }
+
+
+
+      function ictFamilyLabel(sym) {
+
+
+
+        const l = String(sym || '').toLowerCase();
+
+
+
+        if (activeProfile === 'FOREX') return 'Worker Forex';
+
+
+
+        if (l.includes('boom')) return 'Worker Boom';
+
+
+
+        if (l.includes('crash')) return 'Worker Crash';
+
+
+
+        if (l.includes('step')) return 'Worker Step';
+
+
+
+        if (l.includes('jump')) return 'Worker Jump';
+
+
+
+        if (l.includes('vol')) return 'Worker Volatility';
+
+
+
+        if (l.includes('xau')) return 'Worker ICT · Oro';
+
+
+
+        if (l.includes('oil')) return 'Worker ICT · Petróleo';
+
+
+
+        if (l.includes('wall street') || l.includes('tech 100') || l.includes('sp 500')) return 'Worker ICT · Índices';
+
+
+
+        return 'Worker ICT';
+
+
+
+      }
+
+
+
+      function msnrFamilyLabel(sym) {
+        const l = String(sym || '').toLowerCase();
+        if (l.startsWith('dex ')) return 'DEX';
+        if (l.includes('vol over boom') || l.includes('vol over crash')) return 'Volatility';
+        if (l.includes('boom')) return 'Boom (BUY)';
+        if (l.includes('crash')) return 'Crash (SELL)';
+        if (l.includes('step')) return 'Step';
+        if (l.includes('jump')) return 'Jump';
+        if (l.includes('volatility') || l.includes('vol ') || l.includes('volswitch')) return 'Volatility';
+        // Mercados Reales
+        if (/^xa[ug]|^xpt/.test(l)) return 'Metal';
+        if (/^[a-z]{6}(?:micro)?$/.test(l)) return 'Forex';
+        if (l.includes('oil') || l.includes('brent')) return 'Energía';
+        if (l.includes('btc') || l.includes('eth')) return 'Cripto';
+        return 'Índice';
+      }
+
+
+
+      function selected() {
+
+
+
+        return [...document.querySelectorAll('input[data-symbol]:checked')]
+
+
+
+          .map((x) => x.dataset.symbol)
+
+
+
+          .sort((a, b) => a.localeCompare(b, 'es'));
+
+
+
+      }
+
+
+
+      function updateCount() {
+
+
+
+        const allInputs = [...document.querySelectorAll('input[data-symbol]')];
+
+
+
+        const checkedCnt = allInputs.filter((x) => x.checked).length;
+
+
+
+        const prunedOffCnt = allInputs.filter((x) => !x.checked && x.dataset.pruned === 'true').length;
+
+
+
+        $('selectedCount').textContent = checkedCnt;
+
+
+
+        if ($('prunedOffCount')) $('prunedOffCount').textContent = prunedOffCnt;
+
+
+
+      }
+
+
+
+      async function toggleWorkerFromInstruments(workerProfile, enableFlag) {
+
+
+
+        if (!enableFlag && !confirm(`¿Desactivar el worker ${workerProfile}? No se puede desactivar si mantiene posiciones abiertas.`)) {
+
+
+
+          return;
+
+
+
+        }
+
+
+
+        try {
+
+
+
+          const r = await fetch(`/api/workers/${encodeURIComponent(workerProfile)}/enabled`, {
+
+
+
+            method: 'POST',
+
+
+
+            headers: { 'Content-Type': 'application/json' },
+
+
+
+            body: JSON.stringify({ enabled: Boolean(enableFlag) }),
+
+
+
+          });
+
+
+
+          const data = await r.json();
+
+
+
+          if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo cambiar el estado del worker');
+
+
+
+          $('msg').textContent = `Worker ${workerProfile}: ${enableFlag ? 'REACTIVADO' : 'DESACTIVADO'}`;
+
+
+
+          await load();
+
+
+
+        } catch (e) {
+
+
+
+          $('msg').textContent = 'Error controlando worker: ' + e.message;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      function renderTabWorkers(s) {
+        const banner = $('strategyHighlightBanner');
+        if (banner) {
+          banner.style.display = 'none';
+          banner.innerHTML = '';
+        }
+        const panel = $('tabWorkerPanel');
+        if (panel) {
+          panel.style.display = 'none';
+          panel.innerHTML = '';
+        }
+      }
+
+      function renderNews(s) {
+
+
+
+        const n = s.financial_news || {},
+
+
+
+          items = n.items || [];
+
+
+
+        $('newsStatus').textContent =
+
+
+
+          `${n.status || 'SIN DATOS'} · ${n.updated_at ? new Date(n.updated_at).toLocaleTimeString() : 'sin actualización'}`;
+
+
+
+        $('newsList').innerHTML = items.length
+
+
+
+          ? items
+
+
+
+              .slice(0, 8)
+
+
+
+              .map(
+
+
+
+                (x) =>
+
+
+
+                  `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill">${esc(x.impact || 'MEDIO')}</span> <a href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(x.title)}</a><div class="sub">${x.published_at ? new Date(x.published_at).toLocaleString('es-ES') : ''}</div></div>`,
+
+
+
+              )
+
+
+
+              .join('')
+
+
+
+          : 'No hay noticias disponibles; se conserva el último estado conocido.';
+
+
+
+      }
+
+
+
+      function render(s) {
+
+
+
+        state = s;
+
+
+
+        renderNews(s);
+
+
+
+        const chosen = new Set((s.selection_profiles || {})[activeProfile] || []),
+
+
+
+          prunedByProfile = s.pruned_instruments_by_profile || {},
+
+
+
+          prunedInfo = prunedByProfile[activeProfile] || s.pruned_instruments || {},
+
+
+
+          prioritized = new Set((s.prioritized_symbols || {})[activeProfile] || []),
+
+
+
+          policyProfiles = new Set(s.ict_policy_profiles || []),
+
+
+
+          q = $('search').value.trim().toLocaleLowerCase('es'),
+
+
+
+          gs = groups(s);
+
+
+
+        $('grid').innerHTML =
+
+
+
+          gs
+
+
+
+            .map((g) => {
+
+
+
+              const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
+
+
+
+              let displayLabel = g.label;
+              if (activeProfile === 'MALAYSIAN_SNR' && displayLabel.startsWith('Malaysian SNR · ')) {
+                displayLabel = displayLabel.replace('Malaysian SNR · ', '');
+              } else if (activeProfile === 'TREND_PULLBACK' && displayLabel.startsWith('Trend Pullback · ')) {
+                displayLabel = displayLabel.replace('Trend Pullback · ', '');
+              }
+
+              const isIctTab = ['SYNTHETICS', 'FOREX', 'ICT'].includes(activeProfile);
+              const stratTag = isIctTab
+                ? `<span class="cardTag tagIct">ICT Sabri Malle</span>`
+                : activeProfile === 'MALAYSIAN_SNR'
+                  ? `<span class="cardTag tagMsnr">M15 Fresh/Break</span>`
+                  : activeProfile === 'ORB'
+                    ? `<span class="cardTag tagOrb">ORB SWEEP</span>`
+                    : activeProfile === 'TREND_PULLBACK'
+                      ? `<span class="cardTag tagTp">H1+M15 &gt;51% WR</span>`
+                      : '';
+
+              return items.length
+                ? `<section class="group">
+                    <div class="groupHeader">
+                      <h3><span>${esc(displayLabel)}</span> <span class="groupCount">(${items.length})</span></h3>
+                      ${stratTag}
+                    </div>
+                    <div class="groupItems">
+                      ${items.map((sym) => {
+                        const isChecked = chosen.has(sym);
+                        const isPrioritized = prioritized.has(sym);
+                        const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
+                        const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis multi-anual por baja expectativa matemática.' : '');
+                        const isPolicyTab = policyProfiles.has(activeProfile);
+                        let badge = isPruned
+                          ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Poda Preventiva</span>`
+                          : `<span class="activeBadge">✓ Rentable Activo</span>`;
+                        if (isPolicyTab) {
+                          if (isPruned) {
+                            badge = `<span class="pruneBadge" title="${esc(warning)}">⚠️ Poda Preventiva</span>`;
+                          } else if (activeProfile === 'MALAYSIAN_SNR') {
+                            const fam = msnrFamilyLabel(sym);
+                            badge = `<span class="activeBadge msnrBadge">✓ MSNR · ${esc(fam)}</span>`;
+                          } else if (activeProfile === 'TREND_PULLBACK') {
+                            badge = `<span class="activeBadge tpBadge">✓ Pullback &gt;51%</span>`;
+                          } else {
+                            const family = ictFamilyLabel(sym);
+                            badge = `<span class="activeBadge ictBadge">✓ ICT · ${esc(family)}</span>`;
+                          }
+                        } else if (activeProfile === 'ORB' && !isPruned) {
+                          badge = `<span class="activeBadge orbBadge">✓ ORB Tier S</span>`;
+                        }
+                        const selectiveAllowed = Boolean(s.allow_selective_activation ?? true) && ['FOREX', 'SYNTHETICS', 'ICT'].includes(activeProfile);
+                        const locked = isPolicyTab && isPruned && !selectiveAllowed;
+                        return `<label class="item ${isPruned ? 'prunedItem' : ''}" ${locked || isPruned ? `title="${esc(warning)}"` : ''}><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked && !locked ? 'checked' : ''} ${locked ? 'disabled data-locked="true"' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
+                      }).join('')}
+                    </div>
+                  </section>`
+                : '';
+
+
+
+            })
+
+
+
+            .join('') || '<div class="sub">No se encontraron instrumentos para este perfil.</div>';
+
+
+
+        $('totalCount').textContent = gs.reduce((n, g) => n + (g.symbols || []).length, 0);
+
+
+
+        $('msg').textContent = selectionSummary(s);
+
+
+
+        const profBtn = $('selectProfitable');
+        if (profBtn) {
+          const stratName = activeProfile === 'MALAYSIAN_SNR' ? 'Malaysian SNR'
+            : activeProfile === 'TREND_PULLBACK' ? 'Trend Pullback'
+            : activeProfile === 'ORB' ? 'ORB'
+            : 'ICT';
+          profBtn.textContent = `✓ Activar instrumentos ${stratName} (sin PODA PREVENTIVA)`;
+        }
+
+        $('profileNote').innerHTML =
+          (new Set(s.ict_policy_profiles || []).has(activeProfile)
+            ? `<b>${activeProfile}:</b> esta pestaña controla ${activeProfile === 'TREND_PULLBACK' ? 'el worker Trend Pullback (sintéticos >51% WR)' : activeProfile === 'MALAYSIAN_SNR' ? 'el worker Malaysian SNR (sintéticos y mercados reales validados >50% WR)' : `los workers ICT (${activeProfile === 'SYNTHETICS' ? 'Step, Jump, Volatility 1 (Activos) + Volatility 2 (Podados OFF), Boom y Crash' : activeProfile === 'FOREX' ? 'Forex 1 (Activos) + Forex 2 (Podados OFF)' : 'ICT: metales, índices y commodities'})`}. Marcado = el worker lo escanea en el próximo ciclo; PODA PREVENTIVA = desactivado por defecto (activable de manera selectiva con confirmación). La selección se guarda en la base y persiste tras reiniciar.`
+            : `<b>${activeProfile}:</b> selección persistente independiente sincronizada con Modo Centinela, Análisis Recientes y progreso de Workers en paralelo. Los instrumentos rentables están activos y los podados desactivados.`);
+
+
+
+        document
+
+
+
+          .querySelectorAll('.profileTab')
+
+
+
+          .forEach((b) => b.classList.toggle('active', b.dataset.profile === activeProfile));
+
+
+
+        document.querySelectorAll('input[data-symbol]').forEach((cb) =>
+
+
+
+          cb.addEventListener('change', () => {
+
+
+
+            const sym = cb.dataset.symbol;
+
+
+
+            const isPruned = cb.dataset.pruned === 'true';
+
+
+
+            const warning = cb.dataset.warning || '';
+
+
+
+            if (cb.checked && isPruned) {
+
+
+
+              const proceed = window.confirm(
+
+
+
+                `⚠️ ADVERTENCIA DE PODA:\n\nEl instrumento "${sym}" fue descartado de la activación inicial:\n\n${warning}\n\n¿Deseas activarlo de todas formas bajo tu propio criterio de riesgo?`
+
+
+
+              );
+
+
+
+              if (!proceed) {
+
+
+
+                cb.checked = false;
+
+
+
+                return;
+
+
+
+              }
+
+
+
+            }
+
+
+
+            dirty = true;
+
+
+
+            updateCount();
+
+
+
+            renderTabWorkers(state);
+
+
+
+            $('msg').textContent = `Cambios pendientes para ${activeProfile}. Haz clic en Aplicar selección para persistir en los workers.`;
+
+
+
+          }),
+
+
+
+        );
+
+
+
+        updateCount();
+
+
+
+        renderTabWorkers(s);
+
+
+
+      }
+
+
+
+      let loadBusy = false;
+
+
+
+      async function load() {
+
+
+
+        if (document.hidden || loadBusy) return;
+
+
+
+        loadBusy = true;
+
+
+
+        const controller = new AbortController(),
+
+
+
+          timeout = setTimeout(() => controller.abort(), 30000);
+
+
+
+        try {
+
+
+
+          const r = await fetch('/api/instruments?ts='+Date.now(), {
+
+
+
+            cache: 'no-store',
+
+
+
+            signal: controller.signal,
+
+
+
+          });
+
+
+
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+
+
+
+          const s = await r.json();
+
+
+
+          if (!dirty) render(s);
+
+
+
+          pageLoading.done();
+
+
+
+        } catch (e) {
+
+
+
+          $('msg').textContent = 'Sin conexión con el daemon: ' + e.message;
+
+
+
+          pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
+
+
+
+        } finally {
+
+
+
+          clearTimeout(timeout);
+
+
+
+          loadBusy = false;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      async function save() {
+
+
+
+        const values = selected();
+
+
+
+        const selectiveCount = [...document.querySelectorAll('input[data-symbol]:checked')].filter((x) => x.dataset.pruned === 'true').length;
+
+
+
+        $('save').disabled = true;
+
+
+
+        try {
+
+
+
+          const r = await fetch('/api/instruments/selection', {
+
+
+
+            method: 'POST',
+
+
+
+            headers: { 'Content-Type': 'application/json' },
+
+
+
+            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values, allow_selective: selectiveCount > 0 }),
+
+
+
+          });
+
+
+
+          const data = await r.json();
+
+
+
+          if (!r.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar');
+
+
+
+          dirty = false;
+
+
+
+          $('msg').textContent = data.message || `${activeProfile} guardado`;
+
+
+
+          await load();
+
+
+
+        } catch (e) {
+
+
+
+          $('msg').textContent = 'Error: ' + e.message;
+
+
+
+        } finally {
+
+
+
+          $('save').disabled = false;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      $('search').addEventListener('input', () => {
+
+
+
+        if (state) render(state);
+
+
+
+      });
+
+
+
+      document.querySelectorAll('.profileTab').forEach((b) =>
+
+
+
+        b.addEventListener('click', () => {
+
+
+
+          if (dirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return;
+
+
+
+          dirty = false;
+
+
+
+          activeProfile = b.dataset.profile;
+
+
+
+          if (state) render(state);
+
+
+
+        }),
+
+
+
+      );
+
+
+
+      if ($('selectProfitable')) {
+
+
+
+        $('selectProfitable').addEventListener('click', () => {
+
+
+
+          document.querySelectorAll('input[data-symbol]').forEach((x) => {
+
+
+
+            x.checked = x.dataset.pruned !== 'true';
+
+
+
+          });
+
+
+
+          dirty = true;
+
+
+
+          updateCount();
+
+
+
+          if (state) renderTabWorkers(state);
+
+
+
+          $('msg').textContent = `Seleccionados únicamente los instrumentos rentables de ${activeProfile} (Podados OFF). Haz clic en Aplicar selección.`;
+
+
+
+        });
+
+
+
+      }
+
+
+
+      $('selectAll').addEventListener('click', () => {
+
+
+
+        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = x.dataset.locked !== 'true' && x.dataset.pruned !== 'true'));
+
+
+
+        dirty = true;
+
+
+
+        updateCount();
+
+
+
+        if (state) renderTabWorkers(state);
+
+
+
+      });
+
+
+
+      $('clearAll').addEventListener('click', () => {
+
+
+
+        document.querySelectorAll('input[data-symbol]').forEach((x) => (x.checked = false));
+
+
+
+        dirty = true;
+
+
+
+        updateCount();
+
+
+
+        if (state) renderTabWorkers(state);
+
+
+
+      });
+
+
+
+      $('save').addEventListener('click', save);
+
+
+
+      load();
+
+
+
+      setInterval(load,6000);
+
+
+
+      document.addEventListener('visibilitychange', () => {
+
+
+
+        if (!document.hidden) load();
+
+
+
+      });
+
+
+
+    </script>
+
+
+
+  </body>
+
+
+
+</html>
+
+
+

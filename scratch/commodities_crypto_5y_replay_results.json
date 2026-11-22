@@ -1,0 +1,1052 @@
+{
+  "BTCUSD": {
+    "metadata": {
+      "label": "Bitcoin / Dólar Estadounidense",
+      "category": "Criptomonedas (Líder Digital / Máxima Capitalización)",
+      "spread_usd": 18.0,
+      "avg_daily_range": 2800.0,
+      "min_sl_pts": 280.0,
+      "active_sessions": [
+        "Global 24h (Picos: London Open 07:00-11:00 UTC & NY Open 12:00-18:00 UTC)"
+      ],
+      "nature": "Gran inercia institucional; respeta barridos de liquidez asiática (Asian Range Sweep) y retrocesos OTE en FVG M5.",
+      "base_msnr_wr": 63.5,
+      "base_ict_wr": 57.5,
+      "opt_msnr_wr": 68.2,
+      "opt_ict_wr": 63.0,
+      "max_dd_r": 12.4
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.5,
+        "tp1_hits": 749,
+        "tp2_hits": 569,
+        "sl_hits": 421,
+        "be_hits": 180,
+        "net_r": 487.4,
+        "profit_factor": 2.12,
+        "expectancy_r": 0.417,
+        "max_drawdown_r": 11.42
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 57.5,
+        "tp1_hits": 562,
+        "tp2_hits": 422,
+        "sl_hits": 413,
+        "be_hits": 140,
+        "net_r": 260.75,
+        "profit_factor": 1.61,
+        "expectancy_r": 0.267,
+        "max_drawdown_r": 9.95
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 67.65,
+      "net_r": 1299.5,
+      "profit_factor": 2.5,
+      "expectancy_r": 0.5,
+      "projected_usd_profit_100_per_r": 129950.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.2,
+        "tp1_hits": 946,
+        "tp2_hits": 706,
+        "sl_hits": 419,
+        "be_hits": 240,
+        "net_r": 719.05,
+        "profit_factor": 2.67,
+        "expectancy_r": 0.527,
+        "max_drawdown_r": 6.3
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.0,
+        "tp1_hits": 813,
+        "tp2_hits": 633,
+        "sl_hits": 422,
+        "be_hits": 180,
+        "net_r": 580.45,
+        "profit_factor": 2.34,
+        "expectancy_r": 0.47,
+        "max_drawdown_r": 5.24
+      }
+    }
+  },
+  "BTCUSDmicro": {
+    "metadata": {
+      "label": "Bitcoin / Dólar Estadounidense (Micro)",
+      "category": "Criptomonedas (Líder Digital / Máxima Capitalización) - Micro Lote",
+      "spread_usd": 20.7,
+      "avg_daily_range": 2800.0,
+      "min_sl_pts": 280.0,
+      "active_sessions": [
+        "Global 24h (Picos: London Open 07:00-11:00 UTC & NY Open 12:00-18:00 UTC)"
+      ],
+      "nature": "Gran inercia institucional; respeta barridos de liquidez asiática (Asian Range Sweep) y retrocesos OTE en FVG M5.",
+      "base_msnr_wr": 63.5,
+      "base_ict_wr": 57.5,
+      "opt_msnr_wr": 68.2,
+      "opt_ict_wr": 63.0,
+      "max_dd_r": 12.4
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.5,
+        "tp1_hits": 750,
+        "tp2_hits": 558,
+        "sl_hits": 420,
+        "be_hits": 192,
+        "net_r": 477.9,
+        "profit_factor": 2.1,
+        "expectancy_r": 0.408,
+        "max_drawdown_r": 8.95
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 57.5,
+        "tp1_hits": 546,
+        "tp2_hits": 406,
+        "sl_hits": 429,
+        "be_hits": 140,
+        "net_r": 220.75,
+        "profit_factor": 1.5,
+        "expectancy_r": 0.226,
+        "max_drawdown_r": 10.17
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 64.42,
+      "net_r": 1088.5,
+      "profit_factor": 2.14,
+      "expectancy_r": 0.419,
+      "projected_usd_profit_100_per_r": 108850.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.2,
+        "tp1_hits": 921,
+        "tp2_hits": 697,
+        "sl_hits": 444,
+        "be_hits": 224,
+        "net_r": 672.55,
+        "profit_factor": 2.47,
+        "expectancy_r": 0.493,
+        "max_drawdown_r": 11.13
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.0,
+        "tp1_hits": 754,
+        "tp2_hits": 557,
+        "sl_hits": 481,
+        "be_hits": 197,
+        "net_r": 415.95,
+        "profit_factor": 1.84,
+        "expectancy_r": 0.337,
+        "max_drawdown_r": 14.72
+      }
+    }
+  },
+  "ETHUSD": {
+    "metadata": {
+      "label": "Ethereum / Dólar Estadounidense",
+      "category": "Criptomonedas (Smart Contracts / Alta Beta)",
+      "spread_usd": 1.4,
+      "avg_daily_range": 145.0,
+      "min_sl_pts": 18.0,
+      "active_sessions": [
+        "Global 24h (Picos: Londres y New York)"
+      ],
+      "nature": "Alta correlación macro; estructuras de soporte/resistencia M5 muy definidas y mitigaciones de Order Block limpias.",
+      "base_msnr_wr": 64.0,
+      "base_ict_wr": 58.0,
+      "opt_msnr_wr": 68.5,
+      "opt_ict_wr": 63.5,
+      "max_dd_r": 11.8
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 64.0,
+        "tp1_hits": 750,
+        "tp2_hits": 540,
+        "sl_hits": 420,
+        "be_hits": 210,
+        "net_r": 459.9,
+        "profit_factor": 2.06,
+        "expectancy_r": 0.393,
+        "max_drawdown_r": 7.21
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 58.0,
+        "tp1_hits": 538,
+        "tp2_hits": 404,
+        "sl_hits": 437,
+        "be_hits": 134,
+        "net_r": 206.75,
+        "profit_factor": 1.46,
+        "expectancy_r": 0.212,
+        "max_drawdown_r": 15.88
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 66.65,
+      "net_r": 1255.5,
+      "profit_factor": 2.41,
+      "expectancy_r": 0.483,
+      "projected_usd_profit_100_per_r": 125550.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.5,
+        "tp1_hits": 945,
+        "tp2_hits": 712,
+        "sl_hits": 420,
+        "be_hits": 233,
+        "net_r": 723.55,
+        "profit_factor": 2.67,
+        "expectancy_r": 0.53,
+        "max_drawdown_r": 5.83
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.5,
+        "tp1_hits": 788,
+        "tp2_hits": 622,
+        "sl_hits": 447,
+        "be_hits": 166,
+        "net_r": 531.95,
+        "profit_factor": 2.16,
+        "expectancy_r": 0.431,
+        "max_drawdown_r": 9.39
+      }
+    }
+  },
+  "ETHUSDmicro": {
+    "metadata": {
+      "label": "Ethereum / Dólar Estadounidense (Micro)",
+      "category": "Criptomonedas (Smart Contracts / Alta Beta) - Micro Lote",
+      "spread_usd": 1.61,
+      "avg_daily_range": 145.0,
+      "min_sl_pts": 18.0,
+      "active_sessions": [
+        "Global 24h (Picos: Londres y New York)"
+      ],
+      "nature": "Alta correlación macro; estructuras de soporte/resistencia M5 muy definidas y mitigaciones de Order Block limpias.",
+      "base_msnr_wr": 64.0,
+      "base_ict_wr": 58.0,
+      "opt_msnr_wr": 68.5,
+      "opt_ict_wr": 63.5,
+      "max_dd_r": 11.8
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 64.0,
+        "tp1_hits": 773,
+        "tp2_hits": 578,
+        "sl_hits": 397,
+        "be_hits": 195,
+        "net_r": 532.4,
+        "profit_factor": 2.3,
+        "expectancy_r": 0.455,
+        "max_drawdown_r": 10.13
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 58.0,
+        "tp1_hits": 564,
+        "tp2_hits": 425,
+        "sl_hits": 411,
+        "be_hits": 139,
+        "net_r": 266.75,
+        "profit_factor": 1.63,
+        "expectancy_r": 0.274,
+        "max_drawdown_r": 12.51
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 67.15,
+      "net_r": 1270.0,
+      "profit_factor": 2.44,
+      "expectancy_r": 0.488,
+      "projected_usd_profit_100_per_r": 127000.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.5,
+        "tp1_hits": 937,
+        "tp2_hits": 736,
+        "sl_hits": 428,
+        "be_hits": 201,
+        "net_r": 735.55,
+        "profit_factor": 2.67,
+        "expectancy_r": 0.539,
+        "max_drawdown_r": 8.87
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.5,
+        "tp1_hits": 809,
+        "tp2_hits": 593,
+        "sl_hits": 426,
+        "be_hits": 216,
+        "net_r": 534.45,
+        "profit_factor": 2.22,
+        "expectancy_r": 0.433,
+        "max_drawdown_r": 7.3
+      }
+    }
+  },
+  "XRPUSD": {
+    "metadata": {
+      "label": "Ripple / Dólar Estadounidense",
+      "category": "Criptomonedas (Pagos Transfronterizos / Alta Rotación)",
+      "spread_usd": 0.001,
+      "avg_daily_range": 0.048,
+      "min_sl_pts": 0.009,
+      "active_sessions": [
+        "Global 24h (Volumen en Asia/Corea y NY)"
+      ],
+      "nature": "Movimientos impulsivos tras periodos de compresión; excelentes quiebres y retesteos con pinbars de absorción en M5.",
+      "base_msnr_wr": 62.0,
+      "base_ict_wr": 55.5,
+      "opt_msnr_wr": 66.8,
+      "opt_ict_wr": 61.2,
+      "max_dd_r": 13.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 62.0,
+        "tp1_hits": 720,
+        "tp2_hits": 537,
+        "sl_hits": 450,
+        "be_hits": 183,
+        "net_r": 411.9,
+        "profit_factor": 1.89,
+        "expectancy_r": 0.352,
+        "max_drawdown_r": 10.57
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 55.5,
+        "tp1_hits": 565,
+        "tp2_hits": 417,
+        "sl_hits": 410,
+        "be_hits": 148,
+        "net_r": 260.25,
+        "profit_factor": 1.62,
+        "expectancy_r": 0.267,
+        "max_drawdown_r": 15.89
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 63.73,
+      "net_r": 1061.5,
+      "profit_factor": 2.09,
+      "expectancy_r": 0.408,
+      "projected_usd_profit_100_per_r": 106150.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 66.8,
+        "tp1_hits": 918,
+        "tp2_hits": 701,
+        "sl_hits": 447,
+        "be_hits": 217,
+        "net_r": 672.05,
+        "profit_factor": 2.46,
+        "expectancy_r": 0.492,
+        "max_drawdown_r": 10.86
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 61.2,
+        "tp1_hits": 739,
+        "tp2_hits": 553,
+        "sl_hits": 496,
+        "be_hits": 186,
+        "net_r": 389.45,
+        "profit_factor": 1.76,
+        "expectancy_r": 0.315,
+        "max_drawdown_r": 10.86
+      }
+    }
+  },
+  "XAUUSD": {
+    "metadata": {
+      "label": "Oro Spot / Dólar EE.UU. ('Gold')",
+      "category": "Metales Preciosos (Refugio Macro / Máxima Liquidez)",
+      "spread_usd": 0.28,
+      "avg_daily_range": 34.0,
+      "min_sl_pts": 4.5,
+      "active_sessions": [
+        "Shanghái/Asia (01:00-06:00 UTC)",
+        "Londres (07:00-11:00 UTC)",
+        "New York / Comex (12:00-17:00 UTC)"
+      ],
+      "nature": "Activo rey del trading cuantitativo; oscilaciones amplias, formaciones en V/A con absorción y retrocesos OTE con altísimo acierto.",
+      "base_msnr_wr": 66.0,
+      "base_ict_wr": 61.0,
+      "opt_msnr_wr": 71.5,
+      "opt_ict_wr": 66.8,
+      "max_dd_r": 10.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 66.0,
+        "tp1_hits": 774,
+        "tp2_hits": 603,
+        "sl_hits": 396,
+        "be_hits": 171,
+        "net_r": 558.9,
+        "profit_factor": 2.37,
+        "expectancy_r": 0.478,
+        "max_drawdown_r": 8.24
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 61.0,
+        "tp1_hits": 593,
+        "tp2_hits": 438,
+        "sl_hits": 382,
+        "be_hits": 155,
+        "net_r": 323.25,
+        "profit_factor": 1.82,
+        "expectancy_r": 0.332,
+        "max_drawdown_r": 11.98
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 69.46,
+      "net_r": 1365.0,
+      "profit_factor": 2.67,
+      "expectancy_r": 0.525,
+      "projected_usd_profit_100_per_r": 136500.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 71.5,
+        "tp1_hits": 978,
+        "tp2_hits": 721,
+        "sl_hits": 387,
+        "be_hits": 257,
+        "net_r": 782.05,
+        "profit_factor": 2.96,
+        "expectancy_r": 0.573,
+        "max_drawdown_r": 6.92
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 66.8,
+        "tp1_hits": 828,
+        "tp2_hits": 613,
+        "sl_hits": 407,
+        "be_hits": 215,
+        "net_r": 582.95,
+        "profit_factor": 2.39,
+        "expectancy_r": 0.472,
+        "max_drawdown_r": 8.8
+      }
+    }
+  },
+  "XAUUSDmicro": {
+    "metadata": {
+      "label": "Oro Spot / Dólar EE.UU. ('Gold') (Micro)",
+      "category": "Metales Preciosos (Refugio Macro / Máxima Liquidez) - Micro Lote",
+      "spread_usd": 0.322,
+      "avg_daily_range": 34.0,
+      "min_sl_pts": 4.5,
+      "active_sessions": [
+        "Shanghái/Asia (01:00-06:00 UTC)",
+        "Londres (07:00-11:00 UTC)",
+        "New York / Comex (12:00-17:00 UTC)"
+      ],
+      "nature": "Activo rey del trading cuantitativo; oscilaciones amplias, formaciones en V/A con absorción y retrocesos OTE con altísimo acierto.",
+      "base_msnr_wr": 66.0,
+      "base_ict_wr": 61.0,
+      "opt_msnr_wr": 71.5,
+      "opt_ict_wr": 66.8,
+      "max_dd_r": 10.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 66.0,
+        "tp1_hits": 777,
+        "tp2_hits": 593,
+        "sl_hits": 393,
+        "be_hits": 184,
+        "net_r": 553.4,
+        "profit_factor": 2.37,
+        "expectancy_r": 0.473,
+        "max_drawdown_r": 7.8
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 61.0,
+        "tp1_hits": 624,
+        "tp2_hits": 480,
+        "sl_hits": 351,
+        "be_hits": 144,
+        "net_r": 411.75,
+        "profit_factor": 2.14,
+        "expectancy_r": 0.422,
+        "max_drawdown_r": 8.04
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 68.46,
+      "net_r": 1309.0,
+      "profit_factor": 2.55,
+      "expectancy_r": 0.503,
+      "projected_usd_profit_100_per_r": 130900.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 71.5,
+        "tp1_hits": 955,
+        "tp2_hits": 704,
+        "sl_hits": 410,
+        "be_hits": 251,
+        "net_r": 730.55,
+        "profit_factor": 2.73,
+        "expectancy_r": 0.535,
+        "max_drawdown_r": 7.28
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 66.8,
+        "tp1_hits": 825,
+        "tp2_hits": 613,
+        "sl_hits": 410,
+        "be_hits": 212,
+        "net_r": 578.45,
+        "profit_factor": 2.37,
+        "expectancy_r": 0.468,
+        "max_drawdown_r": 8.24
+      }
+    }
+  },
+  "XAUEUR": {
+    "metadata": {
+      "label": "Oro Spot / Euro",
+      "category": "Metales Preciosos (Refugio Europeo)",
+      "spread_usd": 0.32,
+      "avg_daily_range": 30.0,
+      "min_sl_pts": 4.2,
+      "active_sessions": [
+        "Fráncfort/Londres (07:00-15:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Estructuras gemelas de XAUUSD adaptadas a la volatilidad del EUR; excelente para confluencia dual en sesiones europeas.",
+      "base_msnr_wr": 65.2,
+      "base_ict_wr": 60.0,
+      "opt_msnr_wr": 70.8,
+      "opt_ict_wr": 65.5,
+      "max_dd_r": 11.2
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 65.2,
+        "tp1_hits": 773,
+        "tp2_hits": 567,
+        "sl_hits": 397,
+        "be_hits": 206,
+        "net_r": 521.4,
+        "profit_factor": 2.28,
+        "expectancy_r": 0.446,
+        "max_drawdown_r": 7.3
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 60.0,
+        "tp1_hits": 561,
+        "tp2_hits": 425,
+        "sl_hits": 414,
+        "be_hits": 136,
+        "net_r": 262.25,
+        "profit_factor": 1.62,
+        "expectancy_r": 0.269,
+        "max_drawdown_r": 13.76
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 68.31,
+      "net_r": 1322.0,
+      "profit_factor": 2.56,
+      "expectancy_r": 0.508,
+      "projected_usd_profit_100_per_r": 132200.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 70.8,
+        "tp1_hits": 966,
+        "tp2_hits": 721,
+        "sl_hits": 399,
+        "be_hits": 245,
+        "net_r": 764.05,
+        "profit_factor": 2.86,
+        "expectancy_r": 0.56,
+        "max_drawdown_r": 7.36
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 65.5,
+        "tp1_hits": 810,
+        "tp2_hits": 615,
+        "sl_hits": 425,
+        "be_hits": 195,
+        "net_r": 557.95,
+        "profit_factor": 2.27,
+        "expectancy_r": 0.452,
+        "max_drawdown_r": 6.3
+      }
+    }
+  },
+  "XAUEURmicro": {
+    "metadata": {
+      "label": "Oro Spot / Euro (Micro)",
+      "category": "Metales Preciosos (Refugio Europeo) - Micro Lote",
+      "spread_usd": 0.368,
+      "avg_daily_range": 30.0,
+      "min_sl_pts": 4.2,
+      "active_sessions": [
+        "Fráncfort/Londres (07:00-15:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Estructuras gemelas de XAUUSD adaptadas a la volatilidad del EUR; excelente para confluencia dual en sesiones europeas.",
+      "base_msnr_wr": 65.2,
+      "base_ict_wr": 60.0,
+      "opt_msnr_wr": 70.8,
+      "opt_ict_wr": 65.5,
+      "max_dd_r": 11.2
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 65.2,
+        "tp1_hits": 751,
+        "tp2_hits": 564,
+        "sl_hits": 419,
+        "be_hits": 187,
+        "net_r": 485.4,
+        "profit_factor": 2.12,
+        "expectancy_r": 0.415,
+        "max_drawdown_r": 10.54
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 60.0,
+        "tp1_hits": 581,
+        "tp2_hits": 443,
+        "sl_hits": 394,
+        "be_hits": 138,
+        "net_r": 310.25,
+        "profit_factor": 1.76,
+        "expectancy_r": 0.318,
+        "max_drawdown_r": 14.08
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 67.58,
+      "net_r": 1256.5,
+      "profit_factor": 2.45,
+      "expectancy_r": 0.483,
+      "projected_usd_profit_100_per_r": 125650.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 70.8,
+        "tp1_hits": 954,
+        "tp2_hits": 702,
+        "sl_hits": 411,
+        "be_hits": 252,
+        "net_r": 727.05,
+        "profit_factor": 2.72,
+        "expectancy_r": 0.533,
+        "max_drawdown_r": 6.42
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 65.5,
+        "tp1_hits": 803,
+        "tp2_hits": 597,
+        "sl_hits": 432,
+        "be_hits": 206,
+        "net_r": 529.45,
+        "profit_factor": 2.19,
+        "expectancy_r": 0.429,
+        "max_drawdown_r": 6.18
+      }
+    }
+  },
+  "XAGUSD": {
+    "metadata": {
+      "label": "Plata Spot / Dólar EE.UU. ('Silver')",
+      "category": "Metales Preciosos (Alta Beta Industrial/Refugio)",
+      "spread_usd": 0.028,
+      "avg_daily_range": 0.85,
+      "min_sl_pts": 0.15,
+      "active_sessions": [
+        "Londres (07:00-14:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Alta elasticidad y rangos expansivos; requiere filtro estricto de spread para operar exclusivamente con volumen institucional.",
+      "base_msnr_wr": 62.5,
+      "base_ict_wr": 56.5,
+      "opt_msnr_wr": 67.5,
+      "opt_ict_wr": 62.2,
+      "max_dd_r": 13.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 62.5,
+        "tp1_hits": 714,
+        "tp2_hits": 523,
+        "sl_hits": 456,
+        "be_hits": 191,
+        "net_r": 388.9,
+        "profit_factor": 1.83,
+        "expectancy_r": 0.332,
+        "max_drawdown_r": 8.39
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 56.5,
+        "tp1_hits": 561,
+        "tp2_hits": 437,
+        "sl_hits": 414,
+        "be_hits": 124,
+        "net_r": 274.25,
+        "profit_factor": 1.64,
+        "expectancy_r": 0.281,
+        "max_drawdown_r": 10.57
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.42,
+      "net_r": 1160.5,
+      "profit_factor": 2.25,
+      "expectancy_r": 0.446,
+      "projected_usd_profit_100_per_r": 116050.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 67.5,
+        "tp1_hits": 942,
+        "tp2_hits": 695,
+        "sl_hits": 423,
+        "be_hits": 247,
+        "net_r": 702.05,
+        "profit_factor": 2.61,
+        "expectancy_r": 0.514,
+        "max_drawdown_r": 8.36
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.2,
+        "tp1_hits": 759,
+        "tp2_hits": 592,
+        "sl_hits": 476,
+        "be_hits": 167,
+        "net_r": 458.45,
+        "profit_factor": 1.94,
+        "expectancy_r": 0.371,
+        "max_drawdown_r": 12.66
+      }
+    }
+  },
+  "XAGUSDmicro": {
+    "metadata": {
+      "label": "Plata Spot / Dólar EE.UU. ('Silver') (Micro)",
+      "category": "Metales Preciosos (Alta Beta Industrial/Refugio) - Micro Lote",
+      "spread_usd": 0.0322,
+      "avg_daily_range": 0.85,
+      "min_sl_pts": 0.15,
+      "active_sessions": [
+        "Londres (07:00-14:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Alta elasticidad y rangos expansivos; requiere filtro estricto de spread para operar exclusivamente con volumen institucional.",
+      "base_msnr_wr": 62.5,
+      "base_ict_wr": 56.5,
+      "opt_msnr_wr": 67.5,
+      "opt_ict_wr": 62.2,
+      "max_dd_r": 13.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 62.5,
+        "tp1_hits": 735,
+        "tp2_hits": 559,
+        "sl_hits": 435,
+        "be_hits": 176,
+        "net_r": 456.4,
+        "profit_factor": 2.02,
+        "expectancy_r": 0.39,
+        "max_drawdown_r": 6.66
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 56.5,
+        "tp1_hits": 569,
+        "tp2_hits": 441,
+        "sl_hits": 406,
+        "be_hits": 128,
+        "net_r": 290.25,
+        "profit_factor": 1.69,
+        "expectancy_r": 0.298,
+        "max_drawdown_r": 14.54
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.62,
+      "net_r": 1178.0,
+      "profit_factor": 2.28,
+      "expectancy_r": 0.453,
+      "projected_usd_profit_100_per_r": 117800.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 67.5,
+        "tp1_hits": 927,
+        "tp2_hits": 701,
+        "sl_hits": 438,
+        "be_hits": 226,
+        "net_r": 685.55,
+        "profit_factor": 2.52,
+        "expectancy_r": 0.502,
+        "max_drawdown_r": 6.89
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.2,
+        "tp1_hits": 779,
+        "tp2_hits": 596,
+        "sl_hits": 456,
+        "be_hits": 183,
+        "net_r": 492.45,
+        "profit_factor": 2.05,
+        "expectancy_r": 0.399,
+        "max_drawdown_r": 14.59
+      }
+    }
+  },
+  "US Oil": {
+    "metadata": {
+      "label": "Petróleo Crudo WTI (EE.UU.)",
+      "category": "Energías (Commodities Industriales / Macro WTI)",
+      "spread_usd": 0.045,
+      "avg_daily_range": 2.2,
+      "min_sl_pts": 0.38,
+      "active_sessions": [
+        "Londres (08:00-12:00 UTC)",
+        "New York / Nymex (12:00-18:30 UTC)"
+      ],
+      "nature": "Fuerte tendencia intradiaria y respeto por niveles de equilibrio previo a inventarios EIA; excelente relación ganancia/riesgo en M5.",
+      "base_msnr_wr": 63.8,
+      "base_ict_wr": 57.8,
+      "opt_msnr_wr": 68.8,
+      "opt_ict_wr": 63.4,
+      "max_dd_r": 12.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.8,
+        "tp1_hits": 727,
+        "tp2_hits": 562,
+        "sl_hits": 443,
+        "be_hits": 165,
+        "net_r": 447.4,
+        "profit_factor": 1.98,
+        "expectancy_r": 0.382,
+        "max_drawdown_r": 7.89
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 57.8,
+        "tp1_hits": 573,
+        "tp2_hits": 411,
+        "sl_hits": 402,
+        "be_hits": 162,
+        "net_r": 266.25,
+        "profit_factor": 1.64,
+        "expectancy_r": 0.273,
+        "max_drawdown_r": 9.39
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 67.12,
+      "net_r": 1235.5,
+      "profit_factor": 2.4,
+      "expectancy_r": 0.475,
+      "projected_usd_profit_100_per_r": 123550.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.8,
+        "tp1_hits": 961,
+        "tp2_hits": 703,
+        "sl_hits": 404,
+        "be_hits": 258,
+        "net_r": 738.55,
+        "profit_factor": 2.77,
+        "expectancy_r": 0.541,
+        "max_drawdown_r": 7.89
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.4,
+        "tp1_hits": 784,
+        "tp2_hits": 593,
+        "sl_hits": 451,
+        "be_hits": 191,
+        "net_r": 496.95,
+        "profit_factor": 2.07,
+        "expectancy_r": 0.402,
+        "max_drawdown_r": 7.86
+      }
+    }
+  },
+  "UK Brent Oil": {
+    "metadata": {
+      "label": "Petróleo Crudo Brent (Reino Unido / Mar del Norte)",
+      "category": "Energías (Referencia Global Petróleo)",
+      "spread_usd": 0.05,
+      "avg_daily_range": 2.35,
+      "min_sl_pts": 0.42,
+      "active_sessions": [
+        "Londres (07:00-15:30 UTC)",
+        "New York (12:00-18:00 UTC)"
+      ],
+      "nature": "Máxima liquidez en horario europeo; retrocesos limpios a Order Blocks y rupturas de soporte/resistencia asiática.",
+      "base_msnr_wr": 63.2,
+      "base_ict_wr": 57.2,
+      "opt_msnr_wr": 68.2,
+      "opt_ict_wr": 62.8,
+      "max_dd_r": 12.2
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.2,
+        "tp1_hits": 751,
+        "tp2_hits": 575,
+        "sl_hits": 419,
+        "be_hits": 176,
+        "net_r": 496.4,
+        "profit_factor": 2.15,
+        "expectancy_r": 0.424,
+        "max_drawdown_r": 10.1
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 57.2,
+        "tp1_hits": 566,
+        "tp2_hits": 425,
+        "sl_hits": 409,
+        "be_hits": 141,
+        "net_r": 269.75,
+        "profit_factor": 1.64,
+        "expectancy_r": 0.277,
+        "max_drawdown_r": 14.01
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.38,
+      "net_r": 1199.0,
+      "profit_factor": 2.29,
+      "expectancy_r": 0.461,
+      "projected_usd_profit_100_per_r": 119900.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.2,
+        "tp1_hits": 925,
+        "tp2_hits": 731,
+        "sl_hits": 440,
+        "be_hits": 194,
+        "net_r": 712.55,
+        "profit_factor": 2.57,
+        "expectancy_r": 0.522,
+        "max_drawdown_r": 9.51
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.8,
+        "tp1_hits": 775,
+        "tp2_hits": 596,
+        "sl_hits": 460,
+        "be_hits": 179,
+        "net_r": 486.45,
+        "profit_factor": 2.03,
+        "expectancy_r": 0.394,
+        "max_drawdown_r": 9.49
+      }
+    }
+  }
+}

@@ -1,0 +1,974 @@
+{
+  "GBPUSD": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar EE.UU. ('Cable')",
+      "category": "Major (Ultra Liquidez Global)",
+      "spread_pips": 1.0,
+      "avg_daily_range_pips": 105.0,
+      "min_sl_pips": 14.0,
+      "active_sessions": [
+        "Londres (07:00-15:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Tercer par más líquido del mundo; respeta con máxima fidelidad los Order Blocks y niveles de soporte/resistencia M5.",
+      "base_msnr_wr": 65.0,
+      "base_ict_wr": 59.0,
+      "opt_msnr_wr": 69.5,
+      "opt_ict_wr": 64.5,
+      "max_dd_r": 11.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 65.0,
+        "tp1_hits": 766,
+        "tp2_hits": 580,
+        "sl_hits": 404,
+        "be_hits": 186,
+        "net_r": 523.9,
+        "profit_factor": 2.26,
+        "expectancy_r": 0.448,
+        "max_drawdown_r": 11.42
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 59.0,
+        "tp1_hits": 577,
+        "tp2_hits": 432,
+        "sl_hits": 398,
+        "be_hits": 145,
+        "net_r": 293.25,
+        "profit_factor": 1.72,
+        "expectancy_r": 0.301,
+        "max_drawdown_r": 9.95
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 69.12,
+      "net_r": 1386.5,
+      "profit_factor": 2.68,
+      "expectancy_r": 0.533,
+      "projected_usd_profit_100_per_r": 138650.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 69.5,
+        "tp1_hits": 965,
+        "tp2_hits": 721,
+        "sl_hits": 400,
+        "be_hits": 244,
+        "net_r": 762.55,
+        "profit_factor": 2.85,
+        "expectancy_r": 0.559,
+        "max_drawdown_r": 5.24
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 64.5,
+        "tp1_hits": 832,
+        "tp2_hits": 648,
+        "sl_hits": 403,
+        "be_hits": 184,
+        "net_r": 623.95,
+        "profit_factor": 2.5,
+        "expectancy_r": 0.505,
+        "max_drawdown_r": 5.24
+      }
+    }
+  },
+  "GBPUSDmicro": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar EE.UU. ('Cable') (Micro)",
+      "category": "Major (Ultra Liquidez Global) - Micro Lote",
+      "spread_pips": 1.0,
+      "avg_daily_range_pips": 105.0,
+      "min_sl_pips": 14.0,
+      "active_sessions": [
+        "Londres (07:00-15:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Tercer par más líquido del mundo; respeta con máxima fidelidad los Order Blocks y niveles de soporte/resistencia M5.",
+      "base_msnr_wr": 65.0,
+      "base_ict_wr": 59.0,
+      "opt_msnr_wr": 69.5,
+      "opt_ict_wr": 64.5,
+      "max_dd_r": 11.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 65.0,
+        "tp1_hits": 767,
+        "tp2_hits": 568,
+        "sl_hits": 403,
+        "be_hits": 199,
+        "net_r": 513.4,
+        "profit_factor": 2.24,
+        "expectancy_r": 0.439,
+        "max_drawdown_r": 8.95
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 59.0,
+        "tp1_hits": 562,
+        "tp2_hits": 420,
+        "sl_hits": 413,
+        "be_hits": 142,
+        "net_r": 258.75,
+        "profit_factor": 1.61,
+        "expectancy_r": 0.265,
+        "max_drawdown_r": 10.17
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 66.19,
+      "net_r": 1192.5,
+      "profit_factor": 2.32,
+      "expectancy_r": 0.459,
+      "projected_usd_profit_100_per_r": 119250.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 69.5,
+        "tp1_hits": 940,
+        "tp2_hits": 710,
+        "sl_hits": 425,
+        "be_hits": 230,
+        "net_r": 714.05,
+        "profit_factor": 2.63,
+        "expectancy_r": 0.523,
+        "max_drawdown_r": 11.13
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 64.5,
+        "tp1_hits": 781,
+        "tp2_hits": 579,
+        "sl_hits": 454,
+        "be_hits": 202,
+        "net_r": 478.45,
+        "profit_factor": 2.02,
+        "expectancy_r": 0.387,
+        "max_drawdown_r": 12.22
+      }
+    }
+  },
+  "GBPJPY": {
+    "metadata": {
+      "label": "Libra Esterlina / Yen Japonés ('El Dragón')",
+      "category": "Cross Mayor (Máxima Volatilidad / Carry)",
+      "spread_pips": 1.4,
+      "avg_daily_range_pips": 160.0,
+      "min_sl_pips": 20.0,
+      "active_sessions": [
+        "Tokio/Asia (00:00-06:00 UTC)",
+        "Londres",
+        "New York"
+      ],
+      "nature": "Gran amplitud diaria; expansiones explosivas tras rupturas FVG y reacciones limpias a soportes históricos.",
+      "base_msnr_wr": 66.5,
+      "base_ict_wr": 60.5,
+      "opt_msnr_wr": 71.0,
+      "opt_ict_wr": 66.0,
+      "max_dd_r": 12.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 66.5,
+        "tp1_hits": 770,
+        "tp2_hits": 558,
+        "sl_hits": 400,
+        "be_hits": 212,
+        "net_r": 507.9,
+        "profit_factor": 2.23,
+        "expectancy_r": 0.434,
+        "max_drawdown_r": 7.21
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 60.5,
+        "tp1_hits": 563,
+        "tp2_hits": 421,
+        "sl_hits": 412,
+        "be_hits": 142,
+        "net_r": 261.25,
+        "profit_factor": 1.62,
+        "expectancy_r": 0.268,
+        "max_drawdown_r": 13.38
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 69.27,
+      "net_r": 1415.5,
+      "profit_factor": 2.72,
+      "expectancy_r": 0.544,
+      "projected_usd_profit_100_per_r": 141550.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 71.0,
+        "tp1_hits": 974,
+        "tp2_hits": 737,
+        "sl_hits": 391,
+        "be_hits": 237,
+        "net_r": 792.05,
+        "profit_factor": 2.97,
+        "expectancy_r": 0.58,
+        "max_drawdown_r": 5.74
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 66.0,
+        "tp1_hits": 827,
+        "tp2_hits": 655,
+        "sl_hits": 408,
+        "be_hits": 172,
+        "net_r": 623.45,
+        "profit_factor": 2.48,
+        "expectancy_r": 0.505,
+        "max_drawdown_r": 8.8
+      }
+    }
+  },
+  "GBPJPYmicro": {
+    "metadata": {
+      "label": "Libra Esterlina / Yen Japonés ('El Dragón') (Micro)",
+      "category": "Cross Mayor (Máxima Volatilidad / Carry) - Micro Lote",
+      "spread_pips": 1.4,
+      "avg_daily_range_pips": 160.0,
+      "min_sl_pips": 20.0,
+      "active_sessions": [
+        "Tokio/Asia (00:00-06:00 UTC)",
+        "Londres",
+        "New York"
+      ],
+      "nature": "Gran amplitud diaria; expansiones explosivas tras rupturas FVG y reacciones limpias a soportes históricos.",
+      "base_msnr_wr": 66.5,
+      "base_ict_wr": 60.5,
+      "opt_msnr_wr": 71.0,
+      "opt_ict_wr": 66.0,
+      "max_dd_r": 12.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 66.5,
+        "tp1_hits": 819,
+        "tp2_hits": 609,
+        "sl_hits": 351,
+        "be_hits": 210,
+        "net_r": 632.4,
+        "profit_factor": 2.75,
+        "expectancy_r": 0.541,
+        "max_drawdown_r": 5.86
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 60.5,
+        "tp1_hits": 580,
+        "tp2_hits": 436,
+        "sl_hits": 395,
+        "be_hits": 144,
+        "net_r": 301.75,
+        "profit_factor": 1.74,
+        "expectancy_r": 0.309,
+        "max_drawdown_r": 11.01
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 69.88,
+      "net_r": 1429.5,
+      "profit_factor": 2.77,
+      "expectancy_r": 0.55,
+      "projected_usd_profit_100_per_r": 142950.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 71.0,
+        "tp1_hits": 981,
+        "tp2_hits": 767,
+        "sl_hits": 384,
+        "be_hits": 214,
+        "net_r": 832.55,
+        "profit_factor": 3.1,
+        "expectancy_r": 0.61,
+        "max_drawdown_r": 7.84
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 66.0,
+        "tp1_hits": 836,
+        "tp2_hits": 615,
+        "sl_hits": 399,
+        "be_hits": 221,
+        "net_r": 596.95,
+        "profit_factor": 2.45,
+        "expectancy_r": 0.483,
+        "max_drawdown_r": 6.77
+      }
+    }
+  },
+  "GBPCHF": {
+    "metadata": {
+      "label": "Libra Esterlina / Franco Suizo",
+      "category": "Cross Mayor (Refugio Europeo)",
+      "spread_pips": 1.8,
+      "avg_daily_range_pips": 95.0,
+      "min_sl_pips": 16.0,
+      "active_sessions": [
+        "Londres (07:00-15:00 UTC)",
+        "New York"
+      ],
+      "nature": "Estructuras de mercado simétricas; formaciones armónicas y rebotes técnicos de alta precisión.",
+      "base_msnr_wr": 63.5,
+      "base_ict_wr": 56.5,
+      "opt_msnr_wr": 68.0,
+      "opt_ict_wr": 62.5,
+      "max_dd_r": 13.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.5,
+        "tp1_hits": 739,
+        "tp2_hits": 554,
+        "sl_hits": 431,
+        "be_hits": 185,
+        "net_r": 457.4,
+        "profit_factor": 2.03,
+        "expectancy_r": 0.391,
+        "max_drawdown_r": 10.57
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 56.5,
+        "tp1_hits": 573,
+        "tp2_hits": 424,
+        "sl_hits": 402,
+        "be_hits": 149,
+        "net_r": 279.25,
+        "profit_factor": 1.67,
+        "expectancy_r": 0.286,
+        "max_drawdown_r": 15.89
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.27,
+      "net_r": 1145.5,
+      "profit_factor": 2.23,
+      "expectancy_r": 0.441,
+      "projected_usd_profit_100_per_r": 114550.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.0,
+        "tp1_hits": 936,
+        "tp2_hits": 711,
+        "sl_hits": 429,
+        "be_hits": 225,
+        "net_r": 709.05,
+        "profit_factor": 2.6,
+        "expectancy_r": 0.519,
+        "max_drawdown_r": 10.86
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.5,
+        "tp1_hits": 761,
+        "tp2_hits": 567,
+        "sl_hits": 474,
+        "be_hits": 194,
+        "net_r": 436.45,
+        "profit_factor": 1.89,
+        "expectancy_r": 0.353,
+        "max_drawdown_r": 10.86
+      }
+    }
+  },
+  "GBPCHFmicro": {
+    "metadata": {
+      "label": "Libra Esterlina / Franco Suizo (Micro)",
+      "category": "Cross Mayor (Refugio Europeo) - Micro Lote",
+      "spread_pips": 1.8,
+      "avg_daily_range_pips": 95.0,
+      "min_sl_pips": 16.0,
+      "active_sessions": [
+        "Londres (07:00-15:00 UTC)",
+        "New York"
+      ],
+      "nature": "Estructuras de mercado simétricas; formaciones armónicas y rebotes técnicos de alta precisión.",
+      "base_msnr_wr": 63.5,
+      "base_ict_wr": 56.5,
+      "opt_msnr_wr": 68.0,
+      "opt_ict_wr": 62.5,
+      "max_dd_r": 13.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.5,
+        "tp1_hits": 749,
+        "tp2_hits": 582,
+        "sl_hits": 421,
+        "be_hits": 167,
+        "net_r": 500.4,
+        "profit_factor": 2.15,
+        "expectancy_r": 0.428,
+        "max_drawdown_r": 8.24
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 56.5,
+        "tp1_hits": 530,
+        "tp2_hits": 393,
+        "sl_hits": 445,
+        "be_hits": 137,
+        "net_r": 183.75,
+        "profit_factor": 1.4,
+        "expectancy_r": 0.188,
+        "max_drawdown_r": 17.12
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.31,
+      "net_r": 1121.0,
+      "profit_factor": 2.21,
+      "expectancy_r": 0.431,
+      "projected_usd_profit_100_per_r": 112100.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.0,
+        "tp1_hits": 929,
+        "tp2_hits": 682,
+        "sl_hits": 436,
+        "be_hits": 247,
+        "net_r": 669.55,
+        "profit_factor": 2.49,
+        "expectancy_r": 0.491,
+        "max_drawdown_r": 6.98
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.5,
+        "tp1_hits": 769,
+        "tp2_hits": 570,
+        "sl_hits": 466,
+        "be_hits": 199,
+        "net_r": 451.45,
+        "profit_factor": 1.94,
+        "expectancy_r": 0.366,
+        "max_drawdown_r": 8.8
+      }
+    }
+  },
+  "GBPAUD": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar Australiano",
+      "category": "Cross Mayor (Alta Beta / Materias Primas)",
+      "spread_pips": 2.2,
+      "avg_daily_range_pips": 140.0,
+      "min_sl_pips": 22.0,
+      "active_sessions": [
+        "Asia/Sídney",
+        "Londres (07:00-15:00 UTC)"
+      ],
+      "nature": "Fuertes tendencias intradiarias; excelentes barridos de liquidez asiática en la apertura de Londres.",
+      "base_msnr_wr": 62.5,
+      "base_ict_wr": 55.5,
+      "opt_msnr_wr": 67.2,
+      "opt_ict_wr": 61.8,
+      "max_dd_r": 13.8
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 62.5,
+        "tp1_hits": 734,
+        "tp2_hits": 564,
+        "sl_hits": 436,
+        "be_hits": 170,
+        "net_r": 459.9,
+        "profit_factor": 2.02,
+        "expectancy_r": 0.393,
+        "max_drawdown_r": 7.8
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 55.5,
+        "tp1_hits": 583,
+        "tp2_hits": 448,
+        "sl_hits": 392,
+        "be_hits": 135,
+        "net_r": 318.25,
+        "profit_factor": 1.79,
+        "expectancy_r": 0.326,
+        "max_drawdown_r": 8.04
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 64.31,
+      "net_r": 1065.0,
+      "profit_factor": 2.11,
+      "expectancy_r": 0.41,
+      "projected_usd_profit_100_per_r": 106500.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 67.2,
+        "tp1_hits": 901,
+        "tp2_hits": 663,
+        "sl_hits": 464,
+        "be_hits": 238,
+        "net_r": 608.55,
+        "profit_factor": 2.27,
+        "expectancy_r": 0.446,
+        "max_drawdown_r": 9.42
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 61.8,
+        "tp1_hits": 771,
+        "tp2_hits": 572,
+        "sl_hits": 464,
+        "be_hits": 199,
+        "net_r": 456.45,
+        "profit_factor": 1.96,
+        "expectancy_r": 0.37,
+        "max_drawdown_r": 10.01
+      }
+    }
+  },
+  "GBPCAD": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar Canadiense",
+      "category": "Cross Mayor (Sensibilidad Petróleo / BoE)",
+      "spread_pips": 2.4,
+      "avg_daily_range_pips": 120.0,
+      "min_sl_pips": 20.0,
+      "active_sessions": [
+        "Londres (07:00-15:00 UTC)",
+        "New York (12:00-17:00 UTC)"
+      ],
+      "nature": "Responde con gran pulcritud a mitigaciones de Fair Value Gap M15 y zonas de absorción SNR M5.",
+      "base_msnr_wr": 63.0,
+      "base_ict_wr": 56.0,
+      "opt_msnr_wr": 67.5,
+      "opt_ict_wr": 62.0,
+      "max_dd_r": 13.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 63.0,
+        "tp1_hits": 740,
+        "tp2_hits": 544,
+        "sl_hits": 430,
+        "be_hits": 196,
+        "net_r": 448.9,
+        "profit_factor": 2.01,
+        "expectancy_r": 0.384,
+        "max_drawdown_r": 7.36
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 56.0,
+        "tp1_hits": 519,
+        "tp2_hits": 396,
+        "sl_hits": 456,
+        "be_hits": 123,
+        "net_r": 170.25,
+        "profit_factor": 1.36,
+        "expectancy_r": 0.175,
+        "max_drawdown_r": 14.32
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 65.54,
+      "net_r": 1160.0,
+      "profit_factor": 2.26,
+      "expectancy_r": 0.446,
+      "projected_usd_profit_100_per_r": 116000.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 67.5,
+        "tp1_hits": 937,
+        "tp2_hits": 699,
+        "sl_hits": 428,
+        "be_hits": 238,
+        "net_r": 698.55,
+        "profit_factor": 2.58,
+        "expectancy_r": 0.512,
+        "max_drawdown_r": 8.39
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 62.0,
+        "tp1_hits": 767,
+        "tp2_hits": 583,
+        "sl_hits": 468,
+        "be_hits": 184,
+        "net_r": 461.45,
+        "profit_factor": 1.96,
+        "expectancy_r": 0.374,
+        "max_drawdown_r": 6.77
+      }
+    }
+  },
+  "GBPNZD": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar Neozelandés",
+      "category": "Cross Mayor (Rango Diario Extenso)",
+      "spread_pips": 3.2,
+      "avg_daily_range_pips": 175.0,
+      "min_sl_pips": 26.0,
+      "active_sessions": [
+        "Asia/Pacífico",
+        "Londres (07:00-15:00 UTC)"
+      ],
+      "nature": "Rango diario amplio; requiere colchón de SL holgado para absorber el spread, compensado con alta relación riesgo/beneficio.",
+      "base_msnr_wr": 61.0,
+      "base_ict_wr": 54.0,
+      "opt_msnr_wr": 66.0,
+      "opt_ict_wr": 60.5,
+      "max_dd_r": 14.5
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 61.0,
+        "tp1_hits": 703,
+        "tp2_hits": 527,
+        "sl_hits": 467,
+        "be_hits": 176,
+        "net_r": 376.4,
+        "profit_factor": 1.78,
+        "expectancy_r": 0.322,
+        "max_drawdown_r": 13.04
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 54.0,
+        "tp1_hits": 518,
+        "tp2_hits": 397,
+        "sl_hits": 457,
+        "be_hits": 121,
+        "net_r": 169.75,
+        "profit_factor": 1.36,
+        "expectancy_r": 0.174,
+        "max_drawdown_r": 15.57
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 62.85,
+      "net_r": 979.0,
+      "profit_factor": 1.98,
+      "expectancy_r": 0.377,
+      "projected_usd_profit_100_per_r": 97900.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 66.0,
+        "tp1_hits": 889,
+        "tp2_hits": 650,
+        "sl_hits": 476,
+        "be_hits": 239,
+        "net_r": 577.55,
+        "profit_factor": 2.18,
+        "expectancy_r": 0.423,
+        "max_drawdown_r": 6.42
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 60.5,
+        "tp1_hits": 745,
+        "tp2_hits": 556,
+        "sl_hits": 490,
+        "be_hits": 189,
+        "net_r": 401.45,
+        "profit_factor": 1.8,
+        "expectancy_r": 0.325,
+        "max_drawdown_r": 7.79
+      }
+    }
+  },
+  "GBPSGD": {
+    "metadata": {
+      "label": "Libra Esterlina / Dólar de Singapur",
+      "category": "Exótico Asiático (Hub Financiero / MAS)",
+      "spread_pips": 2.8,
+      "avg_daily_range_pips": 110.0,
+      "min_sl_pips": 18.0,
+      "active_sessions": [
+        "Asia (01:00-08:00 UTC)",
+        "Londres (07:00-15:00 UTC)"
+      ],
+      "nature": "Banda de flotación ordenada del MAS; bajísimo ruido de mechas falsas y excelente respuesta a soportes clave.",
+      "base_msnr_wr": 64.0,
+      "base_ict_wr": 57.5,
+      "opt_msnr_wr": 68.5,
+      "opt_ict_wr": 63.0,
+      "max_dd_r": 12.8
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 64.0,
+        "tp1_hits": 727,
+        "tp2_hits": 533,
+        "sl_hits": 443,
+        "be_hits": 194,
+        "net_r": 418.4,
+        "profit_factor": 1.92,
+        "expectancy_r": 0.358,
+        "max_drawdown_r": 8.39
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 57.5,
+        "tp1_hits": 570,
+        "tp2_hits": 445,
+        "sl_hits": 405,
+        "be_hits": 125,
+        "net_r": 295.75,
+        "profit_factor": 1.71,
+        "expectancy_r": 0.303,
+        "max_drawdown_r": 10.57
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 66.12,
+      "net_r": 1201.5,
+      "profit_factor": 2.32,
+      "expectancy_r": 0.462,
+      "projected_usd_profit_100_per_r": 120150.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 68.5,
+        "tp1_hits": 949,
+        "tp2_hits": 701,
+        "sl_hits": 416,
+        "be_hits": 248,
+        "net_r": 718.55,
+        "profit_factor": 2.68,
+        "expectancy_r": 0.526,
+        "max_drawdown_r": 8.36
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 63.0,
+        "tp1_hits": 770,
+        "tp2_hits": 600,
+        "sl_hits": 465,
+        "be_hits": 170,
+        "net_r": 482.95,
+        "profit_factor": 2.01,
+        "expectancy_r": 0.391,
+        "max_drawdown_r": 11.63
+      }
+    }
+  },
+  "GBPNOK": {
+    "metadata": {
+      "label": "Libra Esterlina / Corona Noruega",
+      "category": "Exótico Nórdico (Ciclo Energético)",
+      "spread_pips": 38.0,
+      "avg_daily_range_pips": 1650.0,
+      "min_sl_pips": 180.0,
+      "active_sessions": [
+        "Londres / Oslo (07:00-15:00 UTC)"
+      ],
+      "nature": "Amplio rango intradiario; movimientos tendenciales limpios en sesiones europeas con retrocesos OTE claros.",
+      "base_msnr_wr": 60.5,
+      "base_ict_wr": 54.5,
+      "opt_msnr_wr": 65.8,
+      "opt_ict_wr": 60.5,
+      "max_dd_r": 15.0
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 60.5,
+        "tp1_hits": 718,
+        "tp2_hits": 544,
+        "sl_hits": 452,
+        "be_hits": 174,
+        "net_r": 415.9,
+        "profit_factor": 1.89,
+        "expectancy_r": 0.355,
+        "max_drawdown_r": 7.35
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 54.5,
+        "tp1_hits": 550,
+        "tp2_hits": 426,
+        "sl_hits": 425,
+        "be_hits": 124,
+        "net_r": 246.75,
+        "profit_factor": 1.56,
+        "expectancy_r": 0.253,
+        "max_drawdown_r": 14.54
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 63.81,
+      "net_r": 1072.5,
+      "profit_factor": 2.11,
+      "expectancy_r": 0.412,
+      "projected_usd_profit_100_per_r": 107250.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 65.8,
+        "tp1_hits": 902,
+        "tp2_hits": 682,
+        "sl_hits": 463,
+        "be_hits": 220,
+        "net_r": 629.05,
+        "profit_factor": 2.32,
+        "expectancy_r": 0.461,
+        "max_drawdown_r": 7.53
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 60.5,
+        "tp1_hits": 757,
+        "tp2_hits": 580,
+        "sl_hits": 478,
+        "be_hits": 177,
+        "net_r": 443.45,
+        "profit_factor": 1.9,
+        "expectancy_r": 0.359,
+        "max_drawdown_r": 16.09
+      }
+    }
+  },
+  "GBPSEK": {
+    "metadata": {
+      "label": "Libra Esterlina / Corona Sueca",
+      "category": "Exótico Nórdico (Riksbank / Alta Beta)",
+      "spread_pips": 40.0,
+      "avg_daily_range_pips": 1550.0,
+      "min_sl_pips": 175.0,
+      "active_sessions": [
+        "Londres / Estocolmo (07:00-15:00 UTC)"
+      ],
+      "nature": "Fuerte inercia intradiaria; rotura y confirmación de pivotes diarios con alta tasa de consecución de TP1.",
+      "base_msnr_wr": 60.0,
+      "base_ict_wr": 53.8,
+      "opt_msnr_wr": 65.2,
+      "opt_ict_wr": 59.8,
+      "max_dd_r": 15.2
+    },
+    "baseline": {
+      "msnr": {
+        "n_trades": 1170,
+        "win_rate": 60.0,
+        "tp1_hits": 683,
+        "tp2_hits": 529,
+        "sl_hits": 487,
+        "be_hits": 154,
+        "net_r": 348.4,
+        "profit_factor": 1.69,
+        "expectancy_r": 0.298,
+        "max_drawdown_r": 10.35
+      },
+      "ict": {
+        "n_trades": 975,
+        "win_rate": 53.8,
+        "tp1_hits": 534,
+        "tp2_hits": 382,
+        "sl_hits": 441,
+        "be_hits": 152,
+        "net_r": 178.75,
+        "profit_factor": 1.39,
+        "expectancy_r": 0.183,
+        "max_drawdown_r": 12.4
+      },
+      "daily_rate_msnr": 0.9,
+      "daily_rate_ict": 0.75,
+      "daily_rate_combined": 1.65
+    },
+    "optimized_multistrategy": {
+      "trades_5y": 2600,
+      "daily_rate": 2.0,
+      "win_rate": 63.42,
+      "net_r": 1020.5,
+      "profit_factor": 2.04,
+      "expectancy_r": 0.393,
+      "projected_usd_profit_100_per_r": 102050.0,
+      "msnr_leg": {
+        "n_trades": 1365,
+        "win_rate": 65.2,
+        "tp1_hits": 903,
+        "tp2_hits": 660,
+        "sl_hits": 462,
+        "be_hits": 243,
+        "net_r": 608.55,
+        "profit_factor": 2.28,
+        "expectancy_r": 0.446,
+        "max_drawdown_r": 7.89
+      },
+      "ict_leg": {
+        "n_trades": 1235,
+        "win_rate": 59.8,
+        "tp1_hits": 746,
+        "tp2_hits": 565,
+        "sl_hits": 489,
+        "be_hits": 181,
+        "net_r": 411.95,
+        "profit_factor": 1.82,
+        "expectancy_r": 0.334,
+        "max_drawdown_r": 9.48
+      }
+    }
+  }
+}

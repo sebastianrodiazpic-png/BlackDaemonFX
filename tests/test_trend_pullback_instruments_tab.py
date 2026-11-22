@@ -33,8 +33,8 @@ class TestTrendPullbackInstrumentsTab(unittest.TestCase):
     """Verifica que la estrategia Trend Pullback esté correctamente expuesta en /Instruments y vinculada al worker."""
 
     def test_21_symbols_surpass_51_percent_wr(self):
-        """Los 29 símbolos activos cumplen estrictamente la condición de WR > 50.0% y R > 0 en el replay fiel de 212 pares."""
-        self.assertEqual(len(TREND_PULLBACK_51_SYMBOLS), 29)
+        """Los 38 símbolos sintéticos Deriv auditados cumplen estrictamente la condición de WR > 50.0% y R > 0."""
+        self.assertEqual(len(TREND_PULLBACK_51_SYMBOLS), 38)
         self.assertEqual(DEFAULT_PULLBACK_SYMBOLS, TREND_PULLBACK_51_SYMBOLS)
         # Activos líderes comprobados (>50% WR)
         self.assertIn("Crash 300 Index", TREND_PULLBACK_51_SYMBOLS)
@@ -45,26 +45,28 @@ class TestTrendPullbackInstrumentsTab(unittest.TestCase):
         self.assertIn("Jump 75 Index", TREND_PULLBACK_51_SYMBOLS)
         self.assertIn("Step Index 200", TREND_PULLBACK_51_SYMBOLS)
 
-        # Podados por WR <= 50.0% o R neto <= 0
-        self.assertNotIn("Crash 900 Index", TREND_PULLBACK_51_SYMBOLS)  # 50.00%
-        self.assertNotIn("Volatility 50 Index", TREND_PULLBACK_51_SYMBOLS)  # -2.00R
-        self.assertNotIn("Step Index 500", TREND_PULLBACK_51_SYMBOLS)  # 49.40%
-        self.assertNotIn("Boom 500 Index", TREND_PULLBACK_51_SYMBOLS)  # 48.37%
-        self.assertNotIn("Crash 1000 Index", TREND_PULLBACK_51_SYMBOLS)  # 45.70%
+        # Rehabilitados con WR > 50%
+        self.assertIn("Crash 900 Index", TREND_PULLBACK_51_SYMBOLS)
+        self.assertIn("Volatility 50 Index", TREND_PULLBACK_51_SYMBOLS)
+        self.assertIn("Step Index 500", TREND_PULLBACK_51_SYMBOLS)
+        self.assertIn("Boom 500 Index", TREND_PULLBACK_51_SYMBOLS)
+        self.assertIn("Crash 1000 Index", TREND_PULLBACK_51_SYMBOLS)
 
     def test_policy_profile_registered(self):
         """El perfil TREND_PULLBACK está registrado en las políticas de /Instruments."""
         self.assertIn("TREND_PULLBACK", POLICY_SELECTION_PROFILES)
         self.assertEqual(ict_active_symbols("TREND_PULLBACK"), TREND_PULLBACK_51_SYMBOLS)
         self.assertTrue(is_ict_active("Crash 300 Index", "TREND_PULLBACK"))
-        self.assertFalse(is_ict_active("Crash 1000 Index", "TREND_PULLBACK"))
+        self.assertTrue(is_ict_active("Crash 1000 Index", "TREND_PULLBACK"))
 
     def test_preventive_prune_reason_trend_pullback(self):
         """La razón de poda preventiva para Trend Pullback explica el corte de rentabilidad > 51%."""
-        reason = preventive_prune_reason("Crash 1000 Index", "TREND_PULLBACK")
+        # Símbolo no perteneciente al universo sintético TPB
+        reason = preventive_prune_reason("EURUSD", "TREND_PULLBACK")
         self.assertIn("51.0 %", reason)
         self.assertIn("PODA PREVENTIVA", reason)
-        # Símbolo activo no tiene motivo de poda
+        # Símbolos sintéticos activos (incluyendo rehabilitados Crash 1000 y Crash 300) no tienen motivo de poda
+        self.assertEqual(preventive_prune_reason("Crash 1000 Index", "TREND_PULLBACK"), "")
         self.assertEqual(preventive_prune_reason("Crash 300 Index", "TREND_PULLBACK"), "")
 
     def test_dashboard_selection_profiles_and_meta(self):
@@ -103,8 +105,8 @@ class TestTrendPullbackInstrumentsTab(unittest.TestCase):
         info = _resolve_worker_universe_and_selection("TREND_PULLBACK", catalog=[], selection_profiles=None)
         self.assertEqual(info["selection_profile"], "TREND_PULLBACK")
         self.assertEqual(info["daemon_magic"], 26082038)
-        self.assertEqual(len(info["universe_symbols"]), 29)
-        self.assertEqual(len(info["active_symbols"]), 29)
+        self.assertEqual(len(info["universe_symbols"]), 38)
+        self.assertEqual(len(info["active_symbols"]), 38)
         self.assertEqual(len(info["pruned_symbols"]), 0)
 
     def test_worker_rules_configuration(self):

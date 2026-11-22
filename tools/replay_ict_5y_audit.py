@@ -1,4 +1,4 @@
-"""Replay fiel de 5 años (oct-2021 → oct-2026) de ICT Sabri Malle sobre todos los instrumentos seleccionados y en poda.
+"""Replay fiel de 5 años (oct-2021 → oct-2026) de ICT sobre todos los instrumentos seleccionados y en poda.
 
 Reutiliza las señales fieles ya calculadas con ICTSabriMalleStrategy en Y1 (oct-2025 → oct-2026) e Y0 (oct-2024 → oct-2025)
 y ejecuta la clase real ICTSabriMalleStrategy en los años anteriores hasta 5 años atrás (oct-2021 → oct-2024, más Y0 para

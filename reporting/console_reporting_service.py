@@ -279,6 +279,13 @@ class ConsoleReportingService:
             reason = self._reason(row)
             if reason and reason != action:
                 print(f"    Motivo: {reason}", flush=True)
+            try:
+                from strategy.execution.order_check_summary import format_order_check_line
+                oc_line = format_order_check_line(row)
+                if oc_line:
+                    print(f"    {oc_line}", flush=True)
+            except Exception:
+                pass
             if str(row.get("action") or "") in {"ORDER_OPENED", "SPLIT_ORDER_OPENED", "DRY_RUN_VALIDATED"}:
                 self._print_trade_fields(row)
             self._print_confirmation_diag(row)

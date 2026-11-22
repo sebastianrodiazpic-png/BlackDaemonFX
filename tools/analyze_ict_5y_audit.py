@@ -1,4 +1,4 @@
-"""Análisis cuantitativo de 5 años del replay fiel de ICT Sabri Malle.
+"""Análisis cuantitativo de 5 años del replay fiel de ICT.
 
 Evalúa sobre `storage/analysis/ict_5y_signals_complete.csv`:
 1. Desempeño de todos los instrumentos (activos y en poda) aplicando el spread real de ticks y el tope de spread/SL del motor.

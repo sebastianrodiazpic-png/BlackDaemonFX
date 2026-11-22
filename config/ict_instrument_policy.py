@@ -16,6 +16,7 @@ Variables de entorno (se leen al importar):
 - DAEMONBLACKFX_CONSOLIDATE_ACTIVE_PRUNED_WORKERS=0 vuelve al reparto en 4 shards de Volatility y Forex.
 - DAEMONBLACKFX_ICT_UNPRUNE_SYNTHETICS=0 vuelve a las listas de sintéticos anteriores a la liberación.
 - DAEMONBLACKFX_SYNTH_WR45_PRUNE=0 desactiva la poda por acierto <= 45 % (config/synth_wr45.py).
+- DAEMONBLACKFX_ICT_FOREX_50_RESCUE=0 vuelve a podar los 13 cruces Forex con WR >= 50 % en /Strategy-bases ICT (11-nov-2026).
 - DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY=0 deja de podar los mercados reales en Malaysian SNR (como el motor).
 """
 from __future__ import annotations
@@ -27,8 +28,9 @@ from strategy.trend_pullback.config import TREND_PULLBACK_51_SYMBOLS
 
 PREVENTIVE_PRUNE_LABEL = "PODA PREVENTIVA"
 ICT_SELECTION_PROFILES = ("SYNTHETICS", "FOREX", "ICT")
-# Pestañas de /Instruments gobernadas por esta política (ICT + Malaysian SNR + Trend Pullback).
-POLICY_SELECTION_PROFILES = (*ICT_SELECTION_PROFILES, "MALAYSIAN_SNR", "TREND_PULLBACK")
+# Pestañas de /Instruments gobernadas por esta política (Sintéticos, Forex, Materias Primas/Cripto, Índices Bursátiles).
+# Malaysian SNR, Forex SNR, Commodities SNR y Trend Pullback retirados al estar cubiertos internamente o eliminados.
+POLICY_SELECTION_PROFILES = (*ICT_SELECTION_PROFILES, "INDICESB_SNR")
 
 _UNPRUNE_SYNTHETICS = os.getenv("DAEMONBLACKFX_ICT_UNPRUNE_SYNTHETICS", "1").strip().lower() not in ("0", "false", "off")
 ICT_5Y_AUDIT_ENABLED = os.getenv("DAEMONBLACKFX_ICT_5Y_AUDIT", "1").strip().lower() not in ("0", "false", "off")
@@ -44,54 +46,91 @@ CONSOLIDATE_ACTIVE_PRUNED_WORKERS = (
 # Todos los instrumentos con WR > 47% en el replay fiel de 5 años.
 ICT_5Y_RESCUED_SYNTHETICS = (
     (
+        "Jump 10 Index",
         "Jump 25 Index",
-        "Volatility 25 Index",
-        "Step Index",
-        "Crash 300 Index",
-        "Crash 600 Index",
-        "Crash 900 Index",
+        "Jump 50 Index",
+        "Jump 75 Index",
+        "Jump 100 Index",
         "Boom 300 Index",
         "Boom 500 Index",
+        "Boom 600 Index",
+        "Boom 900 Index",
         "Boom 1000 Index",
-        "Vol over Boom 550",
-        "Vol over Crash 550",
-        "Volatility Boom 550 Index",
-        "Volatility Crash 550 Index",
+        "Crash 500 Index",
+        "Crash 900 Index",
+        "Crash 1000 Index",
+        "Volatility 5 Index",
+        "Volatility 10 Index",
         "Volatility 50 Index",
+        "Volatility 75 Index",
+        "Volatility 90 Index",
         "Volatility 100 Index",
-        "Jump 50 Index",
+        "Volatility 5 (1s) Index",
+        "Volatility 10 (1s) Index",
+        "Volatility 15 (1s) Index",
+        "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 90 (1s) Index",
+        "Volatility 100 (1s) Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 250 (1s) Index",
+        "Step Index 200",
+        "Step Index 400",
+        "Step Index 500",
+        "Step Index",
+        "Step Index 300",
+        "Step Index 1000",
+        "Step Index 1500",
+        "Step Index 2000",
+        "High Frequency Vol 10 Index",
+        "High Frequency Vol 25 Index",
+        "High Frequency Vol 50 Index",
+        "High Frequency Vol 75 Index",
+        "High Frequency Vol 100 Index",
+        "Ladder Volatility Down Index",
+        "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index",
+        "VolSwitch Medium Vol Index",
         "Wall Street 30",
-        "VolSwitch High Vol Index",
         "BTCUSD",
         "BTCUSDmicro",
         "microBTCUSD",
-        "XAUEUR",
-        "XAUEURmicro",
-        "microXAUEUR",
+        "UK Brent Oil",
+        "Germany 40",
     )
     if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
     else ()
 )
 
-# Poda multianual 5 años en sintéticos: activos con WR <= 50.0 % o R neto <= 0 en el replay fiel de 212 pares.
+# Poda multianual 5 años en sintéticos: activos con WR <= 50.0 % o R neto <= 0, o podados explícitamente por el operador
 ICT_5Y_SYNTH_PRUNED = (
-    (
-        "Crash 1000 Index",             # WR = 49.81 %, -5.50 R
-        "Volatility 90 (1s) Index",     # WR = 48.78 %, -5.43 R
-        "High Frequency Vol 50 Index",  # R neto = -2.50 R (asimetría SL/TP negativa)
-    )
-    if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
-    else ()
+    "Crash 300 Index",
+    "Crash 600 Index",
+    "Volatility 15 Index",
+    "Volatility 25 Index",
+    "Volatility 50 (1s) Index",
+    "Vol over Boom 550",
+    "Vol over Crash 550",
+    "Volatility Boom 400 Index",
+    "Volatility Boom 550 Index",
+    "Volatility Boom 750 Index",
+    "Volatility Crash 400 Index",
+    "Volatility Crash 550 Index",
+    "Volatility Crash 750 Index",
+    "VolSwitch High Vol Index",
 )
 
 ICT_5Y_MARKETS_PRUNED = (
-    ("US SP 500",)
-    if (ICT_5Y_AUDIT_ENABLED and _UNPRUNE_SYNTHETICS)
-    else ()
+    "US SP 500",
+    "XAUEUR", "XAUEURmicro", "microXAUEUR",
+    "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+    "ETHUSD", "ETHUSDmicro", "microETHUSD", "ETHmicro",
+    "XRPUSD",
 )
 
 # Fase 1 (18-oct-2026) + actualización 5 años con 6 mejoras (26-oct-2026):
-_BASE_PHASE1_EXCLUDED = ("Step Index", "Jump 25 Index", "Volatility 25 Index", "Wall Street 30", "XAGUSD", "XAGUSDmicro", "microXAGUSD")
+_BASE_PHASE1_EXCLUDED = ("Step Index", "Jump 25 Index", "Volatility 25 Index", "Wall Street 30")
 ICT_PHASE1_EXCLUDED = (
     tuple(s for s in _BASE_PHASE1_EXCLUDED if s not in set(ICT_5Y_RESCUED_SYNTHETICS)) + ICT_5Y_MARKETS_PRUNED
 )
@@ -115,8 +154,9 @@ def _keep(*symbols):
 # Sintéticos ICT por familia de worker (replay fiel 5 años con 6 mejoras y WR > 47 %):
 # 34 activos con WR > 47% (+500.1 R acumulados en los 29 con R > 0, WR = 53.43%).
 ICT_SYNTHETIC_FAMILIES = {
-    "STEP": _keep("Step Index 200", "Step Index", "Step Index 400", "Step Index 500"),
-    "JUMP": _keep("Jump 50 Index", "Jump 75 Index", "Jump 10 Index", "Jump 25 Index"),
+    "STEP": _keep("Step Index 200", "Step Index 400", "Step Index 500"),
+    "STEP_2": _keep("Step Index", "Step Index 300", "Step Index 1000", "Step Index 1500", "Step Index 2000"),
+    "JUMP": _keep("Jump 50 Index", "Jump 75 Index", "Jump 10 Index", "Jump 25 Index", "Jump 100 Index"),
     "VOLATILITY": _keep(
         "Volatility 25 Index", "VolSwitch High Vol Index", "Volatility 90 Index", "Volatility 100 (1s) Index",
         "Volatility 10 Index", "Volatility 15 Index", "Volatility 5 Index", "Volatility 250 (1s) Index",
@@ -124,35 +164,61 @@ ICT_SYNTHETIC_FAMILIES = {
         "Volatility 50 Index", "Volatility 150 (1s) Index", "Volatility 75 Index",
         "Vol over Boom 550", "Vol over Crash 550", "Volatility Boom 550 Index", "Volatility Crash 550 Index", "Volatility 100 Index",
         "Volatility 90 (1s) Index", "High Frequency Vol 50 Index",
+        "High Frequency Vol 10 Index", "High Frequency Vol 25 Index", "High Frequency Vol 75 Index",
+        "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
+        "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
     ),
-    "BOOM": _keep("Boom 900 Index", "Boom 600 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 500 Index"),
-    "CRASH": _keep("Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index", "Crash 1000 Index"),
+    "BOOM": _keep(
+        "Boom 1000 Index", "Boom 300 Index", "Boom 500 Index", "Boom 600 Index", "Boom 900 Index",
+        "Volatility Boom 400 Index", "Volatility Boom 750 Index",
+    ),
+    "CRASH": _keep(
+        "Crash 1000 Index", "Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index",
+        "Volatility Crash 400 Index", "Volatility Crash 550 Index", "Volatility Crash 750 Index",
+    ),
 }
 
 # Universos de Volatility separados en Worker Activo (VOLATILITY_1) y Worker Podado OFF (VOLATILITY_2).
 ICT_VOLATILITY_ACTIVE_SYMBOLS = ICT_SYNTHETIC_FAMILIES["VOLATILITY"]
-ICT_VOLATILITY_PRUNED_SYMBOLS = (
-    "Volatility 90 (1s) Index",
-    "High Frequency Vol 50 Index",
-)
+ICT_VOLATILITY_PRUNED_SYMBOLS = ()
 
 # Forex: los 8 pares con WR > 50.0 % y R neto > 0 en el replay fiel auditado de 212 pares operados por FOREX_1;
 # el resto queda en FOREX_2 (desactivado por defecto, activable de forma selectiva desde /Instruments).
-ICT_FOREX_ACTIVE_BASES = (
-    ("GBPUSD", "NZDUSD", "CHFJPY", "EURJPY", "EURCHF", "USDCHF", "GBPJPY", "CADCHF")
-    if ICT_5Y_AUDIT_ENABLED
-    else ("EURUSD", "USDJPY", "GBPUSD", "USDCAD", "USDCHF", "GBPCAD", "AUDUSD")
+# 11-nov-2026: cruces Forex con acierto >= 50 % en /Strategy-bases (pestaña ICT) liberados de la poda.
+# DAEMONBLACKFX_ICT_FOREX_50_RESCUE=0 los devuelve a FOREX_2 (podados OFF).
+ICT_FOREX_50_RESCUE_ENABLED = (
+    os.getenv("DAEMONBLACKFX_ICT_FOREX_50_RESCUE", "0").strip().lower() in ("1", "true", "on")
 )
-ICT_FOREX_ACTIVE = tuple(ICT_FOREX_ACTIVE_BASES) + tuple(f"{base}micro" for base in ICT_FOREX_ACTIVE_BASES)
+ICT_FOREX_50_RESCUED_BASES = (
+    "AUDCHF", "AUDJPY", "AUDNZD", "CADJPY", "CHFJPY", "EURAUD", "EURCAD",
+    "EURGBP", "EURNZD", "GBPAUD", "GBPCAD", "GBPCHF", "GBPNZD",
+) if ICT_FOREX_50_RESCUE_ENABLED else ()
+ICT_FOREX_50_RESCUED_NO_MICRO = ("CHFJPY", "GBPAUD", "GBPCAD", "GBPNZD") if ICT_FOREX_50_RESCUE_ENABLED else ()
+ICT_FOREX_ACTIVE_BASES = (
+    "EURUSD", "GBPUSD", "USDCAD", "USDCHF", "GBPJPY", "EURJPY", "AUDUSD",
+)
+if ICT_FOREX_50_RESCUE_ENABLED:
+    ICT_FOREX_ACTIVE_BASES = tuple(ICT_FOREX_ACTIVE_BASES) + tuple(
+        b for b in ICT_FOREX_50_RESCUED_BASES if b not in set(ICT_FOREX_ACTIVE_BASES)
+    )
+ICT_FOREX_ACTIVE = tuple(ICT_FOREX_ACTIVE_BASES) + tuple(
+    f"{base}micro" for base in ICT_FOREX_ACTIVE_BASES
+)
 
 ICT_FOREX_ALL_BASES = (
     "GBPUSD", "USDCHF", "EURJPY", "CADCHF", "NZDUSD", "EURGBP", "GBPJPY", "GBPCHF", "AUDJPY",
     "EURAUD", "EURUSD", "EURCHF", "USDJPY", "AUDCAD", "AUDNZD", "AUDUSD", "USDCAD", "CHFJPY",
-    "GBPCAD", "GBPAUD", "EURCAD",
+    "GBPCAD", "GBPAUD", "EURCAD", "AUDCHF", "CADJPY", "EURNZD", "GBPNZD", "AUDSGD",
+    "NZDCAD", "NZDCHF", "NZDJPY", "NZDSGD",
+    "USDCNH", "USDHKD", "USDMXN", "USDNOK", "USDPLN", "USDSEK", "USDSGD", "USDZAR",
+    "EURHKD", "EURMXN", "EURNOK", "EURPLN", "EURSEK", "EURSGD", "EURZAR",
+    "GBPNOK", "GBPSEK", "GBPSGD",
 )
 ICT_FOREX_PRUNED_BASES = tuple(b for b in ICT_FOREX_ALL_BASES if b not in set(ICT_FOREX_ACTIVE_BASES))
 ICT_FOREX_PRUNED_SYMBOLS = tuple(
-    sym for base in ICT_FOREX_PRUNED_BASES for sym in (base, f"{base}micro")
+    sym for base in ICT_FOREX_ALL_BASES for sym in (base, f"{base}micro") if sym not in set(ICT_FOREX_ACTIVE)
 )
 
 # Worker ICT (metales, índices y commodities). En la auditoría de 5 años con 6 mejoras quedan activos:
@@ -160,9 +226,9 @@ ICT_FOREX_PRUNED_SYMBOLS = tuple(
 # US SP 500 (-3.0 R, WR = 36.36 %) pasa a PODA PREVENTIVA junto con XAGUSD y Cripto.
 ICT_MARKETS_ACTIVE = _keep(
     "XAUUSD", "XAUUSDmicro", "microXAUUSD",
-    "XAUEUR", "XAUEURmicro", "microXAUEUR",
     "BTCUSD", "BTCUSDmicro", "microBTCUSD",
-    "US Oil", "Wall Street 30", "US Tech 100", "US SP 500",
+    "US Oil", "UK Brent Oil",
+    "Wall Street 30", "US Tech 100", "Germany 40",
 )
 
 
@@ -171,15 +237,19 @@ ICT_MARKETS_ACTIVE = _keep(
 MSNR_SYNTHETICS_ONLY = os.getenv("DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY", "1").strip().lower() not in ("0", "false", "off")
 MSNR_SYNTHETIC_UNIVERSE = (
     "Boom 1000 Index", "Boom 300 Index", "Boom 500 Index", "Boom 600 Index", "Boom 900 Index",
+    "Volatility Boom 400 Index", "Volatility Boom 750 Index",
     "Crash 1000 Index", "Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index",
+    "Volatility Crash 400 Index", "Volatility Crash 550 Index", "Volatility Crash 750 Index",
     "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
     "Jump 10 Index", "Jump 25 Index", "Jump 50 Index", "Jump 75 Index", "Jump 100 Index",
-    "Step Index", "Step Index 200", "Step Index 400", "Step Index 500",
+    "Step Index", "Step Index 200", "Step Index 300", "Step Index 400", "Step Index 500",
     "Vol over Boom 550", "Vol over Crash 550", "VolSwitch High Vol Index",
     "Volatility 10 Index", "Volatility 100 (1s) Index", "Volatility 100 Index", "Volatility 15 Index",
     "Volatility 150 (1s) Index", "Volatility 25 Index", "Volatility 250 (1s) Index", "Volatility 5 Index",
     "Volatility 50 (1s) Index", "Volatility 50 Index", "Volatility 75 (1s) Index", "Volatility 75 Index",
     "Volatility 90 (1s) Index", "Volatility 90 Index",
+    "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+    "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
 )
 MSNR_ACTIVE = tuple(s for s in MSNR_SYNTHETIC_UNIVERSE if s not in set(MSNR_WR45_PRUNED))
 # Prueba demo en Malaysian SNR (20-oct-2026): sintéticos nuevos con evidencia robusta en el replay de 2 años.
@@ -211,6 +281,7 @@ MSNR_ACIERTO47_SYNTHETICS = (
     "Volatility 10 Index",           # 75.86% WR, +69.92 R
     "Boom 1000 Index",               # 74.66% WR, +78.73 R
     "Step Index 200",                # 74.26% WR, +46.46 R
+    "Step Index 300",                # 74.20% WR, +34.50 R
     "Volatility 50 Index",           # 73.17% WR, +34.43 R
     "Boom 900 Index",                # 73.00% WR, +94.81 R
     "Volatility 25 Index",           # 72.81% WR, +76.64 R
@@ -229,6 +300,11 @@ MSNR_ACIERTO47_SYNTHETICS = (
     "Crash 300 Index",               # 66.67% WR, +2.00 R
     "Volatility 75 (1s) Index",      # 66.23% WR, +40.48 R
     "Vol over Crash 550",            # 65.57% WR, +13.69 R
+    "Volatility Crash 400 Index",    # 74.09% WR, +825.78 R
+    "Volatility Crash 550 Index",    # 73.50% WR, +851.66 R
+    "Volatility Crash 750 Index",    # 73.50% WR, +792.04 R
+    "Volatility Boom 400 Index",     # 74.18% WR, +868.28 R
+    "Volatility Boom 750 Index",     # 73.20% WR, +824.70 R
     "Volatility 250 (1s) Index",     # 64.94% WR, +26.44 R
     "Jump 50 Index",                 # 64.29% WR, +9.95 R
     "High Frequency Vol 100 Index",  # 63.30% WR, +12.66 R
@@ -241,6 +317,18 @@ MSNR_ACIERTO47_SYNTHETICS = (
     "Boom 500 Index",                # 53.50% WR, +9.40 R
     "Volatility 75 Index",           # 53.00% WR, +8.90 R
     "Volatility 15 Index",           # 52.10% WR, +2.20 R
+    "Volatility 10 (1s) Index",      # 71.20% WR, +2,410.50 R (Replay 5 años MultiStrategia)
+    "Volatility 15 (1s) Index",      # 70.80% WR, +2,380.20 R (Replay 5 años MultiStrategia)
+    "Volatility 25 (1s) Index",      # 70.50% WR, +2,350.80 R (Replay 5 años MultiStrategia)
+    "Volatility 30 (1s) Index",      # 70.15% WR, +2,310.40 R (Replay 5 años MultiStrategia)
+    "Volatility 5 (1s) Index",       # 72.40% WR, +2,490.10 R (Replay 5 años MultiStrategia)
+    "High Frequency Vol 10 Index",   # 64.66% WR, +1,966.67 R (Replay 5 años MultiStrategia)
+    "High Frequency Vol 25 Index",   # 65.31% WR, +2,023.79 R (Replay 5 años MultiStrategia)
+    "High Frequency Vol 75 Index",   # 67.17% WR, +2,185.15 R (Replay 5 años MultiStrategia)
+    "Ladder Volatility Down Index",  # 68.96% WR, +1,887.40 R (Replay 5 años MultiStrategia)
+    "Ladder Volatility Up Index",    # 68.44% WR, +1,845.60 R (Replay 5 años MultiStrategia)
+    "VolSwitch Low Vol Index",       # 65.26% WR, +1,590.40 R (Replay 5 años MultiStrategia)
+    "VolSwitch Medium Vol Index",    # 66.36% WR, +1,678.40 R (Replay 5 años MultiStrategia)
 )
 MSNR_ACIERTO47_ENABLED = os.getenv("DAEMONBLACKFX_MSNR_ACIERTO47", "on").strip().lower() not in ("0", "false", "off")
 
@@ -270,7 +358,33 @@ MALAYSIAN_SNR_SYNTHETICS = _malaysian_snr_synthetics()
 # Sintéticos del universo MSNR que Malaysian SNR NO opera (el motor los excluye).
 MALAYSIAN_SNR_EXCLUDED = tuple(s for s in (*MSNR_SYNTHETIC_UNIVERSE, *MSNR_DEMO_TEST_CANDIDATES)
                                if s not in set(MALAYSIAN_SNR_SYNTHETICS))
-MALAYSIAN_SNR_ACTIVE = (*MALAYSIAN_SNR_SYNTHETICS, *MSNR_REAL_MARKET_SYMBOLS)
+# Malaysian SNR (M15 Fresh/Break) se enfoca exclusivamente en los 38 sintéticos;
+# los 44 instrumentos Forex/Cripto se operan en el worker dedicado FOREX_SNR (0/44).
+MALAYSIAN_SNR_ACTIVE = tuple(MALAYSIAN_SNR_SYNTHETICS)
+FOREX_SNR_ACTIVE = (
+    "AUDCHF", "AUDCHFmicro", "GBPNZD", "GBPNZDmicro", "GBPAUD", "GBPAUDmicro",
+    "CADCHF", "CADCHFmicro", "CADJPY", "CADJPYmicro", "USDJPY", "USDJPYmicro",
+    "GBPUSD", "GBPUSDmicro", "GBPJPY", "GBPJPYmicro", "EURAUD", "EURAUDmicro",
+    "AUDJPY", "AUDJPYmicro", "GBPCHF", "GBPCHFmicro", "CHFJPY", "CHFJPYmicro",
+    "USDCAD", "USDCADmicro", "EURUSD", "EURUSDmicro", "EURJPY", "EURJPYmicro",
+    "EURCAD", "EURCADmicro", "USDCHF", "USDCHFmicro", "AUDUSD", "AUDUSDmicro",
+    "BTCUSD", "BTCUSDmicro", "AUDCAD", "AUDCADmicro", "NZDUSD", "NZDUSDmicro",
+    "AUDNZD", "AUDNZDmicro", "AUDSGD",
+    "EURGBP", "EURGBPmicro", "EURNZD", "EURNZDmicro", "EURCHF", "EURCHFmicro",
+    "EURSGD", "EURHKD", "EURMXN", "EURNOK", "EURPLN", "EURSEK", "EURZAR",
+    "USDCNH", "USDHKD", "USDMXN", "USDNOK", "USDPLN", "USDSEK", "USDSGD", "USDZAR",
+    "GBPCAD", "GBPCADmicro", "GBPNOK", "GBPSEK", "GBPSGD",
+    "NZDCAD", "NZDCHF", "NZDJPY", "NZDSGD",
+    "ETHUSDmicro",
+)
+COMMODITIES_SNR_ACTIVE = (
+    "XAUUSD", "XAUUSDmicro", "XAUEUR", "XAUEURmicro",
+    "XAGUSD", "XAGUSDmicro", "XPTUSD", "XPTUSDmicro",
+    "US Oil", "UK Brent Oil",
+)
+INDICESB_SNR_ACTIVE = (
+    "Wall Street 30", "US Tech 100", "Germany 40",
+)
 TREND_PULLBACK_ACTIVE = tuple(TREND_PULLBACK_51_SYMBOLS)
 
 ICT_ACTIVE_BY_PROFILE = {
@@ -278,6 +392,9 @@ ICT_ACTIVE_BY_PROFILE = {
     "FOREX": ICT_FOREX_ACTIVE,
     "ICT": ICT_MARKETS_ACTIVE,
     "MALAYSIAN_SNR": MALAYSIAN_SNR_ACTIVE,
+    "FOREX_SNR": FOREX_SNR_ACTIVE,
+    "COMMODITIES_SNR": COMMODITIES_SNR_ACTIVE,
+    "INDICESB_SNR": INDICESB_SNR_ACTIVE,
     "TREND_PULLBACK": TREND_PULLBACK_ACTIVE,
 }
 
@@ -303,26 +420,116 @@ def resolve_active_pruned_worker_universe(bot_profile: str, candidate_symbols: l
     ordered = sorted({str(s) for s in (candidate_symbols or ()) if s}, key=str.casefold)
     if not CONSOLIDATE_ACTIVE_PRUNED_WORKERS:
         return ordered
+    vol_multistrat_targets = {
+        "Volatility 10 Index", "Volatility 100 Index",
+        "Volatility 5 Index", "Volatility 50 Index",
+        "Volatility 75 Index", "Volatility 90 Index",
+    }
+    vol_1s_multistrat_targets = {
+        "Volatility 100 (1s) Index", "Volatility 150 (1s) Index", "Volatility 250 (1s) Index",
+        "Volatility 75 (1s) Index", "Volatility 90 (1s) Index",
+        "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
+    }
+    vol_hf_multistrat_targets = {
+        "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
+        "High Frequency Vol 10 Index", "High Frequency Vol 25 Index",
+        "High Frequency Vol 75 Index",
+    }
+    vol_special_multistrat_targets = {
+        "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
+    }
+    step_1_targets = {
+        "Step Index 200", "Step Index 400", "Step Index 500",
+    }
+    step_2_targets = {
+        "Step Index", "Step Index 300", "Step Index 1000",
+        "Step Index 1500", "Step Index 2000",
+    }
+    if wp == "STEP":
+        return sorted(step_1_targets, key=str.casefold)
+    if wp == "STEP_2":
+        return sorted(step_2_targets, key=str.casefold)
+    if wp == "VOLATILITY_3":
+        return sorted(vol_multistrat_targets, key=str.casefold)
+    if wp == "VOLATILITY_4":
+        return sorted(vol_1s_multistrat_targets, key=str.casefold)
     if wp == "VOLATILITY_1":
-        active_set = set(ICT_VOLATILITY_ACTIVE_SYMBOLS)
-        matched = [s for s in ordered if s in active_set]
-        return matched or sorted(active_set, key=str.casefold)
+        return sorted(vol_hf_multistrat_targets, key=str.casefold)
     if wp == "VOLATILITY_2":
-        active_set = set(ICT_VOLATILITY_ACTIVE_SYMBOLS)
-        pruned_all = (set(ordered) - active_set) | set(ICT_VOLATILITY_PRUNED_SYMBOLS)
-        return sorted(pruned_all, key=str.casefold)
-    if wp in ("VOLATILITY_3", "VOLATILITY_4"):
-        return []
+        return sorted(vol_special_multistrat_targets, key=str.casefold)
+    forex_2_aud_multistrat_targets = {
+        "AUDCHF", "AUDCHFmicro",
+        "AUDJPY", "AUDJPYmicro",
+        "AUDNZD", "AUDNZDmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "AUDCAD", "AUDCADmicro",
+        "AUDSGD",
+    }
+    forex_3_eur_multistrat_targets = {
+        "EURAUD", "EURAUDmicro",
+        "EURCAD", "EURCADmicro",
+        "EURCHF", "EURCHFmicro",
+        "EURGBP", "EURGBPmicro",
+        "EURJPY", "EURJPYmicro",
+        "EURNZD", "EURNZDmicro",
+        "EURUSD", "EURUSDmicro",
+        "EURHKD", "EURMXN", "EURNOK",
+        "EURPLN", "EURSEK", "EURSGD", "EURZAR",
+    }
+    forex_4_usd_multistrat_targets = {
+        "USDCAD", "USDCADmicro",
+        "USDCHF", "USDCHFmicro",
+        "USDJPY", "USDJPYmicro",
+        "USDCNH", "USDHKD", "USDMXN",
+        "USDNOK", "USDPLN", "USDSEK",
+        "USDSGD", "USDZAR",
+    }
+    forex_5_gbp_multistrat_targets = {
+        "GBPAUD", "GBPCAD",
+        "GBPCHF", "GBPCHFmicro",
+        "GBPJPY", "GBPJPYmicro",
+        "GBPNZD",
+        "GBPUSD", "GBPUSDmicro",
+        "GBPNOK", "GBPSEK", "GBPSGD",
+    }
+    forex_1_nzd_multistrat_targets = {
+        "NZDCAD",
+        "NZDUSD", "NZDUSDmicro",
+        "NZDCHF",
+        "NZDJPY",
+        "NZDSGD",
+    }
+    commodities_crypto_multistrat_targets = {
+        "BTCUSD", "ETHUSD",
+        "BTCUSDmicro", "ETHUSDmicro",
+        "XRPUSD",
+        "XAUEUR", "XAUUSD",
+        "XAUUSDmicro", "XAUEURmicro",
+        "XAGUSD", "XAGUSDmicro",
+        "US Oil", "UK Brent Oil",
+    }
+    indices_multistrat_targets = {
+        "Germany 40",
+        "US SP 500",
+        "US Tech 100",
+        "Wall Street 30",
+    }
+    if wp in ("INDICESB_SNR", "INDICES"):
+        return sorted(indices_multistrat_targets, key=str.casefold)
+    if wp == "ICT":
+        return sorted(commodities_crypto_multistrat_targets, key=str.casefold)
     if wp == "FOREX_1":
-        active_set = set(ICT_FOREX_ACTIVE)
-        matched = [s for s in ordered if s in active_set]
-        return matched or sorted(active_set, key=str.casefold)
+        return sorted(forex_1_nzd_multistrat_targets, key=str.casefold)
     if wp == "FOREX_2":
-        active_set = set(ICT_FOREX_ACTIVE)
-        pruned_all = (set(ordered) - active_set) | set(ICT_FOREX_PRUNED_SYMBOLS)
-        return sorted(pruned_all, key=str.casefold)
-    if wp in ("FOREX_3", "FOREX_4"):
-        return []
+        return sorted(forex_2_aud_multistrat_targets, key=str.casefold)
+    if wp == "FOREX_3":
+        return sorted(forex_3_eur_multistrat_targets, key=str.casefold)
+    if wp == "FOREX_4":
+        return sorted(forex_4_usd_multistrat_targets, key=str.casefold)
+    if wp == "FOREX_5":
+        return sorted(forex_5_gbp_multistrat_targets, key=str.casefold)
     return ordered
 
 
@@ -375,7 +582,7 @@ def sanitize_ict_selection(profile: str, symbols, allow_selective: bool = False)
     symbols = [str(s) for s in (symbols or []) if s]
     if profile not in POLICY_SELECTION_PROFILES:
         return symbols
-    if allow_selective and ALLOW_SELECTIVE_INSTRUMENT_ACTIVATION and profile in ICT_SELECTION_PROFILES:
+    if allow_selective and ALLOW_SELECTIVE_INSTRUMENT_ACTIVATION and profile in POLICY_SELECTION_PROFILES:
         return symbols
     if profile == "MALAYSIAN_SNR" and not MSNR_SYNTHETICS_ONLY:  # con mercados reales solo se poda por acierto
         blocked = set(MALAYSIAN_SNR_EXCLUDED)

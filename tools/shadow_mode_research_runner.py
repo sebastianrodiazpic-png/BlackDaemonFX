@@ -10,7 +10,7 @@ Garantías de Aislamiento y Seguridad:
 4. Registra cada decisión: aceptada por mecánica/IA o descartada con su motivo exacto.
 
 Estrategias y Variantes Soportadas en Shadow Mode:
-- ICT Sabri Malle:
+- ICT:
     * Variante 1: Base Actual (todas las sesiones)
     * Variante 2: Bloqueo Pre-Market NY (07:00–09:30 NY)
     * Variante 3: Bloqueo Pre-Market Extendido (07:00–10:00 NY)

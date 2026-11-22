@@ -96,10 +96,10 @@ class TestMalaysianSNRIntegration(unittest.TestCase):
         # Demo candidate desactivado en poda preventiva
         self.assertIn("DEX 1500 UP Index", msnr_pruned)
 
-        # Mercados reales: activos los de acierto > 50 % y R > 0, el resto podado
-        for sym in ("XAGUSD", "AUDNZD", "GBPCAD", "EURCHF", "NZDUSD"):
+        # Mercados reales Forex podados en el perfil legacy vs activos
+        for sym in ("AUDCAD", "AUDNZD", "GBPCAD", "EURCHF", "NZDUSD"):
             self.assertIn(sym, msnr_pruned)
-        for sym in ("Wall Street 30", "US Oil", "XAUUSD", "CADCHF", "EURUSD", "USDCAD"):
+        for sym in ("CADCHF", "EURUSD", "USDCAD"):
             self.assertNotIn(sym, msnr_pruned)
 
 

@@ -1,0 +1,5 @@
+Re-extracting code files in . (no LLM needed)...
+[graphify watch] 211 file(s) not classified (no supported extension or shebang), skipped: .env.deriv.example, .env.external.example, .gitignore, .graphifyignore, =, AUDCAD_H1.pkl (+205 more)
+  AST extraction: 15/15 uncached files (100%)
+  warning: 2 file(s) had syntax errors and may be partially extracted: scratch/decoded_step_363.py (first error at line 1, no symbols extracted), scratch/step_363_code.py (first error at line 1, no symbols extracted)
+  warning: 483 code file(s) yielded no symbols (0.72 MB) — a data file, or source this extractor models no symbols for: measure_endpoints.ps1, scratch/activate_flip_symbols.py, scratch/add_boom500.py, scratch/add_legacy_css.py, scratch/add_msnr_entry_to_registro.py (+478 more)

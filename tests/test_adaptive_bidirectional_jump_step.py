@@ -61,8 +61,8 @@ def test_jump_and_step_excluded_from_trend_pullback():
     active_tpb = set(TREND_PULLBACK_51_SYMBOLS)
     pruned_tpb = set(TREND_PULLBACK_PRUNED_SYMBOLS)
 
-    assert "Step Index 500" in pruned_tpb
-    assert "Step Index 500" not in active_tpb
+    assert "Step Index 500" in active_tpb
+    assert "Step Index 500" not in pruned_tpb
     for sym in ["Jump 50 Index", "Jump 75 Index", "Step Index 200", "Step Index 400", "Step Index"]:
         assert sym in active_tpb, f"{sym} tiene WR > 50% en el replay fiel de 212 pares y debe estar en TREND_PULLBACK_51_SYMBOLS"
 

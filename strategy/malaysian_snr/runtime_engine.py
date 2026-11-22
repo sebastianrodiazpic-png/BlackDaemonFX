@@ -1,6 +1,6 @@
 """Small runtime helpers shared by standalone and multi-profile MSNR workers."""
 from datetime import datetime, timezone
-from .universe import canonical_symbol, symbol_mode
+from .universe import canonical_symbol, is_synthetic_symbol, symbol_mode
 
 
 def cycle_symbols(engine, selected):
@@ -12,6 +12,30 @@ def cycle_symbols(engine, selected):
         *[name for name,mode in settings.get('asset_modes', {}).items() if mode!='off']]))
     symbols = [symbol for symbol in symbols
                if settings.get('asset_modes', {}).get(canonical_symbol(symbol))!='off']
+    bot_profile = str(getattr(getattr(engine, 'config', None), 'bot_profile', '') or '').upper()
+    if bot_profile == 'MALAYSIAN_SNR':
+        symbols = [s for s in symbols if is_synthetic_symbol(s)]
+    elif bot_profile == 'FOREX_SNR':
+        symbols = [
+            s for s in symbols
+            if not is_synthetic_symbol(s)
+            and not str(s).lower().startswith(('xau', 'xag', 'xpt', 'microxau', 'microxag'))
+            and 'oil' not in str(s).lower()
+            and 'brent' not in str(s).lower()
+            and not any(idx in str(s).lower() for idx in ('wall street', 'tech 100', 'sp 500', 'germany'))
+        ]
+    elif bot_profile == 'COMMODITIES_SNR':
+        symbols = [
+            s for s in symbols
+            if str(s).lower().startswith(('xau', 'xag', 'xpt', 'microxau', 'microxag'))
+            or 'oil' in str(s).lower()
+            or 'brent' in str(s).lower()
+        ]
+    elif bot_profile == 'INDICESB_SNR':
+        symbols = [
+            s for s in symbols
+            if any(idx in str(s).lower() for idx in ('wall street', 'tech 100', 'sp 500', 'germany'))
+        ]
     if settings['prioritize_pending_retests']:
         pending = getattr(engine, '_msnr_pending_retests', {})
         now = datetime.now(timezone.utc).timestamp()

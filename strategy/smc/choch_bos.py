@@ -19,6 +19,11 @@ Vinculaciones:
 
 import pandas as pd
 
+try:
+    from strategy.smc.vectorized_smc import vectorized_detect_choch_bos
+except ImportError:
+    vectorized_detect_choch_bos = None
+
 
 def detect_choch_bos(df):
     """
@@ -67,12 +72,11 @@ def detect_choch_bos(df):
       que lanza `ValueError` si estas columnas no existen.
     """
 
-    from strategy.smc.vectorized_smc import vectorized_detect_choch_bos
-
-    try:
-        return vectorized_detect_choch_bos(df)
-    except Exception:
-        pass
+    if vectorized_detect_choch_bos is not None:
+        try:
+            return vectorized_detect_choch_bos(df)
+        except Exception:
+            pass
 
     df = df.copy()
 

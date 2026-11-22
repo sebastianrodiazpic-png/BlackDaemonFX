@@ -1,4 +1,4 @@
-"""Test suite for ICT Sabri Malle improvements:
+"""Test suite for ICT improvements:
 1. Doble gatillo de entrada en FVG (Mitigation / Threshold vs Consequent Encroachment 50%).
 2. Activación del Silver Bullet de Nueva York (10:00 - 11:00 AM NY) y Londres (03:00 - 05:00 NY).
 3. Mitigación de Order Blocks (OB 5 Estrellas como soporte alternativo de entrada).

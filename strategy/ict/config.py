@@ -12,7 +12,7 @@ from config.strategy_config import ICT_WR45_PRUNED
 
 @dataclass
 class ICTSabriMalleConfig:
-    strategy_name: str = "ICT_SABRI_MALLE"
+    strategy_name: str = "ICT"
     strategy_version: str = "ict-sabri-malle-v2-fase1"  # v2: sin ventana NY 07-12:30 (no sintéticos) + exclusiones
     macro_timeframe: str = "H4"
     # Velas H4 que se piden para el sesgo macro (EMA 50/100/200). Con 300 la EMA200 (adjust=False) converge con peso
@@ -40,8 +40,15 @@ class ICTSabriMalleConfig:
     # Ventanas Silver Bullet oficiales de Michael Huddleston: London (03:00 NY) y New York AM (10:00 NY).
     # Configurable por DAEMONBLACKFX_ICT_SB_HOURS_NY (por defecto "3,10").
     silver_bullet_hours_ny: tuple = tuple(
-        int(h.strip()) for h in os.getenv("DAEMONBLACKFX_ICT_SB_HOURS_NY", "3,10").split(",") if h.strip()
+        int(h.strip()) for h in os.getenv("DAEMONBLACKFX_ICT_SB_HOURS_NY", "3,10,14").split(",") if h.strip()
     )
+
+    # Expansión Cuantitativa de Mercados Reales con Spread Gate (Índices, Materias Primas, Forex)
+    real_markets_expansion_enabled: bool = bool(int(os.getenv("DAEMONBLACKFX_ICT_REAL_MARKETS_EXPANSION", "1")))
+    indices_cash_open_enabled: bool = bool(int(os.getenv("DAEMONBLACKFX_ICT_INDICES_CASH_OPEN", "1")))
+    real_spread_gate_enabled: bool = bool(int(os.getenv("DAEMONBLACKFX_ICT_REAL_SPREAD_GATE", "1")))
+    max_spread_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_ICT_MAX_SPREAD_RISK_RATIO", "0.015"))  # 1.5% de SL máx
+    m5_fvg_refinement_enabled: bool = bool(int(os.getenv("DAEMONBLACKFX_ICT_M5_FVG_REFINEMENT", "1")))
 
     # Activos con expectativa negativa en el replay fiel multianual (excluidos solo para ICT)
     excluded_symbols: tuple = ICT_PHASE1_EXCLUDED
@@ -80,6 +87,12 @@ class ICTSabriMalleConfig:
     strict_mss_body_ratio: float = 0.45
     fvg_consequent_encroachment_ratio: float = 0.50
     fvg_consequent_encroachment_entry: bool = True
+    fvg_require_absorption_wick: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_FVG_REQUIRE_ABSORPTION_WICK", "1").strip().lower() in ("1", "true", "on")
+    )
+    fvg_min_absorption_wick_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_FVG_MIN_ABSORPTION_WICK_RATIO", "0.40"))
+    )
     fvg_lookback_bars: int = 40
     fibo_discount_premium_filter: bool = True
     # Mejora 1 (26-oct-2026): piso estructural de SL en sintéticos (sl_atr_h1 >= 1.0 evita -244,8 R de stops por ruido M15)
@@ -99,6 +112,11 @@ class ICTSabriMalleConfig:
     )
     # Mejora 5 (26-oct-2026): filtro de régimen H1 (ADX >= 20 evita -114,2 R en mercados muertos/laterales).
     min_adx_h1: float = float(os.getenv("DAEMONBLACKFX_ICT_MIN_ADX_H1", "20.0"))
+    # Pilar 2 (18-nov-2026): ADX H1 Dinámico con Confirmación de Pendiente (acepta 16.0 <= ADX < 20.0 si dADX/dt > 0)
+    dynamic_adx_slope_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_DYNAMIC_ADX_SLOPE", "1").strip().lower() not in ("0", "false", "off")
+    )
+    dynamic_adx_min_threshold: float = float(os.getenv("DAEMONBLACKFX_ICT_DYNAMIC_ADX_MIN", "16.0"))
     
     # Mejora 9 (30-oct-2026): Lógica Adaptativa Bidireccional para Workers STEP y JUMP
     # Permite compras y ventas en Step Index, Step 500, Jump 50 y Jump 75 garantizando WR > 51.5%
@@ -129,6 +147,30 @@ class ICTSabriMalleConfig:
     enable_m15_micro_stop: bool = field(default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP", "1").strip().lower() in ("1", "true", "on"))
     m15_micro_stop_buffer_atr: float = field(default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_BUFFER_ATR", "0.10")))
     m15_micro_stop_min_risk_atr: float = field(default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_MICRO_STOP_MIN_RISK_ATR", "0.20")))
+
+    # Refinamiento de Gatillo Fractal M5 dentro del FVG M15 (Gatillo temprano con micro-stop)
+    m5_fvg_refinement_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_M5_REFINEMENT", "1").strip().lower() in ("1", "true", "on")
+    )
+    m5_refinement_min_wick_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_M5_MIN_WICK_RATIO", "0.35"))
+    )
+
+    # Flexibilización Macro H4 en Mercados Reales (Oro, Forex, Petróleo, Índices)
+    real_markets_h4_macro_flex_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_REAL_MACRO_FLEX", "1").strip().lower() not in ("0", "false", "off", "no")
+    )
+    # Adaptación de Gatillo de Liquidez en Índices Bursátiles (US Cash Open / NY Open en lugar de Asian Range)
+    indices_cash_liquidity_sweep_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_INDICES_CASH_LIQUIDITY", "1").strip().lower() not in ("0", "false", "off", "no")
+    )
+    # Market Structure Shift (MSS) Refinado a Swing Fractal Real (evita la trampa de 7 velas mínimas)
+    fractal_mss_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ICT_FRACTAL_MSS", "1").strip().lower() not in ("0", "false", "off", "no")
+    )
+    m5_refinement_min_displacement_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_ICT_M5_MIN_DISPLACEMENT", "0.45"))
+    )
     
     # Gestión Asimétrica Dual y Salidas
     min_rr_planned: float = 1.0
@@ -217,3 +259,7 @@ class ICTSabriMalleConfig:
         raw_pdh_sweep = os.getenv("DAEMONBLACKFX_ICT_PDH_PDL_SWEEP", "")
         if raw_pdh_sweep:
             self.pdh_pdl_sweep_enabled = raw_pdh_sweep.strip().lower() not in ("0", "false", "off", "no")
+
+
+# Alias oficial de la estrategia ICT
+ICTConfig = ICTSabriMalleConfig

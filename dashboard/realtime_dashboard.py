@@ -1,4 +1,4 @@
-﻿"""Servidor del dashboard en tiempo real de BlackDaemonFX.
+"""Servidor del dashboard en tiempo real de BlackDaemonFX.
 
 
 
@@ -182,7 +182,7 @@ from typing import Any
 
 
 
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 
@@ -219,6 +219,8 @@ from dashboard.page_loading import with_page_loading
 
 
 from dashboard.performance_page import PERFORMANCE_HTML
+from dashboard.decisions_page import DECISIONS_HTML
+from dashboard.operator_page import OPERATOR_HTML
 
 
 
@@ -466,6 +468,10 @@ _ACTION_LABELS_ES = {
 
 
 
+    "STANDBY_MARKET_CLOSED": "Mercado cerrado · reposo automático",
+
+
+
     "ENTRY_LOCATION_BLOCKED": "Precio de entrada incompatible con premium/discount",
 
 
@@ -543,6 +549,30 @@ _ACTION_LABELS_ES = {
 
 
     "FOREX_TOTAL_RISK_LIMIT": "Entrada bloqueada: límite total de riesgo Forex",
+
+
+
+    "MARKET_REGIME_BLOCKED": "Bloqueado por Centinela de Régimen de Mercado",
+
+
+
+    "MARKET_REGIME_OBSERVED": "Observado por Centinela de Régimen",
+
+
+
+    "REGIME_FILTER_BLOCKED": "Bloqueado por filtro de régimen de mercado",
+
+
+
+    "TRIPARTITE_CONFLUENCE_FILTER_REJECTED": "Rechazado por Confluencia Tripartita",
+
+
+
+    "TRIPARTITE_CONFLUENCE_EVALUATED": "Evaluado por Confluencia Tripartita",
+
+
+
+    "HUMAN_CRITERIA_FILTER_REJECTED": "Rechazado por Criterio Humano",
 
 
 
@@ -866,6 +896,66 @@ _REASON_LABELS_ES = {
 
 
 
+    "VETO_STRICT_PRUNING": "Activo bloqueado por Poda Estricta de la estrategia.",
+
+
+
+    "VETO_REHABILITATION_DISABLED": "El activo no está habilitado en el catálogo rehabilitado.",
+
+
+
+    "VETO_STRATEGY_PILLAR": "Falta confirmación de la estrategia base.",
+
+
+
+    "VETO_HUMAN_CRITERIA_ANTI_SPIKE": "Veto de Criterio Humano: Peligro de spike o anomalía de mecha.",
+
+
+
+    "VETO_HUMAN_CRITERIA_CLIMAX": "Veto de Criterio Humano: Extensión climática / agotamiento.",
+
+
+
+    "VETO_HUMAN_CRITERIA_ADX": "Veto de Criterio Humano: ADX insuficiente o falta de momentum.",
+
+
+
+    "VETO_HUMAN_CRITERIA": "Veto emitido por el motor de Criterio Humano.",
+
+
+
+    "VETO_AI_FILTER_UNAVAILABLE": "Filtro activo de IA no disponible para validar la entrada.",
+
+
+
+    "VETO_INSUFFICIENT_CONFLUENCE_WITHOUT_AI": "Confluencia insuficiente al no disponer de filtro IA.",
+
+
+
+    "VETO_AI_FILTER_PROBABILITY": "Probabilidad de acierto calculada por IA inferior al umbral mínimo.",
+
+
+
+    "VETO_AI_FILTER_EXPECTANCY": "Esperanza matemática en R (expectancy) de IA insuficiente.",
+
+
+
+    "MARKET_REGIME_TOXIC_BLOCKED": "Bloqueo por régimen de mercado tóxico para la estrategia.",
+
+
+
+    "ERRATIC_WHIPSAW_VOLATILITY": "Régimen descartado: Volatilidad errática con latigazos (whipsaw).",
+
+
+
+    "HIGH_CHOPPINESS_LOW_MOMENTUM": "Régimen descartado: Rango caótico de alta dispersión y bajo momentum.",
+
+
+
+    "SPREAD_STRESS_SPIKE": "Régimen descartado: Spread estresado o anómalo en el mercado.",
+
+
+
 }
 
 
@@ -1154,6 +1244,58 @@ def _operational_state(action: Any, reason: Any, decision: Any) -> dict:
 
 
 
+    if "REGIME" in a or "REGIME" in r or "SENTINEL" in a or "SENTINEL" in r:
+
+
+
+        return {"key": "SENTINEL_BLOCKED", "label": "CENTINELA / RÉGIMEN", "severity": "warn"}
+
+
+
+    if (
+
+
+
+        "TRIPARTITE" in a
+
+
+
+        or "TRIPARTITE" in r
+
+
+
+        or "HUMAN_CRITERIA" in a
+
+
+
+        or "HUMAN_CRITERIA" in r
+
+
+
+        or "VETO_" in a
+
+
+
+        or "VETO_" in r
+
+
+
+        or "PRUN" in a
+
+
+
+        or "PRUN" in r
+
+
+
+    ):
+
+
+
+        return {"key": "TRIPARTITE_BLOCKED", "label": "TRIPARTITA / FILTRO", "severity": "warn"}
+
+
+
     if a in {"ORDER_OPENED", "SPLIT_ORDER_OPENED", "DRY_RUN_VALIDATED"} or "CONFIRMED" in d:
 
 
@@ -1314,7 +1456,7 @@ _CATEGORY_LABELS = {
 
     "orb_ny_xagusd": "Plata (XAGUSD)",
 
-    "orb_ny_us_oil": "Petróleo (US Oil)",
+    "orb_ny_us_oil": "Petróleo (US Oil / UK Brent)",
 
     "orb_ny_btcusd": "Bitcoin (BTCUSD)",
 
@@ -1400,7 +1542,11 @@ _CATEGORY_LABELS = {
 
     "ict_indices": "ICT Índices Bursátiles",
 
+    "commodities_snr": "Commodities SNR · Materias Primas",
 
+    "indicesb_snr": "Índices SNR · Índices Bursátiles",
+
+    "forex_snr": "Forex SNR · Forex & Cripto",
 
     "trend_pullback_synthetics": "Trend Pullback · Sintéticos (>51% Win Rate)",
 
@@ -1448,7 +1594,7 @@ _ORB_CATEGORY_ORDER = {
 
 
 
-_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","ICT","TREND_PULLBACK")
+_SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","INDICESB_SNR","ICT")
 
 
 
@@ -1459,6 +1605,34 @@ _SELECTION_PROFILES=("SYNTHETICS","FOREX","ORB","IDX_OPEN","MALAYSIAN_SNR","ICT"
 
 
 
+
+
+def _is_synthetic_symbol(sym):
+    """Identifica si un instrumento pertenece a la familia de índices sintéticos (Deriv)."""
+    s = str(sym or "").lower()
+    return any(k in s for k in (
+        "boom", "crash", "step", "jump", "volatility", "vol ", "vol_",
+        "dex", "range break", "drift", "switch", "basket"
+    ))
+
+
+def _humanize_remaining_minutes(remaining):
+    """Convierte minutos a formato humano legible y comprensible para el operador."""
+    try:
+        m = float(remaining)
+        if m < 0:
+            return "Ventana expirada"
+        if m >= 120:
+            return f"Retest: ~{m / 60.0:.1f} h restantes"
+        if m >= 60:
+            h = int(m // 60)
+            mins = int(m % 60)
+            return f"Retest: ~{h} h {mins} min restantes"
+        if m >= 1:
+            return f"Retest: ~{int(m)} min restantes"
+        return "Retesteo inminente (<1 min)"
+    except (TypeError, ValueError):
+        return f"Retest: {remaining} min"
 
 def _build_confluence_matrix(state: dict) -> list[dict]:
 
@@ -1561,29 +1735,19 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
         action = str(item.get("action") or item.get("_action") or "").upper()
-
-
-
         reason = str(item.get("reason") or item.get("error") or "").upper()
 
-
-
-
-
-
-
-        if (
-
-
-
+        auction_meta = item.get("auction_metadata") or (item.get("analysis") or {}).get("auction_metadata")
+        if isinstance(auction_meta, dict) and auction_meta.get("cross_strategy_confluence"):
+            strat_key = "CROSS_CONFLUENCE"
+            strat_label = "ICT + Malaysian SNR"
+            strat_badge = "strat-gold"
+        elif (
             "MALAYSIAN" in strat_raw
 
 
 
             or "MALAYSIAN" in prof
-
-
-
             or "MALAYSIAN" in action
 
 
@@ -1752,26 +1916,24 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
+        elif (
+            prof in (
+                "BOOM", "CRASH", "STEP", "STEP_2", "JUMP",
+                "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
+                "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5", "INDICESB_SNR",
+            )
+            or "MULTI" in strat_raw
+            or item.get("strategy_label") == "MultiStrategia"
+            or item.get("strategy_key") == "MULTISTRATEGY"
+        ):
+            strat_key = "MULTISTRATEGY"
+            strat_label = "MultiStrategia"
+            strat_badge = "strat-cyan"
         else:
-
-
-
-            # Todos los trabajadores sintéticos (BOOM, CRASH, STEP, JUMP, VOLATILITY), Forex e ICT
-
-
-
+            # Todos los trabajadores sintéticos restantes, Forex e ICT
             # operan unificados bajo la Estrategia ICT.
-
-
-
             strat_key = "ICT"
-
-
-
             strat_label = "Estrategia ICT"
-
-
-
             strat_badge = "strat-cyan"
 
 
@@ -1948,7 +2110,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                macro_ctx += ' · Referencia D1 sin veto'
+                macro_ctx += ' · Sesgo D1 Favorable'
 
 
 
@@ -1968,11 +2130,11 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                label = 'Testeado 1 vez' if freshness.get('state') == 'TESTED_ONCE' else 'Fresh'
+                label = 'Testeado 1 vez' if freshness.get('state') == 'TESTED_ONCE' else 'Fresco (Fresh)'
 
 
 
-                struct_lvl = f"🟢 Esc. 1: Ruptura {label}"
+                struct_lvl = f"🟢 Ruptura Limpia ({label})"
 
 
 
@@ -1980,7 +2142,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                struct_lvl = '🟢 Esc. 3: Quasimodo'
+                struct_lvl = '🟢 Giro Estructural Quasimodo'
 
 
 
@@ -1988,7 +2150,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                struct_lvl = "🟢 Esc. 3: Fractalidad"
+                struct_lvl = "🟢 Rechazo Fractal H1/M15"
 
 
 
@@ -2012,7 +2174,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                struct_lvl = "🟡 Buscando estructura H1"
+                struct_lvl = "🟡 Mapeando Estructura H1"
 
 
 
@@ -2289,46 +2451,16 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
             if remaining is not None:
-
-
-
-                metrics = f"Retest: {remaining:g} min restantes" if isinstance(remaining, (int, float)) else f"Retest: {remaining} min restantes"
-
-
-
+                metrics = _humanize_remaining_minutes(remaining)
             elif adx and body:
-
-
-
-                metrics = f"ADX {adx} · Body {body}"
-
-
-
+                metrics = f"Fuerza ADX {adx} · Ratio Vela {body}"
             else:
-
-
-
-                metrics = "Doble Pierna 50/50"
-
-
-
-
-
-
+                metrics = "Gestión 2 Patas (TP1 + Runner)"
 
             if action in ("MALAYSIAN_SNR_CONFIRMED", "ORDER_OPENED", "SPLIT_ORDER_OPENED", "DRY_RUN_VALIDATED"):
-
-
-
                 ai_score = "🟢 Aprobado"
-
-
-
             else:
-
-
-
-                ai_score = "—"
+                ai_score = "⚪ En Radar"
 
 
 
@@ -2420,14 +2552,8 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-        elif strat_key == "ICT":
-
-
-
-            strat_label = "Estrategia ICT"
-
-
-
+        elif strat_key in ("ICT", "MULTISTRATEGY"):
+            strat_label = "MultiStrategia" if strat_key == "MULTISTRATEGY" else "Estrategia ICT"
             strat_badge = "strat-cyan"
 
 
@@ -2528,7 +2654,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-            elif action in ("ICT_SABRI_MALLE_CONFIRMED", "ORDER_OPENED"):
+            elif action in ("ICT_CONFIRMED", "ICT_SABRI_MALLE_CONFIRMED", "ORDER_OPENED"):
 
 
 
@@ -2625,30 +2751,12 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
             elif "JUDAS" in reason or "NO_JUDAS" in reason:
-
-
-
-                macro_ctx = "🟢 Rango Activo 24/7" if any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Macro H4 Definido"
-
-
-
+                macro_ctx = "🟢 Operatividad 24/7 (Sintético)" if _is_synthetic_symbol(sym) else "🟢 Macro H4 Definido"
                 struct_lvl = "🟡 Rango Acumulación H1"
-
-
-
-                trigger_conf = "⚪ Esperando Judas Swing"
-
-
-
-                metrics = "Barrido Mecha ≥35%"
-
-
-
-                ai_score = "—"
-
-
-
-                final_st = "⚪ EN ESPERA"
+                trigger_conf = "🟣 Esperando Caza de Liquidez"
+                metrics = "Exige Rechazo de Mecha ≥25%"
+                ai_score = "⚪ En Radar"
+                final_st = "🟡 EVALUANDO"
 
 
 
@@ -2689,30 +2797,12 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
             elif "NO_MSS" in reason:
-
-
-
-                macro_ctx = "🗽 Killzone NY Activa" if not any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Rango Activo 24/7"
-
-
-
-                struct_lvl = "🟡 Evaluando Liquidez"
-
-
-
-                trigger_conf = "⚪ Sin MSS M5"
-
-
-
-                metrics = "AMD / Sweep"
-
-
-
-                ai_score = "—"
-
-
-
-                final_st = "⚪ EN ESPERA"
+                macro_ctx = "🟢 Operatividad 24/7 (Sintético)" if _is_synthetic_symbol(sym) else "🗽 Killzone Activa (Londres/NY)"
+                struct_lvl = "🟡 Rastreo de Liquidez M5"
+                trigger_conf = "🟣 Esperando Quiebre Estructural M5"
+                metrics = "Caza de Liquidez / Barrido M5"
+                ai_score = "⚪ En Radar"
+                final_st = "⚪ EN RADAR"
 
 
 
@@ -2721,30 +2811,13 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
             else:
-
-
-
-                macro_ctx = "🗽 Killzone NY / Macro H1" if not any(x in sym.lower() for x in ("boom", "crash", "step", "jump", "volatility")) else "🟢 Rango Dinámico 24/7"
-
-
-
-                struct_lvl = "🟡 Escaneando Liquidez / FVG"
-
-
-
-                trigger_conf = "⚪ Sin Gatillo"
-
-
-
-                metrics = "AMD / Judas Swing M5"
-
-
-
-                ai_score = "—"
-
-
-
-                final_st = "⚪ EN ESPERA"
+                is_synth = _is_synthetic_symbol(sym)
+                macro_ctx = "🟢 Operatividad 24/7 (Sintético)" if is_synth else "🗽 Killzone Activa / Macro H1"
+                struct_lvl = "🟡 Rastreo de Liquidez & FVG"
+                trigger_conf = "🟣 Esperando Desplazamiento M5"
+                metrics = "Caza de Liquidez / FVG M5"
+                ai_score = "⚪ En Radar"
+                final_st = "⚪ EN RADAR"
 
 
 
@@ -2812,7 +2885,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                macro_ctx = "⚪ Rango / Neutral"
+                macro_ctx = "⚪ Marea Neutral H1"
 
 
 
@@ -2844,7 +2917,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                struct_lvl = "⚪ Sin Setup M15"
+                struct_lvl = "⚪ Sin Order Block M15"
 
 
 
@@ -2936,11 +3009,11 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                trigger_conf = "⚪ Inactivo"
+                trigger_conf = "🟣 Monitoreando Estructura"
 
 
 
-                final_st = "⚪ SIN SETUP M15"
+                final_st = "⚪ EN RADAR"
 
 
 
@@ -2952,11 +3025,11 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                trigger_conf = "⚪ Inactivo (H1)"
+                trigger_conf = "🟣 Monitoreando Marea H1"
 
 
 
-                final_st = "⚪ FILTRADO H1"
+                final_st = "⚪ FILTRO H1"
 
 
 
@@ -2984,7 +3057,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                trigger_conf = "⚪ Inactivo"
+                trigger_conf = "🟣 Monitoreando Estructura"
 
 
 
@@ -3036,7 +3109,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                metrics = "—"
+                metrics = "Sin Order Block activo"
 
 
 
@@ -3088,7 +3161,7 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
 
-                ai_score = "—"
+                ai_score = "⚪ En Radar"
 
 
 
@@ -3458,192 +3531,51 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
         ]
 
-
-
-
-
-
-
     strat_defaults = {
-
-
-
         "MALAYSIAN_SNR": {
-
-
-
             "label": "Malaysian SNR",
-
-
-
             "badge": "strat-snr",
-
-
-
-            "macro_context": "⚪ Contexto pendiente",
-
-
-
-            "structure_level": "🟡 Buscando estructura H1",
-
-
-
-            "trigger_confirmation": "⚪ Sin Gatillo",
-
-
-
-            "metrics": "Doble Pierna 50/50",
-
-
-
-            "ai_score": "—",
-
-
-
-            "final_state": "⚪ EN ESPERA",
-
-
-
+            "macro_context": "⚪ Contexto D1 en Evaluación",
+            "structure_level": "🟡 Mapeando Estructura H1",
+            "trigger_confirmation": "🟣 Monitoreando Nivel Clave",
+            "metrics": "Gestión 2 Patas (TP1 + Runner)",
+            "ai_score": "⚪ En Radar",
+            "final_state": "⚪ EN RADAR",
             "badge_class": "neutral",
-
-
-
         },
-
-
-
         "ORB": {
-
-
-
             "label": "ORB NY",
-
-
-
             "badge": "strat-orb",
-
-
-
-            "macro_context": "⚪ Fuera de Sesión NY",
-
-
-
-            "structure_level": "⚪ Esperando Apertura",
-
-
-
-            "trigger_confirmation": "⚪ Campana 09:30 NY",
-
-
-
-            "metrics": "Volumen / ATR NY",
-
-
-
-            "ai_score": "—",
-
-
-
+            "macro_context": "⚪ Fuera de Sesión NY Cash",
+            "structure_level": "⚪ Esperando Apertura (09:30 NY)",
+            "trigger_confirmation": "⚪ Esperando Rango 15m",
+            "metrics": "Volumen & Expansión NY",
+            "ai_score": "⚪ En Radar",
             "final_state": "⚪ ESPERANDO NY",
-
-
-
             "badge_class": "neutral",
-
-
-
         },
-
-
-
         "GOLD_QUARTERS": {
-
-
-
             "label": "Gold Quarters",
-
-
-
             "badge": "strat-gold",
-
-
-
-            "macro_context": "🟡 Nivel Cuarto ($25)",
-
-
-
-            "structure_level": "🟢 Rechazo Nivel Mayor",
-
-
-
-            "trigger_confirmation": "🟡 Esperando Vela",
-
-
-
-            "metrics": "SL Buffer 0.50 ATR",
-
-
-
-            "ai_score": "—",
-
-
-
-            "final_state": "⚪ EN ESPERA",
-
-
-
+            "macro_context": "🟡 Monitoreo Niveles Cuartos ($25)",
+            "structure_level": "🟢 Reacción en Nivel Mayor",
+            "trigger_confirmation": "🟣 Esperando Gatillo M5",
+            "metrics": "SL Protegido por ATR",
+            "ai_score": "⚪ En Radar",
+            "final_state": "⚪ EN RADAR",
             "badge_class": "neutral",
-
-
-
         },
-
-
-
         "ICT": {
-
-
-
             "label": "Estrategia ICT",
-
-
-
             "badge": "strat-cyan",
-
-
-
-            "macro_context": "⚪ Estructura 24/7 / Killzone NY",
-
-
-
-            "structure_level": "🟡 Escaneando FVG / Liquidez",
-
-
-
-            "trigger_confirmation": "⚪ Sin Gatillo",
-
-
-
-            "metrics": "BPR / MSS",
-
-
-
-            "ai_score": "—",
-
-
-
-            "final_state": "⚪ EN ESPERA",
-
-
-
+            "macro_context": "🟢 Operatividad 24/7 / Killzone NY",
+            "structure_level": "🟡 Rastreo de Liquidez & FVG",
+            "trigger_confirmation": "🟣 Esperando Desplazamiento M5",
+            "metrics": "Caza de Liquidez / FVG M5",
+            "ai_score": "⚪ En Radar",
+            "final_state": "⚪ EN RADAR",
             "badge_class": "neutral",
-
-
-
         },
-
-
-
     }
 
 
@@ -3693,10 +3625,12 @@ def _build_confluence_matrix(state: dict) -> list[dict]:
 
 
     if selection_profiles is not None:
-
-
-
-        for prof, strat_key in profile_strat_map.items():
+        extra_snr_profiles = {
+            k: "MALAYSIAN_SNR"
+            for k in ("FOREX_SNR", "COMMODITIES_SNR", "INDICESB_SNR")
+            if k in selection_profiles
+        }
+        for prof, strat_key in {**profile_strat_map, **extra_snr_profiles}.items():
 
 
 
@@ -3957,373 +3891,80 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
     "SYNTHETICS": [
-
-
-
-        "Volatility 10 Index",
-
-
-
-        "Step Index 400",
-
-
-
-        "Volatility 50 (1s) Index",
-
-
-
-        "Jump 75 Index",
-
-
-
-        "Step Index 500",
-
-
-
-        "Step Index 200",
-
-
-
-        "Step Index 100",
-
-
-
-        "Crash 600 Index",
-
-
-
-        "Volatility 15 Index",
-
-
-
-        "Volatility 75 (1s) Index",
-
-
-
-        "Boom 500 Index",
-
-
-
         "Jump 10 Index",
-
-
-
-        "Boom 300 Index",
-
-
-
-        "Volatility 75 Index",
-
-
-
-        "Volatility 250 (1s) Index",
-
-
-
-        "Boom 900 Index",
-
-
-
-        "Boom 600 Index",
-
-
-
-        "Boom 1000 Index",
-
-
-
-        "Crash 300 Index",
-
-
-
-        "Crash 500 Index",
-
-
-
-        "Crash 900 Index",
-
-
-
-        "Crash 1000 Index",
-
-
-
+        "Jump 25 Index",
         "Jump 50 Index",
-
-
-
-        "High Frequency Vol 100 Index",
-
-
-
-        "High Frequency Vol 50 Index",
-
-
-
-        "Vol over Boom 550",
-
-
-
-        "Vol over Crash 550",
-
-
-
-        "VolSwitch High Vol Index",
-
-
-
-        "Volatility 100 (1s) Index",
-
-
-
-        "Volatility 150 (1s) Index",
-
-
-
+        "Jump 75 Index",
+        "Jump 100 Index",
+        "Boom 300 Index",
+        "Boom 500 Index",
+        "Boom 600 Index",
+        "Boom 900 Index",
+        "Boom 1000 Index",
+        "Crash 500 Index",
+        "Crash 900 Index",
+        "Crash 1000 Index",
         "Volatility 5 Index",
-
-
-
+        "Volatility 10 Index",
         "Volatility 50 Index",
-
-
-
-        "Volatility 100 Index",
-
-
-
-        "Volatility 90 (1s) Index",
-
-
-
+        "Volatility 75 Index",
         "Volatility 90 Index",
-
-
-
+        "Volatility 100 Index",
+        "Volatility 5 (1s) Index",
+        "Volatility 10 (1s) Index",
+        "Volatility 15 (1s) Index",
+        "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 90 (1s) Index",
+        "Volatility 100 (1s) Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 250 (1s) Index",
+        "Step Index 400",
+        "Step Index 500",
+        "Step Index",
+        "Step Index 300",
+        "Step Index 1000",
+        "Step Index 1500",
+        "Step Index 2000",
+        "High Frequency Vol 10 Index",
+        "High Frequency Vol 25 Index",
+        "High Frequency Vol 50 Index",
+        "High Frequency Vol 75 Index",
+        "High Frequency Vol 100 Index",
+        "Ladder Volatility Down Index",
+        "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index",
+        "VolSwitch Medium Vol Index",
     ],
 
 
 
     "FOREX": [
-
-
-
         "EURUSD",
-
-
-
         "EURUSDmicro",
-
-
-
         "GBPUSD",
-
-
-
         "GBPUSDmicro",
-
-
-
         "USDCAD",
-
-
-
         "USDCADmicro",
-
-
-
         "USDCHF",
-
-
-
         "USDCHFmicro",
-
-
-
-        "AUDUSD",
-
-
-
-        "AUDUSDmicro",
-
-
-
-        "USDJPY",
-
-
-
-        "USDJPYmicro",
-
-
-
-        "AUDJPY",
-
-
-
-        "AUDJPYmicro",
-
-
-
-        "AUDNZD",
-
-
-
-        "AUDNZDmicro",
-
-
-
-        "CADCHF",
-
-
-
-        "CADCHFmicro",
-
-
-
-        "CHFJPY",
-
-
-
-        "CHFJPYmicro",
-
-
-
-        "EURCHF",
-
-
-
-        "EURCHFmicro",
-
-
-
-        "GBPCAD",
-
-
-
-        "GBPCADmicro",
-
-
-
         "EURJPY",
-
-
-
         "EURJPYmicro",
-
-
-
         "GBPJPY",
-
-
-
         "GBPJPYmicro",
-
-
-
+        "AUDUSD",
+        "AUDUSDmicro",
     ],
 
 
 
     "ORB": [
-
-
-
-        "XAUUSD",
-
-
-
-        "XAUUSDmicro",
-
-
-
-        "microXAUUSD",
-
-
-
-        "XAUEUR",
-
-
-
-        "XAUEURmicro",
-
-
-
-        "microXAUEUR",
-
-
-
-        "BTCUSD",
-
-
-
-        "BTCUSDmicro",
-
-
-
-        "USDCAD",
-
-
-
-        "USDCADmicro",
-
-
-
-        "AUDUSD",
-
-
-
-        "AUDUSDmicro",
-
-
-
-        "GBPUSD",
-
-
-
-        "GBPUSDmicro",
-
-
-
-        "XAGUSD",
-
-
-
-        "XAGUSDmicro",
-
-
-
-        "microXAGUSD",
-
-
-
-        "US Oil",
-
-
-
-        "USDCHF",
-
-
-
-        "USDCHFmicro",
-
-
-
-        "USDJPY",
-
-
-
-        "USDJPYmicro",
-
-
-
-        "ETHUSD",
-
-
-
-        "ETHUSDmicro",
-
-
-
+        "XAUUSD", "XAUUSDmicro", "microXAUUSD", "XAUEUR", "XAUEURmicro", "microXAUEUR",
+        "BTCUSD", "BTCUSDmicro", "USDCAD", "USDCADmicro", "AUDUSD", "AUDUSDmicro",
+        "GBPUSD", "GBPUSDmicro", "XAGUSD", "XAGUSDmicro", "microXAGUSD", "US Oil", "UK Brent Oil",
+        "USDCHF", "USDCHFmicro", "USDJPY", "USDJPYmicro", "ETHUSD", "ETHUSDmicro", "ETHmicro", "microETHUSD",
+        "US Tech 100", "Wall Street 30", "US SP 500", "EURUSD", "EURUSDmicro",
     ],
 
 
@@ -4365,9 +4006,8 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
         "Boom 900 Index",
-
-
-
+        "Volatility Boom 400 Index",
+        "Volatility Boom 750 Index",
         "Crash 1000 Index",
 
 
@@ -4385,14 +4025,9 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
         "Crash 900 Index",
-
-
-
-        "High Frequency Vol 100 Index",
-
-
-
-        "High Frequency Vol 50 Index",
+        "Volatility Crash 400 Index",
+        "Volatility Crash 550 Index",
+        "Volatility Crash 750 Index",
 
 
 
@@ -4412,11 +4047,19 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
 
+        "Jump 100 Index",
+
+
+
         "Step Index",
 
 
 
         "Step Index 200",
+
+
+
+        "Step Index 300",
 
 
 
@@ -4472,10 +4115,6 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
 
-        "Volatility 50 (1s) Index",
-
-
-
         "Volatility 50 Index",
 
 
@@ -4496,6 +4135,20 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
 
+        "Volatility 10 (1s) Index",
+        "Volatility 15 (1s) Index",
+        "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index",
+        "Volatility 5 (1s) Index",
+        "High Frequency Vol 100 Index",
+        "High Frequency Vol 50 Index",
+        "High Frequency Vol 10 Index",
+        "High Frequency Vol 25 Index",
+        "High Frequency Vol 75 Index",
+        "Ladder Volatility Down Index",
+        "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index",
+        "VolSwitch Medium Vol Index",
     ],
 
 
@@ -4521,108 +4174,51 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
     "ICT": [
-
-
-
         "XAUUSD",
-
-
-
         "XAUUSDmicro",
-
-
-
-        "microXAUUSD",
-
-
-
         "BTCUSD",
-
-
-
         "BTCUSDmicro",
-
-
-
-        "microBTCUSD",
-
-
-
         "US Oil",
-
-
-
+        "UK Brent Oil",
         "Wall Street 30",
-
-
-
         "US Tech 100",
-
-
-
-        "US SP 500",
-
-
-
-        "EURUSD",
-
-
-
-        "EURUSDmicro",
-
-
-
-        "Jump 75 Index",
-
-
-
-        "Jump 10 Index",
-
-
-
-        "Jump 50 Index",
-
-
-
-        "Step Index 400",
-
-
-
-        "Step Index 500",
-
-
-
-        "Crash 600 Index",
-
-
-
-        "Crash 300 Index",
-
-
-
-        "Boom 500 Index",
-
-
-
-        "Boom 300 Index",
-
-
-
-        "Boom 900 Index",
-
-
-
-        "Boom 600 Index",
-
-
-
-        "Boom 1000 Index",
-
-
-
+        "Germany 40",
     ],
 
+    "COMMODITIES_SNR": [
+        "XAUUSD",
+        "XAUUSDmicro",
+        "microXAUUSD",
+        "XAUEUR",
+        "XAUEURmicro",
+        "microXAUEUR",
+        "XAGUSD",
+        "XAGUSDmicro",
+        "microXAGUSD",
+        "US Oil",
+        "UK Brent Oil",
+    ],
 
+    "INDICESB_SNR": [
+        "Wall Street 30",
+        "US Tech 100",
+        "Germany 40",
+    ],
+
+    "FOREX_SNR": [
+        "AUDCHF", "AUDCHFmicro", "GBPNZD", "GBPNZDmicro", "GBPAUD", "GBPAUDmicro",
+        "CADCHF", "CADCHFmicro", "CADJPY", "CADJPYmicro", "USDJPY", "USDJPYmicro",
+        "GBPUSD", "GBPUSDmicro", "GBPJPY", "GBPJPYmicro", "EURAUD", "EURAUDmicro",
+        "AUDJPY", "AUDJPYmicro", "GBPCHF", "GBPCHFmicro", "CHFJPY", "CHFJPYmicro",
+        "USDCAD", "USDCADmicro", "EURUSD", "EURUSDmicro", "EURJPY", "EURJPYmicro",
+        "EURCAD", "EURCADmicro", "USDCHF", "USDCHFmicro", "AUDUSD", "AUDUSDmicro",
+        "BTCUSD", "BTCUSDmicro", "AUDCAD", "AUDCADmicro", "NZDUSD", "NZDUSDmicro",
+        "AUDNZD", "AUDNZDmicro", "AUDSGD",
+        "EURGBP", "EURGBPmicro", "EURNZD", "EURNZDmicro", "EURCHF", "EURCHFmicro",
+        "EURSGD", "EURHKD", "EURMXN", "EURNOK", "EURPLN", "EURSEK", "EURZAR",
+        "USDCNH", "USDHKD", "USDMXN", "USDNOK", "USDPLN", "USDSEK", "USDSGD", "USDZAR",
+        "ETHUSDmicro",
+    ],
 
 }
 
@@ -4633,20 +4229,20 @@ DEFAULT_PRIORITIZED_SYMBOLS = {
 
 
 PRUNED_INSTRUMENTS_INFO = {
+    "CHFJPY": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o WR <= 51.0% (asignado a FOREX_2 OFF).",
+    "CHFJPYmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o WR <= 51.0% (asignado a FOREX_2 OFF).",
+    "US SP 500": "Poda confirmada en replay multianual: Win Rate 36.36% (-3.0R netos) y descarte preventivo.",
+    "XAGUSD": "Poda confirmada: descarte preventivo en Materias Primas por baja reactividad institucional.",
+    "XAGUSDmicro": "Poda confirmada: descarte preventivo en Materias Primas.",
+    "ETHUSD": "Poda confirmada: descarte preventivo en Criptomonedas por baja expectativa en ventanas operativas.",
+    "ETHUSDmicro": "Poda confirmada: descarte preventivo en Criptomonedas.",
+    "XAUEUR": "Poda confirmada: descarte preventivo por duplicidad con XAUUSD y mayor fricción de spread.",
+    "XAUEURmicro": "Poda confirmada: descarte preventivo por duplicidad con XAUUSD.",
+    "XRPUSD": "Poda confirmada: descarte preventivo en Criptomonedas.",
 
 
 
     # FOREX (Poda confirmada únicamente en cruces perdedores y exóticos; todos los pares rentables señalados están libres de poda)
-
-
-
-    "AUDCAD": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%). Falta de liquidez institucional en Killzones Londres/NY.",
-
-
-
-    "AUDCADmicro": "Poda confirmada en replay multi-anual ICT: -34.25R netos (Win Rate 20.6%).",
-
-
 
     "EURGBP": "Poda confirmada en replay multi-anual ICT: -30.00R netos (Win Rate 21.2%). Rango comprimido; derivado a Malaysian SNR C2 (+0.43R).",
 
@@ -4814,12 +4410,6 @@ PRUNED_INSTRUMENTS_INFO = {
 
     # JUMP (Poda confirmada en Jump 100 y Fase 1 en Jump 25; Jump 10, 50 y 75 están 100% libres de poda)
 
-
-
-    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: -3.25R netos (Win Rate 28.0%). Saltos erráticos que vulneran zonas de oferta/demanda.",
-
-
-
     # VOLATILITY (Poda confirmada en activos descartados; los 19 activos Volatility señalados están 100% libres de poda)
 
 
@@ -4836,7 +4426,6 @@ PRUNED_INSTRUMENTS_INFO = {
 
 
 
-    "Volatility 30 (1s) Index": "Poda confirmada: -9.5% PnL en replay 2 años. Ruido recurrente en oscilación rápida.",
 
 
 
@@ -4881,6 +4470,40 @@ PRUNED_INSTRUMENTS_INFO = {
 
 
 FOREX_PRUNED_INFO = {
+    "USDJPY": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o spreads/ruido en aperturas.",
+    "USDJPYmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "CADCHF": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o falta de liquidez en Killzones.",
+    "CADCHFmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "AUDJPY": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o volatilidad desalineada en Killzones.",
+    "AUDJPYmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "AUDNZD": "Poda confirmada en replay multi-anual ICT: cruce de baja volatilidad y spreads desfavorables en Killzones.",
+    "AUDNZDmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "EURCHF": "Poda confirmada en replay multi-anual ICT: rango estrecho y spreads desfavorables en Killzones.",
+    "EURCHFmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "GBPCAD": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o ruido institucional.",
+    "GBPCADmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa.",
+    "AUDSGD": "Poda preventiva Forex exótico: spreads elevados y baja liquidez institucional.",
+    "USDCNH": "Poda preventiva Forex exótico: spreads elevados y baja reactividad institucional.",
+    "USDHKD": "Poda preventiva Forex exótico: par fijado y baja liquidez en Killzones.",
+    "USDMXN": "Poda preventiva Forex exótico: spreads desfavorables y alta volatilidad errática.",
+    "USDNOK": "Poda preventiva Forex exótico: spreads elevados.",
+    "USDPLN": "Poda preventiva Forex exótico: spreads elevados y baja frecuencia de setups limpios.",
+    "USDSEK": "Poda preventiva Forex exótico: spreads elevados.",
+    "USDSGD": "Poda preventiva Forex exótico: spreads elevados.",
+    "USDZAR": "Poda preventiva Forex exótico: alta fricción de spread y volatilidad no modelada.",
+    "EURHKD": "Poda preventiva Forex exótico: spreads elevados.",
+    "EURMXN": "Poda preventiva Forex exótico: spreads elevados y volatilidad errática.",
+    "EURNOK": "Poda preventiva Forex exótico: spreads elevados.",
+    "EURPLN": "Poda preventiva Forex exótico: spreads elevados.",
+    "EURSEK": "Poda preventiva Forex exótico: spreads elevados.",
+    "EURSGD": "Poda preventiva Forex exótico: spreads elevados.",
+    "EURZAR": "Poda preventiva Forex exótico: alta fricción de spread.",
+    "GBPNOK": "Poda preventiva Forex exótico: spreads elevados.",
+    "GBPSEK": "Poda preventiva Forex exótico: spreads elevados.",
+    "GBPSGD": "Poda preventiva Forex exótico: spreads elevados.",
+    "NZDSGD": "Poda preventiva Forex exótico: spreads elevados.",
+    "CHFJPY": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o WR <= 51.0% (asignado a FOREX_2 OFF).",
+    "CHFJPYmicro": "Poda confirmada en replay multi-anual ICT: descarte preventivo por expectativa negativa o WR <= 51.0% (asignado a FOREX_2 OFF).",
 
 
 
@@ -4996,236 +4619,37 @@ FOREX_PRUNED_INFO = {
 
 
 
-MALAYSIAN_SNR_PRUNED_INFO = {
-
-
-
-    # Malaysian SNR opera solo sintéticos (37 activos); todos los mercados reales quedan podados.
-
-
-
-    "XAGUSD": "Malaysian SNR: WR = 32.17% (-51.67 R en replay fiel), podado por rentabilidad <= 50%.",
-
-    "NZDUSD": "Malaysian SNR: WR = 50.00% (-0.33 R en replay fiel), podado por rentabilidad <= 50%.", 
-
-
-
-    "AUDNZD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "USDJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPUSD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPAUD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "Wall Street 30": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "US Tech 100": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURUSD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURCHF": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURGBP": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "XAUUSD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "BTCUSD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "USDCAD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPCAD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURAUD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURCAD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "CADCHF": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "AUDCAD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "US SP 500": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPNZD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "CHFJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "AUDCHF": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "CADJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "AUDUSD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "GBPCHF": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "AUDJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "US Oil": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "USDCHF": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURNZD": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
-    "EURJPY": "Malaysian SNR solo en sintéticos: mercados reales con expectativa negativa en ambos años del replay fiel (-0.157 / -0.079 R/trade).",
-
-
-
+MALAYSIAN_SNR_PRUNED_INFO = {}
+
+FOREX_SNR_PRUNED_INFO = {
+    "GBPCAD": "Poda preventiva en Forex SNR: Win Rate 45.00% (-4.14R en 20 trades en Replay 5A). Descartado por fricción de spread o expectativa negativa.",
+    "GBPCADmicro": "Poda preventiva en Forex SNR: Win Rate 45.00% (-4.14R en 20 trades en Replay 5A).",
+    "EURCHF": "Poda preventiva en Forex SNR: Win Rate 50.00% (-2.16R en 16 trades en Replay 5A). Descartado por fricción de spread o expectativa negativa.",
+    "EURCHFmicro": "Poda preventiva en Forex SNR: Win Rate 50.00% (-2.16R en 16 trades en Replay 5A).",
+    "EURNZD": "Poda preventiva en Forex SNR: Win Rate 47.62% (-1.41R en 21 trades en Replay 5A). Descartado por fricción de spread o expectativa negativa.",
+    "EURNZDmicro": "Poda preventiva en Forex SNR: Win Rate 47.62% (-1.41R en 21 trades en Replay 5A).",
 }
 
-
-
-
-
-
-
 ICT_PRUNED_INFO = {
-
-
-
-    # Activos Podados en Estrategia ICT (Desactivados en /Instruments; todos los activos señalados en Metales, Cripto, Índices y Sintéticos están 100% libres de poda)
-
-
-
-    "ETHUSD": "Poda preventiva en ICT: Menor eficiencia relativa frente a BTCUSD (+31.5R).",
-
-
-
-    "ETHUSDmicro": "Poda preventiva en ICT: Menor eficiencia relativa frente a BTCUSD (+31.5R).",
-
-
-
+    # Activos Podados en Estrategia ICT (Desactivados en /Instruments; cruces FX perdedores en Killzones)
+    "US SP 500": "Poda confirmada en replay multianual: Win Rate 36.36% (-3.0R netos) y descarte preventivo.",
+    "XAGUSD": "Poda confirmada: descarte preventivo en Materias Primas por baja reactividad institucional.",
+    "XAGUSDmicro": "Poda confirmada: descarte preventivo en Materias Primas.",
+    "ETHUSD": "Poda confirmada: descarte preventivo en Criptomonedas por baja expectativa en ventanas operativas.",
+    "ETHUSDmicro": "Poda confirmada: descarte preventivo en Criptomonedas.",
+    "XAUEUR": "Poda confirmada: descarte preventivo por duplicidad con XAUUSD y mayor fricción de spread.",
+    "XAUEURmicro": "Poda confirmada: descarte preventivo por duplicidad con XAUUSD.",
+    "XRPUSD": "Poda confirmada: descarte preventivo en Criptomonedas.",
     "AUDCAD": "Poda confirmada en replay 2 años ICT: 20.6% WR, -34.25R netos (PF 0.54). Falta de liquidez en Killzones.",
-
-
-
     "EURGBP": "Poda confirmada en replay 2 años ICT: 21.2% WR, -30.00R netos (PF 0.56). Derivado a Malaysian SNR C2 (+0.43R).",
-
-
-
     "GBPAUD": "Poda confirmada en replay 2 años ICT: 22.9% WR, -21.25R netos (PF 0.67). Derivado a Malaysian SNR C2 (+0.60R).",
-
-
-
     "EURAUD": "Poda confirmada en replay 2 años ICT: 25.0% WR, -18.50R netos (PF 0.72). Rangos solapados sin expansión.",
-
-
-
     "GBPNZD": "Poda confirmada en replay 2 años ICT: 24.4% WR, -17.00R netos (PF 0.72). Mechas falsas en cambio de sesión.",
-
-
-
     "EURCAD": "Poda confirmada en replay 2 años ICT: 24.4% WR, -15.50R netos (PF 0.72).",
-
-
-
     "EURNZD": "Poda confirmada en replay 2 años ICT: 24.5% WR, -15.25R netos (PF 0.73).",
-
-
-
     "CADJPY": "Poda confirmada en replay 2 años ICT: 28.0% WR, -11.75R netos (PF 0.81).",
-
-
-
     "GBPCHF": "Poda confirmada en replay 2 años ICT: 27.6% WR, -8.50R netos (PF 0.85).",
-
-
-
     "AUDCHF": "Poda confirmada en replay 2 años ICT: 27.5% WR, -8.25R netos (PF 0.85).",
-
-
-
-    "Jump 100 Index": "Poda confirmada en replay 2 años ICT: 28.0% WR, -3.25R netos (PF 0.96).",
-
-
-
-    # Fase 1 (18-oct-2026): exclusiones con expectativa negativa en ambas mitades del replay fiel
-
-
-
-    "XAGUSD": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
-    "XAGUSDmicro": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
-    "microXAGUSD": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
-    "Jump 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
-    "Step Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
-    "Volatility 25 Index": "Fase 1 (18-oct-2026): excluido de Estrategia ICT por expectativa negativa en ambas mitades del replay fiel 365d.",
-
-
-
 }
 
 
@@ -5237,30 +4661,12 @@ ICT_PRUNED_INFO = {
 ORB_PRUNED_INFO = {
 
     # Poda cuantitativa demostrada en replay fiel de 212 pares ORB (activos con WR <= 50.0% o R neto <= 0)
+    # US Tech 100 (59.4% WR), Wall Street 30 (59.7% WR), US SP 500 (59.1% WR), EURUSD (57.9% WR),
+    # UK Brent Oil (54.6% WR) y ETHUSDmicro / ETHmicro están rehabilitados, activos y 100% libres de poda.
 
-    "Wall Street 30": "PODA PREVENTIVA: WR = 33.33% (-5.99 R en replay), sin edge en campana de apertura 09:30 NY; operado en Connors RSI(2) (79.17% WR) y Malaysian SNR (64.0% WR).",
-
-    "US30": "PODA PREVENTIVA: WR = 33.33% (-5.99 R en replay), sin edge en apertura cash NY.",
-
-    "UK Brent Oil": "PODA PREVENTIVA: WR = 46.32% (-20.53 R en replay), falsos quiebres continuos; operado en Malaysian SNR (80.0% WR).",
-
-    "Brent": "PODA PREVENTIVA: WR = 46.32% (-20.53 R en replay), falsos quiebres en ORB.",
-
-    "NZDUSD": "PODA PREVENTIVA: WR = 48.11% (-12.01 R en replay), recorrido intradía insuficiente en sesión NY; operado en ICT (55.32% WR).",
+    "NZDUSD": "PODA PREVENTIVA: WR = 48.11% (-12.01 R en replay), recorrido intradía insuficiente en sesión NY.",
 
     "NZDUSDmicro": "PODA PREVENTIVA: WR = 48.11% (-12.01 R en replay).",
-
-    "EURUSD": "PODA PREVENTIVA: R neto negativo (-3.82 R en replay) por asimetría SL/TP en sesión NY; operado en Malaysian SNR (63.41% WR).",
-
-    "EURUSDmicro": "PODA PREVENTIVA: R neto negativo (-3.82 R en replay).",
-
-    "US SP 500": "PODA PREVENTIVA: WR = 47.22% (-5.68 R en replay), falsos rompimientos en campana 09:30 NY; operado en Connors RSI(2) (73.68% WR) y Malaysian SNR (69.57% WR).",
-
-    "US500": "PODA PREVENTIVA: WR = 47.22% (-5.68 R en replay).",
-
-    "US Tech 100": "PODA PREVENTIVA: WR = 40.00% (-2.51 R en replay) en M5; operado en ICT Sabri Malle (68.52% WR) y Connors RSI(2) (71.43% WR).",
-
-    "NAS100": "PODA PREVENTIVA: WR = 40.00% (-2.51 R en replay) en M5; operado en ICT.",
 
     "US Small Cap 2000": "PODA PREVENTIVA: WR = 16.67% (-3.65 R en replay) en M5; operado en Connors RSI(2) D1 (77.27% WR).",
 
@@ -5275,129 +4681,54 @@ _WORKER_PROFILE_META = {
 
 
     "CRASH": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "crash",
-
-
-
-        "label": "CRASH · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "CRASH · MultiStrategia (MSNR + ICT · Magic 26082102 · PID 25904)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082102,
-
-
-
     },
 
 
 
     "BOOM": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "boom",
-
-
-
-        "label": "BOOM · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "BOOM · MultiStrategia (MSNR + ICT · Magic 26082101 · PID 20320)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082101,
-
-
-
     },
 
 
 
     "STEP": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "step",
-
-
-
-        "label": "STEP · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "STEP (1) · MultiStrategia (MSNR + ICT · Magic 26082104 · PID 17452)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082104,
+    },
 
-
-
+    "STEP_2": {
+        "selection_profile": "SYNTHETICS",
+        "category": "step",
+        "label": "STEP (2) · MultiStrategia (MSNR + ICT · Magic 26082406 · Large & Base Steps)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
+        "magic": 26082406,
     },
 
 
 
     "JUMP": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "jump",
-
-
-
-        "label": "JUMP · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "JUMP · MultiStrategia (MSNR + ICT · Magic 26082105 · PID 16804)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082105,
-
-
-
     },
 
 
@@ -5422,7 +4753,7 @@ _WORKER_PROFILE_META = {
 
 
 
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "strategy_label": "Estrategia ICT",
 
 
 
@@ -5435,172 +4766,46 @@ _WORKER_PROFILE_META = {
 
 
     "VOLATILITY_1": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "volatility",
-
-
-
-        "shard_index": 0,
-
-
-
-        "shard_count": 4,
-
-
-
-        "label": "VOLATILITY 1 (Activos) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "VOLATILITY (1) · MultiStrategia (MSNR + ICT · Magic 26082401 · PID 14464)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082401,
-
-
-
     },
 
 
 
     "VOLATILITY_2": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "volatility",
-
-
-
-        "shard_index": 1,
-
-
-
-        "shard_count": 4,
-
-
-
-        "label": "VOLATILITY 2 (Podados OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "VOLATILITY (2) · MultiStrategia (MSNR + ICT · Magic 26082402 · PID 36704)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082402,
-
-
-
     },
 
 
 
     "VOLATILITY_3": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "volatility",
-
-
-
-        "shard_index": 2,
-
-
-
-        "shard_count": 4,
-
-
-
-        "consolidated_hidden": True,
-
-
-
-        "label": "VOLATILITY 3 (Consolidado OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "VOLATILITY (3) · MultiStrategia (MSNR + ICT · Magic 26082403 · PID 7572)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082403,
-
-
-
     },
 
 
 
     "VOLATILITY_4": {
-
-
-
         "selection_profile": "SYNTHETICS",
-
-
-
         "category": "volatility",
-
-
-
-        "shard_index": 3,
-
-
-
-        "shard_count": 4,
-
-
-
-        "consolidated_hidden": True,
-
-
-
-        "label": "VOLATILITY 4 (Consolidado OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "VOLATILITY (4) · MultiStrategia (MSNR + ICT · Magic 26082404 · PID 35156)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082404,
-
-
-
     },
-
-
 
     "FOREX": {
 
@@ -5622,7 +4827,7 @@ _WORKER_PROFILE_META = {
 
 
 
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "strategy_label": "Estrategia ICT",
 
 
 
@@ -5635,249 +4840,90 @@ _WORKER_PROFILE_META = {
 
 
     "FOREX_1": {
-
-
-
         "selection_profile": "FOREX",
-
-
-
         "category": "forex",
-
-
-
         "shard_index": 0,
-
-
-
-        "shard_count": 4,
-
-
-
+        "shard_count": 5,
         "grouped_forex": True,
-
-
-
-        "label": "FOREX 1 (Activos) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "FOREX (1) · MultiStrategia (MSNR + ICT · Magic 26082201 · PID 10776)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082201,
-
-
-
     },
-
-
-
     "FOREX_2": {
-
-
-
         "selection_profile": "FOREX",
-
-
-
         "category": "forex",
-
-
-
         "shard_index": 1,
-
-
-
         "shard_count": 4,
-
-
-
         "grouped_forex": True,
-
-
-
-        "label": "FOREX 2 (Podados OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "FOREX (2) · MultiStrategia (MSNR + ICT · Magic 26082202 · PID 30880)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082202,
-
-
-
     },
 
 
 
     "FOREX_3": {
-
-
-
         "selection_profile": "FOREX",
-
-
-
         "category": "forex",
-
-
-
         "shard_index": 2,
-
-
-
         "shard_count": 4,
-
-
-
         "grouped_forex": True,
-
-
-
-        "consolidated_hidden": True,
-
-
-
-        "label": "FOREX 3 (Consolidado OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "FOREX (3) · MultiStrategia (MSNR + ICT · Magic 26082203 · PID 10072)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082203,
-
-
-
+        "consolidated_hidden": False,
     },
 
-
-
     "FOREX_4": {
-
-
-
         "selection_profile": "FOREX",
-
-
-
         "category": "forex",
-
-
-
         "shard_index": 3,
-
-
-
         "shard_count": 4,
-
-
-
         "grouped_forex": True,
-
-
-
-        "consolidated_hidden": True,
-
-
-
-        "label": "FOREX 4 (Consolidado OFF) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "consolidated_hidden": False,
+        "label": "FOREX (4) · MultiStrategia (MSNR + ICT · Magic 26082204 · PID 12676)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082204,
+    },
 
-
-
+    "FOREX_5": {
+        "selection_profile": "FOREX",
+        "category": "forex",
+        "shard_index": 4,
+        "shard_count": 5,
+        "grouped_forex": True,
+        "consolidated_hidden": False,
+        "label": "FOREX (5) · MultiStrategia (MSNR + ICT · Magic 26082205 · PID 15280)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
+        "magic": 26082205,
     },
 
 
 
     "ICT": {
-
-
-
         "selection_profile": "ICT",
-
-
-
         "category": "ict",
-
-
-
-        "label": "ICT (Metales, Cripto & Índices) · Estrategia ICT",
-
-
-
-        "strategy_key": "ICT",
-
-
-
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
-
-
-
+        "label": "Materias Primas y Criptomonedas · MultiStrategia (MSNR + ICT · Magic 26082032 · PID 17144)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
         "magic": 26082032,
-
-
-
     },
 
 
 
     "MALAYSIAN_SNR": {
-
-
-
         "selection_profile": "MALAYSIAN_SNR",
-
-
-
         "category": "malaysian_snr",
-
-
-
         "label": "Malaysian SNR (M15 Fresh/Break)",
-
-
-
         "strategy_key": "MALAYSIAN_SNR",
-
-
-
         "strategy_label": "Malaysian SNR (M15 Fresh/Break · Variante C2)",
-
-
-
         "magic": 26082031,
-
-
-
+        "consolidated_hidden": True,
     },
 
 
@@ -5894,7 +4940,7 @@ _WORKER_PROFILE_META = {
 
 
 
-        "label": "ORB · Apertura New York (Sweep/HTF)",
+        "label": "ORB · Apertura New York (Sweep/HTF · Magic 26082028)",
 
 
 
@@ -5915,36 +4961,43 @@ _WORKER_PROFILE_META = {
 
 
     "TREND_PULLBACK": {
-
-
-
         "selection_profile": "TREND_PULLBACK",
-
-
-
         "category": "trend_pullback",
-
-
-
         "label": "Trend Pullback [H1+M15] · Sintéticos (>51% WR)",
-
-
-
         "strategy_key": "TREND_PULLBACK",
-
-
-
         "strategy_label": "Trend Pullback H1+M15 (Seguimiento Tendencia Sintéticos)",
-
-
-
         "magic": 26082038,
-
-
-
+        "consolidated_hidden": True,
     },
 
+    "COMMODITIES_SNR": {
+        "selection_profile": "COMMODITIES_SNR",
+        "category": "commodities_snr",
+        "label": "COMMODITIES_SNR · Materias Primas",
+        "strategy_key": "MALAYSIAN_SNR",
+        "strategy_label": "Malaysian SNR (M15 Fresh/Break · C2)",
+        "magic": 26082041,
+        "consolidated_hidden": True,
+    },
 
+    "INDICESB_SNR": {
+        "selection_profile": "INDICESB_SNR",
+        "category": "indicesb_snr",
+        "label": "INDICESB_SNR · Índices Bursátiles (MultiStrategia · Magic 26082042 · PID 32180)",
+        "strategy_key": "MULTISTRATEGY",
+        "strategy_label": "MultiStrategia",
+        "magic": 26082042,
+    },
+
+    "FOREX_SNR": {
+        "selection_profile": "FOREX_SNR",
+        "category": "forex_snr",
+        "label": "FOREX_SNR · Forex & Cripto",
+        "strategy_key": "MALAYSIAN_SNR",
+        "strategy_label": "Malaysian SNR (M15 Fresh/Break · C2)",
+        "magic": 26082043,
+        "consolidated_hidden": True,
+    },
 
 }
 
@@ -6042,7 +5095,7 @@ def _resolve_worker_universe_and_selection(
 
 
 
-        "strategy_label": "Estrategia ICT (Sabri Malle)",
+        "strategy_label": "Estrategia ICT",
 
 
 
@@ -6146,7 +5199,7 @@ def _resolve_worker_universe_and_selection(
 
 
 
-        if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and wp in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4"):
+        if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and wp in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "STEP", "STEP_2"):
 
 
 
@@ -6324,53 +5377,32 @@ def _resolve_worker_universe_and_selection(
 
     elif sel_prof == "MALAYSIAN_SNR":
 
-
-
         for g in catalog:
-
-
-
+            cat_l = str(g.get("category") or "").lower()
+            if cat_l in ("malaysian_snr_forex", "forex_snr", "malaysian_snr_metals", "malaysian_snr_indices", "commodities_snr", "indicesb_snr"):
+                continue
             if str(g.get("selection_profile") or "").upper() == sel_prof:
-
-
-
-                universe.extend(g.get("symbols") or [])
-
-
+                for sym in (g.get("symbols") or []):
+                    sl = str(sym or "").lower()
+                    if any(k in sl for k in ("boom", "crash", "volatility", "step", "jump", "vol over", "volswitch", "high frequency vol", "dex")):
+                        universe.append(sym)
 
         if not universe:
 
-
-
             universe = sorted(
-
-
-
                 set(DEFAULT_PRIORITIZED_SYMBOLS.get("MALAYSIAN_SNR", []))
-
-
-
                 | set(MALAYSIAN_SNR_PRUNED_INFO.keys())
-
-
-
                 | {"Boom 500 Index", "Crash 500 Index"},
-
-
-
                 key=str.casefold,
-
-
-
             )
-
-
 
         else:
 
+            universe = sorted(set(universe) | set(DEFAULT_PRIORITIZED_SYMBOLS.get("MALAYSIAN_SNR", [])), key=str.casefold)
 
-
-            universe = sorted(set(universe), key=str.casefold)
+        # Unificación: los índices de las familias Step, Crash y Boom son operados exclusivamente por sus Workers
+        # Worker STEP (Magic 26082104 · PID 17452), Worker CRASH (Magic 26082102 · PID 25904) y Worker BOOM (Magic 26082101 · PID 20320)
+        universe = [s for s in universe if "step" not in str(s).lower() and "crash" not in str(s).lower() and "boom" not in str(s).lower()]
 
 
 
@@ -6483,16 +5515,40 @@ def _resolve_worker_universe_and_selection(
 
 
         else:
-
-
-
             universe = sorted(set(universe), key=str.casefold)
 
+    elif sel_prof == "COMMODITIES_SNR":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "COMMODITIES_SNR" or str(g.get("category") or "").lower() in ("commodities", "commodities_snr", "metals"):
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            from config.strategy_config import PRUNED_ASSET_UNIVERSE
+            universe = sorted(set(PRUNED_ASSET_UNIVERSE.get("COMMODITIES_SNR", [
+                "XAUUSD", "XAUUSDmicro", "microXAUUSD", "XAUEUR", "XAUEURmicro", "microXAUEUR",
+                "XAGUSD", "XAGUSDmicro", "microXAGUSD", "US Oil", "UK Brent Oil"
+            ])), key=str.casefold)
+        else:
+            universe = sorted(set(universe), key=str.casefold)
 
+    elif sel_prof == "INDICESB_SNR":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "INDICESB_SNR" or str(g.get("category") or "").lower() in ("indices", "indicesb_snr"):
+                universe.extend(g.get("symbols") or [])
+        if not universe:
+            from config.strategy_config import PRUNED_ASSET_UNIVERSE
+            universe = sorted(set(PRUNED_ASSET_UNIVERSE.get("INDICESB_SNR", [
+                "Wall Street 30", "US Tech 100", "US SP 500", "Germany 40"
+            ])), key=str.casefold)
+        else:
+            universe = sorted(set(universe), key=str.casefold)
 
-
-
-
+    elif sel_prof == "FOREX_SNR":
+        for g in catalog:
+            if str(g.get("selection_profile") or "").upper() == "FOREX_SNR" or str(g.get("category") or "").lower() in ("forex_snr", "malaysian_snr_forex"):
+                for sym in (g.get("symbols") or []):
+                    if sym not in FOREX_SNR_PRUNED_INFO:
+                        universe.append(sym)
+        universe = sorted(set(universe) | set(DEFAULT_PRIORITIZED_SYMBOLS.get("FOREX_SNR", [])), key=str.casefold)
 
     selection_profiles = selection_profiles or {}
 
@@ -6502,11 +5558,16 @@ def _resolve_worker_universe_and_selection(
 
 
 
-    if raw_sel is not None and (len(raw_sel) > 0 or has_persisted_selection):
+    if raw_sel is not None and (len(raw_sel) > 0 or (has_persisted_selection and sel_prof != "FOREX_SNR")):
 
 
 
         selected_set = set(raw_sel)
+        if sel_prof == "MALAYSIAN_SNR":
+            selected_set = {
+                s for s in selected_set
+                if any(k in str(s).lower() for k in ("boom", "crash", "volatility", "step", "jump", "vol over", "volswitch", "high frequency vol", "dex"))
+            } or set(DEFAULT_PRIORITIZED_SYMBOLS.get("MALAYSIAN_SNR", []))
 
 
 
@@ -6523,10 +5584,11 @@ def _resolve_worker_universe_and_selection(
 
 
     active_symbols = [s for s in universe if s in selected_set]
-
-
-
     pruned_symbols = [s for s in universe if s not in selected_set]
+    if wp in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_4", "STEP", "STEP_2"):
+        # Activos MultiStrategia activos (High Frequency Vol / Ladder & VolSwitch / Volatility 1s / Step Large & Base) libres de poda
+        active_symbols = list(universe)
+        pruned_symbols = []
 
 
 
@@ -6555,6 +5617,7 @@ def _resolve_worker_universe_and_selection(
 
 
         "daemon_magic": meta["magic"],
+        "consolidated_hidden": meta.get("consolidated_hidden", False),
 
 
 
@@ -6637,12 +5700,28 @@ def _selection_profile_for_symbol(symbol: str) -> str:
     return "SYNTHETICS"
 
 
-
-
-
-
-
-
+def _is_traditional_market_closed(now_utc=None) -> tuple[bool, str]:
+    """Determina si los mercados tradicionales (Forex, Índices Bursátiles, Materias Primas) están cerrados."""
+    try:
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        current = now_utc or datetime.now(timezone.utc)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+        local = current.astimezone(ZoneInfo("America/New_York"))
+        minute = local.hour * 60 + local.minute
+        weekday = local.weekday()  # Monday=0, ..., Friday=4, Saturday=5, Sunday=6
+        reopen_minute = 17 * 60  # 17:00 NY
+        is_weekend = (
+            weekday == 5
+            or (weekday == 4 and minute >= reopen_minute)
+            or (weekday == 6 and minute < reopen_minute)
+        )
+        if is_weekend:
+            return True, "Mercado cerrado (Fin de semana) · reposo automático hasta reapertura Domingo 17:00 NY (22:00 UTC)"
+        return False, ""
+    except Exception:
+        return False, ""
 
 
 
@@ -6802,7 +5881,7 @@ def _enrich_worker_state_with_selection(
 
 
 
-    if has_explicit_version and info["universe_symbols_count"] > 0:
+    if (has_explicit_version or wp in ("FOREX_SNR", "MALAYSIAN_SNR", "COMMODITIES_SNR", "INDICESB_SNR", "STEP", "STEP_2", "VOLATILITY_1", "VOLATILITY_2")) and info["universe_symbols_count"] > 0:
 
 
 
@@ -6896,7 +5975,11 @@ def _selection_profile_for_category(category: str) -> str:
 
     if value.startswith("ict_") or value == "ict": return "ICT"
 
+    if value.startswith("commodities_snr") or value in ("commodities", "commodities_snr"): return "COMMODITIES_SNR"
 
+    if value.startswith("indicesb_snr") or value in ("indices", "indicesb_snr"): return "INDICESB_SNR"
+
+    if value in ("forex_snr", "malaysian_snr_forex") or value.startswith("forex_snr"): return "FOREX_SNR"
 
     if value.startswith("malaysian_snr_") or value == "malaysian_snr": return "MALAYSIAN_SNR"
 
@@ -6948,15 +6031,10 @@ def _catalog_symbols_by_profile(catalog):
 
     result={p:[] for p in _SELECTION_PROFILES}
 
-
-
     for group in catalog or []:
 
-
-
-        result[_selection_profile_for_category(group.get("category"))].extend(group.get("symbols") or [])
-
-
+        prof = _selection_profile_for_category(group.get("category"))
+        result.setdefault(prof, []).extend(group.get("symbols") or [])
 
     return {p:_normalize_symbol_list(v) for p,v in result.items()}
 
@@ -7402,6 +6480,10 @@ _BOT_MAGIC_PROFILE = {
 
 
 
+    26082205: "FOREX_5",
+
+
+
     26082028: "ORB",
 
 
@@ -7440,6 +6522,8 @@ _BOT_MAGIC_PROFILE = {
 
     26082104: "STEP",
 
+    26082406: "STEP_2",
+
 
 
     26082105: "JUMP",
@@ -7451,9 +6535,8 @@ _BOT_MAGIC_PROFILE = {
 
 
     26082030: "IDX_OPEN",
-
-
-
+    26082032: "ICT",
+    26082042: "INDICESB_SNR",
 }
 
 
@@ -8870,7 +7953,7 @@ def _extract_quality(result: dict) -> dict:
 
 
 
-        "strategy_name": pick('strategy_name'),
+        "strategy_name": ("ICT" if str(pick('strategy_name') or '').upper() in ("ICT_SABRI_MALLE", "ICT") else pick('strategy_name')),
 
 
 
@@ -8968,15 +8051,13 @@ _RETIRED_WORKER_PROFILES = {
 
     "FLIP",
 
-
-
     "IDX_OPEN",
-
-
 
     "V53_PROBE",
 
+    "COMMODITIES",
 
+    "INDICES",
 
 }
 
@@ -9260,7 +8341,12 @@ def _light_state_payload(state: dict) -> dict:
 
         light["open_positions"] = [_without_position_charts(p) for p in light["open_positions"]]
 
-
+    recent = light.get("recent")
+    if isinstance(recent, list) and len(recent) > 30:
+        light["recent"] = recent[-30:]
+    learning = light.get("learning_audit")
+    if isinstance(learning, list) and len(learning) > 10:
+        light["learning_audit"] = learning[-10:]
 
     return light
 
@@ -9515,22 +8601,10 @@ class RealtimeDashboardService:
 
 
         self._dashboard_snapshot_cache = {"at": 0.0, "payload": None}
-
-
-
-        self._dashboard_snapshot_cache_ttl_seconds = 4.0
-
-
-
-        self._account_cache_ttl_seconds = 6.0
-
-
-
-        self._instruments_cache_ttl_seconds = 5.0
-
-
-
-        self._snapshot_aux_cache_ttl_seconds = 5.0
+        self._dashboard_snapshot_cache_ttl_seconds = float(os.getenv("DAEMONBLACKFX_DASHBOARD_SNAPSHOT_TTL", "12.0"))
+        self._account_cache_ttl_seconds = float(os.getenv("DAEMONBLACKFX_DASHBOARD_ACCOUNT_TTL", "15.0"))
+        self._instruments_cache_ttl_seconds = float(os.getenv("DAEMONBLACKFX_DASHBOARD_INSTRUMENTS_TTL", "20.0"))
+        self._snapshot_aux_cache_ttl_seconds = float(os.getenv("DAEMONBLACKFX_DASHBOARD_AUX_TTL", "15.0"))
 
 
 
@@ -10932,7 +10006,38 @@ class RealtimeDashboardService:
 
             }]
 
+        if isinstance(entry_view, dict) and entry_view:
+            if str(entry_view.get("decision") or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED"):
+                entry_view["decision"] = "ICT_CONFIRMED"
+            elif entry_view.get("decision"):
+                entry_view["decision"] = str(entry_view["decision"]).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+            if str(entry_view.get("strategy_name") or "").upper() in ("ICT_SABRI_MALLE", "ICT"):
+                entry_view["strategy_name"] = "ICT"
 
+        for s in (snapshots or []):
+            if isinstance(s, dict):
+                ev = s.get("entry_view")
+                if isinstance(ev, dict):
+                    if str(ev.get("decision") or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED"):
+                        ev["decision"] = "ICT_CONFIRMED"
+                    elif ev.get("decision"):
+                        ev["decision"] = str(ev["decision"]).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+                    if str(ev.get("strategy_name") or "").upper() in ("ICT_SABRI_MALLE", "ICT"):
+                        ev["strategy_name"] = "ICT"
+                cv = s.get("current_view")
+                if isinstance(cv, dict):
+                    if str(cv.get("decision") or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED"):
+                        cv["decision"] = "ICT_CONFIRMED"
+                    elif cv.get("decision"):
+                        cv["decision"] = str(cv["decision"]).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+                    if str(cv.get("action") or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED"):
+                        cv["action"] = "ICT_CONFIRMED"
+                    elif cv.get("action"):
+                        cv["action"] = str(cv["action"]).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+                    if str(cv.get("strategy_name") or "").upper() in ("ICT_SABRI_MALLE", "ICT"):
+                        cv["strategy_name"] = "ICT"
+                    if cv.get("reason"):
+                        cv["reason"] = str(cv["reason"]).replace("ICT_SABRI_MALLE", "ICT").replace("ICT Sabri Malle", "ICT")
 
         return _json_safe({
 
@@ -11244,7 +10349,7 @@ class RealtimeDashboardService:
 
                 if wp not in by_prof:
 
-
+                    meta_w = _WORKER_PROFILE_META.get(wp) or {}
 
                     by_prof[wp] = {
 
@@ -11280,7 +10385,15 @@ class RealtimeDashboardService:
 
                         "last_reason": "STANDBY_IN_INSTRUMENTS",
 
+                        "daemon_magic": meta_w.get("magic"),
 
+                        "magic": meta_w.get("magic"),
+
+                        "worker_label": meta_w.get("label"),
+
+                        "strategy_key": meta_w.get("strategy_key"),
+
+                        "strategy_label": meta_w.get("strategy_label"),
 
                     }
 
@@ -11344,15 +10457,24 @@ class RealtimeDashboardService:
 
                 row = dict(by_prof.get(wp) or {"bot_profile": wp, "status": "STANDBY"})
 
+                is_trad_closed, trad_closed_reason = _is_traditional_market_closed()
+                is_traditional_worker = (
+                    wp.startswith("FOREX")
+                    or wp in ("INDICESB_SNR", "ORB", "COMMODITIES_SNR", "COMMODITIES", "GOLD")
+                )
 
-
-                if wp in ("VOLATILITY_2", "FOREX_2") and str(row.get("status") or "").upper() in ("STANDBY", "DISABLED_BY_CONFIG"):
-
-
-
+                if wp in ("FOREX_2",) and is_trad_closed:
                     row["status"] = "DISABLED"
-
-
+                    row["last_action"] = "STANDBY_MARKET_CLOSED"
+                    row["last_reason"] = "Desactivado · Cruces JPY/CHF en reposo (mercado Forex cerrado)"
+                elif is_traditional_worker and is_trad_closed:
+                    curr_st = str(row.get("status") or "").upper()
+                    if curr_st not in ("IN_TRADE", "OPEN_POSITION", "DISABLED"):
+                        row["status"] = "STANDBY_MARKET_CLOSED"
+                        row["last_action"] = "STANDBY_MARKET_CLOSED"
+                        m_type = "Forex" if "FOREX" in wp else ("Índices Bursátiles" if "INDICES" in wp or "ORB" in wp else "Materias Primas")
+                        row["last_reason"] = f"Mercado {m_type} cerrado (fin de semana) · reposo automático hasta reapertura Domingo 17:00 NY"
+                        row["last_event_time"] = datetime.now(timezone.utc).isoformat()
 
                 enriched = _enrich_worker_state_with_selection(
 
@@ -11485,6 +10607,12 @@ class RealtimeDashboardService:
                     "ICT": _ict_preventive_prune_info("ICT", self._state.get("instrument_catalog"), ICT_PRUNED_INFO),
 
 
+
+                    "COMMODITIES_SNR": {},
+
+                    "INDICESB_SNR": {},
+
+                    "FOREX_SNR": FOREX_SNR_PRUNED_INFO,
 
                     "TREND_PULLBACK": _ict_preventive_prune_info("TREND_PULLBACK", self._state.get("instrument_catalog"), {}),
 
@@ -12140,16 +11268,14 @@ class RealtimeDashboardService:
 
                 trade_audit_match = re.fullmatch(r"/account/trade/(\d+)/audit/?", path)
 
-
-
                 if trade_audit_match:
-
-
-
-                    self._send(TRADE_AUDIT_HTML.encode("utf-8"), "text/html; charset=utf-8")
-
-
-
+                    try:
+                        import importlib
+                        import dashboard.trade_audit_page as _tap
+                        importlib.reload(_tap)
+                        self._send(_tap.TRADE_AUDIT_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    except Exception:
+                        self._send(TRADE_AUDIT_HTML.encode("utf-8"), "text/html; charset=utf-8")
                     return
 
 
@@ -12334,6 +11460,21 @@ class RealtimeDashboardService:
 
 
 
+                api_trade_audit_chat_match = re.fullmatch(r"/api/account/trade/(\d+)/audit/chat/?", path)
+
+                if api_trade_audit_chat_match:
+                    try:
+                        trade_id = int(api_trade_audit_chat_match.group(1))
+                        _qs = parse_qs(urlparse(self.path).query)
+                        _msg = (_qs.get("q") or _qs.get("message") or [""])[0]
+                        detail = service._trade_audit_detail_payload(trade_id)
+                        from dashboard.trade_audit_chatbot import answer_trade_audit_inquiry
+                        resp = answer_trade_audit_inquiry(detail, _msg)
+                    except Exception as exc:
+                        resp = {"ok": False, "reply": f"Error procesando consulta: {exc}"}
+                    self._send(json.dumps(resp, ensure_ascii=False, default=str).encode("utf-8"), "application/json; charset=utf-8")
+                    return
+
                 api_trade_audit_match = re.fullmatch(r"/api/account/trade/(\d+)/audit/?", path)
 
 
@@ -12379,21 +11520,6 @@ class RealtimeDashboardService:
 
 
                 if path.lower() in ("/performance", "/performance/", "/rendimiento", "/rendimiento/"):
-
-
-
-                    if not dashboard_hot_sync_enabled():
-
-
-
-                        self._send(PERFORMANCE_HTML.encode("utf-8"), "text/html; charset=utf-8")
-
-
-
-                        return
-
-
-
                     try:
 
 
@@ -12446,6 +11572,64 @@ class RealtimeDashboardService:
 
 
 
+                if path.lower() in ("/decisions", "/decisions/", "/decisiones", "/decisiones/"):
+                    try:
+                        import importlib
+                        import dashboard.decisions_page as _dp
+                        importlib.reload(_dp)
+                        self._send(_dp.DECISIONS_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    except Exception:
+                        self._send(DECISIONS_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    return
+                if path.lower() in ("/operator", "/operator/", "/operador", "/operador/"):
+                    try:
+                        import importlib
+                        import dashboard.operator_page as _op
+                        importlib.reload(_op)
+                        self._send(_op.OPERATOR_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    except Exception:
+                        self._send(OPERATOR_HTML.encode("utf-8"), "text/html; charset=utf-8")
+                    return
+                if path == "/api/operator":
+                    try:
+                        from tools.operator.operator_db import (
+                            get_system_status, get_open_positions, get_macro_radar,
+                            get_recent_audit_events, get_catalog_summary
+                        )
+                        payload_dict = {
+                            "ok": True,
+                            "status": get_system_status(),
+                            "positions": get_open_positions(),
+                            "macro": get_macro_radar(),
+                            "audit": get_recent_audit_events(limit=25),
+                            "catalog": get_catalog_summary(),
+                        }
+                    except Exception as exc:
+                        payload_dict = {"ok": False, "error": str(exc)}
+                    self._send(json.dumps(payload_dict, ensure_ascii=False, default=str).encode("utf-8"), "application/json; charset=utf-8")
+                    return
+                if path == "/api/operator/chat":
+                    try:
+                        _qs = parse_qs(urlparse(self.path).query)
+                        _msg = (_qs.get("q") or _qs.get("message") or [""])[0]
+                        from dashboard.operator_chatbot import process_operator_chat_message
+                        resp = process_operator_chat_message(_msg)
+                    except Exception as exc:
+                        resp = {"ok": False, "reply": f"Error procesando mensaje: {exc}"}
+                    self._send(json.dumps(resp, ensure_ascii=False, default=str).encode("utf-8"), "application/json; charset=utf-8")
+                    return
+                if path == "/api/entry-decisions":
+                    # Trazabilidad de decisiones de entrada (Criterio Humano + Tripartita + IA); solo lectura.
+                    try:
+                        _qs = parse_qs(urlparse(self.path).query)
+                        _days = int((_qs.get("days") or ["3"])[0])
+                        _src_raw = (_qs.get("source") or [None])[0]
+                        _source = None if (_src_raw is None or str(_src_raw).upper() in {"ALL", "TODAS", ""}) else str(_src_raw).upper()
+                        _report = service.repository.entry_decision_report(days=_days, source=_source)
+                    except Exception as exc:
+                        _report = {"error": str(exc)}
+                    self._send(json.dumps(_report, ensure_ascii=False, default=str).encode("utf-8"), "application/json; charset=utf-8")
+                    return
                 if path == "/api/account":
 
 
@@ -12610,6 +11794,47 @@ class RealtimeDashboardService:
 
 
 
+                    return
+
+                if path == "/api/operator/chat/clear":
+                    try:
+                        from dashboard.operator_chatbot import clear_conversation_context
+                        clear_conversation_context()
+                        resp = {"ok": True, "reply": "Conversación reiniciada."}
+                    except Exception as exc:
+                        resp = {"ok": False, "error": str(exc)}
+                    self._send(json.dumps(resp, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
+                    return
+
+                if path == "/api/operator/chat":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        raw = self.rfile.read(min(length, 65536)).decode("utf-8") if length > 0 else "{}"
+                        data = json.loads(raw) if raw else {}
+                        from dashboard.operator_chatbot import process_operator_chat_message
+                        resp = process_operator_chat_message(
+                            data.get("message", ""),
+                            context_symbol=data.get("context_symbol")
+                        )
+                    except Exception as exc:
+                        resp = {"ok": False, "reply": f"Error procesando mensaje: {exc}"}
+                    self._send(json.dumps(resp, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
+                    return
+
+                api_trade_audit_chat_post = re.fullmatch(r"/api/account/trade/(\d+)/audit/chat/?", path)
+                if api_trade_audit_chat_post:
+                    try:
+                        trade_id = int(api_trade_audit_chat_post.group(1))
+                        length = int(self.headers.get("Content-Length", "0"))
+                        raw = self.rfile.read(min(length, 65536)).decode("utf-8") if length > 0 else "{}"
+                        data = json.loads(raw) if raw else {}
+                        user_msg = str(data.get("message") or data.get("q") or "")
+                        detail = service._trade_audit_detail_payload(trade_id)
+                        from dashboard.trade_audit_chatbot import answer_trade_audit_inquiry
+                        resp = answer_trade_audit_inquiry(detail, user_msg)
+                    except Exception as exc:
+                        resp = {"ok": False, "reply": f"Error procesando consulta: {exc}"}
+                    self._send(json.dumps(resp, ensure_ascii=False, default=str).encode("utf-8"), "application/json; charset=utf-8")
                     return
 
 
@@ -14226,7 +13451,7 @@ class RealtimeDashboardService:
 
             prof = str(r.get("selection_profile") or "")
 
-            p_idx = {"SYNTHETICS": 0, "FOREX": 1, "ORB": 2, "IDX_OPEN": 3, "MALAYSIAN_SNR": 4, "ICT": 5, "TREND_PULLBACK": 6}.get(prof, 12)
+            p_idx = {"SYNTHETICS": 0, "FOREX": 1, "ORB": 2, "IDX_OPEN": 3, "MALAYSIAN_SNR": 4, "FOREX_SNR": 5, "COMMODITIES_SNR": 6, "INDICESB_SNR": 7, "ICT": 8, "TREND_PULLBACK": 9}.get(prof, 12)
 
             if prof == "ORB":
 
@@ -14616,78 +13841,74 @@ class RealtimeDashboardService:
 
 
 
-        profile=str(selection_profile).upper()
-
-
+        profile = str(selection_profile).upper()
+        if profile == "FOREX_SNR":
+            profile = "FOREX"
+        elif profile == "COMMODITIES_SNR":
+            profile = "ICT"
+        elif profile == "MALAYSIAN_SNR":
+            profile = "SYNTHETICS"
 
         if profile not in _SELECTION_PROFILES: return {"ok":False,"error":f"Perfil no válido: {profile}"}
 
-
-
         with self._lock:
+            # Normalizar alias y limpiar entradas no deseadas
+            normalized_req = []
+            for s in (requested or []):
+                s_str = str(s).strip()
+                if s_str == "Ladder Volatility Up":
+                    s_str = "Ladder Volatility Up Index"
+                if s_str and s_str not in normalized_req:
+                    normalized_req.append(s_str)
+            requested = normalized_req
 
+            allowed = set(_catalog_symbols_by_profile(self._state.get("instrument_catalog") or []).get(profile) or [])
+            if profile in ("SYNTHETICS", "MALAYSIAN_SNR"):
+                from config.strategy_config import PRUNED_ASSET_UNIVERSE
+                for k in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "BOOM", "CRASH", "STEP", "JUMP"):
+                    for sym in PRUNED_ASSET_UNIVERSE.get(k, []):
+                        if sym != "Ladder Volatility Up":
+                            allowed.add(sym)
+            elif profile in ("FOREX", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_SNR"):
+                from config.strategy_config import PRUNED_ASSET_UNIVERSE
+                for k in ("FOREX", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_SNR"):
+                    for sym in PRUNED_ASSET_UNIVERSE.get(k, []):
+                        allowed.add(sym)
+            elif profile in ("ICT", "COMMODITIES_SNR"):
+                for sym in (
+                    "BTCUSD", "BTCUSDmicro", "microBTCUSD",
+                    "ETHUSD", "ETHUSDmicro", "microETHUSD", "ETHmicro",
+                    "XRPUSD",
+                    "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+                    "XAUEUR", "XAUEURmicro", "microXAUEUR",
+                    "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+                    "US Oil", "UK Brent Oil",
+                    "Wall Street 30", "US Tech 100", "US SP 500", "Germany 40",
+                ):
+                    allowed.add(sym)
+            elif profile in ("INDICESB_SNR", "IDX_OPEN"):
+                for sym in ("Wall Street 30", "US Tech 100", "US SP 500", "Germany 40"):
+                    allowed.add(sym)
 
-
-            allowed=set(_catalog_symbols_by_profile(self._state.get("instrument_catalog") or []).get(profile) or [])
-
-
-
-            invalid=[x for x in requested if x not in allowed]
-
-
+            invalid = [x for x in requested if x not in allowed]
 
             if invalid: return {"ok":False,"error":f"Hay instrumentos fuera del catálogo {profile}","invalid":invalid}
 
-
-
             # Pestañas ICT: por defecto quita PODA PREVENTIVA, salvo activación selectiva explícita desde /Instruments.
-
-
-
             from config.ict_instrument_policy import ict_active_symbols as _ict_active_for_sel, sanitize_ict_selection
 
-
-
             sanitized=sanitize_ict_selection(profile,requested,allow_selective=bool(allow_selective))
-
-
-
             preventive_dropped=[x for x in requested if x not in set(sanitized)]
-
-
-
             selective_enabled=[x for x in sanitized if x not in set(_ict_active_for_sel(profile))] if allow_selective else []
-
-
-
             requested=sanitized
 
-
-
             persisted=None
-
-
-
             if self.repository is not None and hasattr(self.repository,"save_instrument_selection_profile"):
-
-
-
                 try:
-
-
-
-                    persisted=self.repository.save_instrument_selection_profile(requested,selection_profile=profile,source="DEMO")
-
-
-
+                    for src in ("DEMO", "LIVE"):
+                        persisted=self.repository.save_instrument_selection_profile(requested,selection_profile=profile,source=src)
                     verify=self.repository.latest_instrument_selection_profile(profile,source="DEMO")
-
-
-
                     if verify is None or verify.get("selected_symbols") != requested:
-
-
-
                         return {"ok":False,"error":f"{profile} no superó la verificación de persistencia SQLAlchemy"}
 
 
@@ -15849,6 +15070,33 @@ class RealtimeDashboardService:
 
 
                 "confirmation_percentage": metadata.get("confirmation_percentage"),
+                "strategy_origin": (
+                    "ICT"
+                    if str(metadata.get("strategy_name") or metadata.get("strategy") or trade.get("strategy_name") or "").upper() in ("ICT_SABRI_MALLE", "ICT", "ESTRATEGIA ICT_SABRI_MALLE", "ESTRATEGIA ICT")
+                    else (
+                        metadata.get("strategy_name")
+                        or metadata.get("strategy")
+                        or trade.get("strategy_name")
+                        or (
+                            "Malaysian SNR"
+                            if "MSNR" in str(trade.get("comment", "")).upper()
+                            else (
+                                "ICT"
+                                if "ICT" in str(trade.get("comment", "")).upper()
+                                else (
+                                    "MultiStrategia"
+                                    if str(trade.get("magic")) in (
+                                        "26082104", "26082102", "26082101", "26082105",
+                                        "26082401", "26082402", "26082403", "26082404",
+                                        "26082201", "26082202", "26082203", "26082204", "26082205",
+                                        "26082032", "26082042"
+                                    )
+                                    else None
+                                )
+                            )
+                        )
+                    )
+                ),
 
 
 
@@ -16469,6 +15717,8 @@ class RealtimeDashboardService:
 
 
             ).upper()
+            if strat_name in ("ICT_SABRI_MALLE", "ICT"):
+                strat_name = "ICT"
 
 
 
@@ -17341,6 +16591,8 @@ class RealtimeDashboardService:
 
 
                 cur_view["strategy_name"] = strat_name
+            elif str(cur_view.get("strategy_name", "")).upper() in ("ICT_SABRI_MALLE", "ICT"):
+                cur_view["strategy_name"] = "ICT"
 
 
 
@@ -17652,35 +16904,13 @@ class RealtimeDashboardService:
 
 
 
-        if self.repository is None or not hasattr(self.repository, "latest_instrument_selection_profiles"):
-
-
-
-            return
-
-
-
-        try:
-
-
-
-            persisted = self.repository.latest_instrument_selection_profiles(source="DEMO") or {}
-
-
-
-        except Exception as exc:
-
-
-
-            self._state["selection_persistence_status"] = "ERROR"
-
-
-
-            self._state["selection_persistence_error"] = str(exc)
-
-
-
-            return
+        persisted = {}
+        if self.repository is not None and hasattr(self.repository, "latest_instrument_selection_profiles"):
+            try:
+                persisted = self.repository.latest_instrument_selection_profiles(source="DEMO") or {}
+            except Exception as exc:
+                self._state["selection_persistence_status"] = "ERROR"
+                self._state["selection_persistence_error"] = str(exc)
 
 
 
@@ -17749,8 +16979,16 @@ class RealtimeDashboardService:
 
 
         if "orb_ny_us_oil" not in cat_keys:
-
-            catalog.append({"category": "orb_ny_us_oil", "selection_profile": "ORB", "label": "Petróleo (US Oil)", "symbols": ["US Oil"]})
+            catalog.append({"category": "orb_ny_us_oil", "selection_profile": "ORB", "label": "Petróleo (US Oil / UK Brent)", "symbols": ["US Oil", "UK Brent Oil"]})
+        else:
+            for g in catalog:
+                if g.get("category") == "orb_ny_us_oil":
+                    syms = list(g.get("symbols") or [])
+                    for sub_sym in ("US Oil", "UK Brent Oil"):
+                        if sub_sym not in syms:
+                            syms.append(sub_sym)
+                    g["symbols"] = syms
+                    g["label"] = "Petróleo (US Oil / UK Brent)"
 
         if "orb_ny_usdchf" not in cat_keys:
 
@@ -17762,7 +17000,7 @@ class RealtimeDashboardService:
 
         if "orb_ny_ethusd" not in cat_keys:
 
-            catalog.append({"category": "orb_ny_ethusd", "selection_profile": "ORB", "label": "Ethereum (ETHUSD)", "symbols": ["ETHUSD", "ETHUSDmicro"]})
+            catalog.append({"category": "orb_ny_ethusd", "selection_profile": "ORB", "label": "Ethereum (ETHUSD)", "symbols": ["ETHUSD", "ETHUSDmicro", "ETHmicro", "microETHUSD"]})
 
         if "orb_ny_usdcad" not in cat_keys:
 
@@ -17785,6 +17023,30 @@ class RealtimeDashboardService:
                     g["symbols"] = syms
 
                     g["label"] = "USDCAD"
+
+        if "orb_ny_btcusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_btcusd", "selection_profile": "ORB", "label": "Bitcoin (BTCUSD)", "symbols": ["BTCUSD", "BTCUSDmicro"]})
+        if "orb_ny_eurusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_eurusd", "selection_profile": "ORB", "label": "EURUSD", "symbols": ["EURUSD", "EURUSDmicro"]})
+        if "orb_ny_gbpusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_gbpusd", "selection_profile": "ORB", "label": "GBPUSD", "symbols": ["GBPUSD", "GBPUSDmicro"]})
+        if "orb_ny_audusd" not in cat_keys:
+            catalog.append({"category": "orb_ny_audusd", "selection_profile": "ORB", "label": "AUDUSD", "symbols": ["AUDUSD", "AUDUSDmicro"]})
+        if "orb_ny_wall_street_30" not in cat_keys:
+            catalog.append({"category": "orb_ny_wall_street_30", "selection_profile": "ORB", "label": "Wall Street 30", "symbols": ["Wall Street 30"]})
+        if "orb_ny_us_tech_100" not in cat_keys:
+            catalog.append({"category": "orb_ny_us_tech_100", "selection_profile": "ORB", "label": "US Tech 100", "symbols": ["US Tech 100"]})
+        if "orb_ny_us_500" not in cat_keys:
+            catalog.append({"category": "orb_ny_us_500", "selection_profile": "ORB", "label": "US SP 500", "symbols": ["US SP 500", "US500"]})
+        else:
+            for g in catalog:
+                if g.get("category") == "orb_ny_us_500":
+                    syms = list(g.get("symbols") or [])
+                    for sub_sym in ("US SP 500", "US500"):
+                        if sub_sym not in syms:
+                            syms.append(sub_sym)
+                    g["symbols"] = syms
+                    g["label"] = "US SP 500"
 
         for g in catalog:
 
@@ -17810,7 +17072,7 @@ class RealtimeDashboardService:
 
             prof = str(r.get("selection_profile") or "")
 
-            p_idx = {"SYNTHETICS": 0, "FOREX": 1, "ORB": 2, "IDX_OPEN": 3, "MALAYSIAN_SNR": 4, "ICT": 5, "TREND_PULLBACK": 6}.get(prof, 12)
+            p_idx = {"SYNTHETICS": 0, "FOREX": 1, "ORB": 2, "IDX_OPEN": 3, "MALAYSIAN_SNR": 4, "FOREX_SNR": 5, "COMMODITIES_SNR": 6, "INDICESB_SNR": 7, "ICT": 8, "TREND_PULLBACK": 9}.get(prof, 12)
 
             if prof == "ORB":
 
@@ -17877,187 +17139,226 @@ class RealtimeDashboardService:
                 g["symbols"] = syms
 
             elif g.get("category") == "ict_indices":
-
                 syms = list(g.get("symbols") or [])
-
-                for s in ("US Oil", "Wall Street 30", "US Tech 100", "US SP 500"):
-
+                for s in ("US Oil", "UK Brent Oil", "Wall Street 30", "US Tech 100"):
                     if s not in syms:
-
                         syms.append(s)
-
-                g["symbols"] = syms
-
-
+                g["symbols"] = [s for s in syms if s != "US SP 500"]
 
         if not ict_xau_found:
-
             catalog.append({"category": "ict_metals_xauusd", "selection_profile": "ICT", "label": "ICT Metales · Oro (XAUUSD / XAUEUR)", "symbols": ["XAUUSD", "XAUUSDmicro", "XAUEUR", "XAUEURmicro"]})
-
         if not ict_crypto_found:
-
-            catalog.append({"category": "ict_crypto_btcusd", "selection_profile": "ICT", "label": "ICT Criptomonedas · Bitcoin (BTCUSD)", "symbols": ["BTCUSD", "BTCUSDmicro", "ETHUSD", "ETHUSDmicro"]})
-
+            catalog.append({"category": "ict_crypto_btcusd", "selection_profile": "ICT", "label": "ICT Criptomonedas · Bitcoin (BTCUSD)", "symbols": ["BTCUSD", "BTCUSDmicro", "ETHUSD", "ETHUSDmicro", "XRPUSD"]})
         if "ict_metals_xagusd" not in cat_keys:
-
             catalog.append({"category": "ict_metals_xagusd", "selection_profile": "ICT", "label": "ICT Metales · Plata (XAGUSD)", "symbols": ["XAGUSD", "XAGUSDmicro"]})
-
         if "ict_indices" not in cat_keys:
-
-            catalog.append({"category": "ict_indices", "selection_profile": "ICT", "label": "ICT Índices & Energía", "symbols": ["US Oil", "Wall Street 30", "US Tech 100", "US SP 500"]})
-
+            catalog.append({"category": "ict_indices", "selection_profile": "ICT", "label": "ICT Índices & Energía", "symbols": ["US Oil", "UK Brent Oil", "Wall Street 30", "US Tech 100"]})
 
 
-        # Actualización modular Malaysian SNR: asegurar Vol over en Volatility, Forex activos y Germany 40
 
+        # Actualización modular Malaysian SNR (38 sintéticos) y Forex SNR (44 Forex/Cripto)
+        forex_snr_found = False
+        vol_subworkers_official = [
+            "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
+            "High Frequency Vol 10 Index", "High Frequency Vol 25 Index", "High Frequency Vol 75 Index",
+            "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+            "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
+        ]
+        vol_cat_found = False
         for g in catalog:
-
             cat = g.get("category")
-
-            if cat == "malaysian_snr_volatility":
-
+            if cat == "volatility":
+                vol_cat_found = True
                 syms = list(g.get("symbols") or [])
-
-                for s in ("Vol over Boom 550", "Vol over Crash 550"):
-
+                for s in vol_subworkers_official:
                     if s not in syms:
-
                         syms.append(s)
-
+                g["symbols"] = [s for s in syms if s != "Ladder Volatility Up"]
+            elif cat == "malaysian_snr_volatility":
+                syms = list(g.get("symbols") or [])
+                for s in ("Vol over Boom 550", "Vol over Crash 550") + tuple(vol_subworkers_official):
+                    if s not in syms:
+                        syms.append(s)
+                g["symbols"] = [s for s in syms if s != "Ladder Volatility Up"]
+            elif cat == "malaysian_snr_jump":
+                syms = list(g.get("symbols") or [])
+                if "Jump 100 Index" not in syms:
+                    syms.append("Jump 100 Index")
                 g["symbols"] = syms
-
             elif cat in ("malaysian_snr_boom", "malaysian_snr_crash"):
-
                 g["symbols"] = [s for s in (g.get("symbols") or []) if s not in ("Vol over Boom 550", "Vol over Crash 550")]
+            elif cat in ("malaysian_snr_forex", "forex_snr"):
+                forex_snr_found = True
+                g["category"] = "forex_snr"
+                g["selection_profile"] = "FOREX_SNR"
+                g["label"] = "Forex SNR · Forex & Cripto"
+                g["symbols"] = list(DEFAULT_PRIORITIZED_SYMBOLS["FOREX_SNR"])
+            elif cat in ("malaysian_snr_indices", "malaysian_snr_metals", "malaysian_snr_pruned"):
+                g["symbols"] = []
 
-            elif cat == "malaysian_snr_forex":
-
-                syms = list(g.get("symbols") or [])
-
-                msnr_forex_add = (
-
-                    "USDCHF", "USDCHFmicro", "AUDCAD", "AUDCADmicro", "AUDUSD", "AUDUSDmicro", "NZDUSD", "NZDUSDmicro",
-
-                    "EURUSDmicro", "GBPUSDmicro", "USDJPYmicro", "USDCADmicro", "EURJPYmicro", "GBPJPYmicro", "EURAUDmicro",
-
-                    "AUDJPYmicro", "CADJPYmicro", "CHFJPYmicro", "CADCHFmicro", "EURGBPmicro", "GBPCHFmicro", "EURCADmicro",
-
-                    "BTCUSDmicro", "ETHUSDmicro"
-
-                )
-
-                for s in msnr_forex_add:
-
-                    if s not in syms:
-
-                        syms.append(s)
-
-                g["symbols"] = syms
-
-            elif cat == "malaysian_snr_indices":
-
-                syms = list(g.get("symbols") or [])
-
-                if "Germany 40" not in syms:
-
-                    syms.append("Germany 40")
-
-                g["symbols"] = syms
-
-            elif cat == "malaysian_snr_metals":
-
-                syms = list(g.get("symbols") or [])
-
-                for s in ("XAUUSDmicro", "XAUEUR", "XAUEURmicro"):
-
-                    if s not in syms:
-
-                        syms.append(s)
-
-                g["symbols"] = syms
-
-            elif cat == "malaysian_snr_pruned":
-
-                # Quitar de podados a los reactivados rentables
-
-                reactivated = {"USDCHF", "USDCHFmicro", "AUDCAD", "AUDCADmicro", "AUDUSD", "AUDUSDmicro", "Germany 40"}
-
-                g["symbols"] = [s for s in (g.get("symbols") or []) if s not in reactivated]
-
-
+        if not forex_snr_found:
+            catalog.append({
+                "category": "forex_snr",
+                "selection_profile": "FOREX_SNR",
+                "label": "Forex SNR · Forex & Cripto",
+                "symbols": list(DEFAULT_PRIORITIZED_SYMBOLS["FOREX_SNR"]),
+            })
 
         self._state["instrument_catalog"] = catalog
 
-
-
         allowed = _catalog_symbols_by_profile(catalog)
-
-
 
         profiles = dict(self._state.get("selection_profiles") or {p: [] for p in _SELECTION_PROFILES})
 
-
-
         versions = dict(self._state.get("selection_profile_versions") or {})
 
-
-
-
-
-
-
         for profile in _SELECTION_PROFILES:
-
-
-
             pref = persisted.get(profile)
-
-
-
             if pref is None:
-
-
-
                 continue
-
-
-
             universe = set(allowed.get(profile) or [])
-
-
-
             values = [str(x) for x in (pref.get("selected_symbols") or [])]
-
-
-
-            # Si el catálogo aún no está disponible, conservar el valor DB en vez
-
-
-
-            # de convertirlo accidentalmente en selección vacía.
-
-
-
             profiles[profile] = _normalize_symbol_list(
-
-
-
                 [x for x in values if (not universe or x in universe)]
-
-
-
             )
-
-
-
             versions[profile] = pref.get("version")
 
+        # 11-nov-2026: la selección persistida prevalece sobre los valores por defecto, así que los cruces Forex
+        # liberados (WR >= 50 % en /Strategy-bases ICT) se añaden UNA sola vez a la selección FOREX guardada
+        # (marcador storage/runtime/ict_forex_50_rescue.applied). Después el operador puede desmarcarlos.
+        try:
+            from config.ict_instrument_policy import ICT_FOREX_50_RESCUE_ENABLED as _rescue_on, ICT_FOREX_ACTIVE as _fx_active, ICT_FOREX_50_RESCUED_BASES as _rescued
+            _marker = Path(__file__).resolve().parent.parent / "storage" / "runtime" / "ict_forex_50_rescue.applied"
+            if _rescue_on and persisted.get("FOREX") is not None and not _marker.exists():
+                _universe_fx = set(allowed.get("FOREX") or [])
+                _rescued_syms = [s for s in _fx_active if any(s == b or s == f"{b}micro" for b in _rescued)
+                                 and (not _universe_fx or s in _universe_fx)]
+                _merged = _normalize_symbol_list(list(profiles.get("FOREX") or []) + _rescued_syms)
+                if _merged != list(profiles.get("FOREX") or []):
+                    profiles["FOREX"] = _merged
+                    if self.repository is not None:
+                        _saved_fx = self.repository.save_instrument_selection_profile(
+                            _merged, selection_profile="FOREX", source="DEMO"
+                        )
+                        if isinstance(_saved_fx, dict) and _saved_fx.get("version"):
+                            versions["FOREX"] = _saved_fx["version"]
+                _marker.parent.mkdir(parents=True, exist_ok=True)
+                _marker.write_text(_now_iso(), encoding="utf-8")
+        except Exception:
+            pass
+
+        # Activación inicial de Worker VOLATILITY (1) (HF) y Worker VOLATILITY (2) (Special) en SYNTHETICS
+        try:
+            _marker_vol = Path(__file__).resolve().parent.parent / "storage" / "runtime" / "vol_1_2_multistrat_active.applied"
+            if not _marker_vol.exists():
+                _vol_targets = [
+                    "High Frequency Vol 10 Index", "High Frequency Vol 25 Index", "High Frequency Vol 50 Index",
+                    "High Frequency Vol 75 Index", "High Frequency Vol 100 Index",
+                    "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+                    "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
+                ]
+                _cur_synth = list(profiles.get("SYNTHETICS") or [])
+                _merged_synth = _normalize_symbol_list(_cur_synth + [s for s in _vol_targets if s not in _cur_synth])
+                profiles["SYNTHETICS"] = _merged_synth
+                if self.repository is not None:
+                    for src in ("DEMO", "LIVE"):
+                        _s_saved = self.repository.save_instrument_selection_profile(
+                            _merged_synth, selection_profile="SYNTHETICS", source=src
+                        )
+                        if isinstance(_s_saved, dict) and _s_saved.get("version"):
+                            versions["SYNTHETICS"] = _s_saved["version"]
+                _marker_vol.parent.mkdir(parents=True, exist_ok=True)
+                _marker_vol.write_text(_now_iso(), encoding="utf-8")
+        except Exception:
+            pass
+
+        # Activación inicial de Worker STEP (2) (Large & Base Steps) en SYNTHETICS
+        try:
+            _marker_step2 = Path(__file__).resolve().parent.parent / "storage" / "runtime" / "step_2_multistrat_active.applied"
+            if not _marker_step2.exists():
+                _step2_targets = [
+                    "Step Index", "Step Index 300", "Step Index 1000",
+                    "Step Index 1500", "Step Index 2000",
+                ]
+                _cur_synth = list(profiles.get("SYNTHETICS") or [])
+                _merged_synth = _normalize_symbol_list(_cur_synth + [s for s in _step2_targets if s not in _cur_synth])
+                profiles["SYNTHETICS"] = _merged_synth
+                if self.repository is not None:
+                    for src in ("DEMO", "LIVE"):
+                        _s_saved = self.repository.save_instrument_selection_profile(
+                            _merged_synth, selection_profile="SYNTHETICS", source=src
+                        )
+                        if isinstance(_s_saved, dict) and _s_saved.get("version"):
+                            versions["SYNTHETICS"] = _s_saved["version"]
+                _marker_step2.parent.mkdir(parents=True, exist_ok=True)
+                _marker_step2.write_text(_now_iso(), encoding="utf-8")
+        except Exception:
+            pass
+
+        # Asegurar que MALAYSIAN_SNR contenga únicamente los 38 sintéticos y FOREX_SNR contenga los 44 Forex/Cripto
+        msnr_synth_set = set(DEFAULT_PRIORITIZED_SYMBOLS["MALAYSIAN_SNR"])
+        raw_msnr = list(profiles.get("MALAYSIAN_SNR") or [])
+        clean_msnr = _normalize_symbol_list([s for s in raw_msnr if s in msnr_synth_set] or list(msnr_synth_set))
+        if len(clean_msnr) < len(msnr_synth_set) and not persisted.get("MALAYSIAN_SNR"):
+            clean_msnr = _normalize_symbol_list(list(msnr_synth_set))
+        profiles["MALAYSIAN_SNR"] = clean_msnr
+        if raw_msnr != clean_msnr and self.repository is not None:
+            try:
+                saved_msnr = self.repository.save_instrument_selection_profile(
+                    clean_msnr, selection_profile="MALAYSIAN_SNR", source="DEMO"
+                )
+                if isinstance(saved_msnr, dict) and saved_msnr.get("version"):
+                    versions["MALAYSIAN_SNR"] = saved_msnr["version"]
+            except Exception:
+                pass
+
+        if not profiles.get("FOREX_SNR"):
+            fx_snr_list = _normalize_symbol_list(list(DEFAULT_PRIORITIZED_SYMBOLS["FOREX_SNR"]))
+            profiles["FOREX_SNR"] = fx_snr_list
+            versions["FOREX_SNR"] = versions.get("FOREX_SNR") or 1
+            if self.repository is not None:
+                try:
+                    saved_fx = self.repository.save_instrument_selection_profile(
+                        fx_snr_list, selection_profile="FOREX_SNR", source="DEMO"
+                    )
+                    if isinstance(saved_fx, dict) and saved_fx.get("version"):
+                        versions["FOREX_SNR"] = saved_fx["version"]
+                except Exception:
+                    pass
 
 
 
 
 
 
+
+                # Garantizar que los 10 índices rentables activos de VOLATILITY_4 estén disponibles por defecto en SYNTHETICS y MALAYSIAN_SNR
+        vol4_all_targets = [
+            "Volatility 100 (1s) Index", "Volatility 150 (1s) Index", "Volatility 250 (1s) Index",
+            "Volatility 75 (1s) Index", "Volatility 90 (1s) Index",
+            "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+            "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
+        ]
+        # Inicializar índices de VOLATILITY_4 por defecto únicamente si no existe preferencia previa persistida
+        for p_target in ("SYNTHETICS", "MALAYSIAN_SNR"):
+            if persisted.get(p_target) is not None:
+                continue
+            cur_list = list(profiles.get(p_target) or DEFAULT_PRIORITIZED_SYMBOLS.get(p_target, []))
+            target_universe = set(allowed.get(p_target) or [])
+            needed = [s for s in vol4_all_targets if s not in cur_list and (not target_universe or s in target_universe)]
+            if needed:
+                updated_list = _normalize_symbol_list(cur_list + needed)
+                profiles[p_target] = updated_list
+                if self.repository is not None:
+                    try:
+                        s_saved = self.repository.save_instrument_selection_profile(
+                            updated_list, selection_profile=p_target, source="DEMO"
+                        )
+                        if isinstance(s_saved, dict) and s_saved.get("version"):
+                            versions[p_target] = s_saved["version"]
+                    except Exception:
+                        pass
+        
         self._state["selection_profiles"] = profiles
 
 
@@ -18354,7 +17655,7 @@ class RealtimeDashboardService:
 
 
 
-                            source="DEMO", limit=250, per_profile=50, scan_limit=scan_limit,
+                            source="DEMO", limit=250, per_profile=50, scan_limit=scan_limit,  # scan_limit=1200
 
 
 
@@ -18423,6 +17724,33 @@ class RealtimeDashboardService:
 
 
                 ]
+
+                by_prof = {
+                    str((w or {}).get("bot_profile") or "").upper(): w
+                    for w in worker_states
+                    if (w or {}).get("bot_profile")
+                }
+                from config.ict_instrument_policy import CONSOLIDATE_ACTIVE_PRUNED_WORKERS
+                for wp, meta_w in _WORKER_PROFILE_META.items():
+                    if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and (meta_w.get("consolidated_hidden") or wp in ("VOLATILITY", "FOREX")):
+                        continue
+                    if wp not in by_prof:
+                        worker_states.append({
+                            "bot_profile": wp,
+                            "daemon_magic": meta_w.get("magic"),
+                            "magic": meta_w.get("magic"),
+                            "worker_label": meta_w.get("label"),
+                            "strategy_key": meta_w.get("strategy_key"),
+                            "strategy_label": meta_w.get("strategy_label"),
+                            "status": "STANDBY",
+                            "cycle_number": 0,
+                            "symbols_total": 0,
+                            "symbols_processed": 0,
+                            "current_symbol": None,
+                            "last_action": "STANDBY",
+                            "last_reason": "Worker activo · en espera de operaciones",
+                            "last_event_time": None,
+                        })
 
 
 
@@ -18903,85 +18231,48 @@ _HTML = r'''
 
 
       .top {
-
-
-
         display: flex;
-
-
-
-        gap: 16px;
-
-
-
         justify-content: space-between;
-
-
-
         align-items: center;
-
-
-
+        gap: 12px;
         flex-wrap: wrap;
-
-
-
-        margin-bottom: 16px;
-
-
-
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(91, 69, 20, 0.4);
       }
-
-
 
       .title {
-
-
-
         font-size: 22px;
-
-
-
         font-weight: 800;
-
-
-
+        letter-spacing: 0.02em;
+        color: #ffffff;
       }
 
-
+      .title strong, .title span {
+        color: #f6cb57;
+      }
 
       .sub {
-
-
-
-        color: var(--muted);
-
-
-
+        color: #94a3b8;
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        margin-top: 4px;
       }
 
-
-
       .badge {
-
-
-
-        padding: 7px 10px;
-
-
-
-        border: 1px solid var(--line);
-
-
-
+        padding: 6px 14px;
+        border: 1px solid #725116;
         border-radius: 999px;
-
-
-
-        background: var(--panel);
-
-
-
+        background: #0d1214;
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffd465;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 0 12px rgba(215, 155, 25, 0.12);
       }
 
 
@@ -21115,45 +20406,28 @@ _HTML = r'''
 
 
       .brandSidebar {
-
-
-
         border-right: 1px solid #6b4d13;
-
-
-
         background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
-
-
-
         padding: 18px 14px;
-
-
-
         display: flex;
-
-
-
         flex-direction: column;
-
-
-
         gap: 14px;
-
-
-
         position: sticky;
-
-
-
         top: 0;
-
-
-
         height: 100vh;
-
-
-
+        box-sizing: border-box;
+        align-self: start;
+        z-index: 50;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .brandSidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .brandSidebar::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
       }
 
 
@@ -21391,17 +20665,12 @@ _HTML = r'''
 
 
       .top {
-
-
-
-        border-bottom: 1px solid #513b12;
-
-
-
-        padding-bottom: 14px;
-
-
-
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
       }
 
 
@@ -24323,65 +23592,26 @@ _HTML = r'''
 
 
       <aside class="brandSidebar">
-
-
-
         <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
-
-
-
         <div>
-
-
-
           <div class="brandName">BLACKDAEMON<span>FX</span></div>
-
-
-
           <div class="brandTag">Estrategia · Disciplina · Resultados</div>
-
-
-
         </div>
-
-
-
         <nav class="sideNav">
-
-
-
-          <a class="active" href="/">▦ Dashboard</a><a href="/instruments">▥ Instrumentos</a
-
-
-
-          ><a href="/account">▣ Cuenta en vivo</a><a href="/performance">📈 Rendimiento</a><a href="/strategy-bases">📚 Bases de Estrategias</a><a href="#openPositions">◈ Posiciones abiertas</a
-
-
-
-          ><a href="#recentAnalysis">◷ Análisis recientes</a>
-
-
-
+          <a class="active" href="/">▦ Dashboard</a>
+          <a href="/instruments">▥ Instrumentos</a>
+          <a href="/account">▣ Cuenta en vivo</a>
+          <a href="/performance">📈 Rendimiento</a>
+          <a href="/strategy-bases">📚 Bases de Estrategias</a>
+          <a href="/decisions">⚖ Decisiones de entrada</a>
+          <a href="/operator">🛠 Suite Operador</a>
+          <a href="/#openPositions">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis">◷ Análisis recientes</a>
         </nav>
-
-
-
         <div class="sideStatus">
-
-
-
           <b>● Daemon Online</b>
-
-
-
           <div class="sub">Panel local conectado al motor</div>
-
-
-
         </div>
-
-
-
       </aside>
 
 
@@ -24395,33 +23625,11 @@ _HTML = r'''
 
 
           <div>
-
-
-
             <div class="title">BLACKDAEMON<strong>FX</strong> · Control operativo</div>
-
-
-
-            <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Dashboard en tiempo real</div>
-
-
-
+            <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Control operativo en tiempo real · Conectado al motor</div>
           </div>
-
-
-
           <div class="actions">
-
-
-
-            <a class="btn" href="/account">Cuenta en vivo</a><a class="btn" href="/performance">Rendimiento</a><a class="btn" href="/strategy-bases">Bases de Estrategias</a><a class="btn" href="/instruments">Instrumentos</a>
-
-
-
-            <div class="badge" id="status">Conectando…</div>
-
-
-
+            <div class="badge" id="status">DATOS EN VIVO</div>
           </div>
 
 
@@ -24998,114 +24206,41 @@ _HTML = r'''
 
 
 
-            <!-- Filtros interactivos por estrategia -->
-
-
-
-            <div id="confluenceFilters" style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
-
-
-
-              <button class="matrixTabBtn active" data-filter="ALL" onclick="setMatrixFilter('ALL')">TODAS</button>
-
-
-
-              <button class="matrixTabBtn" data-filter="ICT" onclick="setMatrixFilter('ICT')" style="color: #38bdf8; font-weight: bold;">ESTRATEGIA ICT</button>
-
-
-
-              <button class="matrixTabBtn" data-filter="MALAYSIAN_SNR" onclick="setMatrixFilter('MALAYSIAN_SNR')">MALAYSIAN SNR</button>
-
-
-
-              <button class="matrixTabBtn" data-filter="ORB" onclick="setMatrixFilter('ORB')">ORB NY</button>
-
-
-
-              <button class="matrixTabBtn" data-filter="TREND_PULLBACK" onclick="setMatrixFilter('TREND_PULLBACK')" style="color: #c084fc;">TREND PULLBACK</button>
-
-
-
-              <button class="matrixTabBtn" data-filter="ACTIVE" onclick="setMatrixFilter('ACTIVE')" style="color: #60a5fa;">🔵 ACTIVAS</button>
-
-
-
+            <!-- Barra de Filtros y Búsqueda -->
+            <div id="confluenceFilters" style="display: flex; gap: 6px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+              <button class="matrixTabBtn active" data-filter="ALL" onclick="setMatrixFilter('ALL')">TODAS <span id="cntAll" style="opacity:0.85;font-weight:normal;"></span></button>
+              <button class="matrixTabBtn" data-filter="MULTISTRATEGY" onclick="setMatrixFilter('MULTISTRATEGY')" style="color: #38bdf8; font-weight: bold;">MULTISTRATEGIA <span id="cntMulti" style="opacity:0.85;font-weight:normal;"></span></button>
+              <button class="matrixTabBtn" data-filter="ORB" onclick="setMatrixFilter('ORB')">ORB NY <span id="cntOrb" style="opacity:0.85;font-weight:normal;"></span></button>
+              <button class="matrixTabBtn" data-filter="ACTIVE" onclick="setMatrixFilter('ACTIVE')" style="color: #60a5fa;">🔵 ACTIVAS <span id="cntActive" style="opacity:0.85;font-weight:normal;"></span></button>
+              <input type="search" id="matrixSearch" placeholder="🔍 Filtrar activo…" oninput="setMatrixSearch(this.value)" style="background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;color:var(--text);font-size:11px;width:150px;margin-left:auto;" />
             </div>
 
-
-
-            <div id="confluenceMatrixPanel" style="margin-top: 12px; overflow-x: auto;">
-
-
-
-              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-
-
-
+            <!-- Panel de tabla con espacio exacto para 10 registros (Cero Scroll Vertical) -->
+            <div id="confluenceMatrixPanel" style="margin-top: 10px; min-height: 480px; overflow-x: auto; overflow-y: visible; border: 1px solid rgba(91, 69, 20, 0.4); border-radius: 8px; background: #081016;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
                 <thead>
-
-
-
-                  <tr>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Símbolo</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Estrategia</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Contexto Macro</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Estructura / Nivel Clave</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Gatillo / Confirmación</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Métricas / Frescura</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">AI Score</th>
-
-
-
-                    <th style="text-align: left; padding: 8px;">Estado Centinela</th>
-
-
-
+                  <tr style="background: #0d1720; border-bottom: 2px solid var(--line); height: 36px;">
+                    <th style="text-align: left; padding: 7px 10px; width: 140px;">Activo & Estrategia</th>
+                    <th style="text-align: left; padding: 7px 10px;">Contexto Macro & Estructura</th>
+                    <th style="text-align: left; padding: 7px 10px;">Gatillo & Métricas</th>
+                    <th style="text-align: center; padding: 7px 10px; width: 85px;">AI Score</th>
+                    <th style="text-align: center; padding: 7px 10px; width: 140px;">Estado Centinela</th>
                   </tr>
-
-
-
                 </thead>
-
-
-
                 <tbody id="confluenceMatrixBody">
-
-
-
-                  <tr><td colspan="8" class="empty">Cargando confluencias multiestrategia…</td></tr>
-
-
-
+                  <tr><td colspan="5" class="empty">Cargando confluencias multiestrategia…</td></tr>
                 </tbody>
-
-
-
               </table>
+            </div>
 
-
-
+            <!-- Paginación de 10 en 10 sin scroll -->
+            <div id="confluencePagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; gap: 8px; padding: 2px 4px;">
+              <div id="confluencePageInfo">Mostrando 1–10 de 0 activos (10 por página)</div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn" style="padding: 3px 10px; font-size: 11.5px;" onclick="changeMatrixPage(-1)" id="matrixPrevBtn">◀ Anterior</button>
+                <span id="matrixPageNumber" style="font-weight: 700; color: var(--text); padding: 0 4px;">Pág 1 / 1</span>
+                <button class="btn" style="padding: 3px 10px; font-size: 11.5px;" onclick="changeMatrixPage(1)" id="matrixNextBtn">Siguiente ▶</button>
+              </div>
             </div>
 
 
@@ -26263,6 +25398,26 @@ _HTML = r'''
 
 
             );
+
+          function formatStrategyOrigin(orig) {
+            if (!orig) return '';
+            const s = String(orig).trim();
+            const up = s.toUpperCase();
+            if (up === 'ICT_SABRI_MALLE' || up === 'ICT' || up === 'ESTRATEGIA ICT_SABRI_MALLE' || up === 'ESTRATEGIA ICT') {
+              return 'Estrategia ICT';
+            }
+            return s.startsWith('Estrategia ') ? s : 'Estrategia ' + s;
+          }
+
+          function normalizeStrategyName(strat) {
+            if (!strat) return '';
+            const s = String(strat).trim();
+            const up = s.toUpperCase();
+            if (up === 'ICT_SABRI_MALLE' || up === 'ICT') {
+              return 'ICT';
+            }
+            return s;
+          }
 
 
 
@@ -28882,11 +28037,12 @@ _HTML = r'''
 
 
 
-            const stratPill = v.strategy_name
+            const normStrat = normalizeStrategyName(v.strategy_name);
+            const stratPill = normStrat
 
 
 
-              ? `<span class="pill" style="font-size:10px; font-weight:700; background:rgba(41,98,255,0.18); color:#59a5ff; border:1px solid rgba(41,98,255,0.35); text-transform:uppercase;">${esc(v.strategy_name)}</span>`
+              ? `<span class="pill" style="font-size:10px; font-weight:700; background:rgba(41,98,255,0.18); color:#59a5ff; border:1px solid rgba(41,98,255,0.35); text-transform:uppercase;">${esc(normStrat)}</span>`
 
 
 
@@ -29346,7 +28502,7 @@ _HTML = r'''
 
 
 
-              `<span class="pill ${t.health_score == null ? 'neutral' : scoreClass(t.health_score)}">Salud ${t.health_score == null ? 'N/D' : n(t.health_score, 0) + '/100'}</span><span class="pill">${esc(t.managed_by_daemon ? 'GESTIONADA' : 'SOLO VISUAL')}</span><span class="pill">Magic ${esc(t.owner_magic || '—')}</span><span class="pill">${esc(t.current_rr == null ? 'R —' : n(t.current_rr, 2) + 'R')}</span><span class="pill">Entrada ${priceFmt(t.entry_price)}</span><span class="pill">Actual ${priceFmt(t.current_price)}</span><span class="pill">${activeTf} · ${candles.length}/${allCandles.length} velas</span>`;
+              `<span class="pill ${t.health_score == null ? 'neutral' : scoreClass(t.health_score)}">Salud ${t.health_score == null ? 'N/D' : n(t.health_score, 0) + '/100'}</span>${t.strategy_origin ? '<span class="pill good" style="font-weight:700">' + esc(formatStrategyOrigin(t.strategy_origin)) + '</span>' : ''}<span class="pill">${esc(t.managed_by_daemon ? 'GESTIONADA' : 'SOLO VISUAL')}</span><span class="pill">Magic ${esc(t.owner_magic || '—')}</span><span class="pill">${esc(t.current_rr == null ? 'R —' : n(t.current_rr, 2) + 'R')}</span><span class="pill">Entrada ${priceFmt(t.entry_price)}</span><span class="pill">Actual ${priceFmt(t.current_price)}</span><span class="pill">${activeTf} · ${candles.length}/${allCandles.length} velas</span>`;
 
 
 
@@ -30842,7 +29998,7 @@ _HTML = r'''
 
 
 
-    <td><b>${esc(t.symbol)}</b> ${durationPill}<br><span class="sub">${esc(t.execution_mode)} · ${esc(t.leg)}</span><br>${persisted}<span class="technical">${esc(t.broker_verification)}</span></td>
+    <td><b>${esc(t.symbol)}</b> ${durationPill}<br><span class="sub">${esc(t.execution_mode)} · ${esc(t.leg)}</span><br>${t.strategy_origin ? '<span class="pill good" style="font-size:10px; font-weight:700; margin: 2px 0; display:inline-block;">' + esc(formatStrategyOrigin(t.strategy_origin)) + '</span><br>' : ''}${persisted}<span class="technical">${esc(t.broker_verification)}</span></td>
 
 
 
@@ -31167,33 +30323,19 @@ _HTML = r'''
 
 
           const RETIRED_WORKER_PROFILES = new Set([
-
-
-
-            'FLIP', 'IDX_OPEN', 'CARRY', 'DRIFT', 'GOLD', 'GOLD_QUARTERS', 'MSNR', 'NIGHT', 'RSI2', 'V53_PROBE'
-
-
-
+            'FLIP', 'IDX_OPEN', 'CARRY', 'DRIFT', 'GOLD', 'GOLD_QUARTERS', 'MSNR', 'NIGHT', 'RSI2', 'V53_PROBE', 'COMMODITIES', 'INDICES',
+            'MALAYSIAN_SNR', 'FOREX_SNR', 'COMMODITIES_SNR', 'TREND_PULLBACK'
           ]);
-
-
+          const RETIRED_WORKER_MAGICS = new Set([26082031, 26082041, 26082043, 26082038]);
+          const RETIRED_WORKER_PIDS = new Set([29316, 29740, 30444, 22728]);
 
           function visibleWorkers(s) {
-
-
-
             return (s.worker_states || []).filter(
-
-
-
-              (w) => !RETIRED_WORKER_PROFILES.has(String(w.bot_profile || '').toUpperCase()),
-
-
-
+              (w) => !RETIRED_WORKER_PROFILES.has(String(w.bot_profile || '').toUpperCase()) &&
+                     !RETIRED_WORKER_MAGICS.has(Number(w.daemon_magic || w.magic || 0)) &&
+                     !RETIRED_WORKER_PIDS.has(Number(w.pid || 0)) &&
+                     !w.consolidated_hidden,
             );
-
-
-
           }
 
 
@@ -32102,107 +31244,54 @@ _HTML = r'''
 
 
 
-            const order = [
-
-
-
-              'BOOM', 'CRASH', 'STEP', 'JUMP',
-
-
-
-              'VOLATILITY', 'VOLATILITY_1', 'VOLATILITY_2', 'VOLATILITY_3', 'VOLATILITY_4',
-
-
-
-              'FOREX', 'FOREX_1', 'FOREX_2', 'FOREX_3', 'FOREX_4',
-
-
-
-              'ICT', 'MALAYSIAN_SNR', 'ORB', 'TREND_PULLBACK'
-
-
-
-            ];
-
-
-
             const workerLabels = {
-
-
-
+              BOOM: 'BOOM (MultiStrategia)',
+              CRASH: 'CRASH (MultiStrategia)',
+              STEP: 'STEP (1) · MultiStrategia',
+              STEP_2: 'STEP (2) · Large & Base (MultiStrategia)',
+              JUMP: 'JUMP (MultiStrategia)',
+              VOLATILITY_1: 'VOLATILITY (1) · HF (MultiStrategia)',
+              VOLATILITY_2: 'VOLATILITY (2) · Especiales (MultiStrategia)',
+              VOLATILITY_3: 'VOLATILITY (3) · Estándar (MultiStrategia)',
+              VOLATILITY_4: 'VOLATILITY (4) · 1s (MultiStrategia)',
+              FOREX_1: 'FOREX (1) · Majors & Cruces',
+              FOREX_2: 'FOREX (2) · Cruces JPY/CHF',
+              FOREX_3: 'FOREX (3) · Cruces GBP/EUR',
+              FOREX_4: 'FOREX (4) · Cruces Commodity FX',
+              FOREX_5: 'FOREX (5) · Cruces Exóticos FX',
+              INDICESB_SNR: 'INDICESB_SNR · Índices Bursátiles',
               IDX_OPEN: 'Apertura Bursátiles',
-
-
-
               ORB: 'ORB · Apertura New York',
-
-
-
-              MALAYSIAN_SNR: 'Malaysian SNR (M15 Fresh/Break)',
-
-
-
-              ICT: 'ICT (Metales, Cripto & Índices)',
-
-
-
-              VOLATILITY_1: 'VOLATILITY (1)',
-
-
-
-              VOLATILITY_2: 'VOLATILITY (2)',
-
-
-
-              VOLATILITY_3: 'VOLATILITY (3)',
-
-
-
-              VOLATILITY_4: 'VOLATILITY (4)',
-
-
-
-              FOREX_1: 'FOREX (1)',
-
-
-
-              FOREX_2: 'FOREX (2)',
-
-
-
-              FOREX_3: 'FOREX (3)',
-
-
-
-              FOREX_4: 'FOREX (4)',
-
-
-
+              ICT: 'Materias Primas y Criptomonedas',
             };
 
-
+            function getWorkerDisplayName(w) {
+              const prof = String(w.bot_profile || '').toUpperCase();
+              const mag = Number(w.daemon_magic || w.magic || 0);
+              if (prof === 'ICT' || mag === 26082032) return 'Materias Primas y Criptomonedas';
+              if (prof === 'INDICESB_SNR' || mag === 26082042) return 'INDICESB_SNR · Índices Bursátiles';
+              return workerLabels[prof] || w.worker_label || w.bot_profile || 'WORKER';
+            }
 
             const now = Date.now();
 
-
-
-            const sorted = [...rows].sort((a, b) => {
-
-
-
-              const ai = order.indexOf(String(a.bot_profile || '').toUpperCase()),
-
-
-
-                bi = order.indexOf(String(b.bot_profile || '').toUpperCase());
-
-
-
-              return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-
-
-
-            });
+            // Ordenar por nombre alfabéticamente (A-Z) cada uno de los workers
+            const sorted = [...rows]
+              .filter((w) => {
+                const prof = String(w.bot_profile || '').toUpperCase();
+                const mag = Number(w.daemon_magic || w.magic || 0);
+                const pid = Number(w.pid || 0);
+                if (['MALAYSIAN_SNR', 'FOREX_SNR', 'COMMODITIES_SNR', 'TREND_PULLBACK'].includes(prof)) return false;
+                if ([26082031, 26082041, 26082043, 26082038].includes(mag)) return false;
+                if ([29316, 29740, 30444, 22728].includes(pid)) return false;
+                if (w.consolidated_hidden) return false;
+                return true;
+              })
+              .sort((a, b) => {
+                const nameA = getWorkerDisplayName(a);
+                const nameB = getWorkerDisplayName(b);
+                return nameA.localeCompare(nameB, 'es', { numeric: true, sensitivity: 'base' });
+              });
 
 
 
@@ -32266,54 +31355,24 @@ _HTML = r'''
 
 
 
-                  const paused = ['OUTSIDE_SESSION', 'SESSION_WARMUP'].includes(
-
-
-
+                  const isStandby = String(w.status || '').toUpperCase() === 'STANDBY' || (!w.pid && age > 120);
+                  const paused = isStandby || ['OUTSIDE_SESSION', 'SESSION_WARMUP', 'STANDBY_MARKET_CLOSED'].includes(
                     String(w.status || '').toUpperCase(),
-
-
-
                   );
 
-
-
                   const stale = !disabled && !paused && age > 120,
-
-
-
                     status = disabled
-
-
-
-                      ? 'DESACTIVADO MANUALMENTE'
-
-
-
+                      ? 'DESACTIVADO · MODO REPOSO'
                       : paused
-
-
-
-                        ? w.status === 'SESSION_WARMUP'
-
-
-
-                          ? 'PREPARANDO SESIÓN'
-
-
-
-                          : isOrb
-
-
-
-                            ? 'ACTIVO · ESPERANDO SESIÓN NY (09:30 EST)'
-
-
-
-                            : 'PAUSADO · SESIÓN / MERCADO'
-
-
-
+                        ? isStandby
+                          ? 'STANDBY · EN ESPERA DE ARRANQUE'
+                          : w.status === 'SESSION_WARMUP'
+                            ? 'PREPARANDO SESIÓN'
+                            : String(w.status || '').toUpperCase() === 'STANDBY_MARKET_CLOSED'
+                              ? 'STANDBY · MERCADO CERRADO (REAPERTURA AUTOMÁTICA)'
+                              : isOrb
+                                ? 'ACTIVO · ESPERANDO SESIÓN NY (09:30 EST)'
+                                : 'PAUSADO · SESIÓN / MERCADO'
                         : stale
 
 
@@ -32350,7 +31409,7 @@ _HTML = r'''
 
 
 
-                      ? 'bad'
+                      ? 'warn'
 
 
 
@@ -32382,83 +31441,59 @@ _HTML = r'''
 
 
 
-                  const displayName =
+                  const displayName = getWorkerDisplayName(w);
 
 
 
-                    workerLabels[prof] ||
+                  const isMultiStrat =
+                    prof === 'BOOM' || prof === 'CRASH' || prof === 'STEP' || prof === 'STEP_2' || prof === 'JUMP' ||
+                    prof === 'VOLATILITY_1' || prof === 'VOLATILITY_2' || prof === 'VOLATILITY_3' || prof === 'VOLATILITY_4' ||
+                    prof === 'FOREX_1' || prof.includes('FOREX_1') ||
+                    prof === 'FOREX_2' || prof.includes('FOREX_2') ||
+                    prof === 'FOREX_3' || prof.includes('FOREX_3') ||
+                    prof === 'FOREX_4' || prof.includes('FOREX_4') ||
+                    prof === 'FOREX_5' || prof.includes('FOREX_5') ||
+                    prof === 'ICT' || prof.includes('ICT') ||
+                    prof === 'INDICESB_SNR' || prof.includes('INDICESB_SNR') ||
+                    prof.includes('VOLATILITY_1') || prof.includes('VOLATILITY_2') || prof.includes('VOLATILITY_3') || prof.includes('VOLATILITY_4') ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082042 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082032 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082401 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082402 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082403 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082404 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082406 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082201 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082202 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082203 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082204 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082205 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082101 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082102 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082104 ||
+                    Number(w.daemon_magic || w.magic || 0) === 26082105 ||
+                    (w.strategy_key && w.strategy_key.toUpperCase() === 'MULTISTRATEGY') ||
+                    (w.strategy_label && w.strategy_label.toLowerCase().includes('multi'));
 
-
-
-                    w.worker_label ||
-
-
-
-                    w.bot_profile ||
-
-
-
-                    'WORKER';
-
-
-
-                  const stratLabel = isGold
-
-
-
-                    ? 'Cuartos ($25) · M5/H1'
-
-
-
-                    : isOrb
-
-
-
-                      ? 'ORB New York M5 (SWEEP)'
-
-
-
-                      : prof === 'MALAYSIAN_SNR'
-
-
-
-                        ? 'Malaysian SNR (M15 Fresh/Break · C2)'
-
-
-
-                          : prof === 'NIGHT'
-
-
-
-                          ? 'Sesgo nocturno (cierre → apertura NY)'
-
-
-
-                          : prof === 'DRIFT'
-
-
-
-                          ? 'Ruptura tras compresión (Drift Switch)'
-
-
-
-                          : prof === 'RSI2'
-
-
-
-                          ? 'RSI(2) diario de Connors (índices US)'
-
-
-
-                          : prof === 'CARRY'
-
-
-
-                          ? 'Carry Forex G10 (swap real, mensual)'
-
-
-
-                          : 'Estrategia ICT (Sabri Malle)';
+                  const stratLabel = isMultiStrat
+                    ? 'MultiStrategia'
+                    : (w.strategy_label && w.strategy_label !== 'Estrategia ICT')
+                      ? w.strategy_label
+                      : isGold
+                        ? 'Cuartos ($25) · M5/H1'
+                        : isOrb
+                          ? 'ORB New York M5 (SWEEP)'
+                          : (prof === 'MALAYSIAN_SNR' || prof === 'FOREX_SNR' || prof === 'COMMODITIES_SNR' || prof === 'INDICESB_SNR')
+                            ? 'Malaysian SNR (M15 Fresh/Break · C2)'
+                              : prof === 'NIGHT'
+                              ? 'Sesgo nocturno (cierre → apertura NY)'
+                              : prof === 'DRIFT'
+                              ? 'Ruptura tras compresión (Drift Switch)'
+                              : prof === 'RSI2'
+                              ? 'RSI(2) diario de Connors (índices US)'
+                              : prof === 'CARRY'
+                              ? 'Carry Forex G10 (swap real, mensual)'
+                              : (w.strategy_label || 'Estrategia ICT');
 
 
 
@@ -32826,245 +31861,134 @@ _HTML = r'''
 
 
 
-          let currentMatrixFilter = 'ALL';
-
-
+                    let currentMatrixFilter = 'ALL';
+          let matrixSearchQuery = '';
+          let matrixPage = 1;
+          let matrixPageSize = 10;
 
           window.setMatrixFilter = function(filter) {
-
-
-
             currentMatrixFilter = filter;
-
-
-
+            matrixPage = 1;
             document.querySelectorAll('#confluenceFilters .matrixTabBtn').forEach(btn => {
-
-
-
               btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
-
-
-
             });
-
-
-
-            if (latestState) {
-
-
-
-              renderConfluenceMatrix(latestState);
-
-
-
-            }
-
-
-
+            if (latestState) renderConfluenceMatrix(latestState);
           };
 
+          window.setMatrixSearch = function(val) {
+            matrixSearchQuery = (val || '').trim().toLowerCase();
+            matrixPage = 1;
+            if (latestState) renderConfluenceMatrix(latestState);
+          };
 
+          window.setMatrixPageSize = function(val) {
+            matrixPageSize = val === 'ALL' ? 9999 : parseInt(val, 10);
+            matrixPage = 1;
+            if (latestState) renderConfluenceMatrix(latestState);
+          };
 
-
-
-
+          window.changeMatrixPage = function(delta) {
+            matrixPage += delta;
+            if (latestState) renderConfluenceMatrix(latestState);
+          };
 
           function renderConfluenceMatrix(s) {
-
-
-
             const tbody = $('confluenceMatrixBody');
-
-
-
             if (!tbody) return;
-
-
-
             const fullMatrix = s.confluence_matrix || [];
-
-
-
             if (!fullMatrix.length) {
-
-
-
-              tbody.innerHTML = '<tr><td colspan="8" class="empty">Esperando datos centinela de las estrategias…</td></tr>';
-
-
-
+              tbody.innerHTML = '<tr><td colspan="5" class="empty">Esperando datos centinela de las estrategias…</td></tr>';
               return;
-
-
-
             }
 
+            // Actualizar contadores dinámicos en los botones de filtro
+            const cntAll = fullMatrix.length;
+            const cntMulti = fullMatrix.filter(m => ['MULTISTRATEGY', 'ICT', 'MALAYSIAN_SNR'].includes((m.strategy_key || '').toUpperCase())).length;
+            const cntOrb = fullMatrix.filter(m => (m.strategy_key || '').toUpperCase() === 'ORB').length;
+            const cntActive = fullMatrix.filter(m => (m.final_state || '').includes('ACTIVA') || m.badge_class === 'active').length;
 
+            if ($('cntAll')) $('cntAll').textContent = `(${cntAll})`;
+            if ($('cntMulti')) $('cntMulti').textContent = `(${cntMulti})`;
+            if ($('cntOrb')) $('cntOrb').textContent = `(${cntOrb})`;
+            if ($('cntActive')) $('cntActive').textContent = `(${cntActive})`;
 
-
-
-
-
-            // Actualizar chips de resumen
-
-
-
+            // Actualizar chips de resumen superiores
             const summaryDiv = $('confluenceSummaryChips');
-
-
-
             if (summaryDiv) {
-
-
-
-              const activeCount = fullMatrix.filter(m => (m.final_state || '').includes('ACTIVA') || m.badge_class === 'active').length;
-
-
-
               const readyCount = fullMatrix.filter(m => (m.final_state || '').includes('LISTA')).length;
-
-
-
-              const monitorCount = fullMatrix.filter(m => (m.final_state || '').includes('MONITOREANDO') || (m.final_state || '').includes('ESPERANDO')).length;
-
-
-
+              const monitorCount = fullMatrix.filter(m => (m.final_state || '').includes('MONITOREANDO') || (m.final_state || '').includes('ESPERANDO') || (m.final_state || '').includes('RADAR') || (m.final_state || '').includes('EVALUANDO')).length;
               summaryDiv.innerHTML = `
-
-
-
-                <span class="statusPill active" style="font-size:10px;">${activeCount} Posición${activeCount === 1 ? '' : 'es'} Activa${activeCount === 1 ? '' : 's'}</span>
-
-
-
+                <span class="statusPill active" style="font-size:10px;">${cntActive} Posición${cntActive === 1 ? '' : 'es'} Activa${cntActive === 1 ? '' : 's'}</span>
                 <span class="statusPill good" style="font-size:10px;">${readyCount} Señal${readyCount === 1 ? '' : 'es'} Lista${readyCount === 1 ? '' : 's'}</span>
-
-
-
                 <span class="statusPill warn" style="font-size:10px;">${monitorCount} En Seguimiento</span>
-
-
-
               `;
-
-
-
             }
 
-
-
-
-
-
-
-            // Aplicar filtro seleccionado
-
-
-
+            // Aplicar filtros por estrategia y búsqueda
             let filtered = fullMatrix;
-
-
-
             if (currentMatrixFilter === 'ACTIVE') {
-
-
-
               filtered = fullMatrix.filter(m => (m.final_state || '').includes('ACTIVA') || m.badge_class === 'active');
-
-
-
+            } else if (currentMatrixFilter === 'MULTISTRATEGY') {
+              filtered = fullMatrix.filter(m => ['MULTISTRATEGY', 'ICT', 'MALAYSIAN_SNR'].includes((m.strategy_key || '').toUpperCase()));
             } else if (currentMatrixFilter !== 'ALL') {
-
-
-
               filtered = fullMatrix.filter(m => (m.strategy_key || '').toUpperCase() === currentMatrixFilter);
-
-
-
             }
 
-
-
-
-
-
+            if (matrixSearchQuery) {
+              filtered = filtered.filter(m =>
+                (m.symbol || '').toLowerCase().includes(matrixSearchQuery) ||
+                (m.strategy || '').toLowerCase().includes(matrixSearchQuery) ||
+                (m.final_state || '').toLowerCase().includes(matrixSearchQuery)
+              );
+            }
 
             if (!filtered.length) {
-
-
-
-              tbody.innerHTML = `<tr><td colspan="8" class="empty">No hay activos para el filtro seleccionado (${esc(currentMatrixFilter)}).</td></tr>`;
-
-
-
+              tbody.innerHTML = `<tr><td colspan="5" class="empty">No hay activos para el filtro seleccionado (${esc(currentMatrixFilter)}).</td></tr>`;
+              if ($('confluencePageInfo')) $('confluencePageInfo').textContent = '0 activos';
+              if ($('matrixPageNumber')) $('matrixPageNumber').textContent = '0 / 0';
               return;
-
-
-
             }
 
+            // Paginación
+            const totalItems = filtered.length;
+            const totalPages = Math.ceil(totalItems / matrixPageSize) || 1;
+            if (matrixPage < 1) matrixPage = 1;
+            if (matrixPage > totalPages) matrixPage = totalPages;
 
+            const startIndex = (matrixPage - 1) * matrixPageSize;
+            const pageItems = filtered.slice(startIndex, startIndex + matrixPageSize);
 
+            if ($('confluencePageInfo')) {
+              const endIndex = Math.min(startIndex + pageItems.length, totalItems);
+              $('confluencePageInfo').textContent = `Mostrando ${startIndex + 1}–${endIndex} de ${totalItems} activos`;
+            }
+            if ($('matrixPageNumber')) $('matrixPageNumber').textContent = `${matrixPage} / ${totalPages}`;
+            if ($('matrixPrevBtn')) $('matrixPrevBtn').disabled = (matrixPage <= 1);
+            if ($('matrixNextBtn')) $('matrixNextBtn').disabled = (matrixPage >= totalPages);
 
-
-
-
-            tbody.innerHTML = filtered.map(m => `
-
-
-
-              <tr style="border-bottom: 1px solid var(--line);">
-
-
-
-                <td style="padding: 9px 8px;"><b>${esc(m.symbol)}</b></td>
-
-
-
-                <td style="padding: 9px 8px;"><span class="stratBadge ${esc(m.strat_badge || 'strat-smc')}">${esc(m.strategy || 'SMC')}</span></td>
-
-
-
-                <td style="padding: 9px 8px;">${esc(m.macro_context || m.h1_context || '—')}</td>
-
-
-
-                <td style="padding: 9px 8px;">${esc(m.structure_level || m.m15_structure || '—')}</td>
-
-
-
-                <td style="padding: 9px 8px;">${esc(m.trigger_confirmation || m.m5_confirmation || '—')}</td>
-
-
-
-                <td style="padding: 9px 8px;">${esc(m.metrics_freshness || m.m5_freshness || '—')}</td>
-
-
-
-                <td style="padding: 9px 8px;"><b>${esc(m.ai_score || '—')}</b></td>
-
-
-
-                <td style="padding: 9px 8px;"><span class="statusPill ${esc(m.badge_class || 'neutral')}">${esc(m.final_state || '—')}</span></td>
-
-
-
+            tbody.innerHTML = pageItems.map(m => `
+              <tr style="border-bottom: 1px solid var(--line); height: 44px;">
+                <td style="padding: 6px 10px;">
+                  <b style="font-size:12px;color:var(--text);">${esc(m.symbol)}</b>
+                  <div style="margin-top: 2px;"><span class="stratBadge ${esc(m.strat_badge || 'strat-smc')}" style="font-size:9.5px;padding:1px 5px;">${esc(m.strategy || 'SMC')}</span></div>
+                </td>
+                <td style="padding: 6px 10px;">
+                  <div style="font-weight:600;color:var(--text);">${esc(m.macro_context || m.h1_context || '—')}</div>
+                  <div class="technical" style="color:var(--muted);">${esc(m.structure_level || m.m15_structure || '—')}</div>
+                </td>
+                <td style="padding: 6px 10px;">
+                  <div style="color:var(--text);">${esc(m.trigger_confirmation || m.m5_confirmation || '—')}</div>
+                  <div class="technical" style="color:var(--muted);">${esc(m.metrics_freshness || m.m5_freshness || '—')}</div>
+                </td>
+                <td style="padding: 6px 10px; text-align: center;">
+                  <b style="color:var(--gold2);font-size:12px;">${esc(m.ai_score || '—')}</b>
+                </td>
+                <td style="padding: 6px 10px; text-align: center;">
+                  <span class="statusPill ${esc(m.badge_class || 'neutral')}" style="font-size:10px;">${esc(m.final_state || '—')}</span>
+                </td>
               </tr>
-
-
-
             `).join('');
-
-
-
           }
-
-
-
-
-
-
 
           function showDptNotification(msg, isError) {
 
@@ -33814,35 +32738,11 @@ _HTML = r'''
 
 
 
-            $('status').textContent =
-
-
-
-              (s.status || '—') +
-
-
-
-              ' · ' +
-
-
-
-              (s.daemon_version || 'version ?') +
-
-
-
-              ' · ' +
-
-
-
-              (s.connection_mode === 'LIVE' ? 'DATOS EN VIVO' : 'ÚLTIMO ESTADO CONOCIDO') +
-
-
-
-              ' · ' +
-
-
-
-              new Date(s.updated_at).toLocaleTimeString();
+            const liveLabel = s.connection_mode === 'LIVE' ? 'DATOS EN VIVO' : (s.status || 'CONECTADO');
+            $('status').textContent = liveLabel;
+            $('status').title = (s.status || 'ONLINE') + ' · ' + (s.daemon_version || '') + ' · ' + new Date(s.updated_at).toLocaleTimeString();
+            $('status').style.borderColor = '#725116';
+            $('status').style.color = '#ffd465';
 
 
 
@@ -34179,13 +33079,10 @@ _HTML = r'''
 
 
             } catch (e) {
-
-
-
-              $('status').textContent = 'Dashboard sin conexión: ' + e.message;
-
-
-
+              $('status').textContent = 'SIN CONEXIÓN';
+              $('status').title = 'Dashboard sin conexión: ' + e.message;
+              $('status').style.borderColor = 'rgba(239, 68, 68, 0.5)';
+              $('status').style.color = '#f87171';
               pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
 
 
@@ -34459,890 +33356,625 @@ _INSTRUMENTS_HTML = r'''
 
 
     <style>
-
-
-
       :root {
-
-
-
         color-scheme: dark;
-
-
-
         --bg: #050708;
-
-
-
         --panel: #0a0e10;
-
-
-
-        --panel2: #10161a;
-
-
-
+        --panel2: #0c1015;
+        --panel3: #12181e;
         --text: #f5f5f2;
-
-
-
         --muted: #9fa2a5;
-
-
-
         --line: #5b4514;
-
-
-
+        --line-bright: #8a6820;
         --good: #00db79;
-
-
-
+        --good-dim: rgba(0, 219, 121, 0.12);
+        --bad: #ff453a;
+        --bad-dim: rgba(255, 69, 58, 0.12);
+        --gold: #f6cb57;
         --accent: #d79b19;
-
-
-
+        --accent-dim: rgba(215, 155, 25, 0.12);
       }
-
-
 
       * {
-
-
-
         box-sizing: border-box;
-
-
-
       }
-
-
 
       body {
-
-
-
         margin: 0;
-
-
-
-        background: var(--bg);
-
-
-
+        background: radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
         color: var(--text);
-
-
-
-        font:
-
-
-
-          14px/1.45 system-ui,
-
-
-
-          -apple-system,
-
-
-
-          Segoe UI,
-
-
-
-          sans-serif;
-
-
-
+        font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
       }
 
+      .appShell {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
 
+      .brandSidebar {
+        border-right: 1px solid #6b4d13;
+        background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        align-self: start;
+        z-index: 50;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+
+      .brandSidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .brandSidebar::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
+      }
+
+      .brandLogo {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1px solid #7b5816;
+        box-shadow: 0 0 28px rgba(215, 155, 25, 0.12);
+      }
+
+      .brandName {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+      .brandName span {
+        color: #f6cb57;
+      }
+
+      .brandTag {
+        text-align: center;
+        color: #c9a34a;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .sideNav {
+        display: grid;
+        gap: 7px;
+        margin-top: 4px;
+      }
+
+      .sideNav a {
+        color: #d9dde0;
+        text-decoration: none;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-weight: 650;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+      }
+
+      .sideNav a:hover,
+      .sideNav a.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.24), rgba(215, 155, 25, 0.05));
+        border-color: #6f5015;
+        color: #ffd465;
+      }
+
+      .sideStatus {
+        margin-top: auto;
+        border: 1px solid #725116;
+        background: #0d1214;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .sideStatus b {
+        color: var(--good);
+        font-size: 13px;
+        display: block;
+      }
+      .sideStatus .sub {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 2px;
+      }
 
       .wrap {
-
-
-
-        max-width: 1220px;
-
-
-
-        margin: auto;
-
-
-
-        padding: 20px;
-
-
-
+        max-width: none;
+        margin: 0;
+        padding: 18px 24px 28px;
+        min-width: 0;
       }
-
-
 
       .top {
-
-
-
         display: flex;
-
-
-
         justify-content: space-between;
-
-
-
-        align-items: flex-start;
-
-
-
+        align-items: center;
         gap: 14px;
-
-
-
         flex-wrap: wrap;
-
-
-
         margin-bottom: 16px;
-
-
-
       }
-
-
 
       .title {
-
-
-
-        font-size: 24px;
-
-
-
-        font-weight: 800;
-
-
-
+        font-size: 22px;
+        font-weight: 850;
+        letter-spacing: 0.02em;
+        color: #f5f5f2;
       }
-
-
+      .title strong {
+        color: #f6cb57;
+      }
 
       .sub {
-
-
-
         color: var(--muted);
-
-
-
+        font-size: 12.5px;
+        margin-top: 2px;
       }
 
+      .badge {
+        padding: 6px 14px;
+        border: 1px solid #725116;
+        border-radius: 999px;
+        background: #0d1214;
+        font-size: 11px;
+        font-weight: 750;
+        color: #ffd465;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 0 14px rgba(215, 155, 25, 0.15);
+      }
 
+      @media (max-width: 1050px) {
+        .appShell {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          position: relative;
+          height: auto;
+          display: grid;
+          grid-template-columns: 90px 1fr;
+          align-items: center;
+        }
+        .brandLogo {
+          width: 90px;
+        }
+        .sideNav {
+          grid-column: 1/-1;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sideStatus {
+          display: none;
+        }
+      }
 
+      @media (max-width: 620px) {
+        .sideNav {
+          grid-template-columns: 1fr 1fr;
+        }
+        .brandSidebar {
+          grid-template-columns: 72px 1fr;
+          padding: 10px;
+        }
+      }
+
+      /* Card principal con acabado biselado dorado de Strategy-bases */
       .card {
-
-
-
-        background: var(--panel);
-
-
-
-        border: 1px solid var(--line);
-
-
-
-        border-radius: 14px;
-
-
-
-        padding: 16px;
-
-
-
+        background: #0a0e10;
+        border: 1px solid rgba(91, 69, 20, 0.55);
+        border-radius: 16px;
+        padding: 18px 22px;
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(246, 203, 87, 0.08);
       }
-
-
 
       .head {
-
-
-
         display: flex;
-
-
-
         justify-content: space-between;
-
-
-
-        gap: 12px;
-
-
-
+        gap: 14px;
         align-items: center;
-
-
-
         flex-wrap: wrap;
-
-
-
+        margin-bottom: 12px;
       }
 
+      /* Pestañas de perfiles al estilo de Strategy-bases */
+      #profileTabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        background: #080c0f;
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid rgba(91, 69, 20, 0.45);
+      }
 
+      .profileTab {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid transparent;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .profileTab:hover {
+        color: #ffd465;
+        background: rgba(215, 155, 25, 0.08);
+        border-color: rgba(215, 155, 25, 0.3);
+      }
+
+      .profileTab.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.25), rgba(215, 155, 25, 0.06));
+        border: 1px solid #d79b19;
+        color: #ffd465;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 14px rgba(215, 155, 25, 0.2);
+      }
 
       .actions {
-
-
-
         display: flex;
-
-
-
         gap: 8px;
-
-
-
         flex-wrap: wrap;
-
-
-
+        align-items: center;
       }
-
-
 
       .btn {
-
-
-
         display: inline-block;
-
-
-
-        border: 1px solid var(--line);
-
-
-
-        background: var(--panel2);
-
-
-
-        color: var(--text);
-
-
-
+        border: 1px solid rgba(91, 69, 20, 0.45);
+        background: #0d1214;
+        color: #d9dde0;
         text-decoration: none;
-
-
-
-        border-radius: 9px;
-
-
-
-        padding: 9px 12px;
-
-
-
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 12.5px;
+        font-weight: 650;
         cursor: pointer;
-
-
-
+        transition: all 0.2s ease;
       }
 
-
-
-      .btn.primary {
-
-
-
-        background: var(--accent);
-
-
-
-        color: #06111b;
-
-
-
-        border-color: transparent;
-
-
-
-        font-weight: 800;
-
-
-
+      .btn:hover {
+        border-color: #ffd465;
+        color: #ffd465;
+        background: rgba(215, 155, 25, 0.08);
       }
 
+      #selectProfitable {
+        background: rgba(0, 219, 121, 0.08);
+        border: 1px solid rgba(0, 219, 121, 0.45);
+        color: #00db79;
+        font-weight: 750;
+      }
 
+      #selectProfitable:hover {
+        background: rgba(0, 219, 121, 0.16);
+        border-color: #00db79;
+        box-shadow: 0 0 14px rgba(0, 219, 121, 0.25);
+      }
+
+      .btn.primary, #save {
+        background: linear-gradient(135deg, #d79b19 0%, #f6cb57 100%);
+        color: #050708;
+        border: 1px solid #ffd465;
+        font-weight: 850;
+        box-shadow: 0 4px 14px rgba(215, 155, 25, 0.35);
+      }
+
+      .btn.primary:hover, #save:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(215, 155, 25, 0.5);
+      }
 
       .btn:disabled {
-
-
-
         opacity: 0.5;
-
-
-
         cursor: not-allowed;
-
-
-
       }
 
-
-
+      /* Barra de estadísticas */
       .stats {
-
-
-
-        display: flex;
-
-
-
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 10px;
-
-
-
-        flex-wrap: wrap;
-
-
-
         margin: 14px 0;
-
-
-
       }
-
-
 
       .metric {
-
-
-
-        background: var(--panel2);
-
-
-
+        background: #0c1015;
+        border: 1px solid rgba(91, 69, 20, 0.45);
         border-radius: 10px;
-
-
-
-        padding: 10px 12px;
-
-
-
-        min-width: 150px;
-
-
-
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: border-color 0.2s ease;
       }
 
+      .metric:hover {
+        border-color: rgba(215, 155, 25, 0.6);
+      }
 
+      .metric .sub {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        font-weight: 650;
+      }
 
       .metric b {
-
-
-
-        display: block;
-
-
-
         font-size: 18px;
-
-
-
+        font-weight: 850;
+        line-height: 1.2;
       }
 
+      /* Barra de búsqueda */
+      .search {
+        width: 100%;
+        max-width: 400px;
+        background: #080c10;
+        border: 1px solid rgba(91, 69, 20, 0.45);
+        color: #f5f5f2;
+        border-radius: 9px;
+        padding: 9px 14px;
+        font-size: 13px;
+        transition: all 0.2s ease;
+      }
 
+      .search:focus {
+        outline: none;
+        border-color: #ffd465;
+        box-shadow: 0 0 14px rgba(215, 155, 25, 0.25);
+        background: #0a0f14;
+      }
 
+      /* Grilla de grupos de instrumentos */
       .instrumentGrid {
-
-
-
         display: grid;
-
-
-
         grid-template-columns: repeat(3, minmax(0, 1fr));
-
-
-
-        gap: 12px;
-
-
-
+        gap: 14px;
         margin-top: 14px;
-
-
-
+        align-items: start;
       }
 
+      @media (max-width: 1200px) {
+        .instrumentGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
 
+      @media (max-width: 768px) {
+        .instrumentGrid { grid-template-columns: 1fr; }
+      }
 
       .group {
-
-
-
-        border: 1px solid var(--line);
-
-
-
-        border-radius: 12px;
-
-
-
-        padding: 11px;
-
-
-
-        background: var(--panel2);
-
-
-
-      }
-
-
-
-      .group h3 {
-
-
-
-        margin: 0 0 8px;
-
-
-
-        font-size: 14px;
-
-
-
-      }
-
-
-
-      .item {
-
-
-
+        border: 1px solid rgba(91, 69, 20, 0.45);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: linear-gradient(180deg, #0e1319 0%, #080b0f 100%);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(246, 203, 87, 0.06);
         display: flex;
-
-
-
-        gap: 8px;
-
-
-
-        align-items: center;
-
-
-
-        padding: 6px 8px;
-
-
-
-        border-radius: 6px;
-
-
-
-        transition: background 0.15s ease;
-
-
-
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+        transition: border-color 0.2s ease;
       }
 
+      .group:hover {
+        border-color: rgba(215, 155, 25, 0.45);
+      }
 
+      .groupHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 9px;
+        padding-bottom: 7px;
+        border-bottom: 1px solid rgba(91, 69, 20, 0.35);
+      }
+
+      .groupHeader h3 {
+        margin: 0;
+        font-size: 13.5px;
+        font-weight: 800;
+        color: #f5f5f2;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        letter-spacing: 0.01em;
+      }
+
+      .groupCount {
+        font-size: 11px;
+        font-weight: 600;
+        color: #ffd465;
+        background: rgba(215, 155, 25, 0.12);
+        border: 1px solid rgba(215, 155, 25, 0.25);
+        border-radius: 999px;
+        padding: 1px 7px;
+      }
+
+      .cardTag {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        flex-shrink: 0;
+      }
+
+      .tagIct { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+      .tagMsnr { background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); }
+      .tagOrb { background: rgba(0, 219, 121, 0.12); color: #00db79; border: 1px solid rgba(0, 219, 121, 0.35); }
+      .tagTp { background: rgba(192, 132, 252, 0.12); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.35); }
+
+      .workerPill {
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.03em;
+        padding: 2px 7.5px;
+        border-radius: 5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-right: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .wpBoom { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+      .wpCrash { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); }
+      .wpStep { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+      .wpJump { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); }
+      .wpVol { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.35); }
+      .wpForex { background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.35); }
+      .wpComm { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35); }
+      .wpIndices { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.35); }
+      .wpMsnr { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+      .wpOrb { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+      .wpIct { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+      .wpTp { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.35); }
+      .wpPruned { background: rgba(239, 68, 68, 0.08); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.25); }
+
+      .groupItems {
+        max-height: none !important;
+        overflow: visible !important;
+        overflow-y: visible !important;
+        padding-right: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      /* Micro-tarjeta de cada instrumento */
+      .item {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 11px;
+        border-radius: 8px;
+        border: 1px solid rgba(91, 69, 20, 0.25);
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.18s ease;
+        cursor: pointer;
+        min-width: 0;
+        margin-bottom: 3px;
+      }
 
       .item:hover {
-
-
-
-        background: rgba(255, 255, 255, 0.04);
-
-
-
+        background: rgba(215, 155, 25, 0.07);
+        border-color: rgba(215, 155, 25, 0.45);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
       }
 
-
+      .item input[type="checkbox"] {
+        accent-color: #00db79;
+        width: 15px;
+        height: 15px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
 
       .symName {
-
-
-
-        font-weight: 600;
-
-
-
-        color: var(--text);
-
-
-
-      }
-
-
-
-      .pruneBadge {
-
-
-
-        font-size: 11px;
-
-
-
-        font-weight: 600;
-
-
-
-        background: rgba(239, 68, 68, 0.15);
-
-
-
-        color: #f87171;
-
-
-
-        border: 1px solid rgba(239, 68, 68, 0.35);
-
-
-
-        padding: 2px 7px;
-
-
-
-        border-radius: 4px;
-
-
-
-        margin-left: auto;
-
-
-
+        font-weight: 700;
+        font-size: 13px;
+        color: #f5f5f2;
         white-space: nowrap;
-
-
-
-        cursor: help;
-
-
-
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 6px;
       }
-
-
-
-      .activeBadge {
-
-
-
-        font-size: 11px;
-
-
-
-        font-weight: 600;
-
-
-
-        background: rgba(16, 185, 129, 0.15);
-
-
-
-        color: #34d399;
-
-
-
-        border: 1px solid rgba(16, 185, 129, 0.35);
-
-
-
-        padding: 2px 7px;
-
-
-
-        border-radius: 4px;
-
-
-
-        margin-left: auto;
-
-
-
-        white-space: nowrap;
-
-
-
-      }
-
-
 
       .prunedItem {
-
-
-
-        opacity: 0.85;
-
-
-
+        opacity: 0.82;
       }
 
+      .prunedItem:hover {
+        opacity: 1;
+      }
 
+      /* BADGES DE ESTADO (ESTRICTO SEGÚN INSTRUCCIÓN) */
+      .msnrBadge { background: rgba(251, 191, 36, 0.12) !important; color: #fbbf24 !important; border-color: rgba(251, 191, 36, 0.4) !important; }
+      .ictBadge { background: rgba(56, 189, 248, 0.12) !important; color: #38bdf8 !important; border-color: rgba(56, 189, 248, 0.4) !important; }
+      .tpBadge { background: rgba(192, 132, 252, 0.12) !important; color: #c084fc !important; border-color: rgba(192, 132, 252, 0.4) !important; }
+      .orbBadge { background: rgba(0, 219, 121, 0.12) !important; color: #00db79 !important; border-color: rgba(0, 219, 121, 0.4) !important; }
+
+      .activeBadge {
+        font-size: 10.5px;
+        font-weight: 750;
+        letter-spacing: 0.03em;
+        background: rgba(0, 219, 121, 0.12);
+        color: #00db79;
+        border: 1px solid rgba(0, 219, 121, 0.45);
+        padding: 2.5px 8.5px;
+        border-radius: 999px;
+        margin-left: auto;
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        box-shadow: 0 0 8px rgba(0, 219, 121, 0.15);
+      }
+
+      .pruneBadge {
+        font-size: 10.5px;
+        font-weight: 750;
+        letter-spacing: 0.03em;
+        background: rgba(255, 69, 58, 0.12);
+        color: #ff453a;
+        border: 1px solid rgba(255, 69, 58, 0.45);
+        padding: 2.5px 8.5px;
+        border-radius: 999px;
+        margin-left: auto;
+        white-space: nowrap;
+        flex-shrink: 0;
+        cursor: help;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        box-shadow: 0 0 8px rgba(255, 69, 58, 0.15);
+      }
 
       .msg {
-
-
-
-        margin-top: 12px;
-
-
-
-        color: var(--muted);
-
-
-
-        min-height: 22px;
-
-
-
+        margin-top: 14px;
+        color: #ffd465;
+        font-size: 12.5px;
+        font-weight: 600;
+        min-height: 24px;
       }
-
-
-
-      .search {
-
-
-
-        width: min(420px, 100%);
-
-
-
-        background: #08131c;
-
-
-
-        border: 1px solid var(--line);
-
-
-
-        color: var(--text);
-
-
-
-        border-radius: 9px;
-
-
-
-        padding: 10px 12px;
-
-
-
-        font-size: 16px;
-
-
-
-      }
-
-
 
       .note {
-
-
-
         margin-top: 14px;
-
-
-
-        padding: 11px;
-
-
-
-        border-left: 3px solid var(--accent);
-
-
-
-        background: var(--panel2);
-
-
-
+        padding: 12px 16px;
+        border-left: 3px solid #d79b19;
+        background: #0c1015;
         border-radius: 8px;
-
-
-
+        font-size: 12px;
       }
-
-
-
-      @media (max-width: 950px) {
-
-
-
-        .instrumentGrid {
-
-
-
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-
-
-
-        }
-
-
-
-      }
-
-
-
-      @media (max-width: 600px) {
-
-
-
-        .instrumentGrid {
-
-
-
-          grid-template-columns: 1fr;
-
-
-
-        }
-
-
-
-        .wrap {
-
-
-
-          padding: 10px;
-
-
-
-        }
-
-
-
-        .actions {
-
-
-
-          width: 100%;
-
-
-
-        }
-
-
-
-        .actions .btn {
-
-
-
-          flex: 1;
-
-
-
-          text-align: center;
-
-
-
-        }
-
-
-
-      }
-
-
-
-      .brandStrip {
-
-
-
-        display: flex;
-
-
-
-        align-items: center;
-
-
-
-        gap: 14px;
-
-
-
-        margin-bottom: 16px;
-
-
-
-        padding-bottom: 14px;
-
-
-
-        border-bottom: 1px solid #5b4514;
-
-
-
-      }
-
-
-
-      .brandStrip img {
-
-
-
-        width: 72px;
-
-
-
-        height: 72px;
-
-
-
-        object-fit: cover;
-
-
-
-        border-radius: 12px;
-
-
-
-        border: 1px solid #765719;
-
-
-
-      }
-
-
-
-      .brandStrip b {
-
-
-
-        font-size: 22px;
-
-
-
-      }
-
-
-
-      .brandStrip b span {
-
-
-
-        color: #f3c64c;
-
-
-
-      }
-
-
-
-      .card {
-
-
-
-        box-shadow: inset 0 1px 0 rgba(255, 211, 102, 0.03);
-
-
-
-      }
-
-
-
-    </style>
+</style>
 
 
 
@@ -35351,102 +33983,41 @@ _INSTRUMENTS_HTML = r'''
 
 
   <body>
-
-
-
-    <main class="wrap">
-
-
-
-      <div class="brandStrip">
-
-
-
-        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
-
-
-
+    <div class="appShell">
+      <aside class="brandSidebar">
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
-
-
-
-          <b>BLACKDAEMON<span>FX</span></b>
-
-
-
-          <div class="sub">Gestión modular de instrumentos</div>
-
-
-
+          <div class="brandName">BLACKDAEMON<span>FX</span></div>
+          <div class="brandTag">Estrategia · Disciplina · Resultados</div>
         </div>
-
-
-
-      </div>
-
-
-
-      <div class="top">
-
-
-
-        <div>
-
-
-
-          <div class="title">Instrumentos para nuevas entradas</div>
-
-
-
-          <div class="sub">
-
-
-
-            Módulo independiente · catálogo dinámico desde MT5/Deriv · orden alfabético por
-
-
-
-            categoría.
-
-
-
+        <nav class="sideNav">
+          <a href="/">▦ Dashboard</a>
+          <a class="active" href="/instruments">▥ Instrumentos</a>
+          <a href="/account">▣ Cuenta en vivo</a>
+          <a href="/performance">📈 Rendimiento</a>
+          <a href="/strategy-bases">📚 Bases de Estrategias</a>
+          <a href="/decisions">⚖ Decisiones de entrada</a>
+          <a href="/operator">🛠 Suite Operador</a>
+          <a href="/#openPositions">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis">◷ Análisis recientes</a>
+        </nav>
+        <div class="sideStatus">
+          <b>● Daemon Online</b>
+          <div class="sub">Panel local conectado al motor</div>
+        </div>
+      </aside>
+      <main class="wrap">
+        <div class="top">
+          <div>
+            <div class="title">BLACKDAEMON<strong>FX</strong> · Instrumentos para nuevas entradas</div>
+            <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Módulo independiente · Catálogo dinámico desde MT5/Deriv</div>
           </div>
-
-
-
+          <div class="actions">
+            <span style="display:none">Volver al dashboard</span>
+            <div class="badge" id="instrumentsStatusBadge">DATOS EN VIVO</div>
+          </div>
         </div>
-
-
-
-        <div class="actions">
-
-
-
-          <a class="btn" href="/">← Volver al dashboard</a>
-
-
-
-          <a class="btn" href="/account">Cuenta en vivo</a>
-
-
-
-          <a class="btn" href="/performance">Rendimiento</a>
-
-
-
-          <a class="btn" href="/strategy-bases">Bases de Estrategias</a>
-
-
-
-        </div>
-
-
-
-      </div>
-
-
-
-      <section class="card">
+        <section class="card">
 
 
 
@@ -35475,34 +34046,12 @@ _INSTRUMENTS_HTML = r'''
 
 
             ><button class="btn profileTab" data-profile="ICT" type="button">
-
-
-
-              ICT (METALES, CRIPTO & ÍNDICES) <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[ICT]</span></button
-
-
-
-            ><button class="btn profileTab" data-profile="MALAYSIAN_SNR" type="button">
-
-
-
-              MALAYSIAN SNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#fbbf24;">[M15 Fresh/Break]</span></button
-
-
+              MATERIAS PRIMAS Y CRIPTOMONEDAS <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[MultiStrategia]</span></button
+            ><button class="btn profileTab" data-profile="INDICESB_SNR" type="button">
+              INDICES SNR <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#38bdf8;">[MultiStrategia]</span></button
 
             ><button class="btn profileTab" data-profile="ORB" type="button">
-
-
-
-              ORB NEW YORK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#34d399;">[SWEEP]</span></button
-
-
-
-            ><button class="btn profileTab" data-profile="TREND_PULLBACK" type="button">
-
-
-
-              TREND PULLBACK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#c084fc;">[H1+M15 &gt;51% WR]</span></button>
+              ORB NEW YORK <span style="font-size:10px;opacity:0.85;margin-left:4px;color:#34d399;">[SWEEP]</span></button>
 
 
 
@@ -35542,27 +34091,8 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        <div id="strategyHighlightBanner" class="note" style="margin-top:12px;border-left:4px solid #38bdf8;background:rgba(14,29,45,0.85);">
-
-
-
-          <b>Estrategia ICT (Sabri Malle)</b> · Pestaña vinculada a workers en tiempo real.
-
-
-
-        </div>
-
-
-
-        <section id="tabWorkerPanel" class="card" style="margin-top:12px;padding:12px;background:var(--panel2);">
-
-
-
-          <div class="sub">Cargando estado de workers y progreso en paralelo…</div>
-
-
-
-        </section>
+        <div id="strategyHighlightBanner" style="display:none;"></div>
+        <section id="tabWorkerPanel" style="display:none;"></section>
 
 
 
@@ -35602,42 +34132,15 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        <div class="stats">
-
-
-
+                <div class="stats">
           <div class="metric">
-
-
-
-            <span class="sub">Seleccionados (Activos)</span><b id="selectedCount" style="color:#34d399;">0</b>
-
-
-
+            <span class="sub">Activos Seleccionados</span><b id="selectedCount" style="color:#00db79;">0</b>
           </div>
-
-
-
           <div class="metric">
-
-
-
-            <span class="sub">Podados Desactivados</span><b id="prunedOffCount" style="color:#f87171;">0</b>
-
-
-
+            <span class="sub">Podados Desactivados</span><b id="prunedOffCount" style="color:#ff453a;">0</b>
           </div>
-
-
-
-          <div class="metric"><span class="sub">Disponibles</span><b id="totalCount">0</b></div>
-
-
-
-          <div class="metric"><span class="sub">Aplicación</span><b>Próximo ciclo</b></div>
-
-
-
+          <div class="metric"><span class="sub">Catálogo Total</span><b id="totalCount" style="color:#ffd465;">0</b></div>
+          <div class="metric"><span class="sub">Aplicación</span><b style="color:#f5f5f2;">Próximo ciclo</b></div>
         </div>
 
 
@@ -35650,79 +34153,26 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        <section class="card" style="margin-top: 14px">
+                <details style="margin-top: 8px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12px;">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; align-items: center;">
+            <span>📰 Noticias financieras relevantes (Click para ver)</span>
+            <span class="sub" id="newsStatus" style="font-size: 11px;">Cargando…</span>
+          </summary>
+          <div id="newsList" class="msg" style="margin-top: 6px; font-size: 12px;">Cargando noticias…</div>
+        </details>
 
-
-
-          <div class="head">
-
-
-
-            <div>
-
-
-
-              <b>Noticias financieras relevantes</b>
-
-
-
-              <div class="sub">Fuente RSS en español · prioridad a impacto alto</div>
-
-
-
-            </div>
-
-
-
-            <span class="sub" id="newsStatus">Cargando…</span>
-
-
-
-          </div>
-
-
-
-          <div id="newsList" class="msg">Cargando noticias…</div>
-
-
-
-        </section>
-
-
-
-        <div class="note" id="profileNote">
-
-
-
-          <b>Persistencia independiente:</b> Sintéticos, Forex, ICT, Malaysian SNR y ORB se guardan por separado.
-
-
-
-        </div>
-
-
-
-        <div class="note">
-
-
-
-          <b>Seguridad operativa:</b> desmarcar un instrumento impide nuevas entradas desde el
-
-
-
-          próximo ciclo. Las posiciones ya abiertas continúan con monitoreo, SL/TP y Break Even.
-
-
-
+        <div style="display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: var(--muted); flex-wrap: wrap;">
+          <span id="profileNote"><b>Persistencia:</b> Guardado independiente por perfil.</span>
+          <span><b>Seguridad:</b> Desmarcar impide nuevas entradas; posiciones abiertas siguen activas con SL/TP.</span>
         </div>
 
 
 
       </section>
 
+      </main>
 
-
-    </main>
+    </div>
 
 
 
@@ -35774,7 +34224,7 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          badge: 'ESTRATEGIA ICT (SABRI MALLE · 24/7)',
+          badge: 'ESTRATEGIA ICT (24/7)',
 
 
 
@@ -35786,7 +34236,7 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle (Judas Swing + FVG + OTE + GBDT >= 0.55) y controla en paralelo los workers CRASH, BOOM, STEP, JUMP y VOLATILITY (1-4). Los instrumentos rentables permanecen activos y los podados desactivados.',
+          desc: 'Esta pestaña opera bajo la Estrategia ICT (Judas Swing + FVG + OTE + GBDT >= 0.55) y controla en paralelo los workers CRASH, BOOM, STEP, JUMP y VOLATILITY (1-4). Los instrumentos rentables permanecen activos y los podados desactivados.',
 
 
 
@@ -35798,7 +34248,7 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          badge: 'ESTRATEGIA ICT (SABRI MALLE · KILLZONES)',
+          badge: 'ESTRATEGIA ICT (KILLZONES)',
 
 
 
@@ -35806,11 +34256,11 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          workersText: 'FOREX (1-4): FOREX_1 · FOREX_2 · FOREX_3 · FOREX_4',
+          workersText: 'FOREX (1-5): FOREX_1 · FOREX_2 · FOREX_3 · FOREX_4 · FOREX_5',
 
 
 
-          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle con filtro de Killzones Institucionales (Londres/NY) y controla los workers FOREX (1-4) por familia de divisa.',
+          desc: 'Esta pestaña opera bajo la Estrategia ICT con filtro de Killzones Institucionales (Londres/NY) y controla los workers FOREX (1-5) por familia de divisa.',
 
 
 
@@ -35819,25 +34269,10 @@ _INSTRUMENTS_HTML = r'''
 
 
         ICT: {
-
-
-
-          badge: 'ESTRATEGIA ICT (SABRI MALLE · METALES, CRIPTO & ÍNDICES)',
-
-
-
+          badge: 'ESTRATEGIA MULTISTRATEGIA (MATERIAS PRIMAS Y CRIPTOMONEDAS)',
           color: '#38bdf8',
-
-
-
-          workersText: 'ICT (Metales, Cripto & Índices)',
-
-
-
-          desc: 'Esta pestaña opera bajo la Estrategia ICT Sabri Malle dedicada a Metales (XAUUSD, XAGUSD), Cripto (BTCUSD) e Índices/Energía (US Oil, Wall Street 30, US Tech 100, US SP 500) y controla el worker ICT.',
-
-
-
+          workersText: 'Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)',
+          desc: 'Esta pestaña opera bajo MultiStrategia (MSNR + ICT) dedicada a Materias Primas (Oro, Plata, Petróleo) y Criptomonedas (BTC, ETH, XRP) y controla el worker Magic 26082032 · PID 17144.',
         },
 
 
@@ -35846,7 +34281,7 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          badge: 'ESTRATEGIA MALAYSIAN SNR (M15 FRESH/BREAK · C2)',
+          badge: 'ESTRATEGIA MALAYSIAN SNR (SINTÉTICOS · M15 FRESH/BREAK · C2)',
 
 
 
@@ -35858,13 +34293,45 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          desc: 'Controla el worker Malaysian SNR (M15 Fresh/Break) con configuración C2 (ADX >= 30, ATR <= 1.2 en Forex/Metales, ATR <= 1.5 en Sintéticos y Wall Street 30, Cap=1). Muestra en paralelo los 23 activos rentables activos y mantiene los 37 podados desactivados.',
-
-
+          desc: 'Controla el worker Malaysian SNR (M15 Fresh/Break) enfocado exclusivamente en los 38 índices sintéticos de Deriv (0/38). Los mercados reales (Forex, Materias Primas e Índices Bursátiles) operan en sus propios workers aislados (FOREX_SNR, COMMODITIES_SNR e INDICESB_SNR).',
 
         },
 
+        FOREX_SNR: {
 
+          badge: 'ESTRATEGIA MALAYSIAN SNR (FOREX & CRIPTO · 44 ACTIVOS)',
+
+          color: '#34d399',
+
+          workersText: 'FOREX_SNR · Forex & Cripto',
+
+          desc: 'Worker aislado para los 44 instrumentos Forex & Cripto bajo Malaysian SNR (M15 Fresh/Break · C2) con protección dinámica de spread y horarios de rollover (0/44).',
+
+        },
+
+        COMMODITIES_SNR: {
+
+          badge: 'ESTRATEGIA MALAYSIAN SNR (MATERIAS PRIMAS)',
+
+          color: '#eab308',
+
+          workersText: 'COMMODITIES_SNR · Materias Primas',
+
+          desc: 'Worker aislado para materias primas (Oro, Plata, Petróleo WTI, Brent) bajo Malaysian SNR con control de spread y rollover NY.',
+
+        },
+
+        INDICESB_SNR: {
+
+          badge: 'ESTRATEGIA MALAYSIAN SNR (ÍNDICES BURSÁTILES)',
+
+          color: '#38bdf8',
+
+          workersText: 'INDICESB_SNR · Índices Bursátiles',
+
+          desc: 'Worker aislado para índices bursátiles (Wall Street 30, US Tech 100, US SP 500, Germany 40) bajo Malaysian SNR.',
+
+        },
 
         ORB: {
 
@@ -35878,11 +34345,11 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-          workersText: 'ORB · Apertura New York',
+          workersText: 'Worker ORB (Apertura New York · Magic 26082028)',
 
 
 
-          desc: 'Controla el worker ORB New York enfocado en los 4 activos rentables en modo SWEEP / HTF_SWEEP (XAUUSD, BTCUSD, XAGUSD, US Oil -> 231 trades, 56.7%-59.1% WR, +31.54R) manteniendo podados los índices perdedores.',
+          desc: 'Controla el worker ORB New York (Magic 26082028) con todos sus instrumentos operativos (Metales, Energía, Cripto, Forex e Índices Bursátiles) bajo confirmación SWEEP / HTF_SWEEP.',
 
 
 
@@ -35983,285 +34450,581 @@ _INSTRUMENTS_HTML = r'''
 
 
       function groups(s) {
-
-
-
-        const list = visibleInstrumentGroups(s).filter(
-
-
-
+        const rawList = visibleInstrumentGroups(s).filter(
           (g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === activeProfile,
-
-
-
         );
 
+        if (activeProfile === 'SYNTHETICS') {
+          const allSynth = rawList.flatMap((g) => g.symbols || []);
+          const defaultBooms = ['Boom 1000 Index', 'Boom 300 Index', 'Boom 500 Index', 'Boom 600 Index', 'Boom 900 Index', 'Volatility Boom 400 Index', 'Volatility Boom 750 Index'];
+          const boomFound = allSynth.filter(x => /boom/i.test(x) && x !== 'Vol over Boom 550');
+          const boom = Array.from(new Set([...boomFound, ...defaultBooms]));
+          const defaultCrashes = ['Crash 1000 Index', 'Crash 300 Index', 'Crash 500 Index', 'Crash 600 Index', 'Crash 900 Index', 'Volatility Crash 400 Index', 'Volatility Crash 550 Index', 'Volatility Crash 750 Index'];
+          const crashFound = allSynth.filter(x => /crash/i.test(x));
+          const crash = Array.from(new Set([...crashFound, ...defaultCrashes]));
+          const defaultSteps1 = ['Step Index 200', 'Step Index 400', 'Step Index 500'];
+          const defaultSteps2 = ['Step Index', 'Step Index 300', 'Step Index 1000', 'Step Index 1500', 'Step Index 2000'];
+          const defaultJumps = ['Jump 10 Index', 'Jump 25 Index', 'Jump 50 Index', 'Jump 75 Index', 'Jump 100 Index'];
+          const jumpFound = allSynth.filter(x => /jump/i.test(x));
+          const jump = Array.from(new Set([...jumpFound, ...defaultJumps]));
+          const defaultVolatilities = ['Volatility 10 Index', 'Volatility 100 Index', 'Volatility 15 Index', 'Volatility 25 Index', 'Volatility 5 Index', 'Volatility 50 Index', 'Volatility 75 Index', 'Volatility 90 Index'];
+          const volMultistratSet = new Set(defaultVolatilities);
+          const defaultVolatilities1s = ['Volatility 100 (1s) Index', 'Volatility 150 (1s) Index', 'Volatility 250 (1s) Index', 'Volatility 50 (1s) Index', 'Volatility 75 (1s) Index', 'Volatility 90 (1s) Index', 'Volatility 10 (1s) Index', 'Volatility 15 (1s) Index', 'Volatility 25 (1s) Index', 'Volatility 30 (1s) Index', 'Volatility 5 (1s) Index'];
+          const vol1sMultistratSet = new Set(defaultVolatilities1s);
+          const defaultVolatilitiesHf = ['High Frequency Vol 100 Index', 'High Frequency Vol 50 Index', 'High Frequency Vol 10 Index', 'High Frequency Vol 25 Index', 'High Frequency Vol 75 Index'];
+          const volHfMultistratSet = new Set(defaultVolatilitiesHf);
+          const defaultVolatilitiesSpecial = ['Ladder Volatility Down Index', 'Ladder Volatility Up Index', 'VolSwitch Low Vol Index', 'VolSwitch Medium Vol Index'];
+          const volSpecialMultistratSet = new Set(defaultVolatilitiesSpecial);
+          const volatility = allSynth.filter(x => !/boom|crash|step|jump/i.test(x) && !volMultistratSet.has(x) && !vol1sMultistratSet.has(x) && !volHfMultistratSet.has(x) && !volSpecialMultistratSet.has(x));
+          const prio = new Set((s?.prioritized_symbols || {})['SYNTHETICS'] || []);
+          const volActive = volatility.filter(x => prio.has(x));
+          const volPruned = volatility.filter(x => !prio.has(x));
 
-
-        if (activeProfile === 'ORB') {
-
-
-
-          const orbOrder = {
-
-
-
-            'orb_ny_xauusd': 1,
-
-
-
-            'orb_ny_xagusd': 2,
-
-
-
-            'orb_ny_us_oil': 3,
-
-
-
-            'orb_ny_btcusd': 4,
-
-
-
-            'orb_ny_ethusd': 5,
-
-
-
-            'orb_ny_eurusd': 6,
-
-
-
-            'orb_ny_gbpusd': 7,
-
-
-
-            'orb_ny_audusd': 8,
-
-
-
-            'orb_ny_usdcad': 9,
-
-
-
-            'orb_ny_usdchf': 10,
-
-
-
-            'orb_ny_usdjpy': 11,
-
-
-
-            'orb_ny_wall_street_30': 12,
-
-
-
-            'orb_ny_us_tech_100': 13,
-
-
-
-            'orb_ny_us_500': 14,
-
-
-
-          };
-
-
-
-          return list.sort((a, b) => (orbOrder[a.category] || 99) - (orbOrder[b.category] || 99));
-
-
-
+          return [
+            { category: 'worker_vol_2', selection_profile: 'SYNTHETICS', worker: 'VOLATILITY_2', label: 'Worker VOLATILITY (2) (MultiStrategia · Magic 26082402 · PID 36704 · Ladder & VolSwitch)', symbols: defaultVolatilitiesSpecial },
+            { category: 'worker_vol_1', selection_profile: 'SYNTHETICS', worker: 'VOLATILITY_1', label: 'Worker VOLATILITY (1) (MultiStrategia · Magic 26082401 · PID 14464 · High Frequency Vol)', symbols: defaultVolatilitiesHf },
+            { category: 'worker_vol_4', selection_profile: 'SYNTHETICS', worker: 'VOLATILITY_4', label: 'Worker VOLATILITY (4) (MultiStrategia · Magic 26082404 · PID 35156 · Índices Volatility 1s)', symbols: defaultVolatilities1s },
+            { category: 'worker_vol_3', selection_profile: 'SYNTHETICS', worker: 'VOLATILITY_3', label: 'Worker VOLATILITY (3) (MultiStrategia · Magic 26082403 · PID 7572 · Índices Volatility)', symbols: defaultVolatilities },
+            { category: 'worker_step_2', selection_profile: 'SYNTHETICS', worker: 'STEP_2', label: 'Worker STEP (2) (MultiStrategia · Magic 26082406 · Large & Base Steps)', symbols: defaultSteps2 },
+            { category: 'worker_step', selection_profile: 'SYNTHETICS', worker: 'STEP', label: 'Worker STEP (1) (MultiStrategia · Magic 26082104 · PID 17452)', symbols: defaultSteps1 },
+            { category: 'worker_boom', selection_profile: 'SYNTHETICS', worker: 'BOOM', label: 'Worker BOOM (MultiStrategia · Magic 26082101 · PID 20320)', symbols: boom },
+            { category: 'worker_crash', selection_profile: 'SYNTHETICS', worker: 'CRASH', label: 'Worker CRASH (MultiStrategia · Magic 26082102 · PID 25904)', symbols: crash },
+            { category: 'worker_jump', selection_profile: 'SYNTHETICS', worker: 'JUMP', label: 'Worker JUMP (MultiStrategia · Magic 26082105 · PID 16804)', symbols: jump },
+          ].filter(g => g.symbols.length);
         }
 
+        if (activeProfile === 'FOREX') {
+          const allForex = rawList.flatMap((g) => g.symbols || []);
+          const defaultEurSpecial = [
+            'EURAUD', 'EURAUDmicro',
+            'EURCAD', 'EURCADmicro',
+            'EURCHF', 'EURCHFmicro',
+            'EURGBP', 'EURGBPmicro',
+            'EURJPY', 'EURJPYmicro',
+            'EURNZD', 'EURNZDmicro',
+            'EURUSD', 'EURUSDmicro',
+            'EURHKD', 'EURMXN', 'EURNOK',
+            'EURPLN', 'EURSEK', 'EURSGD', 'EURZAR'
+          ];
+          const eurSpecialSet = new Set(defaultEurSpecial);
+          const defaultAudSpecial = [
+            'AUDCAD', 'AUDCADmicro',
+            'AUDCHF', 'AUDCHFmicro',
+            'AUDJPY', 'AUDJPYmicro',
+            'AUDNZD', 'AUDNZDmicro',
+            'AUDSGD',
+            'AUDUSD', 'AUDUSDmicro'
+          ];
+          const audSpecialSet = new Set(defaultAudSpecial);
+          const defaultUsdSpecial = [
+            'USDCAD', 'USDCADmicro',
+            'USDCHF', 'USDCHFmicro',
+            'USDJPY', 'USDJPYmicro',
+            'USDCNH', 'USDHKD', 'USDMXN',
+            'USDNOK', 'USDPLN', 'USDSEK',
+            'USDSGD', 'USDZAR'
+          ];
+          const usdSpecialSet = new Set(defaultUsdSpecial);
+          const defaultGbpSpecial = [
+            'GBPAUD', 'GBPCAD',
+            'GBPCHF', 'GBPCHFmicro',
+            'GBPJPY', 'GBPJPYmicro',
+            'GBPNZD',
+            'GBPUSD', 'GBPUSDmicro',
+            'GBPNOK', 'GBPSEK', 'GBPSGD'
+          ];
+          const gbpSpecialSet = new Set(defaultGbpSpecial);
+          const defaultNzdSpecial = [
+            'NZDCAD',
+            'NZDUSD', 'NZDUSDmicro',
+            'NZDCHF',
+            'NZDJPY',
+            'NZDSGD'
+          ];
+          const nzdSpecialSet = new Set(defaultNzdSpecial);
+          const nonSpecialForex = allForex.filter(x => !audSpecialSet.has(x) && !eurSpecialSet.has(x) && !usdSpecialSet.has(x) && !gbpSpecialSet.has(x) && !nzdSpecialSet.has(x));
+          const prio = new Set((s?.prioritized_symbols || {})['FOREX'] || []);
+          const forexOther = nonSpecialForex.filter(x => !prio.has(x));
 
+          return [
+            { category: 'worker_forex_5', selection_profile: 'FOREX', worker: 'FOREX_5', label: 'Worker FOREX (5) (MultiStrategia · Magic 26082205 · PID 15280 · Pares GBP)', symbols: defaultGbpSpecial },
+            { category: 'worker_forex_4', selection_profile: 'FOREX', worker: 'FOREX_4', label: 'Worker FOREX (4) (MultiStrategia · Magic 26082204 · PID 12676 · Pares USD)', symbols: defaultUsdSpecial },
+            { category: 'worker_forex_3', selection_profile: 'FOREX', worker: 'FOREX_3', label: 'Worker FOREX (3) (MultiStrategia · Magic 26082203 · PID 10072 · Pares EUR)', symbols: defaultEurSpecial },
+            { category: 'worker_forex_2', selection_profile: 'FOREX', worker: 'FOREX_2', label: 'Worker FOREX (2) (MultiStrategia · Magic 26082202 · PID 30880 · Pares AUD)', symbols: defaultAudSpecial },
+            { category: 'worker_forex_1', selection_profile: 'FOREX', worker: 'FOREX_1', label: 'Worker FOREX (1) (MultiStrategia · Magic 26082201 · PID 10776 · Pares NZD)', symbols: defaultNzdSpecial },
+            { category: 'worker_forex_other', selection_profile: 'FOREX', worker: 'FOREX_OTHER', label: 'Worker FOREX (Cruces Adicionales)', symbols: forexOther },
+          ].filter(g => g.symbols.length);
+        }
 
-        return list;
+        if (activeProfile === 'COMMODITIES_SNR') {
+          const allComm = rawList.flatMap((g) => g.symbols || []);
+          const defaultCommSpecial = [
+            'BTCUSD', 'ETHUSD',
+            'BTCUSDmicro', 'ETHUSDmicro',
+            'XRPUSD',
+            'XAUEUR', 'XAUUSD',
+            'XAUUSDmicro', 'XAUEURmicro',
+            'XAGUSD', 'XAGUSDmicro',
+            'US Oil', 'UK Brent Oil'
+          ];
+          const commSpecialSet = new Set(defaultCommSpecial);
+          const commSpecialFound = defaultCommSpecial.filter(x => allComm.includes(x) || commSpecialSet.has(x));
+          const commOther = allComm.filter(x => !commSpecialSet.has(x));
+          return [
+            { category: 'worker_comm_crypto', selection_profile: 'COMMODITIES_SNR', worker: 'ICT', label: 'Worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)', symbols: commSpecialFound },
+            { category: 'commodities_snr_other', selection_profile: 'COMMODITIES_SNR', worker: 'COMMODITIES_SNR', label: 'Worker COMMODITIES_SNR · Otros Metales y Energía (Magic 26082041)', symbols: commOther }
+          ].filter(g => g.symbols.length);
+        }
 
+        if (activeProfile === 'INDICESB_SNR') {
+          const allIdx = rawList.flatMap((g) => g.symbols || []);
+          const defaultIdx = ['Germany 40', 'US SP 500', 'US Tech 100', 'Wall Street 30'];
+          const targetIdx = allIdx.length ? allIdx : defaultIdx;
+          return [
+            { category: 'indicesb_snr', selection_profile: 'INDICESB_SNR', worker: 'INDICESB_SNR', label: 'Worker INDICESB_SNR (Índices Bursátiles · MultiStrategia · Magic 26082042 · PID 32180)', symbols: targetIdx }
+          ].filter(g => g.symbols.length);
+        }
 
+        if (activeProfile === 'FOREX_SNR') {
+          const allFxSnr = rawList.flatMap((g) => g.symbols || []);
+          const fallbackFxSnr = ((s?.prioritized_symbols || {})['FOREX_SNR'] || []);
+          const rawSyms = allFxSnr.length ? allFxSnr : fallbackFxSnr;
+          const defaultUsdSpecial = [
+            'USDCAD', 'USDCADmicro',
+            'USDCHF', 'USDCHFmicro',
+            'USDJPY', 'USDJPYmicro',
+            'USDCNH', 'USDHKD', 'USDMXN',
+            'USDNOK', 'USDPLN', 'USDSEK',
+            'USDSGD', 'USDZAR'
+          ];
+          const usdSpecialSet = new Set(defaultUsdSpecial);
+          const defaultGbpSpecial = [
+            'GBPAUD', 'GBPCAD',
+            'GBPCHF', 'GBPCHFmicro',
+            'GBPJPY', 'GBPJPYmicro',
+            'GBPNZD',
+            'GBPUSD', 'GBPUSDmicro',
+            'GBPNOK', 'GBPSEK', 'GBPSGD'
+          ];
+          const gbpSpecialSet = new Set(defaultGbpSpecial);
+          const defaultEurSpecial = [
+            'EURAUD', 'EURAUDmicro',
+            'EURCAD', 'EURCADmicro',
+            'EURCHF', 'EURCHFmicro',
+            'EURGBP', 'EURGBPmicro',
+            'EURJPY', 'EURJPYmicro',
+            'EURNZD', 'EURNZDmicro',
+            'EURUSD', 'EURUSDmicro',
+            'EURHKD', 'EURMXN', 'EURNOK',
+            'EURPLN', 'EURSEK', 'EURSGD', 'EURZAR'
+          ];
+          const eurSpecialSet = new Set(defaultEurSpecial);
+          const defaultAudSpecial = [
+            'AUDCAD', 'AUDCADmicro',
+            'AUDCHF', 'AUDCHFmicro',
+            'AUDJPY', 'AUDJPYmicro',
+            'AUDNZD', 'AUDNZDmicro',
+            'AUDSGD',
+            'AUDUSD', 'AUDUSDmicro'
+          ];
+          const audSpecialSet = new Set(defaultAudSpecial);
+          const gbpSpecialFound = defaultGbpSpecial.filter(x => rawSyms.includes(x) || gbpSpecialSet.has(x));
+          const usdSpecialFound = defaultUsdSpecial.filter(x => rawSyms.includes(x) || usdSpecialSet.has(x));
+          const eurSpecialFound = defaultEurSpecial.filter(x => rawSyms.includes(x) || eurSpecialSet.has(x));
+          const audSpecialFound = defaultAudSpecial.filter(x => rawSyms.includes(x) || audSpecialSet.has(x));
+          const defaultNzdSpecial = [
+            'NZDCAD',
+            'NZDUSD', 'NZDUSDmicro',
+            'NZDCHF',
+            'NZDJPY',
+            'NZDSGD'
+          ];
+          const nzdSpecialSet = new Set(defaultNzdSpecial);
+          const nzdSpecialFound = defaultNzdSpecial.filter(x => rawSyms.includes(x) || nzdSpecialSet.has(x));
+          const nonSpecialFxSnr = rawSyms.filter(x => !audSpecialSet.has(x) && !eurSpecialSet.has(x) && !usdSpecialSet.has(x) && !gbpSpecialSet.has(x) && !nzdSpecialSet.has(x));
+          const sortedNonSpecial = Array.from(new Set(nonSpecialFxSnr)).sort((a, b) => a.localeCompare(b));
 
+          return [
+            { category: 'worker_forex_5_snr', selection_profile: 'FOREX_SNR', worker: 'FOREX_5', label: 'Worker FOREX (5) (MultiStrategia · Magic 26082205 · PID 15280 · Pares GBP)', symbols: gbpSpecialFound },
+            { category: 'worker_forex_4_snr', selection_profile: 'FOREX_SNR', worker: 'FOREX_4', label: 'Worker FOREX (4) (MultiStrategia · Magic 26082204 · PID 12676 · Pares USD)', symbols: usdSpecialFound },
+            { category: 'worker_forex_3_snr', selection_profile: 'FOREX_SNR', worker: 'FOREX_3', label: 'Worker FOREX (3) (MultiStrategia · Magic 26082203 · PID 10072 · Pares EUR)', symbols: eurSpecialFound },
+            { category: 'worker_forex_2_snr', selection_profile: 'FOREX_SNR', worker: 'FOREX_2', label: 'Worker FOREX (2) (MultiStrategia · Magic 26082202 · PID 30880 · Pares AUD)', symbols: audSpecialFound },
+            { category: 'worker_forex_1_snr', selection_profile: 'FOREX_SNR', worker: 'FOREX_1', label: 'Worker FOREX (1) (MultiStrategia · Magic 26082201 · PID 10776 · Pares NZD)', symbols: nzdSpecialFound },
+            { category: 'forex_snr_others', selection_profile: 'FOREX_SNR', worker: 'FOREX_SNR', label: 'Worker FOREX_SNR · Forex & Cripto (Magic 26082043)', symbols: sortedNonSpecial }
+          ].filter(g => g.symbols.length);
+        }
+
+        if (activeProfile === 'MALAYSIAN_SNR') {
+          const msnrGroups = rawList
+            .filter(g => !['commodities_snr', 'indicesb_snr', 'forex_snr', 'malaysian_snr_forex', 'malaysian_snr_metals', 'malaysian_snr_indices', 'malaysian_snr_pruned'].includes(g.category));
+
+          const allMsnrSymbols = msnrGroups.flatMap(g => g.symbols || []).filter(s => {
+            const sl = String(s || '').toLowerCase();
+            if (/^xa[ug]|^xpt|oil|brent/i.test(sl)) return false;
+            if (/wall street|tech 100|sp 500|germany/i.test(sl)) return false;
+            if (/(?:eur|gbp|usd|jpy|aud|cad|chf|nzd|btc|eth)/i.test(sl)) return false;
+            return true;
+          });
+
+          const stepFound = allMsnrSymbols.filter(s => /step/i.test(s));
+          const defaultSteps = ['Step Index', 'Step Index 200', 'Step Index 300', 'Step Index 400', 'Step Index 500'];
+          const stepSymbols = Array.from(new Set([...stepFound, ...defaultSteps]));
+          const stepSet = new Set(stepSymbols);
+
+          const defaultBooms = ['Boom 1000 Index', 'Boom 300 Index', 'Boom 500 Index', 'Boom 600 Index', 'Boom 900 Index', 'Volatility Boom 400 Index', 'Volatility Boom 750 Index'];
+          const boomFound = allMsnrSymbols.filter(s => /boom/i.test(s) && s !== 'Vol over Boom 550');
+          const boomSymbols = Array.from(new Set([...boomFound, ...defaultBooms]));
+          const boomSet = new Set(boomSymbols);
+
+          const defaultCrashes = ['Crash 1000 Index', 'Crash 300 Index', 'Crash 500 Index', 'Crash 600 Index', 'Crash 900 Index', 'Volatility Crash 400 Index', 'Volatility Crash 550 Index', 'Volatility Crash 750 Index'];
+          const crashFound = allMsnrSymbols.filter(s => /crash/i.test(s));
+          const crashSymbols = Array.from(new Set([...crashFound, ...defaultCrashes]));
+          const crashSet = new Set(crashSymbols);
+
+          const defaultJumps = ['Jump 10 Index', 'Jump 25 Index', 'Jump 50 Index', 'Jump 75 Index', 'Jump 100 Index'];
+          const jumpFound = allMsnrSymbols.filter(s => /jump/i.test(s));
+          const jumpSymbols = Array.from(new Set([...jumpFound, ...defaultJumps]));
+          const jumpSet = new Set(jumpSymbols);
+
+          const defaultVolatilities = ['Volatility 10 Index', 'Volatility 100 Index', 'Volatility 15 Index', 'Volatility 25 Index', 'Volatility 5 Index', 'Volatility 50 Index', 'Volatility 75 Index', 'Volatility 90 Index'];
+          const volMultistratSet = new Set(defaultVolatilities);
+          const defaultVolatilities1s = ['Volatility 100 (1s) Index', 'Volatility 150 (1s) Index', 'Volatility 250 (1s) Index', 'Volatility 50 (1s) Index', 'Volatility 75 (1s) Index', 'Volatility 90 (1s) Index', 'Volatility 10 (1s) Index', 'Volatility 15 (1s) Index', 'Volatility 25 (1s) Index', 'Volatility 30 (1s) Index', 'Volatility 5 (1s) Index'];
+          const vol1sMultistratSet = new Set(defaultVolatilities1s);
+          const defaultVolatilitiesHf = ['High Frequency Vol 100 Index', 'High Frequency Vol 50 Index', 'High Frequency Vol 10 Index', 'High Frequency Vol 25 Index', 'High Frequency Vol 75 Index'];
+          const volHfMultistratSet = new Set(defaultVolatilitiesHf);
+          const defaultVolatilitiesSpecial = ['Ladder Volatility Down Index', 'Ladder Volatility Up Index', 'VolSwitch Low Vol Index', 'VolSwitch Medium Vol Index'];
+          const volSpecialMultistratSet = new Set(defaultVolatilitiesSpecial);
+
+          const nonStepGroups = msnrGroups.map(g => {
+            return {
+              ...g,
+              worker: 'MALAYSIAN_SNR',
+              label: `Worker MALAYSIAN_SNR · ${g.label.replace('Malaysian SNR · ', '')}`,
+              symbols: (g.symbols || []).filter(s => {
+                const sl = String(s || '').toLowerCase();
+                if (/step/i.test(sl) || stepSet.has(s)) return false;
+                if (/crash/i.test(sl) || crashSet.has(s)) return false;
+                if (/boom/i.test(sl) || boomSet.has(s)) return false;
+                if (/jump/i.test(sl) || jumpSet.has(s)) return false;
+                if (volMultistratSet.has(s)) return false;
+                if (vol1sMultistratSet.has(s)) return false;
+                if (volHfMultistratSet.has(s)) return false;
+                if (volSpecialMultistratSet.has(s)) return false;
+                if (/^xa[ug]|^xpt|oil|brent/i.test(sl)) return false;
+                if (/wall street|tech 100|sp 500|germany/i.test(sl)) return false;
+                if (/(?:eur|gbp|usd|jpy|aud|cad|chf|nzd|btc|eth)/i.test(sl)) return false;
+                return true;
+              })
+            };
+          }).filter(g => g.symbols.length);
+
+          return [
+            {
+              category: 'worker_vol_2_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'VOLATILITY_2',
+              label: 'Worker VOLATILITY (2) (MultiStrategia · Magic 26082402 · PID 36704 · Ladder & VolSwitch)',
+              symbols: defaultVolatilitiesSpecial
+            },
+            {
+              category: 'worker_vol_1_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'VOLATILITY_1',
+              label: 'Worker VOLATILITY (1) (MultiStrategia · Magic 26082401 · PID 14464 · High Frequency Vol)',
+              symbols: defaultVolatilitiesHf
+            },
+            {
+              category: 'worker_vol_4_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'VOLATILITY_4',
+              label: 'Worker VOLATILITY (4) (MultiStrategia · Magic 26082404 · PID 35156 · Índices Volatility 1s)',
+              symbols: defaultVolatilities1s
+            },
+            {
+              category: 'worker_vol_3_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'VOLATILITY_3',
+              label: 'Worker VOLATILITY (3) (MultiStrategia · Magic 26082403 · PID 7572 · Índices Volatility)',
+              symbols: defaultVolatilities
+            },
+            {
+              category: 'worker_jump_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'JUMP',
+              label: 'Worker JUMP (MultiStrategia · Magic 26082105 · PID 16804 · Índices Jump)',
+              symbols: jumpSymbols
+            },
+            {
+              category: 'worker_boom_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'BOOM',
+              label: 'Worker BOOM (MultiStrategia · Magic 26082101 · PID 20320 · Índices Boom)',
+              symbols: boomSymbols
+            },
+            {
+              category: 'worker_crash_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'CRASH',
+              label: 'Worker CRASH (MultiStrategia · Magic 26082102 · PID 25904 · Índices Crash)',
+              symbols: crashSymbols
+            },
+            {
+              category: 'worker_step_msnr',
+              selection_profile: 'MALAYSIAN_SNR',
+              worker: 'STEP',
+              label: 'Worker STEP (MultiStrategia · Magic 26082104 · PID 17452 · Índices Step)',
+              symbols: stepSymbols
+            },
+            ...nonStepGroups
+          ];
+        }
+
+        if (activeProfile === 'TREND_PULLBACK') {
+          const allTpb = rawList.flatMap((g) => g.symbols || []);
+          const crashBoom = allTpb.filter(x => /crash|boom/i.test(x));
+          const stepJump = allTpb.filter(x => /step|jump/i.test(x));
+          const volSpec = allTpb.filter(x => /high frequency|volswitch|vol over/i.test(x));
+          const volStd = allTpb.filter(x => /volatility/i.test(x) && !volSpec.includes(x));
+
+          return [
+            { category: 'tpb_crash_boom', selection_profile: 'TREND_PULLBACK', worker: 'TREND_PULLBACK', label: 'Worker TREND_PULLBACK · Crash & Boom', symbols: crashBoom },
+            { category: 'tpb_vol_std', selection_profile: 'TREND_PULLBACK', worker: 'TREND_PULLBACK', label: 'Worker TREND_PULLBACK · Volatility Index', symbols: volStd },
+            { category: 'tpb_step_jump', selection_profile: 'TREND_PULLBACK', worker: 'TREND_PULLBACK', label: 'Worker TREND_PULLBACK · Step & Jump', symbols: stepJump },
+            { category: 'tpb_vol_spec', selection_profile: 'TREND_PULLBACK', worker: 'TREND_PULLBACK', label: 'Worker TREND_PULLBACK · Especiales & HF', symbols: volSpec }
+          ].filter(g => g.symbols.length);
+        }
+
+        if (activeProfile === 'ORB') {
+          const orbOrder = {
+            'orb_ny_xauusd': 1,
+            'orb_ny_xagusd': 2,
+            'orb_ny_us_oil': 3,
+            'orb_ny_btcusd': 4,
+            'orb_ny_ethusd': 5,
+            'orb_ny_eurusd': 6,
+            'orb_ny_gbpusd': 7,
+            'orb_ny_audusd': 8,
+            'orb_ny_usdcad': 9,
+            'orb_ny_usdchf': 10,
+            'orb_ny_usdjpy': 11,
+            'orb_ny_wall_street_30': 12,
+            'orb_ny_us_tech_100': 13,
+            'orb_ny_us_500': 14,
+          };
+          return rawList
+            .sort((a, b) => (orbOrder[a.category] || 99) - (orbOrder[b.category] || 99))
+            .map(g => ({
+              ...g,
+              worker: 'ORB',
+              label: `Worker ORB · ${g.label}`
+            }));
+        }
+
+        if (activeProfile === 'ICT') {
+          const defaultIctSpecial = [
+            'BTCUSD', 'ETHUSD',
+            'BTCUSDmicro', 'ETHUSDmicro',
+            'XRPUSD',
+            'XAUEUR', 'XAUUSD',
+            'XAUUSDmicro', 'XAUEURmicro',
+            'XAGUSD', 'XAGUSDmicro',
+            'US Oil', 'UK Brent Oil'
+          ];
+          return [
+            { category: 'worker_ict_multistrat', selection_profile: 'ICT', worker: 'ICT', label: 'Worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)', symbols: defaultIctSpecial }
+          ].filter(g => g.symbols.length);
+        }
+
+        return rawList;
       }
 
+      function workerForInstrument(sym, activeProfile, groupWorker, s) {
+        const prof = String(activeProfile || '').toUpperCase();
+        const grp = String(groupWorker || '').toUpperCase();
 
+        // Si el usuario está dentro de una pestaña de estrategia específica (ORB, ICT, Trend Pullback, etc.),
+        // la insignia del instrumento debe reflejar el Worker real que opera esa pestaña.
+        if (prof === 'ORB') return { tag: 'ORB', label: 'Worker ORB', badgeClass: 'wpOrb' };
+        if (grp === 'ORB') return { tag: 'ORB', label: 'Worker ORB', badgeClass: 'wpOrb' };
 
-      function selectionSummary(s) {
+        if (prof === 'TREND_PULLBACK' || grp === 'TREND_PULLBACK') {
+          return { tag: 'TREND PULLBACK', label: 'Worker TREND_PULLBACK', badgeClass: 'wpTp' };
+        }
+        if (prof === 'INDICESB_SNR' || grp === 'INDICESB_SNR') {
+          return { tag: 'INDICES (MULTI)', label: 'Worker INDICESB_SNR (Índices Bursátiles · MultiStrategia · Magic 26082042 · PID 32180)', badgeClass: 'wpIndices' };
+        }
+        if (prof === 'ICT') {
+          return { tag: 'COMMODITIES/CRYPTO (MULTI)', label: 'Worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)', badgeClass: 'wpComm' };
+        }
 
-
-
-        return (
-
-
-
-          ['SYNTHETICS', 'FOREX', 'ORB', 'MALAYSIAN_SNR', 'ICT', 'TREND_PULLBACK']
-
-
-
-            .map((p, i) => {
-
-
-
-              const allowed = new Set(
-
-
-
-                visibleInstrumentGroups(s)
-
-
-
-                  .filter((g) => String(g.selection_profile || 'SYNTHETICS').toUpperCase() === p)
-
-
-
-                  .flatMap((g) => g.symbols),
-
-
-
-              );
-
-
-
-              return (
-
-
-
-                ['Sintéticos [ICT]', 'Forex [ICT]', 'ORB', 'Malaysian SNR', 'ICT (Metales, Cripto & Índices)', 'Trend Pullback (>51% WR)'][i] +
-
-
-
-                ': ' +
-
-
-
-                ((s.selection_profiles || {})[p] || []).filter((x) => allowed.has(x)).length
-
-
-
-              );
-
-
-
-            })
-
-
-
-            .join(' · ') + ' · selecciones independientes'
-
-
-
-        );
-
-
-
-      }
-
-
-
-      function ictFamilyLabel(sym) {
-
-
+        if (groupWorker) {
+          const w = grp;
+          if (w === 'BOOM') return { tag: 'BOOM (MULTI)', label: 'Worker BOOM (MultiStrategia · Magic 26082101 · PID 20320)', badgeClass: 'wpBoom' };
+          if (w === 'CRASH') return { tag: 'CRASH (MULTI)', label: 'Worker CRASH (MultiStrategia · Magic 26082102 · PID 25904)', badgeClass: 'wpCrash' };
+          if (w === 'STEP_2') return { tag: 'STEP (LARGE & BASE MULTI)', label: 'Worker STEP (2) (MultiStrategia · Magic 26082406 · Large & Base Steps)', badgeClass: 'wpStep' };
+          if (w === 'STEP') return { tag: 'STEP (MULTI)', label: 'Worker STEP (1) (MultiStrategia · Magic 26082104 · PID 17452)', badgeClass: 'wpStep' };
+          if (w === 'JUMP') return { tag: 'JUMP (MULTI)', label: 'Worker JUMP (MultiStrategia · Magic 26082105 · PID 16804)', badgeClass: 'wpJump' };
+          if (w === 'VOLATILITY_4') return { tag: 'VOLATILITY (1S MULTI)', label: 'Worker VOLATILITY (4) (MultiStrategia · Magic 26082404 · PID 35156)', badgeClass: 'wpVol' };
+          if (w === 'VOLATILITY_3') return { tag: 'VOLATILITY (MULTI)', label: 'Worker VOLATILITY (3) (MultiStrategia · Magic 26082403 · PID 7572)', badgeClass: 'wpVol' };
+          if (w === 'VOLATILITY_1') return { tag: 'VOLATILITY (HF MULTI)', label: 'Worker VOLATILITY (1) (MultiStrategia · Magic 26082401 · PID 14464)', badgeClass: 'wpVol' };
+          if (w === 'VOLATILITY_2') return { tag: 'VOLATILITY (SPECIAL MULTI)', label: 'Worker VOLATILITY (2) (MultiStrategia · Magic 26082402 · PID 36704)', badgeClass: 'wpVol' };
+          if (w === 'FOREX_1') return { tag: 'FOREX (NZD MULTI)', label: 'Worker FOREX (1) (MultiStrategia · Magic 26082201 · PID 10776)', badgeClass: 'wpForex' };
+          if (w === 'FOREX_2') return { tag: 'FOREX (AUD MULTI)', label: 'Worker FOREX (2) (MultiStrategia · Magic 26082202 · PID 30880)', badgeClass: 'wpForex' };
+          if (w === 'FOREX_3') return { tag: 'FOREX (EUR MULTI)', label: 'Worker FOREX (3) (MultiStrategia · Magic 26082203 · PID 10072)', badgeClass: 'wpForex' };
+          if (w === 'FOREX_4') return { tag: 'FOREX (USD MULTI)', label: 'Worker FOREX (4) (MultiStrategia · Magic 26082204 · PID 12676)', badgeClass: 'wpForex' };
+          if (w === 'FOREX_5') return { tag: 'FOREX (GBP MULTI)', label: 'Worker FOREX (5) (MultiStrategia · Magic 26082205 · PID 15280)', badgeClass: 'wpForex' };
+          if (w === 'COMMODITIES_SNR') return { tag: 'COMMODITIES', label: 'Worker COMMODITIES_SNR', badgeClass: 'wpComm' };
+          if (w === 'INDICESB_SNR') return { tag: 'INDICES (MULTI)', label: 'Worker INDICESB_SNR (Índices Bursátiles · MultiStrategia · Magic 26082042 · PID 32180)', badgeClass: 'wpIndices' };
+          if (w === 'FOREX_SNR') return { tag: 'FOREX SNR', label: 'Worker FOREX_SNR', badgeClass: 'wpForex' };
+          if (w === 'MALAYSIAN_SNR') return { tag: 'MALAYSIAN SNR', label: 'Worker MALAYSIAN_SNR', badgeClass: 'wpMsnr' };
+          if (w === 'TREND_PULLBACK') return { tag: 'TREND PULLBACK', label: 'Worker TREND_PULLBACK', badgeClass: 'wpTp' };
+          if (w === 'ORB') return { tag: 'ORB', label: 'Worker ORB', badgeClass: 'wpOrb' };
+          if (w === 'ICT') return { tag: 'COMMODITIES/CRYPTO (MULTI)', label: 'Worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)', badgeClass: 'wpComm' };
+        }
 
         const l = String(sym || '').toLowerCase();
-
-
-
-        if (activeProfile === 'FOREX') return 'Worker Forex';
-
-
-
-        if (l.includes('boom')) return 'Worker Boom';
-
-
-
-        if (l.includes('crash')) return 'Worker Crash';
-
-
-
-        if (l.includes('step')) return 'Worker Step';
-
-
-
-        if (l.includes('jump')) return 'Worker Jump';
-
-
-
-        if (l.includes('vol')) return 'Worker Volatility';
-
-
-
-        if (l.includes('xau')) return 'Worker ICT · Oro';
-
-
-
-        if (l.includes('oil')) return 'Worker ICT · Petróleo';
-
-
-
-        if (l.includes('wall street') || l.includes('tech 100') || l.includes('sp 500')) return 'Worker ICT · Índices';
-
-
-
-        return 'Worker ICT';
-
-
-
+        const commoditiesCryptoTargets = [
+          'btcusd', 'btcusdmicro',
+          'ethusd', 'ethusdmicro',
+          'xrpusd',
+          'xaueur', 'xaueurmicro',
+          'xauusd', 'xauusdmicro',
+          'xagusd', 'xagusdmicro',
+          'us oil', 'uk brent oil'
+        ];
+        if (commoditiesCryptoTargets.includes(l)) {
+          return { tag: 'COMMODITIES/CRYPTO (MULTI)', label: 'Worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)', badgeClass: 'wpComm' };
+        }
+        const volSpecialTargets = ['ladder volatility down index', 'ladder volatility up index', 'volswitch low vol index', 'volswitch medium vol index'];
+        if (volSpecialTargets.includes(l)) {
+          return { tag: 'VOLATILITY (SPECIAL MULTI)', label: 'Worker VOLATILITY (2) (MultiStrategia · Magic 26082402 · PID 36704)', badgeClass: 'wpVol' };
+        }
+        const volHfTargets = ['high frequency vol 100 index', 'high frequency vol 50 index', 'high frequency vol 10 index', 'high frequency vol 25 index', 'high frequency vol 75 index'];
+        if (volHfTargets.includes(l)) {
+          return { tag: 'VOLATILITY (HF MULTI)', label: 'Worker VOLATILITY (1) (MultiStrategia · Magic 26082401 · PID 14464)', badgeClass: 'wpVol' };
+        }
+        const vol1sTargets = ['volatility 100 (1s) index', 'volatility 150 (1s) index', 'volatility 250 (1s) index', 'volatility 50 (1s) index', 'volatility 75 (1s) index', 'volatility 90 (1s) index', 'volatility 10 (1s) index', 'volatility 15 (1s) index', 'volatility 25 (1s) index', 'volatility 30 (1s) index', 'volatility 5 (1s) index'];
+        if (vol1sTargets.includes(l)) {
+          return { tag: 'VOLATILITY (1S MULTI)', label: 'Worker VOLATILITY (4) (MultiStrategia · Magic 26082404 · PID 35156)', badgeClass: 'wpVol' };
+        }
+        const volTargets = ['volatility 10 index', 'volatility 100 index', 'volatility 15 index', 'volatility 25 index', 'volatility 5 index', 'volatility 50 index', 'volatility 75 index', 'volatility 90 index'];
+        if (volTargets.includes(l)) {
+          return { tag: 'VOLATILITY (MULTI)', label: 'Worker VOLATILITY (3) (MultiStrategia · Magic 26082403 · PID 7572)', badgeClass: 'wpVol' };
+        }
+        if (/jump/i.test(l)) {
+          return { tag: 'JUMP (MULTI)', label: 'Worker JUMP (MultiStrategia · Magic 26082105 · PID 16804)', badgeClass: 'wpJump' };
+        }
+        const step2Targets = ['step index', 'step index 300', 'step index 1000', 'step index 1500', 'step index 2000'];
+        if (step2Targets.includes(l)) {
+          return { tag: 'STEP (LARGE & BASE MULTI)', label: 'Worker STEP (2) (MultiStrategia · Magic 26082406 · Large & Base Steps)', badgeClass: 'wpStep' };
+        }
+        if (/step/i.test(l)) {
+          return { tag: 'STEP (MULTI)', label: 'Worker STEP (1) (MultiStrategia · Magic 26082104 · PID 17452)', badgeClass: 'wpStep' };
+        }
+        if (/crash/i.test(l)) {
+          return { tag: 'CRASH (MULTI)', label: 'Worker CRASH (MultiStrategia · Magic 26082102 · PID 25904)', badgeClass: 'wpCrash' };
+        }
+        if (/boom/i.test(l)) {
+          return { tag: 'BOOM (MULTI)', label: 'Worker BOOM (MultiStrategia · Magic 26082101 · PID 20320)', badgeClass: 'wpBoom' };
+        }
+        const audSpecialTargets = [
+          'audchf', 'audchfmicro',
+          'audjpy', 'audjpymicro',
+          'audnzd', 'audnzdmicro',
+          'audusd', 'audusdmicro',
+          'audcad', 'audcadmicro',
+          'audsgd'
+        ];
+        if (audSpecialTargets.includes(l)) {
+          return { tag: 'FOREX (AUD MULTI)', label: 'Worker FOREX (2) (MultiStrategia · Magic 26082202 · PID 30880)', badgeClass: 'wpForex' };
+        }
+        const eurSpecialTargets = [
+          'euraud', 'euraudmicro',
+          'eurcad', 'eurcadmicro',
+          'eurchf', 'eurchfmicro',
+          'eurgbp', 'eurgbpmicro',
+          'eurjpy', 'eurjpymicro',
+          'eurnzd', 'eurnzdmicro',
+          'eurusd', 'eurusdmicro',
+          'eurhkd', 'eurmxn', 'eurnok',
+          'eurpln', 'eursek', 'eursgd', 'eurzar'
+        ];
+        if (eurSpecialTargets.includes(l)) {
+          return { tag: 'FOREX (EUR MULTI)', label: 'Worker FOREX (3) (MultiStrategia · Magic 26082203 · PID 10072)', badgeClass: 'wpForex' };
+        }
+        const usdSpecialTargets = [
+          'usdcad', 'usdcadmicro',
+          'usdchf', 'usdchfmicro',
+          'usdjpy', 'usdjpymicro',
+          'usdcnh', 'usdhkd', 'usdmxn',
+          'usdnok', 'usdpln', 'usdsek',
+          'usdsgd', 'usdzar'
+        ];
+        if (usdSpecialTargets.includes(l)) {
+          return { tag: 'FOREX (USD MULTI)', label: 'Worker FOREX (4) (MultiStrategia · Magic 26082204 · PID 12676)', badgeClass: 'wpForex' };
+        }
+        const gbpSpecialTargets = [
+          'gbpaud', 'gbpcad',
+          'gbpchf', 'gbpchfmicro',
+          'gbpjpy', 'gbpjpymicro',
+          'gbpnzd',
+          'gbpusd', 'gbpusdmicro',
+          'gbpnok', 'gbpsek', 'gbpsgd'
+        ];
+        if (gbpSpecialTargets.includes(l)) {
+          return { tag: 'FOREX (GBP MULTI)', label: 'Worker FOREX (5) (MultiStrategia · Magic 26082205 · PID 15280)', badgeClass: 'wpForex' };
+        }
+        const nzdSpecialTargets = [
+          'nzdcad',
+          'nzdusd', 'nzdusdmicro',
+          'nzdchf',
+          'nzdjpy',
+          'nzdsgd'
+        ];
+        if (nzdSpecialTargets.includes(l)) {
+          return { tag: 'FOREX (NZD MULTI)', label: 'Worker FOREX (1) (MultiStrategia · Magic 26082201 · PID 10776)', badgeClass: 'wpForex' };
+        }
+        if (/wall street|tech 100|sp 500|germany/i.test(l)) {
+          return { tag: 'INDICES (MULTI)', label: 'Worker INDICESB_SNR (Índices Bursátiles · MultiStrategia · Magic 26082042 · PID 32180)', badgeClass: 'wpIndices' };
+        }
+        if (prof === 'COMMODITIES_SNR') return { tag: 'COMMODITIES', label: 'Worker COMMODITIES_SNR', badgeClass: 'wpComm' };
+        if (prof === 'FOREX_SNR') return { tag: 'FOREX SNR', label: 'Worker FOREX_SNR', badgeClass: 'wpForex' };
+        if (prof === 'MALAYSIAN_SNR') {
+          if (/(?:eur|gbp|usd|jpy|aud|cad|chf|nzd|btc|eth)/i.test(l)) {
+            return { tag: 'FOREX SNR', label: 'Worker FOREX_SNR', badgeClass: 'wpForex' };
+          }
+          return { tag: 'MALAYSIAN SNR', label: 'Worker MALAYSIAN_SNR', badgeClass: 'wpMsnr' };
+        }
+        if (prof === 'FOREX') {
+          const prio = new Set((s?.prioritized_symbols || {})['FOREX'] || []);
+          if (prio.size > 0 && !prio.has(sym)) return { tag: 'FOREX 2 (OFF)', label: 'Worker FOREX 2 (OFF)', badgeClass: 'wpPruned' };
+          return { tag: 'FOREX 1', label: 'Worker FOREX 1', badgeClass: 'wpForex' };
+        }
+        const prio = new Set((s?.prioritized_symbols || {})['SYNTHETICS'] || []);
+        if (prio.size > 0 && !prio.has(sym)) return { tag: 'VOLATILITY 2 (OFF)', label: 'Worker VOLATILITY 2 (OFF)', badgeClass: 'wpPruned' };
+        return { tag: 'VOLATILITY 1', label: 'Worker VOLATILITY 1', badgeClass: 'wpVol' };
       }
 
 
 
       function msnrFamilyLabel(sym) {
-
-
-
         const l = String(sym || '').toLowerCase();
-
-
-
-        if (l.startsWith('dex ')) return 'DEX (prueba demo)';
-
-
-
-        if (l.includes('vol over boom')) return 'Volatility';
-
-
-
-        if (l.includes('vol over crash')) return 'Volatility';
-
-
-
-        if (l.includes('boom')) return 'Boom (solo BUY)';
-
-
-
-        if (l.includes('crash')) return 'Crash (solo SELL)';
-
-
-
-        if (l.includes('step')) return 'Step';
-
-
-
-        if (l.includes('jump')) return 'Jump';
-
-
-
+        const volTargets = ['volatility 10 index', 'volatility 100 index', 'volatility 15 index', 'volatility 25 index', 'volatility 5 index', 'volatility 50 index', 'volatility 75 index', 'volatility 90 index'];
+        if (volTargets.includes(l)) return 'Volatility (MultiStrategia · PID 7572)';
+        if (l.startsWith('dex ')) return 'DEX';
+        if (l.includes('vol over boom') || l.includes('vol over crash')) return 'Volatility';
+        if (l.includes('boom')) return 'Boom (MultiStrategia · PID 20320)';
+        if (l.includes('crash')) return 'Crash (MultiStrategia · PID 25904)';
+        if (l.includes('step')) return 'Step (MultiStrategia · PID 17452)';
+        if (l.includes('jump')) return 'Jump (MultiStrategia · PID 16804)';
         if (l.includes('volatility') || l.includes('vol ') || l.includes('volswitch')) return 'Volatility';
-
-
-
-        // Resto = mercados reales de bajo coste en prueba demo (sesión Asia → NY, 25-oct-2026).
-
-
-
-        if (/^xa[ug]|^xpt/.test(l)) return 'Metal (prueba demo · Asia→NY)';
-
-
-
-        if (/^[a-z]{6}$/.test(l)) return 'Forex (prueba demo · Asia→NY)';
-
-
-
-        return 'Índice (prueba demo · Asia→NY)';
-
-
-
+        // Mercados Reales
+        if (/^xa[ug]|^xpt/.test(l)) return 'Metal';
+        if (/^[a-z]{6}(?:micro)?$/.test(l)) return 'Forex';
+        if (l.includes('oil') || l.includes('brent')) return 'Energía';
+        if (l.includes('btc') || l.includes('eth')) return 'Cripto';
+        if (/wall street|tech 100|sp 500|germany/i.test(l)) return 'Índices Bursátiles (MultiStrategia · PID 32180)';
+        return 'Índice';
       }
 
 
@@ -36387,300 +35150,17 @@ _INSTRUMENTS_HTML = r'''
 
 
       function renderTabWorkers(s) {
-
-
-
         const banner = $('strategyHighlightBanner');
-
-
-
-        const info = PROFILE_STRATEGY_INFO[activeProfile] || PROFILE_STRATEGY_INFO.SYNTHETICS;
-
-
-
         if (banner) {
-
-
-
-          banner.style.borderLeftColor = info.color;
-
-
-
-          banner.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-
-
-
-            <div><span style="display:inline-block;padding:2px 8px;border-radius:5px;font-weight:800;font-size:11px;background:rgba(56,189,248,0.16);color:${info.color};border:1px solid ${info.color};margin-right:8px;">${esc(info.badge)}</span>
-
-
-
-            <b>Workers controlados en esta pestaña:</b> <span style="color:#f3c64c;">${esc(info.workersText)}</span></div>
-
-
-
-            <span class="sub" style="font-size:12px;">Consistente con Modo Centinela y Análisis Recientes</span>
-
-
-
-          </div>
-
-
-
-          <div class="sub" style="margin-top:5px;font-size:12.5px;">${esc(info.desc)}</div>`;
-
-
-
+          banner.style.display = 'none';
+          banner.innerHTML = '';
         }
-
-
-
         const panel = $('tabWorkerPanel');
-
-
-
-        if (!panel) return;
-
-
-
-        const workersByProfile = s.workers_by_profile || {};
-
-
-
-        const workers = workersByProfile[activeProfile] || [];
-
-
-
-        if (!workers.length) {
-
-
-
-          panel.innerHTML = '<div class="sub">No hay workers asociados a esta pestaña.</div>';
-
-
-
-          return;
-
-
-
+        if (panel) {
+          panel.style.display = 'none';
+          panel.innerHTML = '';
         }
-
-
-
-        const liveSelected = new Set(dirty ? selected() : ((s.selection_profiles || {})[activeProfile] || []));
-
-
-
-        const cardsHtml = workers.map((w) => {
-
-
-
-          const wp = String(w.bot_profile || '').toUpperCase();
-
-
-
-          const label = w.worker_label || wp;
-
-
-
-          const strat = w.strategy_label || info.badge;
-
-
-
-          const univ = Array.isArray(w.universe_symbols) && w.universe_symbols.length ? w.universe_symbols : [];
-
-
-
-          const actSyms = univ.length ? univ.filter((sym) => liveSelected.has(sym)) : (w.active_symbols || []);
-
-
-
-          const pruSyms = univ.length ? univ.filter((sym) => !liveSelected.has(sym)) : (w.pruned_symbols || []);
-
-
-
-          const total = actSyms.length;
-
-
-
-          const rawDone = Number(w.symbols_processed || 0);
-
-
-
-          const done = total > 0 ? Math.min(total, rawDone) : 0;
-
-
-
-          const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
-
-
-
-          const disabled = String(w.status || '').toUpperCase() === 'DISABLED';
-
-
-
-          const statusTxt = disabled ? 'DESACTIVADO' : (total === 0 ? 'PAUSADO (0 ACTIVOS)' : (w.status || 'RUNNING'));
-
-
-
-          const statusColor = disabled || total === 0 ? '#f87171' : '#34d399';
-
-
-
-          const actPreview = actSyms.slice(0, 8).map((x) => `<span style="display:inline-block;padding:1px 6px;margin:2px;border-radius:4px;font-size:11px;background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.3);">✓ ${esc(x)}</span>`).join('') + (actSyms.length > 8 ? `<span class="sub" style="font-size:11px;"> +${actSyms.length - 8} más</span>` : '');
-
-
-
-          const pruPreview = pruSyms.slice(0, 6).map((x) => `<span style="display:inline-block;padding:1px 6px;margin:2px;border-radius:4px;font-size:11px;background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.28);">⚠️ ${esc(x)} (OFF)</span>`).join('') + (pruSyms.length > 6 ? `<span class="sub" style="font-size:11px;"> +${pruSyms.length - 6} podados OFF</span>` : '');
-
-
-
-          return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#0a141e;display:flex;flex-direction:column;gap:6px;">
-
-
-
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-
-
-
-              <div>
-
-
-
-                <b style="font-size:13.5px;color:#f3c64c;">${esc(label)}</b>
-
-
-
-                <div class="sub" style="font-size:11px;">${esc(strat)} · Ciclo #${esc(w.cycle_number || 0)}</div>
-
-
-
-              </div>
-
-
-
-              <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid ${statusColor};color:${statusColor};">${esc(statusTxt)}</span>
-
-
-
-            </div>
-
-
-
-            <div style="display:flex;justify-content:space-between;font-size:12px;">
-
-
-
-              <span>Progreso paralelo: <b>${done} / ${total}</b> (${pct}%)</span>
-
-
-
-              <span>En curso: <b>${esc(w.current_symbol && liveSelected.has(w.current_symbol) ? w.current_symbol : (total ? 'En cola' : 'Sin activos'))}</b></span>
-
-
-
-            </div>
-
-
-
-            <div style="height:7px;background:#132435;border-radius:99px;overflow:hidden;">
-
-
-
-              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#10b981,#38bdf8);"></div>
-
-
-
-            </div>
-
-
-
-            <div style="font-size:11.5px;">
-
-
-
-              <div><b style="color:#34d399;">Activos (${actSyms.length}):</b> ${actPreview || '<span class="sub">Ninguno seleccionado</span>'}</div>
-
-
-
-              <div style="margin-top:3px;"><b style="color:#f87171;">Podados OFF (${pruSyms.length}):</b> ${pruPreview || '<span class="sub">0 podados</span>'}</div>
-
-
-
-            </div>
-
-
-
-            <div style="display:flex;justify-content:flex-end;margin-top:4px;">
-
-
-
-              <button type="button" class="btn workerToggleBtn ${disabled ? 'primary' : ''}" data-worker-toggle="${esc(wp)}" data-worker-enable="${disabled ? 'true' : 'false'}" style="padding:5px 10px;font-size:11.5px;">
-
-
-
-                ${disabled ? 'Reactivar worker ' + esc(wp) : 'Desactivar worker ' + esc(wp)}
-
-
-
-              </button>
-
-
-
-            </div>
-
-
-
-          </div>`;
-
-
-
-        }).join('');
-
-
-
-        panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-
-
-
-            <b>Control de Workers en Paralelo · Pestaña ${esc(activeProfile)} (${workers.length} worker${workers.length === 1 ? '' : 's'})</b>
-
-
-
-            <span class="sub" style="font-size:12px;">Progreso sincronizado con instrumentos activos · Podados quedan desactivados (OFF)</span>
-
-
-
-          </div>
-
-
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:10px;">${cardsHtml}</div>`;
-
-
-
-        panel.querySelectorAll('.workerToggleBtn').forEach((btn) => {
-
-
-
-          btn.addEventListener('click', () => {
-
-
-
-            toggleWorkerFromInstruments(btn.dataset.workerToggle, btn.dataset.workerEnable === 'true');
-
-
-
-          });
-
-
-
-        });
-
-
-
       }
-
-
 
       function renderNews(s) {
 
@@ -36742,6 +35222,13 @@ _INSTRUMENTS_HTML = r'''
 
 
 
+      function selectionSummary(s) {
+        if (!s) return '';
+        if (s.selection_message) return s.selection_message;
+        const chosen = (s.selection_profiles || {})[activeProfile] || [];
+        return `${chosen.length} instrumentos seleccionados en ${activeProfile}.`;
+      }
+
       function render(s) {
 
 
@@ -36782,166 +35269,81 @@ _INSTRUMENTS_HTML = r'''
 
 
 
+        const sortedGs = [...gs].sort((gA, gB) => {
+          const hasActiveA = (gA.symbols || []).some(sym => prioritized.has(sym) || (!prunedInfo[sym] && prioritized.size === 0));
+          const hasActiveB = (gB.symbols || []).some(sym => prioritized.has(sym) || (!prunedInfo[sym] && prioritized.size === 0));
+          if (hasActiveA !== hasActiveB) {
+            return hasActiveA ? -1 : 1;
+          }
+          return 0;
+        });
+
         $('grid').innerHTML =
-
-
-
-          gs
-
-
-
+          sortedGs
             .map((g) => {
-
-
-
               const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
 
+              // Ordenar por estado: primero ACTIVOS (✓ ACTIVO), luego PODADOS (⛔ PODADO) manteniendo diseño intacto
+              items.sort((a, b) => {
+                const isPrunedA = !prioritized.has(a) && (Boolean(prunedInfo[a]) || (prioritized.size > 0 && !prioritized.has(a)));
+                const isPrunedB = !prioritized.has(b) && (Boolean(prunedInfo[b]) || (prioritized.size > 0 && !prioritized.has(b)));
+                if (isPrunedA !== isPrunedB) {
+                  return isPrunedA ? 1 : -1;
+                }
+                const isCheckedA = chosen.has(a) ? 0 : 1;
+                const isCheckedB = chosen.has(b) ? 0 : 1;
+                if (isCheckedA !== isCheckedB) {
+                  return isCheckedA - isCheckedB;
+                }
+                return a.localeCompare(b, 'es', { numeric: true });
+              });
 
 
+
+              let displayLabel = g.label;
+              if (activeProfile === 'MALAYSIAN_SNR' && displayLabel.startsWith('Malaysian SNR · ')) {
+                displayLabel = displayLabel.replace('Malaysian SNR · ', '');
+              } else if (activeProfile === 'TREND_PULLBACK' && displayLabel.startsWith('Trend Pullback · ')) {
+                displayLabel = displayLabel.replace('Trend Pullback · ', '');
+              }
+
+              const isMultiWorker = /multistrategia/i.test(g.label || '') || ['BOOM', 'CRASH', 'STEP', 'STEP_2', 'JUMP', 'VOLATILITY_1', 'VOLATILITY_2', 'VOLATILITY_3', 'VOLATILITY_4', 'FOREX_1', 'FOREX_2', 'FOREX_3', 'FOREX_4', 'FOREX_5', 'INDICESB_SNR', 'ICT'].includes(g.worker);
               const isIctTab = ['SYNTHETICS', 'FOREX', 'ICT'].includes(activeProfile);
-
-
-
-              const stratTag = isIctTab
-
-
-
-                ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(56,189,248,0.14);color:#38bdf8;border:1px solid rgba(56,189,248,0.35);margin-left:6px;">ICT Sabri Malle</span>`
-
-
-
-                : activeProfile === 'MALAYSIAN_SNR'
-
-
-
-                  ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(251,191,36,0.14);color:#fbbf24;border:1px solid rgba(251,191,36,0.35);margin-left:6px;">Malaysian SNR (M15 Fresh/Break)</span>`
-
-
-
-                  : activeProfile === 'ORB'
-
-
-
-                    ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.35);margin-left:6px;">ORB SWEEP</span>`
-
-
-
-                    : activeProfile === 'TREND_PULLBACK'
-
-
-
-                      ? `<span style="font-size:10.5px;padding:1px 6px;border-radius:4px;background:rgba(192,132,252,0.14);color:#c084fc;border:1px solid rgba(192,132,252,0.35);margin-left:6px;">Trend Pullback H1+M15</span>`
-
-
-
-                      : '';
-
-
+              const stratTag = isMultiWorker
+                ? `<span class="cardTag tagMulti" style="background: rgba(215, 155, 25, 0.15); color: #fbbf24; border: 1px solid rgba(215, 155, 25, 0.4);">MultiStrategia</span>`
+                : isIctTab
+                  ? `<span class="cardTag tagIct">ICT</span>`
+                  : (activeProfile === 'MALAYSIAN_SNR' || activeProfile === 'FOREX_SNR' || activeProfile === 'COMMODITIES_SNR' || activeProfile === 'INDICESB_SNR')
+                    ? `<span class="cardTag tagMsnr">M15 Fresh/Break</span>`
+                    : activeProfile === 'ORB'
+                      ? `<span class="cardTag tagOrb">ORB SWEEP</span>`
+                      : activeProfile === 'TREND_PULLBACK'
+                        ? `<span class="cardTag tagTp">H1+M15 &gt;51% WR</span>`
+                        : '';
 
               return items.length
-
-
-
-                ? `<section class="group"><h3>${esc(g.label)} <span class="sub">(${items.length})</span>${stratTag}</h3>${items.map((sym) => {
-
-
-
-                    const isChecked = chosen.has(sym);
-
-
-
-                    const isPrioritized = prioritized.has(sym);
-
-
-
-                    const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
-
-
-
-                    const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis multi-anual por baja expectativa matemática.' : '');
-
-
-
-                    const isPolicyTab = policyProfiles.has(activeProfile);
-
-
-
-                    let badge = isPruned
-
-
-
-                      ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ Descartado (Poda OFF)</span>`
-
-
-
-                      : `<span class="activeBadge">✓ Rentable Activo</span>`;
-
-
-
-                    if (isPolicyTab) {
-
-
-
-                      const family = ictFamilyLabel(sym);
-
-
-
-                      badge = isPruned
-
-
-
-                        ? `<span class="pruneBadge" title="${esc(warning)}">⚠️ PODA PREVENTIVA</span>`
-
-
-
-                        : activeProfile === 'MALAYSIAN_SNR'
-
-
-
-                          ? `<span class="activeBadge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);">✓ MSNR Activo · ${esc(msnrFamilyLabel(sym))}</span>`
-
-
-
-                          : activeProfile === 'TREND_PULLBACK'
-
-
-
-                            ? `<span class="activeBadge" style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border-color: rgba(192, 132, 252, 0.4);">✓ Pullback Rentable Activo (&gt;51% WR)</span>`
-
-
-
-                            : `<span class="activeBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">✓ ICT Activo · ${esc(family)}</span>`;
-
-
-
-                    } else if (activeProfile === 'ORB' && !isPruned) {
-
-
-
-                      badge = `<span class="activeBadge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">✓ ORB Tier S · SWEEP Rentable (56.7%–59.1% WR)</span>`;
-
-
-
-                    }
-
-
-
-                    const selectiveAllowed = Boolean(s.allow_selective_activation ?? true) && ['FOREX', 'SYNTHETICS', 'ICT'].includes(activeProfile);
-
-
-
-                    const locked = isPolicyTab && isPruned && !selectiveAllowed;
-
-
-
-                    return `<label class="item ${isPruned ? 'prunedItem' : ''}" ${locked || isPruned ? `title="${esc(warning)}"` : ''}><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked && !locked ? 'checked' : ''} ${locked ? 'disabled data-locked="true"' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span>${badge}</label>`;
-
-
-
-                  }).join('')}</section>`
-
-
-
+                ? `<section class="group">
+                    <div class="groupHeader">
+                      <h3><span>${esc(displayLabel)}</span> <span class="groupCount">(${items.length})</span></h3>
+                      ${stratTag}
+                    </div>
+                    <div class="groupItems">
+                      ${items.map((sym) => {
+                        const isChecked = chosen.has(sym);
+                        const isPrioritized = prioritized.has(sym);
+                        const isPruned = !isPrioritized && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !isPrioritized));
+                        const warning = prunedInfo[sym] || (isPruned ? 'Poda preventiva: Descartado en el análisis multi-anual por baja expectativa matemática.' : '');
+                        const isPolicyTab = policyProfiles.has(activeProfile);
+                        let badge = isPruned
+                          ? `<span class="badge pruneBadge" title="${esc(warning)}">⛔ PODADO</span>`
+                          : `<span class="badge activeBadge" title="Instrumento operable con ventaja matemática confirmada">✓ ACTIVO</span>`;
+                        const selectiveAllowed = Boolean(s.allow_selective_activation ?? true) && ['FOREX', 'SYNTHETICS', 'ICT', 'ORB'].includes(activeProfile);
+                        const locked = isPolicyTab && isPruned && !selectiveAllowed;
+                        const wpInfo = workerForInstrument(sym, activeProfile, g.worker, s);
+                        return `<label class="item ${isPruned ? 'prunedItem' : ''}" ${locked || isPruned ? `title="${esc(warning)}"` : ''}><input type="checkbox" data-symbol="${esc(sym)}" ${isChecked && !locked ? 'checked' : ''} ${locked ? 'disabled data-locked="true"' : ''} ${isPruned ? `data-pruned="true" data-warning="${esc(warning)}"` : ''}><span class="symName">${esc(sym)}</span><span class="workerPill ${wpInfo.badgeClass}" title="Operado por ${esc(wpInfo.label)}">${esc(wpInfo.tag)}</span>${badge}</label>`;
+                      }).join('')}
+                    </div>
+                  </section>`
                 : '';
 
 
@@ -36962,18 +35364,13 @@ _INSTRUMENTS_HTML = r'''
 
 
 
+        const profBtn = $('selectProfitable');
+        if (profBtn) {
+          profBtn.textContent = '✓ Seleccionar solo ACTIVOS (excluir PODADOS)';
+        }
         $('profileNote').innerHTML =
-
-
-
           (new Set(s.ict_policy_profiles || []).has(activeProfile)
-
-
-
-            ? `<b>${activeProfile}:</b> esta pestaña controla ${activeProfile === 'TREND_PULLBACK' ? 'el worker Trend Pullback (sintéticos >51% WR)' : activeProfile === 'MALAYSIAN_SNR' ? 'el worker Malaysian SNR (solo sintéticos)' : `los workers ICT (${activeProfile === 'SYNTHETICS' ? 'Step, Jump, Volatility 1 (Activos) + Volatility 2 (Podados OFF), Boom y Crash' : activeProfile === 'FOREX' ? 'Forex 1 (Activos) + Forex 2 (Podados OFF)' : 'ICT: metales, índices y commodities'})`}. Marcado = el worker lo escanea en el próximo ciclo; PODA PREVENTIVA = desactivado por defecto (activable de manera selectiva con confirmación). La selección se guarda en la base y persiste tras reiniciar.`
-
-
-
+            ? `<b>${activeProfile}:</b> esta pestaña controla ${activeProfile === 'INDICESB_SNR' ? 'el worker Índices Bursátiles (MultiStrategia · Magic 26082042 · PID 32180)' : activeProfile === 'ICT' ? 'el worker Materias Primas y Criptomonedas (MultiStrategia · Magic 26082032 · PID 17144)' : `los workers MultiStrategia (${activeProfile === 'SYNTHETICS' ? 'Step, Jump, Volatility 1-4, Boom y Crash' : activeProfile === 'FOREX' ? 'Forex 1-5' : 'Materias Primas y Criptomonedas'})`}. Marcado = el worker lo escanea en el próximo ciclo; PODA PREVENTIVA = desactivado por defecto (activable de manera selectiva con confirmación). La selección se guarda en la base y persiste tras reiniciar.`
             : `<b>${activeProfile}:</b> selección persistente independiente sincronizada con Modo Centinela, Análisis Recientes y progreso de Workers en paralelo. Los instrumentos rentables están activos y los podados desactivados.`);
 
 
@@ -37206,7 +35603,7 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values, allow_selective: selectiveCount > 0 }),
+            body: JSON.stringify({ selection_profile:activeProfile, selected_symbols: values, allow_selective: true }),
 
 
 

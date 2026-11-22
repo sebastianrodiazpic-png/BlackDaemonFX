@@ -1,4 +1,4 @@
-﻿"""Estrategia Opening Range Breakout (ORB) de la sesiÃ³n cash de Nueva York.
+"""Estrategia Opening Range Breakout (ORB) de la sesiÃ³n cash de Nueva York.
 
 Estrategia INDEPENDIENTE del pipeline SMC: no usa order blocks ni confirmacion
 M5 de `strategy.smc`. Se apoya en un concepto distinto â€” el rango de apertura
@@ -427,16 +427,44 @@ class NewYorkORBStrategy:
         # consume la sesiÃ³n por construir una candidata que luego puede ser
         # rechazada por HTF, exposiciÃ³n, riesgo o MT5.
         self._session_signal_memory: dict[str, tuple[str, str]] = {}
+        self._session_signals_history: dict[str, list[tuple[str, str]]] = {}
         self._frozen_atr_sessions = {}
+
+    def _max_signals_per_session(self) -> int:
+        raw = os.getenv("DAEMONBLACKFX_ORB_MAX_SIGNALS_PER_SESSION")
+        if raw is not None:
+            try:
+                return max(1, int(raw))
+            except ValueError:
+                pass
+        if os.getenv("DAEMONBLACKFX_ORB_DUAL_ENGINE") == "1":
+            return 2
+        return int(getattr(self.config, "max_signals_per_session", 1))
+
+    def _is_session_signal_limit_reached(self, symbol: str, session_date_str: str, current_key: str | None = None) -> tuple[bool, str | None]:
+        asset = orb_session_asset(symbol)
+        max_signals = self._max_signals_per_session()
+        history = [entry for entry in self._session_signals_history.get(asset, []) if entry[0] == session_date_str]
+        if not history and asset in self._session_signal_memory:
+            old = self._session_signal_memory[asset]
+            if old[0] == session_date_str:
+                history = [old]
+        if len(history) >= max_signals:
+            return True, history[-1][1]
+        if current_key and any(entry[1] == str(current_key) for entry in history):
+            return True, str(current_key)
+        return False, None
 
     def mark_signal_used(self, symbol: str, session_date: str, breakout_key: str) -> None:
         """Marca una tesis ORB como utilizada Ãºnicamente tras ejecuciÃ³n real."""
         if not (is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True))):
             return
         if session_date and breakout_key:
-            self._session_signal_memory[orb_session_asset(symbol)] = (
-                str(session_date), str(breakout_key)
-            )
+            asset = orb_session_asset(symbol)
+            self._session_signal_memory[asset] = (str(session_date), str(breakout_key))
+            history = self._session_signals_history.setdefault(asset, [])
+            if not any(entry[0] == str(session_date) and entry[1] == str(breakout_key) for entry in history):
+                history.append((str(session_date), str(breakout_key)))
 
     def _session_bounds(self, now_utc: datetime, symbol: str | None = None):
         """Calcula los hitos horarios de la sesiÃ³n para el dÃ­a en curso.
@@ -703,15 +731,16 @@ class NewYorkORBStrategy:
         if bar_ny.hour * 60 + bar_ny.minute >= max_entry_min:
             return {**base, "action": "ORB_SWEEP_WINDOW_CLOSED", "reason": f"SWEEP_FUERA_DE_VENTANA_HASTA_{max_entry_min//60:02d}_{max_entry_min%60:02d}_NY"}
         is_london_sess = bool(open_ny.hour == getattr(self.config, "london_opening_hour", 3))
+        strat_name = "ORB_LONDON" if is_london_sess else "ORB_NEW_YORK"
         session_date_str = (
             f"{now_ny.date()}_LONDON"
             if (is_london_sess and bool(getattr(self.config, "separate_london_ny_session_state", True)))
             else str(now_ny.date())
         )
-        remembered = self._session_signal_memory.get(orb_session_asset(symbol))
-        if remembered is not None and remembered[0] == session_date_str:
+        limit_reached, prev_time = self._is_session_signal_limit_reached(symbol, session_date_str)
+        if limit_reached:
             return {**base, "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
-                    "reason": "SWEEP_YA_UTILIZADO_ESTA_SESION", "session_previous_breakout_time": remembered[1]}
+                    "reason": "SWEEP_YA_UTILIZADO_ESTA_SESION", "session_previous_breakout_time": prev_time}
         buffer = float(cfg.get("atr_buffer", 0.05)) * float(atr_reference)
         bar_pos = df.index.get_loc(bar.name)
         offset = len(post_range) - 1
@@ -758,7 +787,7 @@ class NewYorkORBStrategy:
                              "vwap_or_poc_alignment": True, "new_york_session": True,
                              "eligible_market": True, "opening_range_atr_valid": bool(amplitude.get("isValid"))}
             signal = {
-                "strategy_name": "ORB_NEW_YORK", "strategy_version": ORB_SWEEP_STRATEGY_VERSION,
+                "strategy_name": strat_name, "strategy_version": ORB_SWEEP_STRATEGY_VERSION,
                 "orb_entry_mode": "ORB_SWEEP_MSS", "orb_metrics_strategy": "ORB_NY_SWEEP",
                 "retest_quality": None, "retest_quality_weight": None, "rejection_tail_ratio": None,
                 "retest_candle_index": None, "asset_profile": profile_key, "range_amplitude": amplitude,
@@ -852,10 +881,11 @@ class NewYorkORBStrategy:
         now_ny, open_ny, range_end_ny, close_ny = self._session_bounds(now_utc, symbol)
         is_london = bool(open_ny.hour == getattr(self.config, "london_opening_hour", 3))
         session_name = "LONDON" if is_london else "NEW_YORK"
+        strat_name = "ORB_LONDON" if is_london else "ORB_NEW_YORK"
 
         base = {
             "valid": False,
-            "strategy_name": "ORB_NEW_YORK",
+            "strategy_name": strat_name,
             "strategy_version": ORB_STRATEGY_VERSION,
             "symbol": symbol,
             "orb_market": market,
@@ -1227,13 +1257,13 @@ class NewYorkORBStrategy:
         )
         breakout_key = str(pd.Timestamp(breakout["time"]).isoformat())
         if is_orb_silver_symbol(symbol) or bool(getattr(self.config, "one_signal_per_session", True)):
-            remembered = self._session_signal_memory.get(orb_session_asset(symbol))
-            if remembered is not None and remembered[0] == session_date_str and (is_orb_silver_symbol(symbol) or remembered[1] != breakout_key):
+            limit_reached, prev_time = self._is_session_signal_limit_reached(symbol, session_date_str, current_key=breakout_key)
+            if limit_reached:
                 return {
                     **base, **diagnostics, "direction": direction,
                     "action": "ORB_SESSION_SIGNAL_LIMIT_REACHED",
                     "reason": "ORB_SILVER_SESSION_ALREADY_USED" if is_orb_silver_symbol(symbol) else "YA_SE_UTILIZO_UNA_RUPTURA_DISTINTA_ESTA_SESION",
-                    "session_previous_breakout_time": remembered[1],
+                    "session_previous_breakout_time": prev_time,
                 }
 
         mode = "MOMENTUM" if entry_mode == "ORB_BREAKOUT_MOMENTUM" else "RETEST"
@@ -1386,7 +1416,7 @@ class NewYorkORBStrategy:
         percentage = round(len(passed) / len(confirmations) * 100.0, 2)
 
         signal = {
-            "strategy_name": "ORB_NEW_YORK",
+            "strategy_name": strat_name,
             "strategy_version": ORB_STRATEGY_VERSION,
             "orb_entry_mode": entry_mode,
             "orb_metrics_strategy": "ORB_NY_" + mode,

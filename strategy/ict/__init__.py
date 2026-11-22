@@ -1,5 +1,10 @@
-"""Módulo oficial de la Estrategia Institucional ICT Sabri Malle."""
-from strategy.ict.config import ICTSabriMalleConfig
-from strategy.ict.ict_strategy import ICTSabriMalleStrategy
+"""Módulo oficial de la Estrategia Institucional ICT."""
+from strategy.ict.config import ICTConfig, ICTSabriMalleConfig
+from strategy.ict.ict_strategy import ICTStrategy, ICTSabriMalleStrategy
 
-__all__ = ["ICTSabriMalleConfig", "ICTSabriMalleStrategy"]
+__all__ = [
+    "ICTConfig",
+    "ICTStrategy",
+    "ICTSabriMalleConfig",
+    "ICTSabriMalleStrategy",
+]

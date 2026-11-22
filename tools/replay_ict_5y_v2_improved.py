@@ -1,4 +1,4 @@
-"""Replay y evaluación multianual de 5 años (2021-2026) de ICT Sabri Malle v2 con las 6 mejoras aplicadas.
+"""Replay y evaluación multianual de 5 años (2021-2026) de ICT v2 con las 6 mejoras aplicadas.
 
 Enriquece el 100 % de las señales de 5 años (79 instrumentos) con el contexto H1 exacto (ATR H1 y ADX H1 de velas
 cerradas en MT5 sin lookahead) cuando faltaba en los cortes Y0/Y1 previos, aplica las 6 mejoras estructurales y de

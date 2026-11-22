@@ -749,7 +749,7 @@ def test_dashboard_serves_strategy_bases_page():
                 html = resp.read().decode("utf-8")
                 assert "Bases de las Estrategias Implementadas" in html
                 assert "Malaysian SNR" in html
-                assert "ICT Sabri Malle" in html
+                assert "ICT" in html
                 assert "TP1" in html
                 assert "TP2" in html
                 assert "TP3" in html

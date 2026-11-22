@@ -159,6 +159,7 @@ LOADING_UI = r'''
           '/index.html': 'Dashboard',
           '/instruments': 'Instrumentos',
           '/account': 'Cuenta activa',
+          '/operator': 'Suite Operador',
         }[location.pathname.replace(/\/$/, '') || '/'] || 'página') +
         '…',
     );
@@ -181,7 +182,7 @@ LOADING_UI = r'''
       if (
         url.origin !== location.origin ||
         url.hash ||
-        !['/', '/index.html', '/instruments', '/account', '/performance', '/strategy-bases', '/bases-estrategias'].includes(
+        !['/', '/index.html', '/instruments', '/account', '/performance', '/strategy-bases', '/bases-estrategias', '/decisions', '/operator'].includes(
           url.pathname.replace(/\/$/, '') || '/',
         )
       )

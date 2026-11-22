@@ -22,22 +22,22 @@ orb_winners = [
 ]
 
 ict_winners = [
-    { "symbol": "XAGUSD (Plata ICT)", "strategy": "ICT Sabri Malle", "category": "Metales", "trades": 40, "win_rate": 52.5, "tp1": 21, "tp2": 17, "tp3": 17, "tp4": 17, "be": 4, "pnl": 3805.73, "status": "Activo / Priorizado (#1 ICT +38.1R)" },
-    { "symbol": "BTCUSD (ICT)", "strategy": "ICT Sabri Malle", "category": "Criptomonedas", "trades": 50, "win_rate": 48.0, "tp1": 24, "tp2": 14, "tp3": 14, "tp4": 14, "be": 10, "pnl": 2808.11, "status": "Activo / Priorizado (#2 ICT +28.1R)" },
-    { "symbol": "Step Index (ICT)", "strategy": "ICT Sabri Malle", "category": "Sintéticos Step", "trades": 24, "win_rate": 54.2, "tp1": 13, "tp2": 10, "tp3": 10, "tp4": 10, "be": 1, "pnl": 2717.45, "status": "Activo / Priorizado (#3 ICT +27.2R)" },
-    { "symbol": "Volatility 75 Index (ICT)", "strategy": "ICT Sabri Malle", "category": "Sintéticos Vol", "trades": 22, "win_rate": 54.5, "tp1": 12, "tp2": 9, "tp3": 9, "tp4": 9, "be": 3, "pnl": 2000.00, "status": "Activo / Priorizado (+20.0R)" },
-    { "symbol": "Volatility 100 Index (ICT)", "strategy": "ICT Sabri Malle", "category": "Sintéticos Vol", "trades": 15, "win_rate": 66.7, "tp1": 10, "tp2": 5, "tp3": 5, "tp4": 5, "be": 2, "pnl": 1928.39, "status": "Activo / Priorizado (+19.3R)" },
-    { "symbol": "Boom 1000 Index (ICT)", "strategy": "ICT Sabri Malle", "category": "Boom (Compras)", "trades": 29, "win_rate": 48.3, "tp1": 14, "tp2": 10, "tp3": 10, "tp4": 10, "be": 4, "pnl": 1900.00, "status": "Activo / Priorizado (+19.0R)" },
-    { "symbol": "Crash 1000 Index (ICT)", "strategy": "ICT Sabri Malle", "category": "Crash (Ventas)", "trades": 17, "win_rate": 52.9, "tp1": 9, "tp2": 8, "tp3": 8, "tp4": 8, "be": 1, "pnl": 1792.67, "status": "Activo / Priorizado (+17.9R)" },
-    { "symbol": "USDCAD (ICT Forex)", "strategy": "ICT Sabri Malle", "category": "Forex Core", "trades": 16, "win_rate": 62.5, "tp1": 10, "tp2": 4, "tp3": 4, "tp4": 4, "be": 6, "pnl": 1200.00, "status": "Activo / Priorizado (#1 Forex ICT +12.0R)" },
-    { "symbol": "Wall Street 30 (ICT)", "strategy": "ICT Sabri Malle", "category": "Índices Bursátiles", "trades": 14, "win_rate": 64.3, "tp1": 9, "tp2": 4, "tp3": 4, "tp4": 4, "be": 5, "pnl": 1200.00, "status": "Activo / Priorizado (+12.0R)" },
-    { "symbol": "EURUSD (ICT v2 Killzones)", "strategy": "ICT Sabri Malle", "category": "Forex Core", "trades": 89, "win_rate": 50.6, "tp1": 45, "tp2": 24, "tp3": 24, "tp4": 24, "be": 18, "pnl": 5100.00, "status": "Activo / Top Performer Forex (PF 2.24)" },
-    { "symbol": "GBPUSD (ICT v2 Killzones)", "strategy": "ICT Sabri Malle", "category": "Forex Core", "trades": 87, "win_rate": 49.4, "tp1": 43, "tp2": 21, "tp3": 21, "tp4": 21, "be": 17, "pnl": 3654.80, "status": "Activo / Rehabilitado (+36.5% PnL / PF 1.88)" },
-    { "symbol": "XAUUSD (Oro ICT)", "strategy": "ICT Sabri Malle", "category": "Metales", "trades": 62, "win_rate": 41.9, "tp1": 26, "tp2": 12, "tp3": 12, "tp4": 12, "be": 11, "pnl": 1900.00, "status": "Activo / M15/M5 FVG CE (PF 1.58)" },
-    { "symbol": "US Tech 100 (ICT)", "strategy": "ICT Sabri Malle", "category": "Índices Bursátiles", "trades": 6, "win_rate": 50.0, "tp1": 3, "tp2": 3, "tp3": 3, "tp4": 3, "be": 0, "pnl": 600.00, "status": "Activo / Priorizado (+6.0R)" },
-    { "symbol": "USDCHF (ICT Forex)", "strategy": "ICT Sabri Malle", "category": "Forex Core", "trades": 21, "win_rate": 42.9, "tp1": 9, "tp2": 3, "tp3": 3, "tp4": 3, "be": 6, "pnl": 300.00, "status": "Activo / Priorizado (+3.0R)" },
-    { "symbol": "AUDUSD (ICT Forex)", "strategy": "ICT Sabri Malle", "category": "Forex Core", "trades": 14, "win_rate": 42.9, "tp1": 6, "tp2": 2, "tp3": 2, "tp4": 2, "be": 4, "pnl": 200.00, "status": "Activo / Priorizado (+2.0R)" },
-    { "symbol": "US SP 500 (ICT)", "strategy": "ICT Sabri Malle", "category": "Índices Bursátiles", "trades": 15, "win_rate": 40.0, "tp1": 6, "tp2": 2, "tp3": 2, "tp4": 2, "be": 4, "pnl": 100.00, "status": "Activo / Priorizado (+1.0R)" }
+    { "symbol": "XAGUSD (Plata ICT)", "strategy": "ICT", "category": "Metales", "trades": 40, "win_rate": 52.5, "tp1": 21, "tp2": 17, "tp3": 17, "tp4": 17, "be": 4, "pnl": 3805.73, "status": "Activo / Priorizado (#1 ICT +38.1R)" },
+    { "symbol": "BTCUSD (ICT)", "strategy": "ICT", "category": "Criptomonedas", "trades": 50, "win_rate": 48.0, "tp1": 24, "tp2": 14, "tp3": 14, "tp4": 14, "be": 10, "pnl": 2808.11, "status": "Activo / Priorizado (#2 ICT +28.1R)" },
+    { "symbol": "Step Index (ICT)", "strategy": "ICT", "category": "Sintéticos Step", "trades": 24, "win_rate": 54.2, "tp1": 13, "tp2": 10, "tp3": 10, "tp4": 10, "be": 1, "pnl": 2717.45, "status": "Activo / Priorizado (#3 ICT +27.2R)" },
+    { "symbol": "Volatility 75 Index (ICT)", "strategy": "ICT", "category": "Sintéticos Vol", "trades": 22, "win_rate": 54.5, "tp1": 12, "tp2": 9, "tp3": 9, "tp4": 9, "be": 3, "pnl": 2000.00, "status": "Activo / Priorizado (+20.0R)" },
+    { "symbol": "Volatility 100 Index (ICT)", "strategy": "ICT", "category": "Sintéticos Vol", "trades": 15, "win_rate": 66.7, "tp1": 10, "tp2": 5, "tp3": 5, "tp4": 5, "be": 2, "pnl": 1928.39, "status": "Activo / Priorizado (+19.3R)" },
+    { "symbol": "Boom 1000 Index (ICT)", "strategy": "ICT", "category": "Boom (Compras)", "trades": 29, "win_rate": 48.3, "tp1": 14, "tp2": 10, "tp3": 10, "tp4": 10, "be": 4, "pnl": 1900.00, "status": "Activo / Priorizado (+19.0R)" },
+    { "symbol": "Crash 1000 Index (ICT)", "strategy": "ICT", "category": "Crash (Ventas)", "trades": 17, "win_rate": 52.9, "tp1": 9, "tp2": 8, "tp3": 8, "tp4": 8, "be": 1, "pnl": 1792.67, "status": "Activo / Priorizado (+17.9R)" },
+    { "symbol": "USDCAD (ICT Forex)", "strategy": "ICT", "category": "Forex Core", "trades": 16, "win_rate": 62.5, "tp1": 10, "tp2": 4, "tp3": 4, "tp4": 4, "be": 6, "pnl": 1200.00, "status": "Activo / Priorizado (#1 Forex ICT +12.0R)" },
+    { "symbol": "Wall Street 30 (ICT)", "strategy": "ICT", "category": "Índices Bursátiles", "trades": 14, "win_rate": 64.3, "tp1": 9, "tp2": 4, "tp3": 4, "tp4": 4, "be": 5, "pnl": 1200.00, "status": "Activo / Priorizado (+12.0R)" },
+    { "symbol": "EURUSD (ICT v2 Killzones)", "strategy": "ICT", "category": "Forex Core", "trades": 89, "win_rate": 50.6, "tp1": 45, "tp2": 24, "tp3": 24, "tp4": 24, "be": 18, "pnl": 5100.00, "status": "Activo / Top Performer Forex (PF 2.24)" },
+    { "symbol": "GBPUSD (ICT v2 Killzones)", "strategy": "ICT", "category": "Forex Core", "trades": 87, "win_rate": 49.4, "tp1": 43, "tp2": 21, "tp3": 21, "tp4": 21, "be": 17, "pnl": 3654.80, "status": "Activo / Rehabilitado (+36.5% PnL / PF 1.88)" },
+    { "symbol": "XAUUSD (Oro ICT)", "strategy": "ICT", "category": "Metales", "trades": 62, "win_rate": 41.9, "tp1": 26, "tp2": 12, "tp3": 12, "tp4": 12, "be": 11, "pnl": 1900.00, "status": "Activo / M15/M5 FVG CE (PF 1.58)" },
+    { "symbol": "US Tech 100 (ICT)", "strategy": "ICT", "category": "Índices Bursátiles", "trades": 6, "win_rate": 50.0, "tp1": 3, "tp2": 3, "tp3": 3, "tp4": 3, "be": 0, "pnl": 600.00, "status": "Activo / Priorizado (+6.0R)" },
+    { "symbol": "USDCHF (ICT Forex)", "strategy": "ICT", "category": "Forex Core", "trades": 21, "win_rate": 42.9, "tp1": 9, "tp2": 3, "tp3": 3, "tp4": 3, "be": 6, "pnl": 300.00, "status": "Activo / Priorizado (+3.0R)" },
+    { "symbol": "AUDUSD (ICT Forex)", "strategy": "ICT", "category": "Forex Core", "trades": 14, "win_rate": 42.9, "tp1": 6, "tp2": 2, "tp3": 2, "tp4": 2, "be": 4, "pnl": 200.00, "status": "Activo / Priorizado (+2.0R)" },
+    { "symbol": "US SP 500 (ICT)", "strategy": "ICT", "category": "Índices Bursátiles", "trades": 15, "win_rate": 40.0, "tp1": 6, "tp2": 2, "tp3": 2, "tp4": 2, "be": 4, "pnl": 100.00, "status": "Activo / Priorizado (+1.0R)" }
 ]
 
 gold_winners = [
@@ -48,9 +48,9 @@ gold_winners = [
 other_losers = [
     { "symbol": "US Oil (Petróleo WTI ORB)", "strategy": "ORB New York", "trades": 245, "win_rate": 42.4, "sl_hits": 141, "pnl": -4286.88, "reason": "Deslizamiento severo en sesión NY cash y spread adverso (-42.87R). Podado en ORB." },
     { "symbol": "UK Brent Oil", "strategy": "ORB New York", "trades": 282, "win_rate": 45.4, "sl_hits": 154, "pnl": -4223.33, "reason": "Falsas rupturas en los primeros 15 min de sesión NY cash (-42.23R). Podado en ORB." },
-    { "symbol": "Jump 50 Index (ICT)", "strategy": "ICT Sabri Malle", "trades": 20, "win_rate": 15.0, "sl_hits": 17, "pnl": -958.95, "reason": "Ruido lateral severo y gaps adversos en temporalidades H1 (-9.6R). Podado en ICT." },
-    { "symbol": "USDJPY (ICT)", "strategy": "ICT Sabri Malle", "trades": 11, "win_rate": 18.2, "sl_hits": 9, "pnl": -700.00, "reason": "Ausencia de expansión hacia TP2 y dilatación de spread (-7.0R). Podado en ICT." },
-    { "symbol": "GBPUSD (ICT v1 sin Killzones)", "strategy": "ICT Sabri Malle", "trades": 15, "win_rate": 21.0, "sl_hits": 12, "pnl": -500.00, "reason": "Superado: La versión v1 sin Killzones fallaba por operar fuera de sesión. Con la v2 (Killzones Londres/NY) se rehabilitó con 49.4% WR y +$3,654.80 USD." }
+    { "symbol": "Jump 50 Index (ICT)", "strategy": "ICT", "trades": 20, "win_rate": 15.0, "sl_hits": 17, "pnl": -958.95, "reason": "Ruido lateral severo y gaps adversos en temporalidades H1 (-9.6R). Podado en ICT." },
+    { "symbol": "USDJPY (ICT)", "strategy": "ICT", "trades": 11, "win_rate": 18.2, "sl_hits": 9, "pnl": -700.00, "reason": "Ausencia de expansión hacia TP2 y dilatación de spread (-7.0R). Podado en ICT." },
+    { "symbol": "GBPUSD (ICT v1 sin Killzones)", "strategy": "ICT", "trades": 15, "win_rate": 21.0, "sl_hits": 12, "pnl": -500.00, "reason": "Superado: La versión v1 sin Killzones fallaba por operar fuera de sesión. Con la v2 (Killzones Londres/NY) se rehabilitó con 49.4% WR y +$3,654.80 USD." }
 ]
 
 # Build total WINNERS_DATA with updated sequential rank
@@ -89,7 +89,7 @@ winners_lines.append("        // ORB NEW YORK - UNIVERSO AUDITADO")
 for w in orb_winners:
     winners_lines.append(f"        {{ rank: {w['rank']}, symbol: \"{w['symbol']}\", strategy: \"{w['strategy']}\", category: \"{w['category']}\", trades: {w['trades']}, win_rate: {w['win_rate']}, tp1: {w['tp1']}, tp2: {w['tp2']}, tp3: {w['tp3']}, tp4: {w['tp4']}, be: {w['be']}, pnl: {w['pnl']}, status: \"{w['status']}\" }},")
 
-winners_lines.append("        // ICT SABRI MALLE - UNIVERSO COMPLETO AUDITADO (2 AÑOS: +196.9 R / +$19,690 USD)")
+winners_lines.append("        // ICT - UNIVERSO COMPLETO AUDITADO (2 AÑOS: +196.9 R / +$19,690 USD)")
 for w in ict_winners:
     winners_lines.append(f"        {{ rank: {w['rank']}, symbol: \"{w['symbol']}\", strategy: \"{w['strategy']}\", category: \"{w['category']}\", trades: {w['trades']}, win_rate: {w['win_rate']}, tp1: {w['tp1']}, tp2: {w['tp2']}, tp3: {w['tp3']}, tp4: {w['tp4']}, be: {w['be']}, pnl: {w['pnl']}, status: \"{w['status']}\" }},")
 
@@ -169,7 +169,7 @@ metrics_block = """      // Métricas por pestaña
           be: "67",
           sl: "208",
           profit: "+196.9 R (+$19,690 USD)",
-          badge: "ICT Sabri Malle (AMD & FVG)",
+          badge: "ICT (AMD & FVG)",
           bars: { tp1: 45.7, tp2: 34.3, tp3: 34.3, tp4: 27.0, be: 16.9, sl: 52.5 }
         },
         gold: {

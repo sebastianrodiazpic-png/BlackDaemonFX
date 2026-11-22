@@ -18,6 +18,7 @@ Vinculaciones:
 """
 
 import os
+import threading
 import pandas as pd
 import MetaTrader5 as mt5
 import time
@@ -75,6 +76,8 @@ class MT5DataProvider:
         # cada timeframe durante un ciclo de 76 instrumentos.
         self._resolved_symbol_cache = {}
         self._ensured_symbols = set()
+        self._candle_cache = {}
+        self._candle_cache_lock = threading.Lock()
 
     # ==================================================
     # CONEXIÓN
@@ -347,7 +350,8 @@ class MT5DataProvider:
         self,
         symbol,
         timeframe="M5",
-        count=1000
+        count=1000,
+        force_refresh=False,
     ):
         """Devuelve las ultimas `count` velas como DataFrame ordenado por tiempo.
 
@@ -356,6 +360,10 @@ class MT5DataProvider:
         subraya y conviene repetirlo: **solo se reintentan LECTURAS**. Reintentar
         el envio de una orden romperia su idempotencia y podria abrir posiciones
         duplicadas.
+
+        Caché de corta duración (TTL 2-3s): evita llamadas repetidas e idénticas a MT5
+        dentro del mismo ciclo cuando múltiples estrategias (ej. MSNR e ICT)
+        evalúan el mismo símbolo sucesivamente.
 
         La columna `time` se convierte a datetime UTC.
 
@@ -367,6 +375,34 @@ class MT5DataProvider:
         exact_symbol = self.ensure_symbol(symbol)
 
         mt5_timeframe = self.get_timeframe(timeframe)
+
+        cache_enabled = os.getenv("DAEMONBLACKFX_CANDLE_CACHE_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off")
+        base_ttl = float(os.getenv("DAEMONBLACKFX_CANDLE_CACHE_TTL_SECONDS", "3.0"))
+        # Velas de temporalidad mayor (H1, H2, H4, D1) solo cierran cada 1 hora o más:
+        # TTL adaptativo (por defecto 30.0s) reduce llamadas IPC redundantes a MT5 en un 80-90% por ciclo.
+        is_htf = mt5_timeframe in (
+            getattr(mt5, "TIMEFRAME_H1", 16385),
+            getattr(mt5, "TIMEFRAME_H2", 16386),
+            getattr(mt5, "TIMEFRAME_H4", 16388),
+            getattr(mt5, "TIMEFRAME_D1", 16408),
+        )
+        htf_ttl = float(os.getenv("DAEMONBLACKFX_HTF_CANDLE_CACHE_TTL_SECONDS", "30.0"))
+        ttl = htf_ttl if is_htf else base_ttl
+        cache_key = (exact_symbol, mt5_timeframe)
+
+        if cache_enabled and ttl > 0.0 and not force_refresh:
+            now_mono = time.monotonic()
+            with self._candle_cache_lock:
+                entry = self._candle_cache.get(cache_key)
+                if entry is not None:
+                    cached_at, cached_df = entry
+                    if (now_mono - cached_at) < ttl and len(cached_df) >= count:
+                        zero_copy = os.getenv("DAEMONBLACKFX_CANDLE_ZERO_COPY_CACHE", "1").strip().lower() not in ("0", "false", "no", "off")
+                        if zero_copy:
+                            if len(cached_df) == count:
+                                return cached_df
+                            return cached_df.iloc[-count:].reset_index(drop=True)
+                        return cached_df.iloc[-count:].reset_index(drop=True).copy()
 
         rates = None
         last_error = None
@@ -412,15 +448,30 @@ class MT5DataProvider:
         if monotonic_opt and len(df) > 1 and df["time"].iloc[0] <= df["time"].iloc[-1]:
             # MT5 copy_rates_from_pos garantiza orden cronológico ascendente.
             # Evitamos el sort_values O(N log N) si ya es monótono.
-            return df.reset_index(drop=True)
+            res_df = df.reset_index(drop=True)
+        else:
+            res_df = (
+                df
+                .sort_values("time")
+                .reset_index(drop=True)
+            )
 
-        df = (
-            df
-            .sort_values("time")
-            .reset_index(drop=True)
-        )
+        if cache_enabled and ttl > 0.0:
+            now_mono = time.monotonic()
+            with self._candle_cache_lock:
+                if len(self._candle_cache) > 250:
+                    self._candle_cache = {
+                        k: v for k, v in self._candle_cache.items()
+                        if (now_mono - v[0]) < (ttl * 2)
+                    }
+                self._candle_cache[cache_key] = (now_mono, res_df.copy())
 
-        return df
+        return res_df
+
+    def clear_candle_cache(self):
+        """Limpia la caché de velas en memoria."""
+        with self._candle_cache_lock:
+            self._candle_cache.clear()
 
     # ==================================================
     # ÚLTIMA VELA CERRADA

@@ -525,7 +525,7 @@ class MalaysianSNRStrategy:
                     if sym_l in boom_buy_only and direction != "BUY":
                         observations.append(wait('DIRECTION_ASYMMETRY_BOOM_BUY_ONLY'))
                         continue
-                    if sym_l.startswith("step") and float(setup.get('adx', 0.0)) < float(getattr(self.config, "step_min_adx", 25.0)):
+                    if getattr(self.config, "step_require_adx", False) and sym_l.startswith("step") and float(setup.get('adx', 0.0)) < float(getattr(self.config, "step_min_adx", 12.0)):
                         observations.append(wait('STEP_ADX_BELOW_THRESHOLD'))
                         continue
                 macro_shadow = False
@@ -548,7 +548,14 @@ class MalaysianSNRStrategy:
                     continue
                 effective_tolerance_atr = self.config.retest_tolerance_atr
                 if getattr(self.config, 'dynamic_retest_buffer_enabled', False):
-                    effective_tolerance_atr += getattr(self.config, 'dynamic_retest_buffer_atr', 0.20)
+                    # Blindaje de élite: Jump 75, VolSwitch High Vol y Step Index preservan
+                    # tolerancia estricta (<= 0.35 ATR) para no diluir su winrate de 80-84%.
+                    elite_protected = {
+                        "jump 75 index", "volswitch high vol index",
+                        "step index 200", "step index", "step index 400", "step index 500"
+                    }
+                    if str(symbol).strip().lower() not in elite_protected:
+                        effective_tolerance_atr += getattr(self.config, 'dynamic_retest_buffer_atr', 0.20)
                 elif getattr(self.config, 'retest_contact_buffer_atr', 0.0) > 0:
                     effective_tolerance_atr += getattr(self.config, 'retest_contact_buffer_atr', 0.15)
                 evidence = retest_confirmation(
@@ -685,6 +692,7 @@ class MalaysianSNRStrategy:
                                'h4_obstacle_evidence': details['h4_obstacle'],
                                'max_entry_distance_atr': setup['max_entry_distance_atr'],
                                'invalidation_level': setup['invalidation_level'],
+                               'atr': float(setup.get('atr') or 0.0),
                                'setup_execution_deadline_at': (break_closed_at + window + grace).isoformat(),
                                'setup_expires_at': details['expires_at']})
                 micro_structure = True

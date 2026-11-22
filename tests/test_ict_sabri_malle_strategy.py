@@ -1,4 +1,4 @@
-"""Unit tests for ICT Sabri Malle strategy and full engine replacement of SMC."""
+"""Unit tests for ICT strategy and full engine replacement of SMC."""
 import math
 from datetime import datetime, timezone, timedelta
 from types import SimpleNamespace
@@ -76,7 +76,7 @@ class MockExecutor:
 
 def test_ict_config_defaults():
     config = ICTSabriMalleConfig()
-    assert config.strategy_name == "ICT_SABRI_MALLE"
+    assert config.strategy_name in ("ICT", "ICT_SABRI_MALLE")
     assert config.strategy_version == "ict-sabri-malle-v2-fase1"
     # Fase 1: sin NY Killzone / London Close y Silver Bullet sin la ventana NY AM 10-11.
     assert config.ny_killzone_enabled is False
@@ -259,7 +259,7 @@ def test_ict_and_malaysian_snr_strict_independence():
 
 @pytest.mark.parametrize("profile", ["BOOM", "CRASH", "STEP", "JUMP", "VOLATILITY_1", "FOREX_1"])
 def test_synthetic_and_forex_workers_route_to_ict_strategy(profile):
-    """Verify all synthetic and forex workers execute under ICT Sabri Malle strategy."""
+    """Verify all synthetic and forex workers execute under ICT strategy."""
     cfg = configure_worker_rules(LiveTradingConfig(bot_profile=profile))
     called_ict = False
 

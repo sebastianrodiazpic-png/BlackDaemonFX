@@ -82,6 +82,20 @@ class HumanCriteriaConfig:
         default_factory=lambda: os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SPIKE_HAZARD_VETO", "0").lower() in ("1", "true", "yes")
     )
 
+    # Anulación de veto por régimen tóxico si la señal presenta confirmación de absorción o desplazamiento institucional (FVG)
+    absorption_regime_override_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_ABSORPTION_OVERRIDE", "1").lower() in ("1", "true", "yes")
+    )
+
+    # Desbloqueo Inteligente de Alta Convicción (ML GBDT prob >= 0.85 y expectativa >= 1.0R con confluencias técnicas >= 85%)
+    # Permite flexibilizar el umbral a 70.0 pts cuando la probabilidad matemática es excelente (+503R en Jump 100, etc.)
+    high_conviction_override_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_HC_HIGH_CONVICTION_OVERRIDE", "1").strip().lower() in ("1", "true", "yes")
+    )
+    high_conviction_min_score_threshold: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HC_HIGH_CONVICTION_MIN_SCORE", "70.0"))
+    )
+
     # Filtro anti-sobreextensión elástica respecto a media HTF (Mean Reversion Guard)
     synthetic_mean_reversion_guard_enabled: bool = True
     synthetic_max_ema_deviation_atr: float = 2.5
@@ -94,6 +108,34 @@ class HumanCriteriaConfig:
     # Filtro anti-agotamiento clímax (evitar comprar en la punta de una sobreextensión)
     synthetic_climax_filter_enabled: bool = True
     synthetic_climax_atr_multiplier: float = 2.75
+    synthetic_climax_body_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HC_CLIMAX_BODY_RATIO", "0.80"))
+    )
+
+    # Filtro de mecha adversa y exigencia de absorción institucional (Rejection / Absorption Guard)
+    adverse_wick_veto_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_HC_ADVERSE_WICK_VETO", "1").strip().lower() in ("1", "true", "yes")
+    )
+    max_adverse_wick_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HC_MAX_ADVERSE_WICK_RATIO", "0.40"))
+    )
+    min_rejection_wick_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HC_MIN_REJECTION_WICK_RATIO", "0.20"))
+    )
+
+    # Exención de ADX para activos de microestructura por saltos o pasos discretos (Step / Jump)
+    # Evita falsos negativos (+47.5 R en replay 2 años al no vetar falsamente por baja tendencia continua)
+    step_jump_adx_guard_exempt: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_HC_STEP_JUMP_ADX_EXEMPT", "1").lower() in ("1", "true", "yes")
+    )
+
+    # Control de fricción de spread vs Stop Loss (Slippage / Friction Guard)
+    max_spread_to_sl_ratio: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_MAX_SPREAD_TO_SL_RATIO", "0.12"))
+    )
+    spread_friction_veto_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_SPREAD_FRICTION_VETO_ENABLED", "1").lower() in ("1", "true", "yes")
+    )
 
     # Filtro de ruido tóxico y consolidación lateral estrecha (Choppiness)
     synthetic_choppiness_threshold: float = 61.8

@@ -572,7 +572,20 @@ class MT5ExecutionProvider:
         text = "".join(ch for ch in text if 32 <= ord(ch) <= 126)
         if not text:
             text = "BlackDaemonFx"
-        encoded = text.encode("ascii", errors="ignore")[:max(1, int(max_bytes))]
+
+        # Preservar siempre el sufijo de la pata si existe (:RUNNER, :TP1, -RUNNER, -TP1)
+        leg_suffix = ""
+        for sfx in (":RUNNER", ":TP1", ":SINGLE", "-RUNNER", "-TP1", "-SINGLE"):
+            if text.upper().endswith(sfx):
+                leg_suffix = sfx
+                break
+
+        limit = max(1, int(max_bytes))
+        if leg_suffix and len(text) > limit:
+            prefix_len = max(1, limit - len(leg_suffix))
+            text = f"{text[:prefix_len]}{leg_suffix}"
+
+        encoded = text.encode("ascii", errors="ignore")[:limit]
         text = encoded.decode("ascii", errors="ignore").strip()
         return text or "BlackDaemonFx"
 
@@ -893,7 +906,16 @@ class MT5ExecutionProvider:
                     ),
                 }
 
-        last = attempts[-1] if attempts else {}
+        # Pilar 4 (18-nov-2026): Priorizar causa raíz estructural (volumen inválido 10014, stops 10016, margen 10019)
+        # por sobre errores secundarios de filling no soportado (10030) generados en la cascada de fallback.
+        primary_structural_attempt = None
+        for att in attempts:
+            rc = att.get("retcode")
+            if rc in {10014, 10015, 10016, 10019, 10021, 10027}:
+                primary_structural_attempt = att
+                break
+
+        last = primary_structural_attempt if primary_structural_attempt is not None else (attempts[-1] if attempts else {})
 
         return {
             "valid": False,
@@ -1413,7 +1435,42 @@ class MT5ExecutionProvider:
         request["price"] = self._current_market_price(symbol, str(direction).upper())
         self._validate_pre_send_risk(request, str(direction).upper(), max_risk_amount)
         executable_rr_audit = self._validate_executable_rr(request, direction, minimum_executable_rr)
-        result, request, send_diagnostic = self._order_send_safe(request)
+
+        from strategy.execution.active_position_guard import (
+            terminal_execution_lock,
+            is_terminal_in_flight,
+            record_terminal_in_flight,
+            check_active_position_guard,
+        )
+
+        with terminal_execution_lock(symbol) as lock_acquired:
+            if not lock_acquired:
+                raise MT5ExecutionError(
+                    f"TERMINAL_LOCK_TIMEOUT: No se pudo obtener el lock de ejecución MT5 para {symbol}"
+                )
+
+            if is_terminal_in_flight(symbol):
+                raise MT5ExecutionError(
+                    f"ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE: {symbol} ya tiene una orden en vuelo reciente en el terminal"
+                )
+
+            try:
+                active_guard = check_active_position_guard(
+                    symbol, self.get_open_positions(), self.get_pending_orders()
+                )
+                if not active_guard.get("can_analyze", True):
+                    raise MT5ExecutionError(
+                        f"ORDER_SEND_BLOCKED_ACTIVE_POSITION: {symbol} ya tiene posición u orden activa ({active_guard.get('status')})"
+                    )
+            except MT5ExecutionError:
+                raise
+            except Exception:
+                pass
+
+            result, request, send_diagnostic = self._order_send_safe(request)
+            if result is not None and self._is_order_send_success(result):
+                record_terminal_in_flight(symbol, getattr(result, "order", None))
+
 
         if result is None:
             raise MT5ExecutionError(

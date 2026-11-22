@@ -204,6 +204,15 @@ class HumanCriteriaEngine:
                 breakdown=ScoreBreakdown(total_score=100.0),
             )
 
+        strat_name = str(
+            signal.get("strategy_name")
+            or signal.get("strategy")
+            or signal.get("source_strategy")
+            or ""
+        ).upper()
+        is_msnr = ("MALAYSIAN" in strat_name) or ("MSNR" in strat_name)
+        is_ict = ("ICT" in strat_name) or ("SABRI" in strat_name) or ("FVG" in strat_name) or bool(signal.get("scenario") or signal.get("displacement_body_ratio"))
+
         # 1. Macro & News Evaluation (0 pts en sintéticos; máx 25 pts en reales)
         score_news, news_blocked, news_reason, news_details = self._eval_macro_news(
             symbol=sym,
@@ -217,6 +226,7 @@ class HumanCriteriaEngine:
             category=category,
             direction=dir_clean,
             df_h1=df_h1,
+            is_msnr=is_msnr,
         )
 
         # 3. Spike Hazard Evaluation (Crash & Boom)
@@ -256,27 +266,47 @@ class HumanCriteriaEngine:
             current_spread=current_spread,
         )
 
-        strat_name = str(
-            signal.get("strategy_name")
-            or signal.get("strategy")
-            or signal.get("source_strategy")
-            or ""
-        ).upper()
-        is_msnr = ("MALAYSIAN" in strat_name) or ("MSNR" in strat_name)
-
         # Cálculo de Score Global (0 a 100)
         if is_synthetic:
             raw_score = score_htf + score_regime + score_candle + score_streak + score_spread - spike_penalty
             if is_msnr:
                 min_score_thresh = float(getattr(self.config, "malaysian_snr_min_score_threshold", 60.0))
             else:
-                min_score_thresh = float(getattr(self.config, "synthetic_min_score_threshold", 75.0))
+                base_synth_thresh = float(getattr(self.config, "synthetic_min_score_threshold", 75.0))
+                meta_label = signal.get("meta_label") or {}
+                ml_prob = float(meta_label.get("probability") or 0.0)
+                ml_exp = float(meta_label.get("net_expectancy_r") or 0.0)
+                conf_pct = float(signal.get("confirmation_percentage") or 0.0)
+                trade_sc = float(signal.get("trade_score") or 0.0)
+                hc_override_on = bool(getattr(self.config, "high_conviction_override_enabled", True))
+                hc_thresh = float(getattr(self.config, "high_conviction_min_score_threshold", 70.0))
+
+                is_high_conviction = (
+                    hc_override_on
+                    and (ml_prob >= 0.85 and ml_exp >= 1.0)
+                    and (conf_pct >= 85.0 or trade_sc >= 85.0 or bool(signal.get("ict_msnr_confluence")))
+                )
+                min_score_thresh = min(base_synth_thresh, hc_thresh) if is_high_conviction else base_synth_thresh
         else:
             raw_score = score_news + score_htf + score_regime + score_candle + score_spread
             if is_msnr:
                 min_score_thresh = float(getattr(self.config, "malaysian_snr_min_score_threshold", 60.0))
             else:
-                min_score_thresh = float(self.config.min_score_threshold)
+                base_real_thresh = float(self.config.min_score_threshold)
+                meta_label = signal.get("meta_label") or {}
+                ml_prob = float(meta_label.get("probability") or 0.0)
+                ml_exp = float(meta_label.get("net_expectancy_r") or 0.0)
+                conf_pct = float(signal.get("confirmation_percentage") or 0.0)
+                trade_sc = float(signal.get("trade_score") or 0.0)
+                hc_override_on = bool(getattr(self.config, "high_conviction_override_enabled", True))
+                hc_thresh = float(getattr(self.config, "high_conviction_min_score_threshold", 70.0))
+
+                is_high_conviction = (
+                    hc_override_on
+                    and (ml_prob >= 0.85 and ml_exp >= 1.0)
+                    and (conf_pct >= 85.0 or trade_sc >= 85.0 or bool(signal.get("ict_msnr_confluence")))
+                )
+                min_score_thresh = min(base_real_thresh, hc_thresh) if is_high_conviction else base_real_thresh
 
         total_score = round(min(100.0, max(0.0, raw_score)), 2)
 
@@ -324,15 +354,32 @@ class HumanCriteriaEngine:
         elif htf_counter:
             primary_veto = htf_reason
             action = "HUMAN_CRITERIA_COUNTERTREND_BLOCKED"
+        elif regime_toxic:
+            # Si la señal presenta confirmación de vela fuerte (retest_evidence con absorción o desplazamiento institucional FVG),
+            # no es un régimen tóxico insalvable sino un quiebre limpio o mitigación saliendo del rango de consolidación.
+            override_enabled = getattr(self.config, "absorption_regime_override_enabled", True)
+            candle_body = float(signal.get("candle_body_ratio") or (signal.get("retest_evidence") or {}).get("body_ratio") or 0.0)
+            has_msnr_absorption = bool(signal.get("displacement") or (signal.get("retest_evidence") or {}).get("displacement") or candle_body >= 0.55)
+            has_ict_displacement = bool(
+                float(signal.get("displacement_body_ratio") or 0.0) >= 0.50
+                or signal.get("fvg_consequent_encroachment_aligned")
+                or signal.get("scenario") in ("AMD_KILLZONE_FVG_REJECTION", "IFVG_M15_INVERSION", "BPR_M15_BALANCED_PRICE_RANGE")
+            )
+            if override_enabled and ((is_msnr and has_msnr_absorption) or (is_ict and has_ict_displacement)):
+                regime_toxic = False
+                details.setdefault("regime", {})["toxic_overridden_by_absorption"] = True
+            else:
+                primary_veto = regime_reason
+                action = "HUMAN_CRITERIA_TOXIC_REGIME_BLOCKED"
         elif candle_climax:
             primary_veto = candle_reason
-            action = "HUMAN_CRITERIA_CLIMAX_BLOCKED"
-        elif regime_toxic:
-            primary_veto = regime_reason
-            action = "HUMAN_CRITERIA_TOXIC_REGIME_BLOCKED"
+            action = "HUMAN_CRITERIA_ADVERSE_WICK_BLOCKED" if "ADVERSE" in str(candle_reason) else "HUMAN_CRITERIA_CLIMAX_BLOCKED"
         elif streak_blocked:
             primary_veto = streak_reason
             action = "HUMAN_CRITERIA_STREAK_BLOCKED"
+        elif bool(getattr(self.config, "spread_friction_veto_enabled", True)) and spread_details.get("is_excessive", False):
+            primary_veto = f"EXCESSIVE_SPREAD_FRICTION ({spread_details.get('spread_sl_ratio', 0.0):.1%} > {spread_details.get('max_spread_to_sl_ratio', 0.12):.1%})"
+            action = "HUMAN_CRITERIA_SPREAD_FRICTION_BLOCKED"
         elif total_score < min_score_thresh:
             primary_veto = f"SCORE_BELOW_THRESHOLD ({total_score:.1f} < {min_score_thresh:.1f})"
             action = "HUMAN_CRITERIA_LOW_SCORE_BLOCKED"
@@ -443,13 +490,13 @@ class HumanCriteriaEngine:
         return self.config.weight_macro_news, False, "", {"status": "CLEAR_NO_HIGH_IMPACT_EVENTS"}
 
     def _eval_htf_trend(
-        self, symbol: str, category: str, direction: str, df_h1: pd.DataFrame | None
+        self, symbol: str, category: str, direction: str, df_h1: pd.DataFrame | None, is_msnr: bool = False
     ) -> tuple[float, bool, str, dict[str, Any]]:
         """Evalúa la alineación de tendencia en H1 (Marea Mayor) y sobreextensión."""
         is_synthetic = (category == "SYNTHETIC")
         max_pts = float(self.config.synthetic_weight_htf_trend if is_synthetic else self.config.weight_htf_trend)
         if df_h1 is None or len(df_h1) < 30:
-            return max_pts * 0.60, False, "", {"status": "INSUFFICIENT_H1_CANDLES"}
+            return max_pts * 0.80, False, "", {"status": "INSUFFICIENT_H1_CANDLES"}
 
         close = df_h1["close"]
         ema_fast = _calc_ema(close, self.config.synthetic_h1_fast_ema)
@@ -503,7 +550,11 @@ class HumanCriteriaEngine:
         else:
             score_res = max_pts * 0.50
 
-        is_veto = is_counter and (category == "SYNTHETIC" and self.config.synthetic_require_h1_alignment)
+        if is_msnr and is_counter:
+            score_res = max_pts * 0.60
+            is_veto = False
+        else:
+            is_veto = is_counter and (category == "SYNTHETIC" and self.config.synthetic_require_h1_alignment)
 
         # Filtro de sobre-extensión elástica respecto a media HTF en sintéticos (Mean Reversion)
         if (
@@ -564,7 +615,7 @@ class HumanCriteriaEngine:
         is_synthetic = (category == "SYNTHETIC")
         max_pts = float(self.config.synthetic_weight_regime_health if is_synthetic else self.config.weight_regime_health)
         if df_h1 is None or len(df_h1) < 20:
-            return max_pts * 0.60, False, "", {"status": "INSUFFICIENT_DATA"}
+            return max_pts * 0.80, False, "", {"status": "INSUFFICIENT_DATA"}
 
         try:
             metrics = compute_regime_metrics(
@@ -577,17 +628,25 @@ class HumanCriteriaEngine:
             return max_pts * 0.50, False, "", {"error": str(e)}
 
         regime = classification.regime
-        is_toxic = classification.is_toxic or (
-            category == "SYNTHETIC"
-            and metrics.choppiness_index > self.config.synthetic_choppiness_threshold
-            and metrics.adx < self.config.synthetic_adx_min_threshold
-        )
+        sym_low = str(symbol or "").lower()
+        is_step_jump = ("step" in sym_low or "jump" in sym_low)
+        step_jump_exempt = is_step_jump and bool(getattr(self.config, "step_jump_adx_guard_exempt", True))
+
+        if step_jump_exempt:
+            is_toxic = False
+        else:
+            is_toxic = classification.is_toxic or (
+                category == "SYNTHETIC"
+                and metrics.choppiness_index > self.config.synthetic_choppiness_threshold
+                and metrics.adx < self.config.synthetic_adx_min_threshold
+            )
 
         details = {
             "regime": regime,
             "choppiness": metrics.choppiness_index,
             "adx": metrics.adx,
             "is_toxic": is_toxic,
+            "step_jump_exempt": step_jump_exempt,
         }
 
         if is_toxic:
@@ -608,7 +667,7 @@ class HumanCriteriaEngine:
         is_synthetic = (category == "SYNTHETIC")
         max_pts = float(self.config.synthetic_weight_candle_quality if is_synthetic else self.config.weight_candle_quality)
         if df_ltf is None or len(df_ltf) < 15:
-            return max_pts * 0.65, False, "", {"status": "INSUFFICIENT_LTF_CANDLES"}
+            return max_pts * 0.80, False, "", {"status": "INSUFFICIENT_LTF_CANDLES"}
 
         idx = len(df_ltf) - 1
         c = float(df_ltf["close"].iloc[idx])
@@ -627,11 +686,20 @@ class HumanCriteriaEngine:
 
         # 1. Filtro Anti-Agotamiento Clímax (no comprar en la cúspide de una vela parabólica)
         is_climax = False
+        climax_body_ratio = float(getattr(self.config, "synthetic_climax_body_ratio", 0.80))
         if bool(self.config.synthetic_climax_filter_enabled) and category == "SYNTHETIC" and atr_val > 0:
-            if rng > (self.config.synthetic_climax_atr_multiplier * atr_val):
-                # Si una sola vela mide más de 2.75x ATR y su cuerpo domina la vela (≥65% cuerpo) en la dirección del trade
-                if (direction == "BUY" and c > o and (body / rng) >= 0.65 and (upper_wick / rng) < 0.20) or (
-                    direction == "SELL" and c < o and (body / rng) >= 0.65 and (lower_wick / rng) < 0.20
+            body_ratio_val = body / rng
+            is_oversized = rng > (self.config.synthetic_climax_atr_multiplier * atr_val)
+            if is_oversized:
+                # Si una sola vela mide más de 2.75x ATR y su cuerpo domina la vela en la dirección del trade
+                if (direction == "BUY" and c > o and body_ratio_val >= 0.65 and (upper_wick / rng) < 0.20) or (
+                    direction == "SELL" and c < o and body_ratio_val >= 0.65 and (lower_wick / rng) < 0.20
+                ):
+                    is_climax = True
+            elif body_ratio_val >= climax_body_ratio:
+                # Agotamiento por marubozu parabólico extremo sin mecha de rechazo
+                if (direction == "BUY" and c > o and (upper_wick / rng) < 0.15) or (
+                    direction == "SELL" and c < o and (lower_wick / rng) < 0.15
                 ):
                     is_climax = True
 
@@ -646,7 +714,31 @@ class HumanCriteriaEngine:
         if is_climax:
             return 0.0, True, "PARABOLIC_CLIMAX_OVEREXTENSION", details
 
-        # 2. Recompensa por Mecha de Rechazo Institucional
+        # 2. Veto por Mecha Adversa / Falta de Absorción Institucional
+        adverse_wick_veto = bool(getattr(self.config, "adverse_wick_veto_enabled", True))
+        max_adverse_wick = float(getattr(self.config, "max_adverse_wick_ratio", 0.40))
+        min_rejection_wick = float(getattr(self.config, "min_rejection_wick_ratio", 0.20))
+
+        is_adverse_rejection = False
+        adverse_reason = ""
+        if adverse_wick_veto:
+            if direction == "BUY":
+                # En compra: si la mecha superior (vendedores) es >= 40% y la mecha inferior (defensa de compradores) < 20%
+                if (upper_wick / rng) >= max_adverse_wick and (lower_wick / rng) < min_rejection_wick:
+                    is_adverse_rejection = True
+                    adverse_reason = f"ADVERSE_SELLER_WICK_REJECTION: Mecha superior contraria excesiva ({(upper_wick / rng):.1%} >= {max_adverse_wick:.1%})"
+            elif direction == "SELL":
+                # En venta: si la mecha inferior (compradores) es >= 40% y la mecha superior (defensa de vendedores) < 20%
+                if (lower_wick / rng) >= max_adverse_wick and (upper_wick / rng) < min_rejection_wick:
+                    is_adverse_rejection = True
+                    adverse_reason = f"ADVERSE_BUYER_WICK_REJECTION: Mecha inferior contraria excesiva ({(lower_wick / rng):.1%} >= {max_adverse_wick:.1%})"
+
+        if is_adverse_rejection:
+            details["is_adverse_wick"] = True
+            details["adverse_reason"] = adverse_reason
+            return 0.0, True, adverse_reason, details
+
+        # 3. Recompensa por Mecha de Rechazo Institucional
         if direction == "BUY":
             # Mecha inferior atractiva (los compradores defendieron el nivel)
             if lower_wick / rng >= 0.25:
@@ -720,13 +812,21 @@ class HumanCriteriaEngine:
             return max_pts * 0.80, {"status": "NO_SPREAD_DATA"}
 
         ratio = spread / sl_dist
-        details = {"spread": spread, "sl_dist": sl_dist, "spread_sl_ratio": round(ratio, 4)}
+        max_ratio = float(getattr(self.config, "max_spread_to_sl_ratio", 0.12))
+        is_excessive = ratio > max_ratio
+        details = {
+            "spread": spread,
+            "sl_dist": sl_dist,
+            "spread_sl_ratio": round(ratio, 4),
+            "max_spread_to_sl_ratio": max_ratio,
+            "is_excessive": is_excessive,
+        }
 
         if ratio <= 0.03:
             return max_pts, details
         elif ratio <= 0.08:
             return max_pts * 0.75, details
-        elif ratio <= 0.15:
+        elif ratio <= max_ratio:
             return max_pts * 0.50, details
         else:
-            return max_pts * 0.20, details
+            return 0.0, details

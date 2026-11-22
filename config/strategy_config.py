@@ -87,9 +87,48 @@ RISK_CONFIG = {
 # UNIVERSO DE ACTIVOS FILTRADOS / PODA POR PERFIL DE WORKER
 # ========================================================
 PRUNED_ASSET_UNIVERSE = {
-    # Auditoría Integral 212 Pares (05-nov-2026): todos los instrumentos con WR > 50.0% y R > 0 activos.
-    "STEP": ("Step Index 200", "Step Index", "Step Index 400", "Step Index 500"),
-    "JUMP": ("Jump 50 Index", "Jump 75 Index", "Jump 10 Index", "Jump 25 Index"),
+    # Auditoría Integral 212 Pares y Familia Step MultiStrategia:
+    # Worker STEP (1) (Magic 26082104): Step Index 200, 400, 500
+    # Worker STEP (2) (Magic 26082406): Step Index, 300, 1000, 1500, 2000
+    "STEP": ("Step Index 200", "Step Index 400", "Step Index 500"),
+    "STEP_2": ("Step Index", "Step Index 300", "Step Index 1000", "Step Index 1500", "Step Index 2000"),
+    "JUMP": ("Jump 10 Index", "Jump 25 Index", "Jump 50 Index", "Jump 75 Index", "Jump 100 Index"),
+    "VOLATILITY_3": (
+        "Volatility 10 Index",
+        "Volatility 100 Index",
+        "Volatility 15 Index",
+        "Volatility 25 Index",
+        "Volatility 5 Index",
+        "Volatility 50 Index",
+        "Volatility 75 Index",
+        "Volatility 90 Index",
+    ),
+    "VOLATILITY_1": (
+        "High Frequency Vol 100 Index",
+        "High Frequency Vol 50 Index",
+        "High Frequency Vol 10 Index",
+        "High Frequency Vol 25 Index",
+        "High Frequency Vol 75 Index",
+    ),
+    "VOLATILITY_2": (
+        "Ladder Volatility Down Index",
+        "Ladder Volatility Up Index",
+        "VolSwitch Low Vol Index",
+        "VolSwitch Medium Vol Index",
+    ),
+    "VOLATILITY_4": (
+        "Volatility 100 (1s) Index",
+        "Volatility 150 (1s) Index",
+        "Volatility 250 (1s) Index",
+        "Volatility 50 (1s) Index",
+        "Volatility 75 (1s) Index",
+        "Volatility 90 (1s) Index",
+        "Volatility 10 (1s) Index",
+        "Volatility 15 (1s) Index",
+        "Volatility 25 (1s) Index",
+        "Volatility 30 (1s) Index",
+        "Volatility 5 (1s) Index",
+    ),
     "VOLATILITY": (
         "Volatility 10 Index",
         "Volatility 25 Index",
@@ -109,8 +148,25 @@ PRUNED_ASSET_UNIVERSE = {
         "Volatility 150 (1s) Index",
         "Volatility 100 (1s) Index",
     ),
-    "BOOM": ("Boom 900 Index", "Boom 600 Index", "Boom 300 Index", "Boom 1000 Index", "Boom 500 Index"),
-    "CRASH": ("Crash 300 Index", "Crash 500 Index", "Crash 600 Index", "Crash 900 Index"),
+    "BOOM": (
+        "Boom 1000 Index",
+        "Boom 300 Index",
+        "Boom 500 Index",
+        "Boom 600 Index",
+        "Boom 900 Index",
+        "Volatility Boom 400 Index",
+        "Volatility Boom 750 Index",
+    ),
+    "CRASH": (
+        "Crash 1000 Index",
+        "Crash 300 Index",
+        "Crash 500 Index",
+        "Crash 600 Index",
+        "Crash 900 Index",
+        "Volatility Crash 400 Index",
+        "Volatility Crash 550 Index",
+        "Volatility Crash 750 Index",
+    ),
     "FOREX": (
         "GBPUSD", "GBPUSDmicro",
         "NZDUSD", "NZDUSDmicro",
@@ -121,15 +177,107 @@ PRUNED_ASSET_UNIVERSE = {
         "GBPJPY", "GBPJPYmicro",
         "CADCHF", "CADCHFmicro",
     ),
+    "FOREX_1": (
+        "NZDCAD",
+        "NZDUSD", "NZDUSDmicro",
+        "NZDCHF",
+        "NZDJPY",
+        "NZDSGD",
+    ),
+    "FOREX_2": (
+        "AUDCHF", "AUDCHFmicro",
+        "AUDJPY", "AUDJPYmicro",
+        "AUDNZD", "AUDNZDmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "AUDCAD", "AUDCADmicro",
+        "AUDSGD",
+    ),
+    "FOREX_3": (
+        "EURAUD", "EURAUDmicro",
+        "EURCAD", "EURCADmicro",
+        "EURCHF", "EURCHFmicro",
+        "EURGBP", "EURGBPmicro",
+        "EURJPY", "EURJPYmicro",
+        "EURNZD", "EURNZDmicro",
+        "EURUSD", "EURUSDmicro",
+        "EURHKD", "EURMXN", "EURNOK",
+        "EURPLN", "EURSEK", "EURSGD", "EURZAR",
+    ),
+    "FOREX_4": (
+        "USDCAD", "USDCADmicro",
+        "USDCHF", "USDCHFmicro",
+        "USDJPY", "USDJPYmicro",
+        "USDCNH", "USDHKD", "USDMXN",
+        "USDNOK", "USDPLN", "USDSEK",
+        "USDSGD", "USDZAR",
+    ),
+    "FOREX_5": (
+        "GBPAUD", "GBPCAD",
+        "GBPCHF", "GBPCHFmicro",
+        "GBPJPY", "GBPJPYmicro",
+        "GBPNZD",
+        "GBPUSD", "GBPUSDmicro",
+        "GBPNOK", "GBPSEK", "GBPSGD",
+    ),
     "GOLD": (
         "XAUUSD", "XAGUSD",
         "XAUUSDmicro", "XAGUSDmicro",
     ),
-    "ICT": (
+    "COMMODITIES_SNR": (
         "XAUUSD", "XAUUSDmicro", "microXAUUSD",
         "XAUEUR", "XAUEURmicro", "microXAUEUR",
-        "BTCUSD", "BTCUSDmicro", "microBTCUSD",
-        "US Oil", "Wall Street 30", "US Tech 100",
+        "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+        "US Oil", "UK Brent Oil",
+    ),
+    "COMMODITIES": (
+        "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+        "XAUEUR", "XAUEURmicro", "microXAUEUR",
+        "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+        "US Oil", "UK Brent Oil",
+    ),
+    "INDICESB_SNR": (
+        "Wall Street 30", "US Tech 100", "US SP 500", "Germany 40",
+    ),
+    "INDICES": (
+        "Wall Street 30", "US Tech 100", "US SP 500", "Germany 40",
+    ),
+    "FOREX_SNR": (
+        "EURUSD", "EURUSDmicro",
+        "GBPUSD", "GBPUSDmicro",
+        "USDJPY", "USDJPYmicro",
+        "AUDUSD", "AUDUSDmicro",
+        "USDCAD", "USDCADmicro",
+        "USDCHF", "USDCHFmicro",
+        "NZDUSD", "NZDUSDmicro",
+        "GBPJPY", "GBPJPYmicro",
+        "EURJPY", "EURJPYmicro",
+        "AUDJPY", "AUDJPYmicro",
+        "CADJPY", "CADJPYmicro",
+        "CHFJPY", "CHFJPYmicro",
+        "EURCAD", "EURCADmicro",
+        "EURAUD", "EURAUDmicro",
+        "GBPAUD", "GBPAUDmicro",
+        "GBPNZD", "GBPNZDmicro",
+        "AUDCHF", "AUDCHFmicro",
+        "CADCHF", "CADCHFmicro",
+        "GBPCHF", "GBPCHFmicro",
+        "EURGBP", "EURGBPmicro",
+        "AUDCAD", "AUDCADmicro",
+        "EURCHF", "EURCHFmicro",
+        "EURNZD", "EURNZDmicro",
+        "GBPCAD", "GBPCADmicro",
+        "AUDNZD", "AUDNZDmicro",
+        "BTCUSD", "BTCUSDmicro",
+        "ETHUSD", "ETHUSDmicro",
+    ),
+    "ICT": (
+        "BTCUSD", "ETHUSD",
+        "BTCUSDmicro", "ETHUSDmicro",
+        "XRPUSD",
+        "XAUEUR", "XAUUSD",
+        "XAUUSDmicro", "XAUEURmicro",
+        "XAGUSD", "XAGUSDmicro",
+        "US Oil", "UK Brent Oil",
     ),
     "MALAYSIAN_SNR": (
         "Step Index 400", "Crash 1000 Index", "Jump 25 Index",
@@ -203,9 +351,9 @@ TRI_MOTOR_TIER_A_ASSETS = {
         "Volatility 250 (1s) Index", "Volatility 90 Index", "Volatility 5 Index",
         "High Frequency Vol 100 Index", "Volatility 100 Index", "Volatility 100 (1s) Index",
         "Boom 900 Index", "US Oil", "CHFJPY", "CHFJPYmicro", "GBPJPY", "GBPJPYmicro",
-        "Boom 600 Index", "Crash 500 Index", "Jump 50 Index",
+        "Boom 600 Index", "Crash 500 Index", "Jump 50 Index", "Jump 100 Index",
     ),
-    "MALAYSIAN_SNR": ("Crash 1000 Index",),
+    "MALAYSIAN_SNR": ("Crash 1000 Index", "Jump 100 Index"),
 }
 
 TRI_MOTOR_ORCHESTRATION_CONFIG = {
@@ -242,7 +390,7 @@ def _without(symbols, pruned):
 
 
 from config.ict_instrument_policy import ICT_5Y_RESCUED_SYNTHETICS as _RESCUED_SYNTHS, MALAYSIAN_SNR_ACTIVE as _MSNR_ACTIVE_ALL  # noqa: E402
-for _family in ("STEP", "JUMP", "VOLATILITY", "BOOM", "CRASH", "ICT"):
+for _family in ("STEP", "STEP_2", "JUMP", "VOLATILITY", "BOOM", "CRASH", "ICT"):
     PRUNED_ASSET_UNIVERSE[_family] = _without(PRUNED_ASSET_UNIVERSE[_family], set(ICT_WR45_PRUNED) - set(_RESCUED_SYNTHS))
 PRUNED_ASSET_UNIVERSE["MALAYSIAN_SNR"] = tuple(_MSNR_ACTIVE_ALL)
 
@@ -264,4 +412,24 @@ for _tier in (TRI_MOTOR_TIER_S_ASSETS, TRI_MOTOR_TIER_A_ASSETS):
 for _family, _symbols in _ICT_SYNTHETIC_FAMILIES.items():
     PRUNED_ASSET_UNIVERSE[_family] = tuple(_symbols)
 PRUNED_ASSET_UNIVERSE["FOREX"] = tuple(_ICT_ACTIVE_BY_PROFILE["FOREX"])
-PRUNED_ASSET_UNIVERSE["ICT"] = tuple(_ICT_ACTIVE_BY_PROFILE["ICT"])
+PRUNED_ASSET_UNIVERSE["ICT"] = (
+    "BTCUSD", "ETHUSD",
+    "BTCUSDmicro", "ETHUSDmicro",
+    "XRPUSD",
+    "XAUEUR", "XAUUSD",
+    "XAUUSDmicro", "XAUEURmicro",
+    "XAGUSD", "XAGUSDmicro",
+    "US Oil", "UK Brent Oil",
+)
+PRUNED_ASSET_UNIVERSE["COMMODITIES_SNR"] = (
+    "XAUUSD", "XAUUSDmicro", "microXAUUSD",
+    "XAUEUR", "XAUEURmicro", "microXAUEUR",
+    "XAGUSD", "XAGUSDmicro", "microXAGUSD",
+    "US Oil", "UK Brent Oil",
+)
+PRUNED_ASSET_UNIVERSE["COMMODITIES"] = PRUNED_ASSET_UNIVERSE["COMMODITIES_SNR"]
+PRUNED_ASSET_UNIVERSE["INDICESB_SNR"] = (
+    "Wall Street 30", "US Tech 100", "US SP 500", "Germany 40",
+)
+PRUNED_ASSET_UNIVERSE["INDICES"] = PRUNED_ASSET_UNIVERSE["INDICESB_SNR"]
+PRUNED_ASSET_UNIVERSE["FOREX_SNR"] = tuple(_ICT_ACTIVE_BY_PROFILE["FOREX_SNR"])

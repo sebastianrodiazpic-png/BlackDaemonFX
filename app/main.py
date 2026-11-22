@@ -1,4 +1,4 @@
-﻿"""Punto de entrada y orquestador de procesos de BlackDaemonFX.
+"""Punto de entrada y orquestador de procesos de BlackDaemonFX.
 
 Expone la CLI del proyecto (`main()`), que selecciona uno de los modos de
 ejecucion: recoleccion de datos, analisis historico, backtest, bot demo, papel
@@ -23,6 +23,16 @@ Vinculaciones:
 """
 
 from __future__ import annotations
+
+import os
+
+# Limitación de hilos en librerías numéricas para evitar sobreasignación de memoria virtual
+# y contención entre subprocesos (reduce commit de 1.1 GB a 100 MB por worker).
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
 import argparse
 import atexit
@@ -528,7 +538,7 @@ def run_demo_bot(
         min_actual_risk_ratio=0.97,
         execution_enabled=execute,
         orb_enabled=(str(bot_profile).upper() == "ORB"),
-        malaysian_snr_enabled=(str(bot_profile).upper() == "MALAYSIAN_SNR"),
+        malaysian_snr_enabled=(str(bot_profile).upper() in ("MALAYSIAN_SNR", "COMMODITIES_SNR", "INDICESB_SNR", "FOREX_SNR")),
         first_target_rr=1.0,
         second_target_rr=2.0,
         single_entry_target_rr=2.0,
@@ -1073,24 +1083,56 @@ BOT_PROFILES = {
     # multi-bot distribuye su universo entre cuatro procesos independientes.
     "VOLATILITY_1": {
         "mode": "volatility-1-daemon", "magic": 26082401,
-        "categories": ["volatility"], "shard_index": 0, "shard_count": 4,
+        "categories": ["volatility"],
+        "symbols": [
+            "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
+            "High Frequency Vol 10 Index", "High Frequency Vol 25 Index",
+            "High Frequency Vol 75 Index",
+        ],
     },
     "VOLATILITY_2": {
         "mode": "volatility-2-daemon", "magic": 26082402,
-        "categories": ["volatility"], "shard_index": 1, "shard_count": 4,
+        "categories": ["volatility"],
+        "symbols": [
+            "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+            "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
+        ],
     },
     "VOLATILITY_3": {
         "mode": "volatility-3-daemon", "magic": 26082403,
-        "categories": ["volatility"], "shard_index": 2, "shard_count": 4,
+        "categories": ["volatility"],
+        "symbols": [
+            "Volatility 10 Index", "Volatility 100 Index", "Volatility 15 Index",
+            "Volatility 25 Index", "Volatility 5 Index", "Volatility 50 Index",
+            "Volatility 75 Index", "Volatility 90 Index",
+        ],
     },
     "VOLATILITY_4": {
         "mode": "volatility-4-daemon", "magic": 26082404,
-        "categories": ["volatility"], "shard_index": 3, "shard_count": 4,
+        "categories": ["volatility"],
+        "symbols": [
+            "Volatility 100 (1s) Index", "Volatility 150 (1s) Index", "Volatility 250 (1s) Index",
+            "Volatility 50 (1s) Index", "Volatility 75 (1s) Index", "Volatility 90 (1s) Index",
+            "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+            "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
+        ],
     },
     "STEP": {
         "mode": "step-daemon",
         "magic": 26082104,
         "categories": ["step"],
+        "symbols": [
+            "Step Index 200", "Step Index 400", "Step Index 500",
+        ],
+    },
+    "STEP_2": {
+        "mode": "step-2-daemon",
+        "magic": 26082406,
+        "categories": ["step"],
+        "symbols": [
+            "Step Index", "Step Index 300", "Step Index 1000",
+            "Step Index 1500", "Step Index 2000",
+        ],
     },
     "JUMP": {
         "mode": "jump-daemon",
@@ -1111,29 +1153,68 @@ BOT_PROFILES = {
         "mode": "forex-1-daemon",
         "magic": 26082201,
         "categories": ["forex"],
-        "shard_index": 0,
-        "shard_count": 4,
+        "symbols": [
+            "NZDCAD",
+            "NZDUSD", "NZDUSDmicro",
+            "NZDCHF",
+            "NZDJPY",
+            "NZDSGD",
+        ],
     },
     "FOREX_2": {
         "mode": "forex-2-daemon",
         "magic": 26082202,
         "categories": ["forex"],
-        "shard_index": 1,
-        "shard_count": 4,
+        "symbols": [
+            "AUDCHF", "AUDCHFmicro",
+            "AUDJPY", "AUDJPYmicro",
+            "AUDNZD", "AUDNZDmicro",
+            "AUDUSD", "AUDUSDmicro",
+            "AUDCAD", "AUDCADmicro",
+            "AUDSGD",
+        ],
     },
     "FOREX_3": {
         "mode": "forex-3-daemon",
         "magic": 26082203,
         "categories": ["forex"],
-        "shard_index": 2,
-        "shard_count": 4,
+        "symbols": [
+            "EURAUD", "EURAUDmicro",
+            "EURCAD", "EURCADmicro",
+            "EURCHF", "EURCHFmicro",
+            "EURGBP", "EURGBPmicro",
+            "EURJPY", "EURJPYmicro",
+            "EURNZD", "EURNZDmicro",
+            "EURUSD", "EURUSDmicro",
+            "EURHKD", "EURMXN", "EURNOK",
+            "EURPLN", "EURSEK", "EURSGD", "EURZAR",
+        ],
     },
     "FOREX_4": {
         "mode": "forex-4-daemon",
         "magic": 26082204,
         "categories": ["forex"],
-        "shard_index": 3,
-        "shard_count": 4,
+        "symbols": [
+            "USDCAD", "USDCADmicro",
+            "USDCHF", "USDCHFmicro",
+            "USDJPY", "USDJPYmicro",
+            "USDCNH", "USDHKD", "USDMXN",
+            "USDNOK", "USDPLN", "USDSEK",
+            "USDSGD", "USDZAR",
+        ],
+    },
+    "FOREX_5": {
+        "mode": "forex-5-daemon",
+        "magic": 26082205,
+        "categories": ["forex"],
+        "symbols": [
+            "GBPAUD", "GBPCAD",
+            "GBPCHF", "GBPCHFmicro",
+            "GBPJPY", "GBPJPYmicro",
+            "GBPNZD",
+            "GBPUSD", "GBPUSDmicro",
+            "GBPNOK", "GBPSEK", "GBPSGD",
+        ],
     },
     "ORB": {
         "mode": "orb-daemon",
@@ -1150,8 +1231,8 @@ BOT_PROFILES = {
         "magic": 26082031,
         "categories": [],
         "symbols": [
-            # Malaysian SNR solo en sintÃ©ticos (replay fiel 2 aÃ±os: sintÃ©ticos + tope spread/SL 2% -0.020/+0.015
-            # R/trade vs lista 23 + C2 -0.126/-0.117). Desactivable con DAEMONBLACKFX_MSNR_SYNTHETICS_ONLY=0.
+            # Malaysian SNR enfocado exclusivamente en los 38 índices sintéticos de Deriv.
+            # Los 44 instrumentos Forex/Cripto se operan en el worker dedicado FOREX_SNR (0/44).
             "Boom 1000 Index",
             "Boom 300 Index",
             "Boom 500 Index",
@@ -1168,10 +1249,13 @@ BOT_PROFILES = {
             "Jump 25 Index",
             "Jump 50 Index",
             "Jump 75 Index",
+            "Jump 100 Index",
             "Step Index",
             "Step Index 200",
             "Step Index 400",
             "Step Index 500",
+            "Vol over Boom 550",
+            "Vol over Crash 550",
             "VolSwitch High Vol Index",
             "Volatility 10 Index",
             "Volatility 100 (1s) Index",
@@ -1189,38 +1273,51 @@ BOT_PROFILES = {
             "Volatility 90 Index",
         ],
         "pruned_symbols": [
-            # Mercados reales: expectativa negativa en ambos aÃ±os del replay fiel (-0.157 / -0.079 R/trade)
+            "DEX 1500 UP Index",
+        ],
+    },
+    "COMMODITIES_SNR": {
+        "mode": "commodities-snr-daemon",
+        "magic": 26082041,
+        "categories": ["commodities", "metals"],
+        "symbols": [
+            "XAUUSD",
+            "XAUUSDmicro",
+            "microXAUUSD",
+            "XAUEUR",
+            "XAUEURmicro",
+            "microXAUEUR",
             "XAGUSD",
-            "AUDNZD",
-            "GBPJPY",
-            "USDJPY",
-            "GBPUSD",
-            "GBPAUD",
+            "XAGUSDmicro",
+            "microXAGUSD",
+            "US Oil",
+            "UK Brent Oil",
+        ],
+    },
+    "INDICESB_SNR": {
+        "mode": "indicesb-snr-daemon",
+        "magic": 26082042,
+        "categories": ["indices"],
+        "symbols": [
             "Wall Street 30",
             "US Tech 100",
-            "EURUSD",
-            "EURCHF",
-            "EURGBP",
-            "XAUUSD",
-            "BTCUSD",
-            "USDCAD",
-            "GBPCAD",
-            "EURAUD",
-            "EURCAD",
-            "CADCHF",
-            "AUDCAD",
             "US SP 500",
-            "GBPNZD",
-            "CHFJPY",
-            "AUDCHF",
-            "CADJPY",
-            "AUDUSD",
-            "GBPCHF",
-            "AUDJPY",
-            "US Oil",
-            "USDCHF",
-            "EURNZD",
-            "EURJPY",
+            "Germany 40",
+        ],
+    },
+    "FOREX_SNR": {
+        "mode": "forex-snr-daemon",
+        "magic": 26082043,
+        "categories": ["forex", "crypto"],
+        "symbols": [
+            "AUDCHF", "AUDCHFmicro", "GBPNZD", "GBPNZDmicro", "GBPAUD", "GBPAUDmicro",
+            "CADCHF", "CADCHFmicro", "CADJPY", "CADJPYmicro", "USDJPY", "USDJPYmicro",
+            "GBPUSD", "GBPUSDmicro", "GBPJPY", "GBPJPYmicro", "EURAUD", "EURAUDmicro",
+            "AUDJPY", "AUDJPYmicro", "GBPCHF", "GBPCHFmicro", "CHFJPY", "CHFJPYmicro",
+            "USDCAD", "USDCADmicro", "EURUSD", "EURUSDmicro", "EURJPY", "EURJPYmicro",
+            "EURCAD", "EURCADmicro", "USDCHF", "USDCHFmicro", "AUDUSD", "AUDUSDmicro",
+            "BTCUSD", "BTCUSDmicro", "AUDCAD", "AUDCADmicro", "NZDUSD", "NZDUSDmicro",
+            "EURGBPmicro", "ETHUSDmicro",
         ],
     },
     "ICT": {
@@ -1228,34 +1325,13 @@ BOT_PROFILES = {
         "magic": 26082032,
         "categories": [],
         "symbols": [
-            "XAUUSD",
-            "XAUUSDmicro",
-            "XAUEUR",
-            "XAUEURmicro",
-            "BTCUSD",
-            "BTCUSDmicro",
-            "US Oil",
-            "Jump 50 Index",
-            "EURUSD",
-            "EURUSDmicro",
-            "Crash 300 Index",
-            "Crash 600 Index",
-            "Boom 500 Index",
-            "Boom 300 Index",
-            "Boom 900 Index",
-            "Boom 1000 Index",
-            "Boom 600 Index",
-            "Jump 25 Index",
-            "Jump 75 Index",
-            "Jump 10 Index",
-            "Step Index 400",
-            "Step Index 500",
-            "Step Index",
-            "XAGUSD",
-            "XAGUSDmicro",
-            "Wall Street 30",
-            "US Tech 100",
-            "US SP 500",
+            "BTCUSD", "ETHUSD",
+            "BTCUSDmicro", "ETHUSDmicro",
+            "XRPUSD",
+            "XAUEUR", "XAUUSD",
+            "XAUUSDmicro", "XAUEURmicro",
+            "XAGUSD", "XAGUSDmicro",
+            "US Oil", "UK Brent Oil",
         ],
     },
     "TREND_PULLBACK": {
@@ -1303,9 +1379,9 @@ VOLATILITY_SHARD_PROFILES = (
     "VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4",
 )
 MULTIBOT_SYNTHETIC_PROFILES = (
-    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "JUMP", "FLIP",
+    "BOOM", "CRASH", *VOLATILITY_SHARD_PROFILES, "STEP", "STEP_2", "JUMP", "FLIP",
 )
-FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
+FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5")
 # v109: IDX_OPEN se retirÃ³ de la arquitectura multi-bot activa (desactivado
 # a pedido del usuario, no eliminado). El perfil sigue existiendo en
 # `BOT_PROFILES` y toda su lÃ³gica (estrategia, worker, dashboard) permanece
@@ -1314,10 +1390,17 @@ FOREX_SPLIT_PROFILES = ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
 # `LiveTradingConfig.idx_open_enabled` quedÃ³ en `False` por defecto (ver
 # ese campo en `strategy/execution/live_trading_engine.py`). Para reactivar:
 # volver a incluir "IDX_OPEN" aquÃ­ y restaurar `idx_open_enabled=True`.
+# v110: COMMODITIES_SNR, FOREX_SNR y MALAYSIAN_SNR se retiraron de los workers
+# concurrentes de multi-bot-daemon (a pedido del usuario). Sus estrategias (Malaysian SNR
+# e ICT) quedaron implementadas internamente dentro de cada worker MultiStrategia
+# (Sintéticos: BOOM, CRASH, STEP, JUMP, VOLATILITY 1-4; Forex: FOREX 1-5;
+# Materias Primas/Cripto: ICT; Índices: INDICESB_SNR).
+# v111: TREND_PULLBACK (PID 30444) retirado de FULL_MULTI_BOT_PROFILES.
 FULL_MULTI_BOT_PROFILES = (
     *MULTIBOT_SYNTHETIC_PROFILES,
     *FOREX_SPLIT_PROFILES,
-    "ORB", "MALAYSIAN_SNR", "ICT", "TREND_PULLBACK",
+    "INDICESB_SNR",
+    "ORB", "ICT",
 )
 
 
@@ -1364,6 +1447,9 @@ def _selection_profile_for_bot(profile: str) -> str:
     """Traduce el perfil de un worker a su familia de instrumentos."""
     profile = str(profile or "").upper()
     if profile == "TREND_PULLBACK": return "TREND_PULLBACK"
+    if profile in ("COMMODITIES", "COMMODITIES_SNR"): return "COMMODITIES_SNR"
+    if profile in ("INDICES", "INDICESB_SNR"): return "INDICESB_SNR"
+    if profile in ("FOREX_SNR", "FOREX_MSNR"): return "FOREX_SNR"
     if profile == "ICT": return "ICT"
     if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
     if profile.startswith("FOREX"): return "FOREX"
@@ -1449,8 +1535,62 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
             symbol for symbol in discover_orb_symbols(provider)
             if is_orb_index_symbol(symbol)
         })
+    elif profile in ("COMMODITIES", "COMMODITIES_SNR"):
+        candidates = list(spec.get("symbols", []))
+        universe = []
+        for sym in candidates:
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or candidates))
+    elif profile in ("INDICES", "INDICESB_SNR"):
+        candidates = list(spec.get("symbols", []))
+        universe = []
+        for sym in candidates:
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or candidates))
+    elif profile == "FOREX_SNR":
+        candidates = list(spec.get("symbols", []))
+        universe = []
+        for sym in candidates:
+            try:
+                if provider.get_symbol_info(sym):
+                    universe.append(sym)
+            except Exception:
+                pass
+        universe = sorted(set(universe or candidates))
     elif profile == "MALAYSIAN_SNR":
         candidates = sorted(set(spec.get("symbols", [])) | set(spec.get("pruned_symbols", [])))
+        # Unificación opcional para aislamiento de workers (por defecto inactivo para preservar catálogo total)
+        if os.getenv("DAEMONBLACKFX_MSNR_EXCLUDE_CONSOLIDATED", "0").strip().lower() in ("1", "true"):
+            vol_multi_targets = {
+                "volatility 10 index", "volatility 100 index", "volatility 15 index",
+                "volatility 25 index", "volatility 5 index", "volatility 50 index",
+                "volatility 75 index", "volatility 90 index",
+                "volatility 100 (1s) index", "volatility 150 (1s) index", "volatility 250 (1s) index",
+                "volatility 50 (1s) index", "volatility 75 (1s) index", "volatility 90 (1s) index",
+                "volatility 10 (1s) index", "volatility 15 (1s) index", "volatility 25 (1s) index",
+                "volatility 30 (1s) index", "volatility 5 (1s) index",
+                "high frequency vol 100 index", "high frequency vol 50 index",
+                "high frequency vol 10 index", "high frequency vol 25 index",
+                "high frequency vol 75 index",
+                "ladder volatility down index", "ladder volatility up index",
+                "volswitch low vol index", "volswitch medium vol index",
+            }
+            candidates = [
+                s for s in candidates
+                if "step" not in str(s).lower()
+                and "crash" not in str(s).lower()
+                and "boom" not in str(s).lower()
+                and "jump" not in str(s).lower()
+                and str(s).lower() not in vol_multi_targets
+            ]
         universe = []
         for sym in candidates:
             try:
@@ -1460,7 +1600,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
                 pass
         universe = sorted(set(universe or candidates))
     elif profile == "ICT":
-        # PolÃ­tica Ãºnica de /Instruments: metales, Ã­ndices y commodities; los sintÃ©ticos van a sus workers
+        # Política única de /Instruments: metales, índices y commodities; los sintéticos van a sus workers
         # de familia y cripto/plata quedan en PODA PREVENTIVA (config/ict_instrument_policy.py).
         from config.ict_instrument_policy import ict_active_symbols
         candidates = list(ict_active_symbols("ICT"))
@@ -1473,25 +1613,159 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
                 pass
         universe = sorted(set(universe or candidates))
     elif profile == "STEP":
-        step_syms = manager.get_active_symbols(categories=["step"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index", "Step Index 500", "Step Index 400", "Step Index 200", "Step Index 100")))
-        universe = sorted(step_syms or allowed)
+        try:
+            step_syms = manager.get_active_symbols(categories=["step"]) or []
+        except Exception:
+            step_syms = []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP", ("Step Index 200", "Step Index 400", "Step Index 500")))
+        universe = sorted(set(s for s in step_syms if s in allowed) | allowed)
+    elif profile == "STEP_2":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("STEP_2", (
+            "Step Index", "Step Index 300", "Step Index 1000", "Step Index 1500", "Step Index 2000",
+        )))
+        try:
+            step_syms = manager.get_active_symbols(categories=["step"]) or []
+        except Exception:
+            step_syms = []
+        universe = sorted(set(s for s in step_syms if s in allowed) | allowed)
     elif profile == "JUMP":
-        jump_syms = manager.get_active_symbols(categories=["jump"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("JUMP", ("Jump 75 Index", "Jump 10 Index", "Jump 25 Index")))
-        universe = sorted(jump_syms or allowed)
+        try:
+            jump_syms = manager.get_active_symbols(categories=["jump"]) or []
+        except Exception:
+            jump_syms = []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("JUMP", (
+            "Jump 10 Index", "Jump 25 Index", "Jump 50 Index", "Jump 75 Index", "Jump 100 Index"
+        )))
+        universe = sorted(set(jump_syms) | allowed)
+    elif profile == "VOLATILITY_1":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY_1", (
+            "High Frequency Vol 100 Index", "High Frequency Vol 50 Index",
+            "High Frequency Vol 10 Index", "High Frequency Vol 25 Index",
+            "High Frequency Vol 75 Index",
+        )))
+        try:
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        except Exception:
+            vol_syms = []
+        universe = sorted(set(s for s in vol_syms if s in allowed) | allowed)
+    elif profile == "VOLATILITY_2":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY_2", (
+            "Ladder Volatility Down Index", "Ladder Volatility Up Index",
+            "VolSwitch Low Vol Index", "VolSwitch Medium Vol Index",
+        )))
+        try:
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        except Exception:
+            vol_syms = []
+        universe = sorted(set(s for s in vol_syms if s in allowed) | allowed)
+    elif profile == "VOLATILITY_3":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY_3", (
+            "Volatility 10 Index", "Volatility 100 Index", "Volatility 15 Index", "Volatility 25 Index",
+            "Volatility 5 Index", "Volatility 50 Index", "Volatility 75 Index", "Volatility 90 Index",
+        )))
+        try:
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        except Exception:
+            vol_syms = []
+        universe = sorted(set(s for s in vol_syms if s in allowed) | allowed)
+    elif profile == "VOLATILITY_4":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY_4", (
+            "Volatility 100 (1s) Index", "Volatility 150 (1s) Index", "Volatility 250 (1s) Index",
+            "Volatility 50 (1s) Index", "Volatility 75 (1s) Index", "Volatility 90 (1s) Index",
+            "Volatility 10 (1s) Index", "Volatility 15 (1s) Index", "Volatility 25 (1s) Index",
+            "Volatility 30 (1s) Index", "Volatility 5 (1s) Index",
+        )))
+        try:
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        except Exception:
+            vol_syms = []
+        universe = sorted(set(s for s in vol_syms if s in allowed) | allowed)
     elif profile.startswith("VOLATILITY"):
-        vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        try:
+            vol_syms = manager.get_active_symbols(categories=["volatility"]) or []
+        except Exception:
+            vol_syms = []
         allowed = set(PRUNED_ASSET_UNIVERSE.get("VOLATILITY", ("Volatility 100 Index", "Volatility 75 Index")))
         universe = sorted(vol_syms or allowed)
     elif profile == "BOOM":
-        boom_syms = manager.get_active_symbols(categories=["boom"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("BOOM", ("Boom 1000 Index", "Boom 900 Index", "Boom 600 Index", "Boom 500 Index", "Boom 300 Index")))
-        universe = sorted(boom_syms or allowed)
+        try:
+            boom_syms = manager.get_active_symbols(categories=["boom"]) or []
+        except Exception:
+            boom_syms = []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("BOOM", (
+            "Boom 1000 Index", "Boom 300 Index", "Boom 500 Index", "Boom 600 Index", "Boom 900 Index",
+            "Volatility Boom 400 Index", "Volatility Boom 750 Index"
+        )))
+        universe = sorted(set(boom_syms) | allowed)
     elif profile == "CRASH":
-        crash_syms = manager.get_active_symbols(categories=["crash"]) or []
-        allowed = set(PRUNED_ASSET_UNIVERSE.get("CRASH", ("Crash 1000 Index", "Crash 900 Index", "Crash 600 Index", "Crash 500 Index", "Crash 300 Index")))
-        universe = sorted(crash_syms or allowed)
+        try:
+            crash_syms = manager.get_active_symbols(categories=["crash"]) or []
+        except Exception:
+            crash_syms = []
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("CRASH", (
+            "Crash 1000 Index", "Crash 900 Index", "Crash 600 Index", "Crash 500 Index", "Crash 300 Index",
+            "Volatility Crash 400 Index", "Volatility Crash 550 Index", "Volatility Crash 750 Index"
+        )))
+        universe = sorted(set(crash_syms) | allowed)
+    elif profile == "FOREX_2":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX_2", (
+            "AUDCHF", "AUDCHFmicro",
+            "AUDJPY", "AUDJPYmicro",
+            "AUDNZD", "AUDNZDmicro",
+            "AUDUSD", "AUDUSDmicro",
+            "AUDCAD", "AUDCADmicro",
+            "AUDSGD",
+        )))
+        try:
+            forex_syms = list(manager.discovery.get_tradeable_forex())
+        except Exception:
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        universe = sorted(set(s for s in forex_syms if s in allowed) | allowed)
+    elif profile == "FOREX_3":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX_3", (
+            "EURAUD", "EURAUDmicro",
+            "EURCAD", "EURCADmicro",
+            "EURCHF", "EURCHFmicro",
+            "EURGBP", "EURGBPmicro",
+            "EURJPY", "EURJPYmicro",
+            "EURNZD", "EURNZDmicro",
+            "EURUSD", "EURUSDmicro",
+            "EURHKD", "EURMXN", "EURNOK",
+            "EURPLN", "EURSEK", "EURSGD", "EURZAR",
+        )))
+        try:
+            forex_syms = list(manager.discovery.get_tradeable_forex())
+        except Exception:
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        universe = sorted(set(s for s in forex_syms if s in allowed) | allowed)
+    elif profile == "FOREX_4":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX_4", (
+            "USDCAD", "USDCADmicro",
+            "USDCHF", "USDCHFmicro",
+            "USDJPY", "USDJPYmicro",
+            "USDCNH", "USDHKD", "USDMXN",
+            "USDNOK", "USDPLN", "USDSEK",
+            "USDSGD", "USDZAR",
+        )))
+        try:
+            forex_syms = list(manager.discovery.get_tradeable_forex())
+        except Exception:
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        universe = sorted(set(s for s in forex_syms if s in allowed) | allowed)
+    elif profile == "FOREX_5":
+        allowed = set(PRUNED_ASSET_UNIVERSE.get("FOREX_5", (
+            "GBPAUD", "GBPCAD",
+            "GBPCHF", "GBPCHFmicro",
+            "GBPJPY", "GBPJPYmicro",
+            "GBPNZD",
+            "GBPUSD", "GBPUSDmicro",
+            "GBPNOK", "GBPSEK", "GBPSGD",
+        )))
+        try:
+            forex_syms = list(manager.discovery.get_tradeable_forex())
+        except Exception:
+            forex_syms = list(manager.get_active_symbols(categories=["forex"]))
+        universe = sorted(set(s for s in forex_syms if s in allowed) | allowed)
     elif profile.startswith("FOREX"):
         try:
             forex_syms = list(manager.discovery.get_tradeable_forex())
@@ -1519,7 +1793,7 @@ def _resolve_universe_for_profile_provider(provider, profile: str) -> list[str]:
     from config.ict_instrument_policy import CONSOLIDATE_ACTIVE_PRUNED_WORKERS, resolve_active_pruned_worker_universe
     if CONSOLIDATE_ACTIVE_PRUNED_WORKERS and (
         profile in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4")
-        or profile in ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4")
+        or profile in ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5")
     ):
         return resolve_active_pruned_worker_universe(profile, universe)
     if spec.get("shard_count"):
@@ -1657,30 +1931,63 @@ def _build_multi_bot_dashboard_catalog(profiles):
                 _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
+                    # Materias primas, Índices bursátiles y Forex/Cripto son operados exclusivamente
+                    # por sus workers aislados COMMODITIES_SNR, INDICESB_SNR y FOREX_SNR.
+                    if sym_lower.startswith(("xau", "xag", "xpt")) or "oil" in sym_lower or "brent" in sym_lower:
+                        continue
+                    if any(idx in sym_lower for idx in ("wall street", "tech 100", "sp 500", "germany")):
+                        continue
+                    if any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
+                        continue
                     if "jump" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
-                    elif "volatility" in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower:
+                    elif "volatility" in sym_lower or "vol " in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower or "dex" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
-                    elif sym_lower.startswith(("xau", "xag", "xpt")):
-                        categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
-                    elif any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
-                        categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
-                        categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                 for sym in spec.get("pruned_symbols", []):
+                    sym_lower = sym.lower()
+                    if sym_lower.startswith(("xau", "xag", "xpt")) or "oil" in sym_lower or "brent" in sym_lower:
+                        continue
+                    if any(idx in sym_lower for idx in ("wall street", "tech 100", "sp 500", "germany")):
+                        continue
+                    if any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
+                        continue
                     categorized.setdefault(f"{_msnr_prefix}_pruned", []).append(sym)
+                continue
+            if profile in ("COMMODITIES", "COMMODITIES_SNR"):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("commodities_snr", []).append(sym)
+                    except Exception:
+                        pass
+                continue
+            if profile in ("INDICES", "INDICESB_SNR"):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("indicesb_snr", []).append(sym)
+                    except Exception:
+                        pass
+                continue
+            if profile in ("FOREX_SNR",):
+                for sym in spec.get("symbols", []):
+                    categorized.setdefault("forex_snr", []).append(sym)
                 continue
 
             for category in spec.get("categories", []):
                 symbols = manager.get_active_symbols(categories=[category])
                 if symbols:
                     categorized.setdefault(category, []).extend(symbols)
+            if profile.startswith("VOLATILITY_"):
+                categorized.setdefault("volatility", []).extend([s for s in spec.get("symbols", []) if s != "Ladder Volatility Up"])
 
         # Eliminar duplicados sin alterar el nombre real del broker.
         for category, symbols in list(categorized.items()):
@@ -1753,22 +2060,35 @@ def _recover_empty_synthetic_selection(repo, catalog, profiles):
             writer(orb_symbols, selection_profile="ORB", source="DEMO")
             print("[RECUPERACIÃ“N] Perfil ORB activado con instrumentos principales NY.")
 
-    # Saneamiento y recuperaciÃ³n de TREND_PULLBACK y MALAYSIAN_SNR
-    if "TREND_PULLBACK" in active_profiles or not active_profiles:
+    # Saneamiento y recuperación (solo si están explícitamente activos en active_profiles)
+    if "TREND_PULLBACK" in active_profiles:
         tp_pref = reader("TREND_PULLBACK", source="DEMO")
         if tp_pref is None or not tp_pref.get("selected_symbols"):
             from strategy.trend_pullback.config import DEFAULT_PULLBACK_SYMBOLS
             tp_symbols = list(DEFAULT_PULLBACK_SYMBOLS)
             writer(tp_symbols, selection_profile="TREND_PULLBACK", source="DEMO")
-            print(f"[RECUPERACIÃ“N] Perfil TREND_PULLBACK activado con {len(tp_symbols)} instrumentos.")
+            print(f"[RECUPERACIÓN] Perfil TREND_PULLBACK activado con {len(tp_symbols)} instrumentos.")
 
-    if "MALAYSIAN_SNR" in active_profiles or not active_profiles:
+    if "MALAYSIAN_SNR" in active_profiles:
+        from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
         msnr_pref = reader("MALAYSIAN_SNR", source="DEMO")
+        msnr_symbols = list(MALAYSIAN_SNR_ACTIVE)
         if msnr_pref is None or not msnr_pref.get("selected_symbols"):
-            from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
-            msnr_symbols = list(MALAYSIAN_SNR_ACTIVE)
             writer(msnr_symbols, selection_profile="MALAYSIAN_SNR", source="DEMO")
-            print(f"[RECUPERACIÃ“N] Perfil MALAYSIAN_SNR activado con {len(msnr_symbols)} instrumentos.")
+            print(f"[RECUPERACIÓN] Perfil MALAYSIAN_SNR activado con {len(msnr_symbols)} instrumentos.")
+        else:
+            persisted_msnr = [str(s) for s in (msnr_pref.get("selected_symbols") or []) if s]
+            synth_only = [s for s in persisted_msnr if s in set(MALAYSIAN_SNR_ACTIVE)]
+            if len(synth_only) != len(persisted_msnr) or not synth_only:
+                writer(synth_only or msnr_symbols, selection_profile="MALAYSIAN_SNR", source="DEMO")
+
+    if "FOREX_SNR" in active_profiles or not active_profiles:
+        from config.ict_instrument_policy import FOREX_SNR_ACTIVE
+        fx_snr_pref = reader("FOREX_SNR", source="DEMO")
+        if fx_snr_pref is None or not fx_snr_pref.get("selected_symbols"):
+            fx_snr_symbols = list(FOREX_SNR_ACTIVE)
+            writer(fx_snr_symbols, selection_profile="FOREX_SNR", source="DEMO")
+            print(f"[RECUPERACIÃ“N] Perfil FOREX_SNR activado con {len(fx_snr_symbols)} instrumentos.")
 
     return saved
 
@@ -1831,6 +2151,9 @@ def _resolve_symbols_for_profile_shared(provider, repo, profile: str):
             pref = None
     if pref is not None:
         selected = {str(s) for s in (pref.get("selected_symbols") or [])}
+        if profile in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_4"):
+            from config.strategy_config import PRUNED_ASSET_UNIVERSE
+            selected.update(PRUNED_ASSET_UNIVERSE.get(profile, ()))
         universe = [s for s in universe if s in selected]
     return universe
 
@@ -1929,24 +2252,59 @@ def run_unified_multibot_daemon(args, profiles=None):
                 _msnr_prefix = "malaysian_snr" if profile == "MALAYSIAN_SNR" else "msnr"
                 for sym in spec.get("symbols", []):
                     sym_lower = sym.lower()
+                    if sym_lower.startswith(("xau", "xag", "xpt")) or "oil" in sym_lower or "brent" in sym_lower:
+                        continue
+                    if any(idx in sym_lower for idx in ("wall street", "tech 100", "sp 500", "germany")):
+                        continue
                     if "jump" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_jump", []).append(sym)
                     elif "step" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_step", []).append(sym)
-                    elif "volatility" in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower:
+                    elif "volatility" in sym_lower or "vol " in sym_lower or "vol over" in sym_lower or "volswitch" in sym_lower or "dex" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                     elif "boom" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_boom", []).append(sym)
                     elif "crash" in sym_lower:
                         categorized.setdefault(f"{_msnr_prefix}_crash", []).append(sym)
-                    elif sym_lower.startswith(("xau", "xag", "xpt")):
-                        categorized.setdefault(f"{_msnr_prefix}_metals", []).append(sym)
                     elif any(c in sym_lower for c in ("btc", "eth", "eur", "usd", "gbp", "jpy", "aud", "cad", "chf", "nzd")):
                         categorized.setdefault(f"{_msnr_prefix}_forex", []).append(sym)
                     else:
-                        categorized.setdefault(f"{_msnr_prefix}_indices", []).append(sym)
+                        categorized.setdefault(f"{_msnr_prefix}_volatility", []).append(sym)
                 for sym in spec.get("pruned_symbols", []):
+                    sym_lower = sym.lower()
+                    if sym_lower.startswith(("xau", "xag", "xpt")) or "oil" in sym_lower or "brent" in sym_lower:
+                        continue
+                    if any(idx in sym_lower for idx in ("wall street", "tech 100", "sp 500", "germany")):
+                        continue
                     categorized.setdefault(f"{_msnr_prefix}_pruned", []).append(sym)
+            elif profile in ("COMMODITIES", "COMMODITIES_SNR"):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("commodities_snr", []).append(sym)
+                    except Exception:
+                        pass
+            elif profile in ("INDICES", "INDICESB_SNR"):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("indicesb_snr", []).append(sym)
+                    except Exception:
+                        pass
+            elif profile in ("FOREX_SNR",):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("forex_snr", []).append(sym)
+                    except Exception:
+                        pass
+            elif profile in ("FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5"):
+                for sym in spec.get("symbols", []):
+                    try:
+                        if provider.get_symbol_info(sym):
+                            categorized.setdefault("forex", []).append(sym)
+                    except Exception:
+                        pass
             elif profile.startswith("FOREX"):
                 if "forex" not in categorized:
                     try:
@@ -2000,7 +2358,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 min_actual_risk_ratio=0.97,
                 execution_enabled=args.execute,
                 orb_enabled=(profile == "ORB"),
-                malaysian_snr_enabled=(profile == "MALAYSIAN_SNR"),
+                malaysian_snr_enabled=(profile in ("MALAYSIAN_SNR", "COMMODITIES_SNR", "INDICESB_SNR", "FOREX_SNR")),
                 forex_event_timeframe="M5",
                 first_target_rr=1.0,
                 second_target_rr=2.0,
@@ -2180,7 +2538,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                     if args.debug:
                         print(f"[{profile}] ERROR: {exc}")
 
-                if profile.startswith("FOREX") or str(profile) == "GOLD":
+                if profile.startswith("FOREX") or str(profile) in ("GOLD", "COMMODITIES"):
                     delay = max(2.0, float(getattr(engine.config, "forex_event_poll_seconds", 10.0)))
                 elif profile == "ORB":
                     delay = min(max(5.0, float(args.interval)), 10.0)
@@ -2443,6 +2801,27 @@ def _acquire_multibot_instance_guard():
     return guard
 
 
+def _apply_restart_freeze(guard):
+    """Congelacion de reinicios durante la sesion (app/restart_freeze.py, DAEMONBLACKFX_RESTART_FREEZE).
+
+    Anota este arranque y avisa si es un reinicio fuera de la ventana de mantenimiento. Solo en modo `enforce`
+    cancela el arranque (antes de crear dashboard o workers) y libera el bloqueo de instancia. Un fallo de esta
+    comprobacion nunca impide arrancar el daemon.
+    """
+    try:
+        from app.restart_freeze import check_and_record
+        report = check_and_record(PROJECT_ROOT)
+    except Exception as exc:
+        print(f"[RESTART FREEZE WARNING] comprobacion omitida: {exc}", file=sys.stderr)
+        return None
+    if report.get("decision") != "ALLOW" or report.get("is_restart"):
+        print(report.get("message", ""))
+    if report.get("decision") == "BLOCK":
+        guard.release()
+        raise SystemExit(report.get("message"))
+    return report
+
+
 def _find_other_multibot_coordinators_windows():
     """Devuelve coordinadores externos, excluyendo todo el Ã¡rbol lanzador actual."""
     if os.name != "nt":
@@ -2570,7 +2949,7 @@ def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool,
         item.strip().upper()
         for item in os.getenv(
             'DAEMONBLACKFX_DISABLED_WORKERS',
-            'FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK',
+            'GOLD,IDX_OPEN,TREND_PULLBACK',
         ).split(',')
         if item.strip()
     }
@@ -2636,6 +3015,14 @@ def run_multi_bot_daemon(args, profiles=None):
     del XLSX consolidado para evitar colisiones entre procesos.
     """
     _warn_possible_parallel_daemon_instances()
+    try:
+        from strategy.execution.memory_manager import configure_process_priority
+        configure_process_priority()
+    except Exception:
+        pass
+    requested_interval = getattr(args, "interval", None)
+    if requested_interval is not None and "DAEMONBLACKFX_WORKER_POLL_INTERVAL_CAP" not in os.environ:
+        os.environ["DAEMONBLACKFX_WORKER_POLL_INTERVAL_CAP"] = str(max(10, int(requested_interval)))
     from reporting.trade_reporting_service import TradeReportingConfig, TradeReportingService
 
     logs_dir = PROJECT_ROOT / "storage" / "logs" / "bots"
@@ -2691,7 +3078,7 @@ def run_multi_bot_daemon(args, profiles=None):
                 symbols_processed=0,
                 current_symbol=None,
                 last_action="REPLACED_BY_FOREX_SHARDS",
-                last_reason="v69: reemplazado por FOREX_1/FOREX_2/FOREX_3/FOREX_4",
+                last_reason="v69: reemplazado por FOREX_1/FOREX_2/FOREX_3/FOREX_4/FOREX_5",
                 details={"version": DAEMONBLACKFX_VERSION, "legacy": True},
             )
         except Exception as exc:
@@ -2849,16 +3236,38 @@ def run_multi_bot_daemon(args, profiles=None):
         )
         worker_env.setdefault(
             "DAEMONBLACKFX_ADAPTIVE_CONCURRENCY",
-            os.getenv("DAEMONBLACKFX_ADAPTIVE_CONCURRENCY", "1"),
+            os.getenv("DAEMONBLACKFX_ADAPTIVE_CONCURRENCY", "0"),
         )
         worker_env.setdefault(
             "DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS",
-            os.getenv("DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS", "2"),
+            os.getenv("DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS", "1"),
         )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_OVERRUN_MIN_SLEEP_SECONDS",
+            os.getenv("DAEMONBLACKFX_OVERRUN_MIN_SLEEP_SECONDS", "2.0"),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_IDLE_MONITOR_POLL_SECONDS",
+            os.getenv("DAEMONBLACKFX_IDLE_MONITOR_POLL_SECONDS", "10.0"),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_WORKER_POLL_INTERVAL_CAP",
+            os.getenv("DAEMONBLACKFX_WORKER_POLL_INTERVAL_CAP", str(max(10, int(args.interval)))),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_DEDUPLICATE_MICRO_SYMBOLS",
+            os.getenv("DAEMONBLACKFX_DEDUPLICATE_MICRO_SYMBOLS", "1"),
+        )
+        worker_env.setdefault(
+            "DAEMONBLACKFX_PROCESS_PRIORITY",
+            os.getenv("DAEMONBLACKFX_PROCESS_PRIORITY", "BELOW_NORMAL"),
+        )
+        for thread_var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS"):
+            worker_env.setdefault(thread_var, "1")
         if force_enable:
             raw_dis = worker_env.get(
                 "DAEMONBLACKFX_DISABLED_WORKERS",
-                "FOREX_2,FOREX_3,FOREX_4,VOLATILITY_2,VOLATILITY_3,VOLATILITY_4,GOLD,IDX_OPEN,TREND_PULLBACK",
+                "FOREX_2,FOREX_3,FOREX_4,GOLD,IDX_OPEN,TREND_PULLBACK",
             )
             rem = [x.strip().upper() for x in raw_dis.split(",") if x.strip() and x.strip().upper() != profile.upper()]
             worker_env["DAEMONBLACKFX_DISABLED_WORKERS"] = ",".join(rem)
@@ -3715,6 +4124,7 @@ def main():
             "volatility-3-daemon",
             "volatility-4-daemon",
             "step-daemon",
+            "step-2-daemon",
             "jump-daemon",
             "flip-daemon",
             "forex-daemon",
@@ -3723,7 +4133,16 @@ def main():
             "forex-2-daemon",
             "forex-3-daemon",
             "forex-4-daemon",
+            "forex-5-daemon",
             "gold-session-daemon",
+            "commodities-snr",
+            "commodities-snr-daemon",
+            "commodities-daemon",
+            "indicesb-snr",
+            "indicesb-snr-daemon",
+            "indices-daemon",
+            "forex-snr",
+            "forex-snr-daemon",
             "orb-daemon",
             "idx-open-daemon",
             "malaysian-snr-daemon",
@@ -4097,6 +4516,7 @@ def main():
         # workers. Aunque Windows ejecute el comando dos veces casi al mismo
         # tiempo, sÃ³lo un coordinador puede continuar.
         instance_guard = _acquire_multibot_instance_guard()
+        _apply_restart_freeze(instance_guard)
         print(
             "[v77] MULTIBOT HÃBRIDO: workers de cÃ¡lculo independientes + "
             "un Ãºnico dashboard central liviano."
@@ -4132,7 +4552,7 @@ def main():
     if args.mode in {"forex-daemon", "forex-split-daemon"}:
         if args.interval < 1 or args.position_monitor_interval < 1:
             raise SystemExit("Los intervalos deben ser >= 1 segundo.")
-        print("[v69] FOREX EVENT SCHEDULER: 4 workers independientes + cachÃ© H1/M15 + eventos M5.")
+        print("[v69] FOREX EVENT SCHEDULER: 5 workers independientes + cachÃ© H1/M15 + eventos M5.")
         run_multi_bot_daemon(args, profiles=FOREX_SPLIT_PROFILES)
         return
 
@@ -4145,14 +4565,24 @@ def main():
         "volatility-3-daemon": "VOLATILITY_3",
         "volatility-4-daemon": "VOLATILITY_4",
         "step-daemon": "STEP",
+        "step-2-daemon": "STEP_2",
         "jump-daemon": "JUMP",
         "flip-daemon": "FLIP",
         "forex-1-daemon": "FOREX_1",
         "forex-2-daemon": "FOREX_2",
         "forex-3-daemon": "FOREX_3",
         "forex-4-daemon": "FOREX_4",
+        "forex-5-daemon": "FOREX_5",
         "orb-daemon": "ORB",
         "idx-open-daemon": "IDX_OPEN",
+        "commodities-snr": "COMMODITIES_SNR",
+        "commodities-snr-daemon": "COMMODITIES_SNR",
+        "commodities-daemon": "COMMODITIES_SNR",
+        "indicesb-snr": "INDICESB_SNR",
+        "indicesb-snr-daemon": "INDICESB_SNR",
+        "indices-daemon": "INDICESB_SNR",
+        "forex-snr": "FOREX_SNR",
+        "forex-snr-daemon": "FOREX_SNR",
         "malaysian-snr-daemon": "MALAYSIAN_SNR",
         "ict-daemon": "ICT",
         "trend-pullback-daemon": "TREND_PULLBACK",
@@ -4414,10 +4844,16 @@ def _apply_msnr_wr45_prune():
     # reales en prueba demo); el resto del universo sintÃ©tico pasa a podados.
     from config.ict_instrument_policy import (MALAYSIAN_SNR_ACTIVE, MALAYSIAN_SNR_EXCLUDED, MSNR_DEMO_TEST_SYMBOLS,
                                               MSNR_REAL_MARKET_SYMBOLS)
-    pruned = [s for s in (*spec["symbols"], *MALAYSIAN_SNR_EXCLUDED) if s not in set(MALAYSIAN_SNR_ACTIVE)]
-    spec["symbols"] = list(dict.fromkeys(MALAYSIAN_SNR_ACTIVE))
+    def _is_comm_or_idx(sym):
+        sl = str(sym).lower()
+        return (sl.startswith(("xau", "xag", "xpt")) or "oil" in sl or "brent" in sl
+                or any(x in sl for x in ("wall street", "tech 100", "sp 500", "germany")))
+
+    pruned = [s for s in (*spec["symbols"], *MALAYSIAN_SNR_EXCLUDED)
+              if s not in set(MALAYSIAN_SNR_ACTIVE) and not _is_comm_or_idx(s)]
+    spec["symbols"] = [s for s in dict.fromkeys(MALAYSIAN_SNR_ACTIVE) if not _is_comm_or_idx(s)]
     spec["pruned_symbols"] = [s for s in dict.fromkeys([*spec.get("pruned_symbols", []), *pruned])
-                              if s not in set(MALAYSIAN_SNR_ACTIVE)]
+                              if s not in set(MALAYSIAN_SNR_ACTIVE) and not _is_comm_or_idx(s)]
     # Worker MSNR (estrategia de los vÃ­deos, 20-oct-2026): mismos instrumentos que la pestaÃ±a Malaysian SNR,
     # pero controlado solo por la pestaÃ±a MSNR de /Instruments.
 

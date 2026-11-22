@@ -168,6 +168,54 @@ class TradeAuditExcelExporter:
         ]
         return pd.DataFrame(rows, columns=["Campo", "Valor"])
 
+    VIEW_FIELD_LABELS = {
+        "decision": "Decisión técnica (decision)",
+        "state": "Estado operativo (state)",
+        "action": "Acción recomendada (action)",
+        "direction": "Dirección operativa (direction)",
+        "score": "Puntuación técnica (score)",
+        "trade_score": "Puntaje consolidado (trade_score)",
+        "confirmation_percentage": "Porcentaje de confirmación % (confirmation_percentage)",
+        "h4_trend": "Tendencia marco mayor H4 (h4_trend)",
+        "h1_trend": "Tendencia marco intermedio H1 (h1_trend)",
+        "h4_h1_convergence": "Convergencia macro H4/H1 (h4_h1_convergence)",
+        "structure_break": "Rompimiento estructural M15 (structure_break)",
+        "zone": "Zona operativa OB/FVG (zone)",
+        "chart_pattern_name": "Patrón chartista (chart_pattern_name)",
+        "chart_pattern_direction": "Dirección patrón chartista (chart_pattern_direction)",
+        "chart_pattern_strength": "Fuerza patrón chartista (chart_pattern_strength)",
+        "chart_pattern_conflict": "Conflicto patrón chartista (chart_pattern_conflict)",
+        "chart_pattern_conflict_level": "Nivel de conflicto chartista (chart_pattern_conflict_level)",
+        "chart_pattern_conflict_reason": "Motivo conflicto chartista (chart_pattern_conflict_reason)",
+        "harmonic_pattern": "Patrón armónico (harmonic_pattern)",
+        "harmonic_confirmed": "Patrón armónico confirmado (harmonic_confirmed)",
+        "divergence_type": "Tipo de divergencia (divergence_type)",
+        "divergence_confirmed": "Divergencia confirmada (divergence_confirmed)",
+        "h1_doji_type": "Tipo de vela Doji H1 (h1_doji_type)",
+        "h1_doji_zone": "Zona de Doji H1 (h1_doji_zone)",
+        "orb_market": "Mercado / Sesión ORB (orb_market)",
+        "opening_range_high": "Máximo rango apertura ORB (opening_range_high)",
+        "opening_range_low": "Mínimo rango apertura ORB (opening_range_low)",
+        "opening_range_midpoint": "Punto medio rango ORB (opening_range_midpoint)",
+        "session_vwap": "VWAP de la sesión (session_vwap)",
+        "session_poc": "Punto de Control POC (session_poc)",
+        "breakout_up": "Ruptura alcista confirmada (breakout_up)",
+        "breakout_down": "Ruptura bajista confirmada (breakout_down)",
+        "retest_buy_ok": "Retesteo de compra válido (retest_buy_ok)",
+        "retest_sell_ok": "Retesteo de venta válido (retest_sell_ok)",
+        "htf_alignment": "Alineación temporalidad mayor (htf_alignment)",
+        "htf_blocked": "Bloqueado por filtro HTF (htf_blocked)",
+        "htf_reason": "Motivo bloqueo HTF (htf_reason)",
+        "evaluated_at": "Fecha y hora de evaluación (evaluated_at)",
+        "planned_rr": "R:R planificado (planned_rr)",
+        "risk_percent": "Porcentaje de riesgo (risk_percent)",
+        "passed": "Confirmaciones aprobadas (passed)",
+        "passed_confirmations": "Confirmaciones aprobadas (passed_confirmations)",
+        "missing": "Confirmaciones faltantes (missing)",
+        "missing_confirmations": "Confirmaciones faltantes (missing_confirmations)",
+        "critical_failures": "Fallas críticas de filtro (critical_failures)",
+    }
+
     def _view_frame(self, view, title):
         """Aplana un diccionario de vista a dos columnas clave/valor.
 
@@ -192,11 +240,13 @@ class TradeAuditExcelExporter:
         emitted = set()
         for key in preferred:
             if key in view:
-                rows.append((key, self._safe_text(view.get(key))))
+                label = self.VIEW_FIELD_LABELS.get(key, key.replace("_", " ").title())
+                rows.append((label, self._safe_text(view.get(key))))
                 emitted.add(key)
         for key, value in view.items():
             if key not in emitted:
-                rows.append((key, self._safe_text(value)))
+                label = self.VIEW_FIELD_LABELS.get(key, key.replace("_", " ").title())
+                rows.append((label, self._safe_text(value)))
         return pd.DataFrame(rows, columns=[title, "Valor"])
 
     def _timeline_frame(self, payload):

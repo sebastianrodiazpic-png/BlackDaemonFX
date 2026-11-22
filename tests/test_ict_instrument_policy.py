@@ -237,13 +237,13 @@ def test_msnr_active_is_synthetics_without_wr45_prune():
 
     from config.synth_wr45 import REAL_SPREAD_PRUNED
 
-    assert len(MSNR_SYNTHETIC_UNIVERSE) == 38 and len(MSNR_ACTIVE) == 31 - len(REAL_SPREAD_PRUNED)
+    assert len(MSNR_SYNTHETIC_UNIVERSE) == 44 and len(MSNR_ACTIVE) == 44 - len(MSNR_WR45_PRUNED)
 
     from config.ict_instrument_policy import MSNR_ACIERTO47_SYNTHETICS, MSNR_REAL_MARKET_SYMBOLS
 
     # Malaysian SNR (05-nov-2026): 38 sintéticos con acierto > 50 % y R > 0 en el replay fiel de 212 pares.
 
-    assert len(MSNR_ACIERTO47_SYNTHETICS) == 38 and set(MSNR_ACIERTO47_SYNTHETICS) <= set(MSNR_SYNTHETIC_UNIVERSE)
+    assert len(MSNR_ACIERTO47_SYNTHETICS) == 44 and set(MSNR_ACIERTO47_SYNTHETICS) <= set(MSNR_SYNTHETIC_UNIVERSE)
 
     from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE
 
@@ -459,9 +459,9 @@ def test_worker_consolidation_active_vs_pruned_and_selective_activation():
 
 
 
-    assert len(ICT_FOREX_ACTIVE) == 16
+    assert len(ICT_FOREX_ACTIVE) == 44  # 11 bases previas x2 + 13 cruces WR >= 50 % (11-nov-2026) y 9 micro
 
-    assert len(ICT_FOREX_PRUNED_SYMBOLS) == 26
+    assert len(ICT_FOREX_PRUNED_SYMBOLS) == 6
 
     assert set(resolve_active_pruned_worker_universe("FOREX_1")) == set(ICT_FOREX_ACTIVE)
 

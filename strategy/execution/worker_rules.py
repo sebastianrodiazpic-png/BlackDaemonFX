@@ -1,4 +1,5 @@
 """Shared strategy wiring for standalone and coordinated daemon workers."""
+import os
 from dataclasses import replace
 
 RULESET = 'ict-sabri-malle-v1'
@@ -116,6 +117,31 @@ def configure_worker_rules(config):
     smc = profile not in {'ORB', 'IDX_OPEN'}
     if not smc:
         return replace(config, dual_m5_m1_trigger_enabled=False, h1_location_only=False)
+    if profile in ("VOLATILITY_1", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4"):
+        vol_multistrat = os.getenv("DAEMONBLACKFX_VOLATILITY_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=vol_multistrat,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            volatility_first_target_rr=1.0,
+            volatility_second_target_rr=2.0,
+            smc_runner_max_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
+        )
     if profile.startswith("VOLATILITY"):
         return replace(
             config,
@@ -139,7 +165,8 @@ def configure_worker_rules(config):
             break_even_trigger_rr=1.0,
             min_rr=1.0,
         )
-    if profile in {"STEP", "JUMP"}:
+    if profile == "BOOM":
+        boom_multistrat = os.getenv("DAEMONBLACKFX_BOOM_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
         return replace(
             config,
             h1_location_only=True,
@@ -147,9 +174,106 @@ def configure_worker_rules(config):
             dual_m5_m1_trigger_enabled=True,
             entry_timeframe='M5',
             strategy_version=RULESET,
+            malaysian_snr_enabled=boom_multistrat,
             first_target_rr=1.0,
             second_target_rr=2.0,
             smc_runner_max_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
+        )
+    if profile == "CRASH":
+        crash_multistrat = os.getenv("DAEMONBLACKFX_CRASH_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=crash_multistrat,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            smc_runner_max_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
+        )
+    if profile in ("STEP", "STEP_2"):
+        step_multistrat = os.getenv("DAEMONBLACKFX_STEP_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=step_multistrat,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            smc_runner_max_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
+        )
+    if profile == "JUMP":
+        jump_multistrat = os.getenv("DAEMONBLACKFX_JUMP_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=jump_multistrat,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            smc_runner_max_target_rr=4.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
+        )
+    if profile in ("FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4", "FOREX_5"):
+        forex_multistrat = os.getenv(f"DAEMONBLACKFX_{profile}_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=forex_multistrat,
+            forex_rollover_guard_enabled=True,
+            forex_force_flat_friday=True,
+            crypto_rollover_guard_enabled=True,
+            crypto_force_flat_friday=True,
+            forex_killzone_only_enabled=False,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
             runner_extension_enabled=True,
             runner_extension_first_trigger_rr=2.0,
             runner_extension_first_lock_rr=1.0,
@@ -186,6 +310,7 @@ def configure_worker_rules(config):
             min_rr=1.0,
         )
     if profile == "ICT":
+        ict_multistrat = os.getenv("DAEMONBLACKFX_ICT_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
         return replace(
             config,
             h1_location_only=True,
@@ -193,6 +318,7 @@ def configure_worker_rules(config):
             dual_m5_m1_trigger_enabled=True,
             entry_timeframe='M5',
             strategy_version='ict-sabri-malle-v1',
+            malaysian_snr_enabled=ict_multistrat,
             first_target_rr=1.0,
             second_target_rr=2.0,
             runner_extension_enabled=True,
@@ -206,6 +332,30 @@ def configure_worker_rules(config):
             min_rr=1.0,
             crypto_rollover_guard_enabled=True,
             crypto_force_flat_friday=False,
+            orb_enabled=False,
+        )
+    if profile in ("INDICESB_SNR", "INDICES"):
+        indices_multistrat = os.getenv("DAEMONBLACKFX_INDICESB_SNR_MULTISTRATEGY", "1").strip().lower() not in ("0", "false", "off")
+        return replace(
+            config,
+            h1_location_only=True,
+            smc_entry_location_policy='H1_PRIMARY',
+            dual_m5_m1_trigger_enabled=True,
+            entry_timeframe='M5',
+            strategy_version=RULESET,
+            malaysian_snr_enabled=indices_multistrat,
+            forex_rollover_guard_enabled=True,
+            first_target_rr=1.0,
+            second_target_rr=2.0,
+            runner_extension_enabled=True,
+            runner_extension_first_trigger_rr=2.0,
+            runner_extension_first_lock_rr=1.0,
+            runner_extension_second_trigger_rr=3.0,
+            runner_extension_second_lock_rr=2.5,
+            runner_extension_max_target_rr=4.0,
+            break_even_enabled=True,
+            break_even_trigger_rr=1.0,
+            min_rr=1.0,
             orb_enabled=False,
         )
     return replace(
@@ -231,7 +381,9 @@ def configure_worker_rules(config):
 
 def worker_poll_interval(profile, interval):
     # The M1 scheduler must get a chance to observe each minute's closed candle.
-    return max(1, min(int(interval), 10)) if str(profile).upper() not in {'ORB','IDX_OPEN','MALAYSIAN_SNR','TREND_PULLBACK'} else max(1, int(interval))
+    cap = int(os.getenv("DAEMONBLACKFX_WORKER_POLL_INTERVAL_CAP", "10"))
+    min_cap = max(1, cap)
+    return max(1, min(int(interval), min_cap)) if str(profile).upper() not in {'ORB','IDX_OPEN','MALAYSIAN_SNR','TREND_PULLBACK'} else max(1, int(interval))
 
 
 def worker_rules_manifest(engine):

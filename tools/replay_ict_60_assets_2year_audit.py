@@ -1,4 +1,4 @@
-"""Auditoría y Replay Comparativo de 2 Años: Estrategia ICT Sabri Malle (60 Activos)
+"""Auditoría y Replay Comparativo de 2 Años: Estrategia ICT (60 Activos)
 ================================================================================
 Compara:
 1. Baseline ICT (Versión previa: Solo Londres en reales, entrada a mercado inmediata al cierre del MSS,
@@ -662,7 +662,7 @@ def audit_all_symbols(symbols: list[str] | None = None) -> tuple[pd.DataFrame, p
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 100)
-    print(f"AUDITORÍA INTEGRAL DE 2 AÑOS (OCTUBRE 2024 - OCTUBRE 2026): ESTRATEGIA ICT SABRI MALLE")
+    print(f"AUDITORÍA INTEGRAL DE 2 AÑOS (OCTUBRE 2024 - OCTUBRE 2026): ESTRATEGIA ICT")
     print(f"Comparativa Causal: Baseline ICT vs Augmented ICT v2.1 (Consequent Encroachment 50% FVG & 24/7)")
     print(f"Total Activos a Auditar: {len(symbols)}")
     print("=" * 100)
@@ -770,7 +770,7 @@ def audit_all_symbols(symbols: list[str] | None = None) -> tuple[pd.DataFrame, p
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Auditoría de 2 años ICT Sabri Malle sobre 60 activos.")
+    parser = argparse.ArgumentParser(description="Auditoría de 2 años ICT sobre 60 activos.")
     parser.add_argument("--symbols", type=str, default="", help="Lista separada por comas de símbolos específicos.")
     args = parser.parse_args()
 

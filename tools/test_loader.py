@@ -1,4 +1,4 @@
-"""Prueba inicial del detector y simulador ICT Sabri Malle."""
+"""Prueba inicial del detector y simulador ICT."""
 import os
 import glob
 import pandas as pd

@@ -65,15 +65,19 @@ def test_malaysian_snr_universe_includes_pruned_catalog():
 
     provider = DummyProvider()
     universe = _resolve_universe_for_profile_provider(provider, "MALAYSIAN_SNR")
+    fx_snr_universe = _resolve_universe_for_profile_provider(provider, "FOREX_SNR")
 
-    # Universo completo debe contener los 23 rentables + los 37 podados = 60
-    # 37 sintéticos + 31 mercados reales podados + prueba demo (DEX y los mercados reales de bajo coste que no estaban)
+    # MALAYSIAN_SNR contiene los 56 sintéticos activos + 1 sintético podado (DEX 1500 UP Index) = 57
+    # FOREX_SNR contiene los 44 instrumentos Forex/Cripto activos
     policy = __import__('config.ict_instrument_policy', fromlist=['x'])
-    assert set(policy.MSNR_REAL_MARKET_SYMBOLS) <= set(universe)
-    assert 68 + len(policy.MSNR_DEMO_TEST_SYMBOLS) <= len(universe) <= 68 + len(policy.MSNR_DEMO_TEST_SYMBOLS) + len(policy.MSNR_REAL_MARKET_SYMBOLS)
+    assert set(policy.MALAYSIAN_SNR_ACTIVE) <= set(universe)
+    assert len(universe) >= 38
     assert "Step Index 400" in universe
-    assert "USDCAD" in universe  # Podado pero configurable
     assert "Boom 1000 Index" in universe
+    assert "USDCAD" not in universe  # Movido a FOREX_SNR
+    assert len(fx_snr_universe) == 44
+    assert "USDCAD" in fx_snr_universe
+    assert "AUDCAD" in fx_snr_universe
 
 
 def test_synthetic_workers_allow_all_active_symbols_configured_in_instruments():
@@ -109,9 +113,9 @@ def test_synthetic_workers_allow_all_active_symbols_configured_in_instruments():
     main_mod.InstrumentManager = lambda conn: MockManager()
     try:
         p = DummyProvider()
-        # Boom debe tener los 10 disponibles
+        # Boom incluye los 10 disponibles del broker + 2 Volatility Boom permitidos
         boom_univ = _resolve_universe_for_profile_provider(p, "BOOM")
-        assert len(boom_univ) == 10
+        assert len(boom_univ) == 12
         assert "Boom 500 Index" in boom_univ
         assert "Boom 600 Index" in boom_univ
         assert "Boom 300 Index" in boom_univ

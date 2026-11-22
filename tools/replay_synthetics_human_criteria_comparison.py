@@ -1,7 +1,7 @@
 """Replay cuantitativo y comparativa del Criterio Humano Especializado en Sintéticos.
 
 Evalúa todas las operaciones de activos sintéticos en todas las estrategias disponibles:
-- ICT Sabri Malle (37 sintéticos)
+- ICT (37 sintéticos)
 - Malaysian SNR (Sintéticos)
 - Step & Jump AMR-SMC (10 sintéticos)
 - Volatility SMC (36 sintéticos)
@@ -188,7 +188,7 @@ def evaluate_dataset(df: pd.DataFrame, strategy_name: str) -> list[dict]:
 
 def main():
     datasets = {
-        "ICT Sabri Malle (SMC)": "storage/analysis/ict_faithful_365d_v2_trades.csv",
+        "ICT (SMC)": "storage/analysis/ict_faithful_365d_v2_trades.csv",
         "Malaysian SNR v3.2": "storage/analysis/msnr_faithful_trades.csv",
         "AMR-SMC (Step & Jump)": "storage/analysis/step_jump_workers_2y_smc_trades.csv",
         "Volatility SMC": "storage/analysis/volatility_workers_2y_smc_trades.csv",

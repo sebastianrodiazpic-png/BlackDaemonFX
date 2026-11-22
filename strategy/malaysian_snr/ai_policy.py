@@ -84,7 +84,7 @@ def active_model_status(settings, model_directory='storage/ai_models'):
                 'message':'Modelo compatible no disponible.'}
 
 
-def score_candidate(engine, symbol, signal, analysis, market, *, source, settings):
+def score_candidate(engine, symbol, signal, analysis, market, *, source, settings, is_split_tp1: bool = False):
     config = replace(engine.config, enabled=settings['ai_mode']!='off',
         mode='SHADOW' if settings['ai_mode']=='shadow' else 'FILTER',
         min_probability=settings['ai_min_probability'],
@@ -107,7 +107,7 @@ def score_candidate(engine, symbol, signal, analysis, market, *, source, setting
         {'model_dimensions','model_scale','non_finite_model_parameters'})
     probability = model.probability(feature_vector(frozen)) if readable else 0.
     expectancy = model.net_expectancy_r(probability) if model.trained else 0.
-    thresholds = {'min_probability': scorer.resolve_min_probability(symbol),
+    thresholds = {'min_probability': scorer.resolve_min_probability(symbol, is_split_tp1=is_split_tp1),
                   'min_net_expectancy_r': config.min_net_expectancy_r}
     live_features = extract_meta_features(signal=signal, analysis=analysis, market=market,
                                          evaluated_at=datetime.now(timezone.utc).isoformat())

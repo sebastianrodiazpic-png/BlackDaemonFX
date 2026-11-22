@@ -97,3 +97,162 @@ def test_pre_news_break_even_covers_live_spread_and_extra_points(tmp_path):
     assert result["break_even_price"] == 1.10022
     assert metadata["break_even_confirmed"] is True
     assert Repository.updates[0][1]["stop_loss"] == 1.10022
+
+
+def test_pre_news_preserves_favorable_trailing_stop_without_downgrading_to_be(tmp_path):
+    path = tmp_path / "financial_news.json"
+    _calendar(path, country="USD")
+    engine = _engine(path)
+    # SL ya está en 1.10500 (muy por encima del BE 1.10022)
+    position = SimpleNamespace(price_open=1.10000, sl=1.10500, tp=1.12000)
+
+    class Provider:
+        @staticmethod
+        def get_current_tick(_symbol):
+            return {"bid": 1.10800, "ask": 1.10820}
+
+    class Executor:
+        @staticmethod
+        def get_symbol_constraints(_symbol):
+            return {"point": 0.00001, "digits": 5}
+
+        @staticmethod
+        def get_position(_ticket):
+            return position
+
+    engine.provider = Provider()
+    engine.executor = Executor()
+    trade = {
+        "id": 2,
+        "broker_position_ticket": "456",
+        "instrument": "EURUSD",
+        "direction": "BUY",
+        "details": {"metadata": {}},
+    }
+    metadata = {}
+    move_stop_called = False
+
+    def move_stop(**kwargs):
+        nonlocal move_stop_called
+        move_stop_called = True
+        return {"modified": True}
+
+    result = engine._protect_forex_position_for_high_impact_news(
+        trade=trade,
+        metadata=metadata,
+        position=position,
+        entry_price=position.price_open,
+        current_sl=position.sl,
+        direction="BUY",
+        move_stop=move_stop,
+    )
+
+    assert result["action"] == "FOREX_NEWS_TRAILING_PRESERVED"
+    assert result["current_sl"] == 1.10500
+    assert result["net_break_even"] == 1.10022
+    assert not move_stop_called, "No debe modificar el stop si ya está protegido en ganancia"
+
+
+def test_pre_news_preserves_favorable_trailing_stop_for_sell(tmp_path):
+    path = tmp_path / "financial_news.json"
+    _calendar(path, country="USD")
+    engine = _engine(path)
+    # SELL: entry 1.10000, SL asegurado en 1.09500 (por debajo de BE neto 1.09978)
+    position = SimpleNamespace(price_open=1.10000, sl=1.09500, tp=1.08000)
+
+    class Provider:
+        @staticmethod
+        def get_current_tick(_symbol):
+            return {"bid": 1.09200, "ask": 1.09220}
+
+    class Executor:
+        @staticmethod
+        def get_symbol_constraints(_symbol):
+            return {"point": 0.00001, "digits": 5}
+
+        @staticmethod
+        def get_position(_ticket):
+            return position
+
+    engine.provider = Provider()
+    engine.executor = Executor()
+    trade = {
+        "id": 3,
+        "broker_position_ticket": "789",
+        "instrument": "EURUSD",
+        "direction": "SELL",
+        "details": {"metadata": {}},
+    }
+    metadata = {}
+    move_stop_called = False
+
+    def move_stop(**kwargs):
+        nonlocal move_stop_called
+        move_stop_called = True
+        return {"modified": True}
+
+    result = engine._protect_forex_position_for_high_impact_news(
+        trade=trade,
+        metadata=metadata,
+        position=position,
+        entry_price=position.price_open,
+        current_sl=position.sl,
+        direction="SELL",
+        move_stop=move_stop,
+    )
+
+    assert result["action"] == "FOREX_NEWS_TRAILING_PRESERVED"
+    assert result["current_sl"] == 1.09500
+    assert not move_stop_called
+
+
+def test_pre_news_defers_when_price_has_not_reached_net_break_even(tmp_path):
+    path = tmp_path / "financial_news.json"
+    _calendar(path, country="USD")
+    engine = _engine(path)
+    # BUY: entry 1.10000, initial SL 1.09000, current bid 1.10010 (insuficiente para cubrir spread 0.00020 + extra)
+    position = SimpleNamespace(price_open=1.10000, sl=1.09000, tp=1.12000)
+
+    class Provider:
+        @staticmethod
+        def get_current_tick(_symbol):
+            return {"bid": 1.10010, "ask": 1.10030}
+
+    class Executor:
+        @staticmethod
+        def get_symbol_constraints(_symbol):
+            return {"point": 0.00001, "digits": 5}
+
+        @staticmethod
+        def get_position(_ticket):
+            return position
+
+    engine.provider = Provider()
+    engine.executor = Executor()
+    trade = {
+        "id": 4,
+        "broker_position_ticket": "101",
+        "instrument": "EURUSD",
+        "direction": "BUY",
+        "details": {"metadata": {}},
+    }
+    metadata = {}
+    move_stop_called = False
+
+    def move_stop(**kwargs):
+        nonlocal move_stop_called
+        move_stop_called = True
+        return {"modified": True}
+
+    result = engine._protect_forex_position_for_high_impact_news(
+        trade=trade,
+        metadata=metadata,
+        position=position,
+        entry_price=position.price_open,
+        current_sl=position.sl,
+        direction="BUY",
+        move_stop=move_stop,
+    )
+
+    assert result["action"] == "FOREX_NEWS_BREAK_EVEN_DEFERRED"
+    assert not move_stop_called

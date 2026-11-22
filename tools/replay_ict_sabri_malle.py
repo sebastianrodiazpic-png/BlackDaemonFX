@@ -177,7 +177,7 @@ def detect_ict_sabri_malle_setups(
     range_lookback: int = 24,
     min_rr_planned: float = 2.0
 ) -> list[dict]:
-    """Escanea el historial de 2 años buscando setups estrictos de la estrategia ICT Sabri Malle."""
+    """Escanea el historial de 2 años buscando setups estrictos de la estrategia ICT."""
     setups = []
     atr_h1 = compute_atr(df_h1, period=14)
     
@@ -536,7 +536,7 @@ def simulate_dual_position_trade(
 
 def run_full_replay():
     print("=" * 80)
-    print("INICIANDO REPLAY DE 2 AÑOS - ESTRATEGIA ICT SABRI MALLE (AMD + FVG REJECTION)")
+    print("INICIANDO REPLAY DE 2 AÑOS - ESTRATEGIA ICT (AMD + FVG REJECTION)")
     print("GESTIÓN DUAL: 2 ENTRADAS AL 0.5% (RIESGO TOTAL 1.0%), TP1 A 1:2, TP2 A 1:3 Y 1:4")
     print("=" * 80)
     

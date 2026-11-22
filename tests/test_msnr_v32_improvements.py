@@ -23,7 +23,7 @@ def test_msnr_v32_live_trading_engine_configuration():
     engine = LiveTradingEngine(provider=DummyProvider(), repository=SimpleNamespace(), executor=SimpleNamespace(), config=cfg)
     strat_cfg = engine.malaysian_snr_strategy.config
 
-    assert strat_cfg.min_obstacle_rr == 1.2
+    assert strat_cfg.min_obstacle_rr == 2.0
     assert strat_cfg.retest_window_minutes == 180
     assert strat_cfg.dynamic_retest_buffer_enabled is True
     assert strat_cfg.dynamic_retest_buffer_atr == 0.20

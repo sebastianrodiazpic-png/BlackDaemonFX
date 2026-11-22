@@ -248,7 +248,7 @@ new_orb_pruned = '''ORB_PRUNED_INFO = {
     "USDJPYmicro": "PODA PREVENTIVA: Asimetría negativa (-7.09 R).",
     "US SP 500": "PODA PREVENTIVA: WR = 44.12% (-7.48 R en replay), falsos rompimientos en campana 09:30 NY.",
     "US500": "PODA PREVENTIVA: WR = 44.12% (-7.48 R en replay).",
-    "US Tech 100": "PODA PREVENTIVA: WR = 37.50% (-3.27 R en replay) en M5; operado con éxito en ICT Sabri Malle (75.0% WR).",
+    "US Tech 100": "PODA PREVENTIVA: WR = 37.50% (-3.27 R en replay) en M5; operado con éxito en ICT (75.0% WR).",
     "NAS100": "PODA PREVENTIVA: WR = 37.50% (-3.27 R en replay) en M5; operado en ICT.",
     "ETHUSD": "PODA PREVENTIVA: WR = 46.67% (-2.12 R en replay), falta de volumen relativo frente a BTCUSD.",
     "US Small Cap 2000": "PODA PREVENTIVA: WR = 16.67% (-3.65 R en replay), liquidez deficiente en apertura M5.",

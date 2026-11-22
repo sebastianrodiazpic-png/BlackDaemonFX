@@ -216,7 +216,7 @@ def test_asian_range_high_sweep_manipulation_confirmed():
 
     res = strat.analyze_symbol("GBPJPY", now_utc=eval_time_utc)
     assert res["valid"] is True, f"Expected valid confirmation, got reason: {res.get('reason')}"
-    assert res["action"] == "ICT_SABRI_MALLE_CONFIRMED"
+    assert res["action"] in ("ICT_CONFIRMED", "ICT_SABRI_MALLE_CONFIRMED")
     signal = res["signal"]
     assert signal["direction"] == "SELL"
     assert "ASIAN_RANGE_HIGH" in signal["swept_liquidity_source"]
@@ -238,7 +238,7 @@ def test_previous_day_high_pdh_sweep_manipulation_confirmed():
 
     res = strat.analyze_symbol("USDJPY", now_utc=eval_time_utc)
     assert res["valid"] is True, f"Expected valid confirmation, got reason: {res.get('reason')}"
-    assert res["action"] == "ICT_SABRI_MALLE_CONFIRMED"
+    assert res["action"] in ("ICT_CONFIRMED", "ICT_SABRI_MALLE_CONFIRMED")
     signal = res["signal"]
     assert signal["direction"] == "SELL"
     assert "PREVIOUS_DAY_HIGH" in signal["swept_liquidity_source"]
@@ -314,7 +314,7 @@ def test_previous_day_low_pdl_sweep_manipulation_confirmed():
 
     res = strat.analyze_symbol("AUDUSD", now_utc=eval_time_utc)
     assert res["valid"] is True, f"Expected valid confirmation, got reason: {res.get('reason')}"
-    assert res["action"] == "ICT_SABRI_MALLE_CONFIRMED"
+    assert res["action"] in ("ICT_CONFIRMED", "ICT_SABRI_MALLE_CONFIRMED")
     signal = res["signal"]
     assert signal["direction"] == "BUY"
     assert "PREVIOUS_DAY_LOW" in signal["swept_liquidity_source"]

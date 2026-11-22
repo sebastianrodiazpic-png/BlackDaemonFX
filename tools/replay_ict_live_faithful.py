@@ -1,4 +1,4 @@
-"""Replay FIEL de ICT Sabri Malle.
+"""Replay FIEL de ICT.
 
 Ejecuta ICTSabriMalleStrategy.analyze_symbol REAL en cada cierre de vela M15 usando
 SOLO velas cerradas (M15/H1/H4) hasta ese instante (sin lookahead).
@@ -155,7 +155,7 @@ def table(df: pd.DataFrame, col: str, bins=None):
 
 
 def write_report(df: pd.DataFrame, path: Path, days: int):
-    L = [f"# ICT Sabri Malle - Replay FIEL ({days} dias, estrategia real, sin lookahead)\n"]
+    L = [f"# ICT - Replay FIEL ({days} dias, estrategia real, sin lookahead)\n"]
     L.append(f"- Trades: **{len(df)}** | Win%: **{100 * (df.rr > 0).mean():.1f}%** | "
              f"Expectativa live (2R+runner 4R): **{df.rr.mean():+.3f} R** | Total: **{df.rr.sum():+.1f} R**")
     L.append(f"- Variante runner 3R: {df.rr_r3.mean():+.3f} R/trade | Todo a 2R: {df.rr_r2.mean():+.3f} R/trade\n")

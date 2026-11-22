@@ -86,7 +86,7 @@ def run():
                 }
 
     # -------------------------------------------------------------
-    # 3. ICT SABRI MALLE (2 Años - 19 Activos)
+    # 3. ICT (2 Años - 19 Activos)
     # -------------------------------------------------------------
     ict_file = Path("storage/meta_labeling_ict_sabri_malle_trades.csv")
     if ict_file.exists():
@@ -115,7 +115,7 @@ def run():
             r_sum = d["r_sum"]
             status = "Rentable" if r_sum > 0 else "Podado"
             asset_strat_matrix[clean]["ICT"] = {
-                "strategy_name": "ICT Sabri Malle (AMD & FVG)",
+                "strategy_name": "ICT (AMD & FVG)",
                 "trades": trades,
                 "win_rate": wr,
                 "pnl_usd": round(pnl, 2),

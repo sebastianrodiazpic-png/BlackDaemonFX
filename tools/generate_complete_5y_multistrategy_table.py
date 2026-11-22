@@ -1,7 +1,7 @@
 """
 tools/generate_complete_5y_multistrategy_table.py
 Consolida y genera el replay fiel de 5 años para TODOS los instrumentos (73 activos canónicos)
-en TODAS las estrategias disponibles (ICT Sabri Malle, Malaysian SNR, Trend Pullback, New York ORB)
+en TODAS las estrategias disponibles (ICT, Malaysian SNR, Trend Pullback, New York ORB)
 con el contrato BlackDaemonFX (2 patas 0.5%, TP1 1R, BE+spread, TP2 2R, trailing hasta 4R).
 """
 

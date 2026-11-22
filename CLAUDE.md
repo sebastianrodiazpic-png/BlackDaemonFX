@@ -10,3 +10,5 @@
 - No reinicies los daemons ni hagas commit sin que el usuario lo pida. La base viva está en
   `C:/Users/sebas/AppData/Local/BlackDaemonFx/trading_bot.sqlite3` (ábrela en solo lectura para analizar).
 - Python del proyecto: `.venv/Scripts/python.exe`. Tests: `.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider`.
+- **Reinicios congelados durante la sesión**: acumula los cambios y pide un único reinicio al día dentro de la ventana de
+  mantenimiento (21:00–23:00 UTC). Fuera de ella no pidas ni hagas reinicios (`app/restart_freeze.py`, regla 7 del registro).

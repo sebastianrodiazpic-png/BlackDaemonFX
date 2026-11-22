@@ -150,9 +150,12 @@ def retest_confirmation(frame: pd.DataFrame, level: float, direction: str, atr: 
             wick_ratio = 0.0
             close_loc = 0.5
         import os as _os
-        require_absorption = _os.getenv("DAEMONBLACKFX_MSNR_DIRECT_TOUCH_ABSORPTION", "0").strip().lower() in ("1", "true", "on")
+        require_absorption = _os.getenv("DAEMONBLACKFX_MSNR_DIRECT_TOUCH_ABSORPTION", "1").strip().lower() in ("1", "true", "on")
+        min_abs_wick = float(_os.getenv("DAEMONBLACKFX_MSNR_ABSORPTION_WICK_RATIO", "0.40"))
         if require_absorption:
-            candle_not_breaking = (sign * float(last_candle.close - last_candle.open) >= 0.0) or (wick_ratio >= 0.25 and close_loc >= 0.45)
+            candle_not_breaking = (wick_ratio >= min_abs_wick and close_loc >= 0.40) or (
+                sign * float(last_candle.close - last_candle.open) > 0 and (b / span if span > 0 else 0) >= 0.50 and close_loc >= 0.60
+            )
         if recent_touched and -0.15 <= last_dist <= max_distance_atr and candle_not_breaking and max_depth <= max_penetration_atr:
             return {
                 'confirmed': True,

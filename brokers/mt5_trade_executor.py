@@ -290,13 +290,40 @@ class MT5TradeExecutor(TradeExecutor):
             })
             if self.execution_provider._is_order_send_success(result):
                 getattr(self.execution_provider, "invalidate_broker_cache", lambda: None)()
+                deal_ticket = int(getattr(result, "deal", 0) or 0) or None
+                order_ticket = int(getattr(result, "order", 0) or 0) or None
+                realized_pnl = 0.0
+                if deal_ticket:
+                    try:
+                        deals = mt5.history_deals_get(ticket=deal_ticket)
+                        if deals:
+                            realized_pnl = (
+                                float(getattr(deals[0], "profit", 0.0) or 0.0)
+                                + float(getattr(deals[0], "commission", 0.0) or 0.0)
+                                + float(getattr(deals[0], "swap", 0.0) or 0.0)
+                            )
+                    except Exception:
+                        pass
+                if not realized_pnl and position_ticket:
+                    try:
+                        deals = mt5.history_deals_get(position=int(position_ticket))
+                        if deals:
+                            realized_pnl = sum(
+                                float(getattr(d, "profit", 0.0) or 0.0)
+                                + float(getattr(d, "commission", 0.0) or 0.0)
+                                + float(getattr(d, "swap", 0.0) or 0.0)
+                                for d in deals
+                            )
+                    except Exception:
+                        pass
                 return {
                     "closed": True,
                     "position_ticket": str(position_ticket),
                     "exit_price": float(getattr(result, "price", 0.0) or price),
                     "reason": str(reason),
-                    "deal_ticket": int(getattr(result, "deal", 0) or 0) or None,
-                    "order_ticket": int(getattr(result, "order", 0) or 0) or None,
+                    "deal_ticket": deal_ticket,
+                    "order_ticket": order_ticket,
+                    "realized_pnl_price": float(realized_pnl),
                     "attempts": attempts,
                 }
 
@@ -309,8 +336,23 @@ class MT5TradeExecutor(TradeExecutor):
         Prefiere la `execution_key` de los metadatos: asi el comentario sirve
         despues para reencontrar la posicion y garantizar idempotencia. Como
         alternativa compone `smc:simbolo:direccion`.
+
+        Preserva siempre el sufijo de la pierna (`:TP1` o `:RUNNER`) dentro de los
+        31 caracteres para que el reconciliador de MT5 pueda identificar la pata.
         """
         raw = request.metadata.get("execution_key") if request.metadata else None
+        trade_leg = request.metadata.get("trade_leg") if request.metadata else None
+        if not trade_leg and raw and (":TP1" in str(raw) or ":RUNNER" in str(raw)):
+            trade_leg = "RUNNER" if ":RUNNER" in str(raw) else "TP1"
+
+        leg_suffix = f":{str(trade_leg).upper()}" if trade_leg and str(trade_leg).upper() in ("TP1", "RUNNER", "SINGLE") else ""
         if raw:
-            return str(raw)[:31]
-        return f"smc:{request.symbol}:{request.direction}"[:31]
+            base = str(raw)
+            if leg_suffix and base.endswith(leg_suffix):
+                base = base[:-len(leg_suffix)]
+            max_base = 31 - len(leg_suffix)
+            return f"{base[:max_base]}{leg_suffix}"
+
+        max_base = 31 - len(leg_suffix)
+        base = f"smc:{request.symbol}:{request.direction}"[:max_base]
+        return f"{base}{leg_suffix}"

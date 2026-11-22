@@ -185,7 +185,7 @@ class ShadowSynchronizer:
                     exec_k = (t.get("execution_key") or "").upper()
                     
                     # El trade debe pertenecer a la MISMA estrategia (setup_reason empieza por su nombre).
-                    if setup.startswith("ICT_SABRI_MALLE"):
+                    if setup.startswith("ICT_SABRI_MALLE") or setup.startswith("ICT"):
                         trade_family = "ICT"
                     elif setup.startswith("MALAYSIAN_SNR") or "MSNR" in setup:
                         trade_family = "MSNR"
@@ -309,7 +309,7 @@ class ShadowSynchronizer:
             cohort_tag = "PROSPECTIVE_SEALED" if is_prospective else "PRE_CUTOFF_BASELINE"
 
             # -------------------------------------------------------------
-            # A. ESTRATEGIA ICT SABRI MALLE
+            # A. ESTRATEGIA ICT
             # -------------------------------------------------------------
             if "ICT" in strat_name:
                 if sym not in ENABLED_UNIVERSES["ICT"]:

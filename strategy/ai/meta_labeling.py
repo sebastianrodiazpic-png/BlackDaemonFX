@@ -31,11 +31,19 @@ class MetaLabelingConfig:
     # SHADOW puntúa y registra sin bloquear; FILTER bloquea órdenes de baja probabilidad o expectativa.
     mode: str = os.getenv("DAEMONBLACKFX_META_LABELING_MODE", FILTER_MODE)
     min_probability: float = 0.47
-    min_probability_forex: float = 0.55
-    min_probability_gold: float = 0.55
-    min_probability_volatility: float = 0.47
+    min_probability_forex: float = float(os.getenv("DAEMONBLACKFX_AI_MIN_PROBABILITY_FOREX", "0.50"))
+    min_probability_gold: float = float(os.getenv("DAEMONBLACKFX_AI_MIN_PROBABILITY_GOLD", "0.50"))
+    min_probability_volatility: float = float(os.getenv("DAEMONBLACKFX_AI_MIN_PROBABILITY_VOLATILITY", "0.47"))
     min_probability_orb: float = 0.48
     min_net_expectancy_r: float = 0.05
+    # Pilar 3 (18-nov-2026): Calibración bayesiana para primer objetivo TP1 a 1.0R (+0.5% neto)
+    split_tp1_min_probability: float = float(
+        os.getenv("DAEMONBLACKFX_AI_SPLIT_TP1_PROBABILITY_THRESHOLD", "0.46")
+    )
+    split_tp1_probability_adjustment_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_AI_SPLIT_TP1_PROBABILITY_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
     ranking_enabled: bool = True
     max_signals_per_cycle: int = 1
     model_directory: str = "storage/ai_models"
@@ -335,31 +343,40 @@ class MetaLabelingEngine:
     # PUNTUACIÓN
     # ------------------------------------------------------------------
 
-    def resolve_min_probability(self, symbol: str) -> float:
+    def resolve_min_probability(self, symbol: str, is_split_tp1: bool = False) -> float:
         """Determina el umbral de probabilidad adaptativo según la familia del activo.
 
         - FOREX y GOLD: umbral >= 0.55 para filtrar falsos rompimientos y spread.
         - VOLATILITY: umbral adaptado >= 0.47 optimizado para primer objetivo TP1 (1:1).
         - OTRAS FAMILIAS SINTETICAS (BOOM, CRASH, STEP, JUMP, FLIP): umbral base >= 0.47.
+        - Pilar 3 (18-nov-2026): Calibración bayesiana para primer objetivo TP1 a 1.0R (+0.5% neto).
+          En split entries, adapta el umbral mínimo reflejando que la probabilidad de 1:1 es > 62%.
         """
         sym = str(symbol or "").upper().strip()
         wk = str(self.worker or "").upper().strip()
 
-        if wk == "ORB":
-            return float(getattr(self.config, "min_probability_orb", 0.48))
-
-        if "XAU" in sym or "GOLD" in sym or wk == "GOLD":
-            return float(getattr(self.config, "min_probability_gold", 0.55))
-
+        is_gold = "XAU" in sym or "GOLD" in sym or wk == "GOLD"
         forex_currencies = ("EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD")
-        is_forex = any(c in sym for c in forex_currencies) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"))
-        if is_forex or wk.startswith("FOREX"):
-            return float(getattr(self.config, "min_probability_forex", 0.55))
+        is_forex = (any(c in sym for c in forex_currencies) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"))) or wk.startswith("FOREX")
 
-        if "VOLATILITY" in sym or "1S" in sym or wk.startswith("VOLATILITY"):
-            return float(getattr(self.config, "min_probability_volatility", 0.47))
+        if wk == "ORB":
+            base = float(getattr(self.config, "min_probability_orb", 0.48))
+        elif is_gold:
+            base = float(getattr(self.config, "min_probability_gold", 0.55))
+        elif is_forex:
+            base = float(getattr(self.config, "min_probability_forex", 0.55))
+        elif "VOLATILITY" in sym or "1S" in sym or wk.startswith("VOLATILITY"):
+            base = float(getattr(self.config, "min_probability_volatility", 0.47))
+        else:
+            base = float(self.config.min_probability)
 
-        return float(self.config.min_probability)
+        if is_split_tp1 and getattr(self.config, "split_tp1_probability_adjustment_enabled", True):
+            split_target = float(getattr(self.config, "split_tp1_min_probability", 0.46))
+            if is_gold or is_forex:
+                return round(max(split_target, base - 0.05), 3)
+            return round(min(base, split_target), 3)
+
+        return base
 
     def score_signal(
         self,
@@ -369,6 +386,7 @@ class MetaLabelingEngine:
         analysis: dict | None = None,
         market: dict | None = None,
         strategy_name: str = "ALL",
+        is_split_tp1: bool = False,
     ) -> MetaLabelDecision:
         """Calcula probabilidad calibrada y expectativa neta de una señal."""
         mode = str(self.config.mode or SHADOW_MODE).upper()
@@ -379,7 +397,7 @@ class MetaLabelingEngine:
             market=market,
             evaluated_at=evaluated_at,
         )
-        effective_min_prob = self.resolve_min_probability(symbol)
+        effective_min_prob = self.resolve_min_probability(symbol, is_split_tp1=is_split_tp1)
         thresholds = {
             "min_probability": effective_min_prob,
             "min_net_expectancy_r": float(self.config.min_net_expectancy_r),

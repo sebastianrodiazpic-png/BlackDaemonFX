@@ -242,8 +242,9 @@ def _triggered_engine(**cfg):
     return engine
 
 
+# BLOCKED_SYMBOL_CYCLE dejó de ocupar el símbolo el 11-nov-2026 (tests/test_v123_step_adx_and_trigger_lock_skip.py).
 @pytest.mark.parametrize("action", ["MAX_TOTAL_OPEN_POSITIONS", "OPERACION_RECHAZADA_POR_RIESGO",
-                                    "EXECUTABLE_RR_BLOCKED", "BLOCKED_SYMBOL_CYCLE"])
+                                    "EXECUTABLE_RR_BLOCKED"])
 def test_triggered_but_not_opened_signal_occupies_symbol(action):
     engine = _triggered_engine()
     lock = engine._register_ict_trigger_block_lock("Volatility 75 Index", {"action": action})
@@ -389,9 +390,18 @@ def test_msnr_real_markets_skip_filters_not_in_their_replay():
 
 
 def test_msnr_universe_includes_real_market_demo_symbols():
-    from config.ict_instrument_policy import MALAYSIAN_SNR_ACTIVE, sanitize_ict_selection
-    assert {"EURUSD", "XAUUSD", "Germany 40"} <= set(MALAYSIAN_SNR_ACTIVE)
-    assert sanitize_ict_selection("MALAYSIAN_SNR", ["EURUSD", "AUDJPY"]) == ["EURUSD"]
+    from config.ict_instrument_policy import (
+        COMMODITIES_SNR_ACTIVE,
+        FOREX_SNR_ACTIVE,
+        INDICESB_SNR_ACTIVE,
+        MALAYSIAN_SNR_ACTIVE,
+        sanitize_ict_selection,
+    )
+    assert "Volatility 10 Index" in set(MALAYSIAN_SNR_ACTIVE)
+    assert "EURUSD" in set(FOREX_SNR_ACTIVE)
+    assert "XAUUSD" in set(COMMODITIES_SNR_ACTIVE)
+    assert "Germany 40" in set(INDICESB_SNR_ACTIVE)
+    assert sanitize_ict_selection("FOREX_SNR", ["EURUSD", "AUDNZD"]) == ["EURUSD"]
 
 
 def test_msnr_real_markets_user_selection_and_per_symbol_session():

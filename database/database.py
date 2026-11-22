@@ -296,14 +296,15 @@ def get_engine(db_path: str | Path | None = None):
         try:
             # PRAGMAs por conexión: todos los workers comparten los mismos
             # límites de espera/checkpoint y no dependen de quién abrió la DB.
-            cursor.execute("PRAGMA busy_timeout=30000")
+            busy_timeout_ms = int(os.getenv("DAEMONBLACKFX_SQLITE_BUSY_TIMEOUT_MS", "60000"))
+            cursor.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.execute("PRAGMA synchronous=NORMAL")
             cursor.execute("PRAGMA wal_autocheckpoint=2000")
             cursor.execute("PRAGMA journal_size_limit=67108864")
             cursor.execute("PRAGMA temp_store=MEMORY")
             cursor.execute("PRAGMA cache_size=-32768")
-            mmap_bytes = int(os.getenv("DAEMONBLACKFX_SQLITE_MMAP_SIZE_BYTES", "268435456"))
+            mmap_bytes = int(os.getenv("DAEMONBLACKFX_SQLITE_MMAP_SIZE_BYTES", "536870912"))
             if mmap_bytes > 0:
                 cursor.execute(f"PRAGMA mmap_size={mmap_bytes}")
         finally:
@@ -373,6 +374,10 @@ def _ensure_performance_indexes(engine):
         "ON daemon_audit_events (event_type, event_time)",
         "CREATE INDEX IF NOT EXISTS ix_audit_source_time "
         "ON daemon_audit_events (source, event_time)",
+        "CREATE INDEX IF NOT EXISTS ix_audit_action_time "
+        "ON daemon_audit_events (action, event_time)",
+        "CREATE INDEX IF NOT EXISTS ix_audit_type_action_time "
+        "ON daemon_audit_events (event_type, action, event_time)",
         "CREATE INDEX IF NOT EXISTS ix_daemon_audit_events_recent "
         "ON daemon_audit_events (source, event_type, event_time DESC, id DESC)",
         "CREATE INDEX IF NOT EXISTS ix_trade_audit_snapshots_lookup "

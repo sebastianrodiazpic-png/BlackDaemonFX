@@ -1,4 +1,4 @@
-"""Estrategia Institucional ICT Sabri Malle v2 (AMD, Killzones, Consequent Encroachment & FVG Pullback).
+"""Estrategia Institucional ICT v2 (AMD, Killzones, Consequent Encroachment & FVG Pullback).
 
 Implementa el ciclo completo de manipulación institucional con validación cuantitativa de 2 años:
 1. Macro Bias (H4): EMA 50 y EMA 200 para determinar la dirección institucional dominante.
@@ -31,9 +31,46 @@ import pandas as pd
 
 from config.symbol_policy import is_direction_allowed
 from strategy.ict.config import ICTSabriMalleConfig
+from strategy.execution.index_spread_gate import is_index_symbol, is_index_cash_session, get_index_spec
+from strategy.execution.commodity_spread_gate import is_commodity_symbol, is_commodity_rollover, get_commodity_spec
 
 NEW_YORK = ZoneInfo("America/New_York")
 TIMEFRAME_MINUTES = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
+
+_FX_CURRENCIES = {
+    "USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD",
+    "SEK", "NOK", "DKK", "SGD", "HKD", "MXN", "ZAR", "TRY", "PLN", "CNH",
+}
+
+
+def _is_forex_cross_without_usd(symbol: str) -> bool:
+    """Par FX estandar (aun con sufijo, p. ej. `AUDNZDmicro`) en el que ninguna divisa es USD."""
+    letters = "".join(ch for ch in str(symbol or "").upper() if ch.isalpha())
+    if len(letters) < 6:
+        return False
+    base, quote = letters[:3], letters[3:6]
+    if base not in _FX_CURRENCIES or quote not in _FX_CURRENCIES or base == quote:
+        return False
+    return "USD" not in (base, quote)
+
+
+def ict_reference_spread(symbol: str) -> float:
+    """Spread de referencia de ICT cuando no hay tick (IFVG/BPR y respaldo del SL).
+
+    Hasta el 12-nov-2026 era `0.00015 if "USD" in symbol else 0.5`: los cruces FX sin USD (AUDNZD, EURCAD,
+    EURJPY...) recibian 0.5 de precio y el colchon del SL del IFVG (2 x spread) dejaba el stop a ~1.0 de la
+    entrada (10.000 pips en AUDNZD, ~100 pips en EURJPY). Ahora esos cruces usan la misma referencia que los
+    pares con USD (1,5 pips: 0.00015, o 0.015 si cotizan en JPY). El resto de simbolos no cambia.
+
+    Interruptor: DAEMONBLACKFX_ICT_FX_CROSS_SPREAD_FIX=0 vuelve al comportamiento anterior.
+    """
+    legacy = 0.00015 if "USD" in str(symbol or "") else 0.5
+    if os.getenv("DAEMONBLACKFX_ICT_FX_CROSS_SPREAD_FIX", "1").strip().lower() in ("0", "false", "off", "no"):
+        return legacy
+    if not _is_forex_cross_without_usd(symbol):
+        return legacy
+    letters = "".join(ch for ch in str(symbol).upper() if ch.isalpha())
+    return 0.015 if letters[3:6] == "JPY" else 0.00015
 
 
 def closed_candles_only(df: pd.DataFrame, timeframe: str, now: pd.Timestamp, count: int | None = None) -> pd.DataFrame:
@@ -420,7 +457,7 @@ def check_order_block_five_stars(
 
 
 class ICTSabriMalleStrategy:
-    """Implementación oficial v2 de la estrategia ICT Sabri Malle refinada con Killzones y FVG."""
+    """Implementación oficial v2 de la estrategia ICT refinada con Killzones y FVG."""
 
     def __init__(self, data_provider: Any, config: ICTSabriMalleConfig | None = None):
         self.provider = data_provider
@@ -469,10 +506,17 @@ class ICTSabriMalleStrategy:
                    (ny_hour == getattr(self.config, "rollover_end_ny_hour", 17) and now_ny.minute <= getattr(self.config, "rollover_end_ny_minute", 45)):
                     return {**base_response, "reason": "MARKET_ROLLOVER_SPREAD_GUARD"}
 
-        # Identificar si es par Forex o Metal Precioso
+        # Identificar si es par Forex, Materia Prima o Índice Bursátil
         sym_u = symbol.upper()
         is_gold = any(k in sym_u for k in ("XAU", "GOLD"))
+        is_index = is_index_symbol(symbol)
+        is_commodity = is_commodity_symbol(symbol)
         is_forex = any(c in sym_u for c in ("EUR", "GBP", "USD", "AUD", "CAD", "CHF", "NZD", "JPY")) and not any(k in sym_u for k in ("XAU", "XAG", "BTC", "OIL", "SP", "TECH", "WALL"))
+
+        in_london_close = False
+        in_silver_bullet = False
+        in_tokyo_london_jpy = False
+        in_asian_session_jpy_aud = False
 
         in_london_kz = (self.config.london_kz_start_ny <= ny_hour <= self.config.london_kz_end_ny)
         in_ny_kz = (self.config.ny_kz_start_ny <= ny_hour <= self.config.ny_kz_end_ny)
@@ -492,11 +536,25 @@ class ICTSabriMalleStrategy:
         elif is_synthetic:
             # Sintéticos (Volatility 1-4, Jump, Step, Boom, Crash): Operación continua 24/7 sin barreras bancarias
             session_active = True
+        elif is_index and getattr(self.config, "indices_cash_open_enabled", True):
+            # Índices Bursátiles: Sesión de Contado (09:30 a 16:00 NY para US, 08:00 a 16:30 CET para DAX)
+            in_silver_bullet = False
+            if getattr(self.config, "silver_bullet_enabled", True):
+                if ny_hour in tuple(getattr(self.config, "silver_bullet_hours_ny", (3, 10, 14))):
+                    in_silver_bullet = True
+            session_active = is_index_cash_session(symbol, now_ny) or in_silver_bullet
+        elif is_commodity and getattr(self.config, "real_markets_expansion_enabled", True):
+            # Materias Primas: Sesión Londres (03:00-05:00 NY) + NY Cash (08:00-11:30 NY y 13:30-16:00 NY)
+            in_silver_bullet = False
+            if getattr(self.config, "silver_bullet_enabled", True):
+                if ny_hour in tuple(getattr(self.config, "silver_bullet_hours_ny", (3, 10, 14))):
+                    in_silver_bullet = True
+            session_active = (in_london_kz or (8 <= ny_hour <= 11) or (13 <= ny_hour <= 15) or in_silver_bullet) and not is_commodity_rollover(now_ny)
         else:
             # Forex (1-4) e ICT (Metales/Índices/Cripto):
-            # London KZ (02:00 - 05:00 NY)
-            # New York KZ (07:00 - 10:00 NY): Habilitada para Forex según official ICT mentorship
-            forex_ny_allowed = getattr(self.config, "forex_ny_killzone_enabled", True) if is_forex else self.config.ny_killzone_enabled
+            # London KZ (03:00 - 05:00 NY)
+            # New York KZ (07:00 - 11:00 NY): Habilitada para Forex bajo real_markets_expansion_enabled
+            forex_ny_allowed = getattr(self.config, "forex_ny_killzone_enabled", True) if getattr(self.config, "real_markets_expansion_enabled", True) else getattr(self.config, "forex_ny_killzone_enabled", False)
             ny_kz_active = in_ny_kz and forex_ny_allowed
 
             # London Close Reversal (11:00 - 12:30 NY) - Toni Maura / Official ICT Mentorship
@@ -560,6 +618,7 @@ class ICTSabriMalleStrategy:
         # salir antes de descargar H4, calcular EMAs, swings y pedir LTF candles por red.
         min_adx = float(getattr(self.config, "min_adx_h1", 0.0) or 0.0)
         early_adx = None
+        adx_slope_positive = False
         if len(df_h1) >= 28:
             try:
                 from strategy.indicators import calculate_adx
@@ -568,10 +627,21 @@ class ICTSabriMalleStrategy:
                     val = float(adx_series.iloc[-1])
                     if math.isfinite(val):
                         early_adx = round(val, 2)
+                    if len(adx_series) >= 2:
+                        prev_val = float(adx_series.iloc[-2])
+                        if math.isfinite(prev_val) and math.isfinite(val):
+                            adx_slope_positive = (val > prev_val)
             except Exception:
                 early_adx = None
+                adx_slope_positive = False
 
-        if min_adx > 0 and early_adx is not None and early_adx > 0 and early_adx < min_adx:
+        dyn_adx_enabled = bool(getattr(self.config, "dynamic_adx_slope_enabled", True))
+        dyn_adx_min = float(getattr(self.config, "dynamic_adx_min_threshold", 16.0))
+        allow_dynamic_adx = bool(
+            dyn_adx_enabled and early_adx is not None and (early_adx >= dyn_adx_min) and adx_slope_positive
+        )
+
+        if min_adx > 0 and early_adx is not None and early_adx > 0 and early_adx < min_adx and not allow_dynamic_adx:
             return {**base_response, "reason": f"INSUFFICIENT_H1_ADX_REGIME ({early_adx:.1f} < {min_adx:.1f})"}
 
         # Velas H4 para Macro Bias
@@ -598,11 +668,11 @@ class ICTSabriMalleStrategy:
         last_h4_ema50 = float(df_h4["ema50"].iloc[-1])
         last_h4_ema200 = float(df_h4["ema200"].iloc[-1])
 
-        if is_gold:
-            # Gold preserva exactamente su evaluación macro rígida de EMAs 50 y 200
+        if is_gold and not getattr(self.config, "real_markets_h4_macro_flex_enabled", True):
+            # Gold preserva su evaluación macro rígida solo si se desactiva explícitamente real_markets_h4_macro_flex_enabled
             bias_bearish = (last_h4_close < last_h4_ema50) and (last_h4_ema50 <= last_h4_ema200)
             bias_bullish = (last_h4_close > last_h4_ema50) and (last_h4_ema50 >= last_h4_ema200)
-        elif getattr(self.config, "macro_bias_flexible", True):
+        elif getattr(self.config, "macro_bias_flexible", True) or getattr(self.config, "real_markets_h4_macro_flex_enabled", True):
             # Sabri Malle Video 8: EMA 100 en H4 como directriz institucional
             ema_period = getattr(self.config, "macro_ema_period", 100)
             df_h4["ema_macro"] = df_h4["close"].ewm(span=ema_period, adjust=False).mean()
@@ -669,10 +739,15 @@ class ICTSabriMalleStrategy:
                     asian_bars.append(df_h1_ny.iloc[chk_idx])
                 elif len(asian_bars) > 0:
                     break
+            fast_range_opt = os.getenv("DAEMONBLACKFX_ICT_FAST_RANGE_OPT", "1").strip().lower() not in ("0", "false", "no", "off")
             if len(asian_bars) >= 2:
-                df_asia = pd.DataFrame(asian_bars)
-                asia_high = float(df_asia["high"].max())
-                asia_low = float(df_asia["low"].min())
+                if fast_range_opt:
+                    asia_high = float(max(float(b["high"]) for b in asian_bars))
+                    asia_low = float(min(float(b["low"]) for b in asian_bars))
+                else:
+                    df_asia = pd.DataFrame(asian_bars)
+                    asia_high = float(df_asia["high"].max())
+                    asia_low = float(df_asia["low"].min())
 
             # 2. Previous Day High / Low (PDH / PDL)
             prior_df = df_h1_ny[df_h1_ny["ny_date"] < now_ny.date()]
@@ -689,9 +764,13 @@ class ICTSabriMalleStrategy:
                     range_high = asia_high
                     range_low = asia_low
                 elif len(asian_bars) >= 2:
-                    df_asia = pd.DataFrame(asian_bars)
-                    range_high = float(df_asia["high"].max())
-                    range_low = float(df_asia["low"].min())
+                    if fast_range_opt:
+                        range_high = float(max(float(b["high"]) for b in asian_bars))
+                        range_low = float(min(float(b["low"]) for b in asian_bars))
+                    else:
+                        df_asia = pd.DataFrame(asian_bars)
+                        range_high = float(df_asia["high"].max())
+                        range_low = float(df_asia["low"].min())
             elif 7 <= ny_hour <= 11:
                 # New York KZ barre el Rango de Londres (02:00 a 05:00 NY)
                 london_bars = []
@@ -703,9 +782,13 @@ class ICTSabriMalleStrategy:
                     elif len(london_bars) > 0:
                         break
                 if len(london_bars) >= 2:
-                    df_london = pd.DataFrame(london_bars)
-                    range_high = float(df_london["high"].max())
-                    range_low = float(df_london["low"].min())
+                    if fast_range_opt:
+                        range_high = float(max(float(b["high"]) for b in london_bars))
+                        range_low = float(min(float(b["low"]) for b in london_bars))
+                    else:
+                        df_london = pd.DataFrame(london_bars)
+                        range_high = float(df_london["high"].max())
+                        range_low = float(df_london["low"].min())
             elif 11 <= ny_hour <= 13:
                 # London Close barre el Rango de NY Mañana (07:00 a 10:00 NY)
                 ny_am_bars = []
@@ -717,9 +800,13 @@ class ICTSabriMalleStrategy:
                     elif len(ny_am_bars) > 0:
                         break
                 if len(ny_am_bars) >= 2:
-                    df_ny_am = pd.DataFrame(ny_am_bars)
-                    range_high = float(df_ny_am["high"].max())
-                    range_low = float(df_ny_am["low"].min())
+                    if fast_range_opt:
+                        range_high = float(max(float(b["high"]) for b in ny_am_bars))
+                        range_low = float(min(float(b["low"]) for b in ny_am_bars))
+                    else:
+                        df_ny_am = pd.DataFrame(ny_am_bars)
+                        range_high = float(df_ny_am["high"].max())
+                        range_low = float(df_ny_am["low"].min())
             elif in_asian_session_jpy_aud:
                 # Sesión Asiática (Tokyo / Sydney) para pares JPY y AUD (19:00 - 02:00 NY)
                 ny_pm_bars = []
@@ -731,9 +818,13 @@ class ICTSabriMalleStrategy:
                     elif len(ny_pm_bars) > 0:
                         break
                 if len(ny_pm_bars) >= 2:
-                    df_ny_pm = pd.DataFrame(ny_pm_bars)
-                    range_high = float(df_ny_pm["high"].max())
-                    range_low = float(df_ny_pm["low"].min())
+                    if fast_range_opt:
+                        range_high = float(max(float(b["high"]) for b in ny_pm_bars))
+                        range_low = float(min(float(b["low"]) for b in ny_pm_bars))
+                    else:
+                        df_ny_pm = pd.DataFrame(ny_pm_bars)
+                        range_high = float(df_ny_pm["high"].max())
+                        range_low = float(df_ny_pm["low"].min())
                 elif pdh is not None and pdl is not None:
                     range_high = pdh
                     range_low = pdl
@@ -791,10 +882,10 @@ class ICTSabriMalleStrategy:
             )
         )
 
-        if is_synthetic:
-            # En sintéticos (Boom, Crash, Volatility, Step, Jump, Flip) que operan 24/7/365,
-            # no se exige barrido institucional de Judas Swing bancario.
-            # Se toma el extremo de las últimas N velas H1 configuradas como nivel de referencia para el gatillo LTF.
+        if is_synthetic or (is_index and getattr(self.config, "indices_cash_liquidity_sweep_enabled", True)):
+            # En sintéticos e índices bursátiles (operativa continua o de sesión de contado):
+            # no se exige barrido de Judas Swing asiático bancario (inexistente en índices de NY o Frankfurt).
+            # Se toma el extremo de las últimas N velas H1 como nivel de referencia para el gatillo LTF.
             manipulation_found = True
             synth_sweep_bars = max(1, int(getattr(self.config, "synthetics_sweep_lookback_h1_bars", 1)))
             recent_synth_h1 = df_h1.iloc[-synth_sweep_bars:]
@@ -804,6 +895,7 @@ class ICTSabriMalleStrategy:
             else:
                 sweep_peak = float(recent_synth_h1["low"].min())
                 sweep_idx = int(len(df_h1) - len(recent_synth_h1) + int(np.argmin(recent_synth_h1["low"].values)))
+            swept_liquidity_source = "INDEX_CASH_SESSION_EXTREME" if is_index else "SYNTHETIC_ROLLING_EXTREME"
         else:
             swept_liquidity_source = "NONE"
             recent_bars = df_h1.iloc[-4:].reset_index(drop=True)
@@ -870,7 +962,7 @@ class ICTSabriMalleStrategy:
                     curr_idx=len(df_h1) - 1,
                     intended_direction=intended_direction,
                     lookback_bars=getattr(self.config, "ifvg_lookback_bars", 24),
-                    spread=0.00015 if "USD" in symbol else 0.5,
+                    spread=ict_reference_spread(symbol),
                 )
                 if ifvg_bpr and ifvg_bpr.get("valid"):
                     manipulation_found = True
@@ -892,7 +984,7 @@ class ICTSabriMalleStrategy:
             if tick and tick.get("ask") and tick.get("bid"):
                 spread = abs(float(tick["ask"]) - float(tick["bid"]))
         except Exception:
-            spread = 0.00015 if "USD" in symbol else 0.5
+            spread = ict_reference_spread(symbol)
 
         # Intentar consultar velas de menor temporalidad (M15 o M5)
         df_ltf = None
@@ -915,8 +1007,50 @@ class ICTSabriMalleStrategy:
         displacement_ratio = candle_body / candle_range
 
         # Ruptura Estructural Estricta: "Bodies break, wicks sweep" (cuerpo >= 45%)
-        if displacement_ratio < self.config.strict_mss_body_ratio:
+        # Con refinamiento fractal M5 activado, se evalúa si M5 ya consolidó el desplazamiento institucional o rechazo
+        m5_confirmed = False
+        m5_extreme_rejection = None
+        if getattr(self.config, "m5_fvg_refinement_enabled", False):
+            try:
+                raw_m5 = self.provider.get_candles(symbol, "M5", count=30)
+                if raw_m5 is not None and len(raw_m5) >= 6:
+                    df_m5 = closed_candles_only(raw_m5, "M5", now, count=12)
+                    if len(df_m5) >= 3:
+                        last_m5 = df_m5.iloc[-1]
+                        m5_body = abs(float(last_m5["close"]) - float(last_m5["open"]))
+                        m5_rng = float(last_m5["high"]) - float(last_m5["low"]) + 1e-9
+                        m5_disp = m5_body / m5_rng
+                        m5_min_disp = float(getattr(self.config, "m5_refinement_min_displacement_ratio", 0.45))
+                        m5_min_wick = float(getattr(self.config, "m5_refinement_min_wick_ratio", 0.35))
+                        if intended_direction == "SELL":
+                            m5_wick = (float(last_m5["high"]) - max(float(last_m5["open"]), float(last_m5["close"]))) / m5_rng
+                            m5_extreme_rejection = float(df_m5["high"].iloc[-3:].max())
+                        else:
+                            m5_wick = (min(float(last_m5["open"]), float(last_m5["close"])) - float(last_m5["low"])) / m5_rng
+                            m5_extreme_rejection = float(df_m5["low"].iloc[-3:].min())
+                        if m5_disp >= m5_min_disp or m5_wick >= m5_min_wick:
+                            m5_confirmed = True
+            except Exception:
+                pass
+
+        if displacement_ratio < self.config.strict_mss_body_ratio and not m5_confirmed:
             return {**base_response, "reason": f"INSUFFICIENT_DISPLACEMENT_BODY ({displacement_ratio:.2f} < {self.config.strict_mss_body_ratio})"}
+
+        # Verificación de Absorción / Mecha de Rechazo en FVG Rejection
+        if getattr(self.config, "fvg_require_absorption_wick", True):
+            min_fvg_wick = float(getattr(self.config, "fvg_min_absorption_wick_ratio", 0.40))
+            if intended_direction == "BUY":
+                lower_rejection_wick = (min(curr_open, curr_close) - curr_low) / candle_range
+                upper_adverse_wick = (curr_high - max(curr_open, curr_close)) / candle_range
+                has_wick_absorption = (lower_rejection_wick >= min_fvg_wick) or m5_confirmed
+                if not has_wick_absorption and upper_adverse_wick >= 0.35:
+                    return {**base_response, "reason": f"WAITING_FVG_ABSORPTION_WICK (Lower Wick: {lower_rejection_wick:.2f} < {min_fvg_wick:.2f})"}
+            else:
+                upper_rejection_wick = (curr_high - max(curr_open, curr_close)) / candle_range
+                lower_adverse_wick = (min(curr_open, curr_close) - curr_low) / candle_range
+                has_wick_absorption = (upper_rejection_wick >= min_fvg_wick) or m5_confirmed
+                if not has_wick_absorption and lower_adverse_wick >= 0.35:
+                    return {**base_response, "reason": f"WAITING_FVG_ABSORPTION_WICK (Upper Wick: {upper_rejection_wick:.2f} < {min_fvg_wick:.2f})"}
 
         # Evaluación de Order Block 5 Estrellas (Sabri Malle Video 9)
         ob_five_star = None
@@ -933,8 +1067,11 @@ class ICTSabriMalleStrategy:
             stop_loss = ifvg_bpr_sl
             fvg_aligned = True
         elif intended_direction == "SELL":
-            # Soporte previo al sweep
-            local_support = float(eval_df["low"].iloc[-8:-1].min())
+            # Soporte previo al sweep (refinamiento fractal MSS sobre el último swing cerrado)
+            if getattr(self.config, "fractal_mss_enabled", True):
+                local_support = float(eval_df["low"].iloc[-5:-1].min())
+            else:
+                local_support = float(eval_df["low"].iloc[-8:-1].min())
             if curr_close >= local_support:
                 return {**base_response, "reason": "WAITING_MSS_STRICT_CLOSE_BELOW_SUPPORT"}
             if (local_support - curr_close) > (0.35 * range_height):
@@ -985,6 +1122,8 @@ class ICTSabriMalleStrategy:
                 buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
                 min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
                 m15_extreme = float(eval_df["high"].iloc[-4:].max())
+                if m5_confirmed and m5_extreme_rejection is not None and m5_extreme_rejection < m15_extreme:
+                    m15_extreme = m5_extreme_rejection
                 m15_cand_stop = m15_extreme + buffer_dist + spread
                 if m15_cand_stop < stop_loss and (m15_cand_stop - candidate_entry) >= min_risk_floor:
                     stop_loss = m15_cand_stop
@@ -992,8 +1131,11 @@ class ICTSabriMalleStrategy:
             fvg_aligned = True
 
         else:
-            # Resistencia previa al sweep
-            local_resistance = float(eval_df["high"].iloc[-8:-1].max())
+            # Resistencia previa al sweep (refinamiento fractal MSS sobre el último swing cerrado)
+            if getattr(self.config, "fractal_mss_enabled", True):
+                local_resistance = float(eval_df["high"].iloc[-5:-1].max())
+            else:
+                local_resistance = float(eval_df["high"].iloc[-8:-1].max())
             if curr_close <= local_resistance:
                 return {**base_response, "reason": "WAITING_MSS_STRICT_CLOSE_ABOVE_RESISTANCE"}
             if (curr_close - local_resistance) > (0.35 * range_height):
@@ -1043,6 +1185,8 @@ class ICTSabriMalleStrategy:
                 buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
                 min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
                 m15_extreme = float(eval_df["low"].iloc[-4:].min())
+                if m5_confirmed and m5_extreme_rejection is not None and m5_extreme_rejection > m15_extreme:
+                    m15_extreme = m5_extreme_rejection
                 m15_cand_stop = m15_extreme - buffer_dist - spread
                 if m15_cand_stop > stop_loss and (candidate_entry - m15_cand_stop) >= min_risk_floor:
                     stop_loss = m15_cand_stop
@@ -1052,6 +1196,49 @@ class ICTSabriMalleStrategy:
         risk = abs(entry_price - stop_loss)
         if risk <= 0 or (spread > 0 and risk < (1.2 * spread)):
             return {**base_response, "reason": "INVALID_RISK_SPREAD_RATIO"}
+
+        # Filtro Estricto de Spread (Spread Gate para Mercados Reales: Índices, Materias Primas, Forex)
+        if not is_synthetic and getattr(self.config, "real_spread_gate_enabled", True):
+            max_ratio = float(getattr(self.config, "max_spread_risk_ratio", 0.015))
+            if risk > 0 and spread > 0:
+                spread_risk_ratio = spread / risk
+                if spread_risk_ratio > max_ratio:
+                    return {
+                        **base_response,
+                        "action": "SPREAD_ABOVE_LIMIT",
+                        "reason": f"SPREAD_GATE_RATIO_EXCEEDED ({spread_risk_ratio:.4f} > {max_ratio:.4f})",
+                        "diagnostics": {"spread": spread, "risk": risk, "spread_risk_ratio": round(spread_risk_ratio, 4)}
+                    }
+            if is_index:
+                spec = get_index_spec(symbol)
+                max_cap = spec.get("max_spread", 5.0)
+                if spread > max_cap:
+                    return {
+                        **base_response,
+                        "action": "SPREAD_ABOVE_LIMIT",
+                        "reason": f"INDEX_SPREAD_ABOVE_HARD_CAP ({spread:.2f} > {max_cap:.2f})",
+                        "diagnostics": {"spread": spread, "max_spread_cap": max_cap}
+                    }
+            elif is_commodity:
+                spec = get_commodity_spec(symbol)
+                max_cap = spec.get("max_spread", 0.50)
+                if spread > max_cap:
+                    return {
+                        **base_response,
+                        "action": "SPREAD_ABOVE_LIMIT",
+                        "reason": f"COMMODITY_SPREAD_ABOVE_HARD_CAP ({spread:.2f} > {max_cap:.2f})",
+                        "diagnostics": {"spread": spread, "max_spread_cap": max_cap}
+                    }
+            elif is_forex:
+                pip = 0.01 if "JPY" in sym_u else 0.0001
+                max_pips = 1.8 if any(curr in sym_u for curr in ("EURUSD", "GBPUSD", "USDCAD", "USDJPY", "AUDUSD", "USDCHF")) else 3.0
+                if (spread / pip) > max_pips:
+                    return {
+                        **base_response,
+                        "action": "SPREAD_ABOVE_LIMIT",
+                        "reason": f"FOREX_SPREAD_ABOVE_HARD_CAP ({spread/pip:.1f} > {max_pips:.1f} pips)",
+                        "diagnostics": {"spread_pips": round(spread / pip, 2), "max_pips": max_pips}
+                    }
 
         # Mejora 1 (26-oct-2026): piso estructural de SL en sintéticos (sl_atr_h1 >= min_sl_atr_h1 o piso micro-stop)
         min_sl_atr = float(getattr(self.config, "min_sl_atr_h1", 0.0) or 0.0)
@@ -1112,9 +1299,9 @@ class ICTSabriMalleStrategy:
             except Exception:
                 pass
 
-        # Mejora 5 (26-oct-2026): filtro de régimen ADX H1 >= min_adx_h1 (doble chequeo defensivo)
+        # Mejora 5 (26-oct-2026): filtro de régimen ADX H1 >= min_adx_h1 (doble chequeo defensivo con slope dinámico)
         min_adx = float(getattr(self.config, "min_adx_h1", 0.0) or 0.0)
-        if min_adx > 0 and real_features["adx_h1"] is not None and real_features["adx_h1"] > 0 and real_features["adx_h1"] < min_adx:
+        if min_adx > 0 and real_features["adx_h1"] is not None and real_features["adx_h1"] > 0 and real_features["adx_h1"] < min_adx and not allow_dynamic_adx:
             return {**base_response, "reason": f"INSUFFICIENT_H1_ADX_REGIME ({real_features['adx_h1']:.1f} < {min_adx:.1f})"}
 
         # Mejora 9 (30-oct-2026): Lógica adaptativa bidireccional Jump y Step
@@ -1143,7 +1330,8 @@ class ICTSabriMalleStrategy:
             "mitigation_entry_price": round(mitigation_entry_price, 5) if 'mitigation_entry_price' in locals() else round(entry_price, 5),
             "dual_entry_mitigation_enabled": bool(getattr(self.config, "dual_entry_mitigation_enabled", True)),
             "micro_stop_applied": bool(micro_stop_applied if 'micro_stop_applied' in locals() else False),
-            "micro_stop_timeframe": "M15" if ('micro_stop_applied' in locals() and micro_stop_applied) else None,
+            "micro_stop_timeframe": "M5" if ('m5_confirmed' in locals() and m5_confirmed) else ("M15" if ('micro_stop_applied' in locals() and micro_stop_applied) else None),
+            "m5_fractal_refinement": bool(m5_confirmed if 'm5_confirmed' in locals() else False),
             "stop_loss": round(stop_loss, 5),
             "take_profit": round(tp2_price, 5),
             "tp1_price": round(tp1_price, 5),
@@ -1205,7 +1393,7 @@ class ICTSabriMalleStrategy:
             "valid": True,
             "strategy_name": self.config.strategy_name,
             "strategy_version": self.config.strategy_version,
-            "action": "ICT_SABRI_MALLE_CONFIRMED",
+            "action": "ICT_CONFIRMED",
             "reason": f"ICT AMD Judas Swing confirmed ({intended_direction} on {symbol} | Killzone={session_active})",
             "symbol": symbol,
             "signal": signal,
@@ -1216,3 +1404,7 @@ class ICTSabriMalleStrategy:
                 "displacement_body_ratio": round(displacement_ratio, 3),
             }
         }
+
+
+# Alias oficial de la estrategia ICT
+ICTStrategy = ICTSabriMalleStrategy

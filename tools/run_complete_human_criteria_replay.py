@@ -9,6 +9,10 @@ Genera la comparación exacta de:
 
 from __future__ import annotations
 
+import sys
+if sys.path and ("tools" in sys.path[0] or sys.path[0].endswith("tools")):
+    sys.path.pop(0)
+
 import json
 from pathlib import Path
 import numpy as np
@@ -128,7 +132,7 @@ def evaluate_strategy_assets(df: pd.DataFrame, strategy_name: str) -> list[dict]
 
 def main():
     datasets = {
-        "ICT Sabri Malle": "storage/analysis/ict_faithful_365d_v2_trades.csv",
+        "ICT": "storage/analysis/ict_faithful_365d_v2_trades.csv",
         "Malaysian SNR v3.2": "storage/analysis/msnr_faithful_trades.csv",
         "Trend Pullback": "storage/analysis/volatility_workers_2y_smc_trades.csv",
         "AMR-SMC (Step & Jump)": "storage/analysis/step_jump_workers_2y_smc_trades.csv",

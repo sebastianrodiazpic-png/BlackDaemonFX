@@ -92,9 +92,12 @@ def _strategy_name(trade):
 
     meta = _metadata(trade)
 
-    explicit = str(meta.get("strategy_name") or "").upper()
+    explicit = str(meta.get("strategy_name") or trade.get("strategy_name") or "").upper().strip()
 
     if explicit:
+
+        if explicit in ("ICT_SABRI_MALLE", "ICT", "ESTRATEGIA ICT_SABRI_MALLE", "ESTRATEGIA ICT"):
+            return "ICT"
 
         return explicit
 
@@ -852,6 +855,16 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
 
 
 
+        norm_entry_audit = dict(entry_audit) if isinstance(entry_audit, dict) else {}
+        if norm_entry_audit:
+            raw_dec = norm_entry_audit.get("decision")
+            if str(raw_dec or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED"):
+                norm_entry_audit["decision"] = "ICT_CONFIRMED"
+            elif raw_dec:
+                norm_entry_audit["decision"] = str(raw_dec).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+            if str(norm_entry_audit.get("strategy_name") or "").upper() in ("ICT_SABRI_MALLE", "ICT"):
+                norm_entry_audit["strategy_name"] = "ICT"
+
         recent.append({
 
             "id": trade.get("id"), "source_trade_id": source_trade_id, "instrument": trade.get("instrument"), "direction": trade.get("direction"),
@@ -878,9 +891,9 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
 
             "classification": trade.get("classification"),
 
-            "confirmation_audit": entry_audit,
+            "confirmation_audit": norm_entry_audit,
 
-            "confirmation_decision": entry_audit.get("decision"),
+            "confirmation_decision": norm_entry_audit.get("decision"),
 
             "confirmation_score": entry_audit.get("score"),
 
@@ -998,6 +1011,8 @@ def build_account_payload(repository, source="DEMO", recent_limit=None):
             for model_info in models_catalog:
                 w_name = model_info["worker"]
                 strat_name = model_info.get("strategy_name") or "ALL"
+                if strat_name in ("ICT_SABRI_MALLE", "ICT"):
+                    strat_name = "ICT"
                 cov_5y = model_info.get("coverage_5y") or {}
 
                 if w_name not in workers_map:

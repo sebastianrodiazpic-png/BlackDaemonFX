@@ -179,6 +179,14 @@ class MultiTimeframeAnalyzer:
         # Los símbolos distintos continúan ejecutándose de forma independiente.
         self._stage_inflight_locks = {}
 
+        warmup_enabled = os.getenv("DAEMONBLACKFX_SMC_JIT_WARMUP", "1").strip().lower() not in ("0", "false", "no", "off")
+        if warmup_enabled:
+            try:
+                from strategy.smc.warmup import warmup_smc_kernels
+                warmup_smc_kernels()
+            except Exception:
+                pass
+
     _TIMEFRAME_SECONDS = {
         "M1": 60,
         "M2": 120,

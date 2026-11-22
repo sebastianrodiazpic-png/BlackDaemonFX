@@ -35,7 +35,7 @@ def test_step_jump_unpruned_instruments_persistence():
 
 
 def test_step_jump_worker_rules_targets_and_guards():
-    """Worker rules para STEP y JUMP bajo ICT Sabri Malle configuran TP1 1:2, TP2 1:4 y protección."""
+    """Worker rules para STEP y JUMP bajo ICT configuran TP1 1:2, TP2 1:4 y protección."""
     for profile in ["STEP", "JUMP"]:
         base_cfg = LiveTradingConfig(bot_profile=profile)
         cfg = configure_worker_rules(base_cfg)

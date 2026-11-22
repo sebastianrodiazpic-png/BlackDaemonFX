@@ -77,27 +77,56 @@ def audit_result(engine, symbol, result):
 
 def schedule_outcomes(engine, symbol):
     """Serialize broker observations in a daemon thread, outside entry cycles."""
+    import os
     import queue
     import threading
+
     jobs = getattr(engine, '_msnr_outcome_jobs', None)
-    if jobs is None:
-        jobs = engine._msnr_outcome_jobs = queue.Queue(maxsize=64)
+    pending_symbols = getattr(engine, '_msnr_outcome_pending_symbols', None)
+    lock = getattr(engine, '_msnr_outcome_lock', None)
+
+    if jobs is None or pending_symbols is None or lock is None:
+        max_size = int(os.getenv("DAEMONBLACKFX_MSNR_OUTCOME_QUEUE_MAXSIZE", "256"))
+        jobs = engine._msnr_outcome_jobs = queue.Queue(maxsize=max_size)
+        pending_symbols = engine._msnr_outcome_pending_symbols = set()
+        lock = engine._msnr_outcome_lock = threading.Lock()
+
         def run():
             from .candidate_outcomes import refresh
             while True:
                 asset = jobs.get()
                 try:
-                    refresh(engine.repository,engine.provider,asset,engine.config.source)
+                    refresh(engine.repository, engine.provider, asset, engine.config.source)
                 except Exception as exc:
-                    engine._persist_audit_event('MSNR_OUTCOME_AUDIT_ERROR',instrument=asset,
-                                               action='ERROR',reason=str(exc))
+                    engine._persist_audit_event(
+                        'MSNR_OUTCOME_AUDIT_ERROR',
+                        instrument=asset,
+                        action='ERROR',
+                        reason=str(exc),
+                    )
                 finally:
+                    with lock:
+                        pending_symbols.discard(asset)
                     jobs.task_done()
-        thread = threading.Thread(target=run,name='msnr-candidate-outcomes',daemon=True)
+
+        thread = threading.Thread(target=run, name='msnr-candidate-outcomes', daemon=True)
         engine._msnr_outcome_thread = thread
         thread.start()
+
+    # Desduplicación: si el símbolo ya está en espera en la cola, no lo agregamos de nuevo
+    with lock:
+        if symbol in pending_symbols:
+            return
+        pending_symbols.add(symbol)
+
     try:
         jobs.put_nowait(symbol)
     except queue.Full:
-        engine._persist_audit_event('MSNR_OUTCOME_QUEUE_FULL',instrument=symbol,
-                                   action='ERROR',reason='Observaciones pendientes: cola completa')
+        with lock:
+            pending_symbols.discard(symbol)
+        engine._persist_audit_event(
+            'MSNR_OUTCOME_QUEUE_FULL',
+            instrument=symbol,
+            action='ERROR',
+            reason='Observaciones pendientes: cola completa',
+        )

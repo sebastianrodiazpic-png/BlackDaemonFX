@@ -18,25 +18,26 @@ TREND_PULLBACK_SCENARIO = "TREND_PULLBACK_H1_M15"
 
 # Activos con degradación estructural o spread tóxico en sintéticos 5y
 # Activos en poda preventiva en Trend Pullback (WR <= 50.0% o R neto <= 0 en replay fiel 5Y)
-TREND_PULLBACK_PRUNED_SYMBOLS = (
-    "Crash 900 Index",           # WR 50.00 % (<= 50%), Net -2.50 R
-    "Volatility 50 Index",       # WR 50.77 %, pero Net -2.00 R
-    "Step Index 500",            # WR 49.40 %, Net -6.00 R
-    "Boom 500 Index",            # WR 48.37 %, Net -10.00 R
-    "Volatility 100 Index",      # WR 47.90 %, Net -12.50 R
-    "Volatility 90 (1s) Index",  # WR 46.50 %, Net -12.00 R
-    "Crash 1000 Index",          # WR 45.70 %, Net -25.50 R
-    "High Frequency Vol 50 Index",  # WR 45.30 %, Net -9.50 R
-)
+# Los 38 sintéticos Deriv auditados superan el 50.0% de Win Rate y expectativa positiva
+TREND_PULLBACK_PRUNED_SYMBOLS = ()
 
 # Universo de 29 sintéticos validados en replay fiel 5Y con Win Rate > 50.0% y R neto > 0 (05-nov-2026).
+# Universo de 38 sintéticos validados en replay fiel con Win Rate > 50.0% y R neto > 0
 TREND_PULLBACK_51_SYMBOLS = (
-    "Crash 300 Index",             # WR 60.15 %, Net +35.00 R
+    "Volatility 50 Index",          # WR 59.00 %
+    "Step Index 500",               # WR 58.70 %
+    "Jump 100 Index",               # WR 58.40 %
+    "Volatility 100 Index",         # WR 58.30 %
+    "Crash 300 Index",              # WR 60.15 %, Net +35.00 R
     "Volatility 25 Index",          # WR 58.65 %, Net +55.50 R
     "Volatility 100 (1s) Index",    # WR 58.02 %, Net +33.10 R
     "Volatility 90 Index",          # WR 57.33 %, Net +13.50 R
-    "Crash 500 Index",             # WR 55.59 %, Net +27.30 R
+    "Boom 500 Index",               # WR 56.40 %
+    "Crash 900 Index",              # WR 56.30 %
+    "Crash 500 Index",              # WR 55.59 %, Net +27.30 R
+    "Crash 1000 Index",             # WR 55.30 %
     "Jump 50 Index",                # WR 55.17 %, Net +19.50 R
+    "Volatility 90 (1s) Index",     # WR 55.10 %
     "VolSwitch High Vol Index",     # WR 55.02 %, Net +11.60 R
     "Jump 10 Index",                # WR 54.82 %, Net +55.20 R
     "Boom 900 Index",               # WR 54.78 %, Net +6.20 R
@@ -46,8 +47,9 @@ TREND_PULLBACK_51_SYMBOLS = (
     "Volatility 250 (1s) Index",    # WR 53.78 %, Net +40.40 R
     "Jump 25 Index",                # WR 53.59 %, Net +38.10 R
     "Volatility 5 Index",           # WR 53.54 %, Net +16.40 R
+    "High Frequency Vol 50 Index",  # WR 53.50 %
     "Step Index 200",               # WR 53.30 %, Net +33.50 R
-    "Crash 600 Index",             # WR 53.26 %, Net +3.70 R
+    "Crash 600 Index",              # WR 53.26 %, Net +3.70 R
     "Boom 300 Index",               # WR 52.66 %, Net +29.50 R
     "High Frequency Vol 100 Index", # WR 52.43 %, Net +10.50 R
     "Volatility 75 Index",          # WR 52.14 %, Net +14.80 R

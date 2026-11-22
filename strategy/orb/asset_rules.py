@@ -13,7 +13,21 @@ ORB_SWEEP_STRATEGY_VERSION = "orb-ny-v5-sweep"
 def default_asset_profiles():
     profiles = {key: {**value, "allowed_modes": list(value["allowed_modes"])}
                 for key, value in ASSET_CONFIG.items()}
-    if os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "0").strip().lower() in ("1", "true", "on"):
+    dual_engine = os.getenv("DAEMONBLACKFX_ORB_DUAL_ENGINE", "1").strip().lower() in ("1", "true", "on")
+    if dual_engine:
+        # Modo Dual-Engine: Activa RETEST y MOMENTUM en los 17 activos élite para capturar Trend Days
+        elite_keys = (
+            "XAUUSD", "BTCUSD", "USDCAD", "GBPUSD", "AUDUSD", "XAGUSD",
+            "USOIL", "USDCHF", "USDJPY", "ETHUSD", "XAUEUR", "EURUSD",
+            "US500", "US30", "NAS100"
+        )
+        for k in elite_keys:
+            if k in profiles:
+                profiles[k]["allowed_modes"] = ["RETEST", "MOMENTUM"]
+                profiles[k]["sweep_enabled"] = True
+                profiles[k]["pruned"] = False
+                profiles[k]["max_range_atr_ratio"] = float(os.getenv("DAEMONBLACKFX_ORB_INDEX_MAX_ATR_RATIO", "3.0" if k in ("US30", "NAS100", "US500") else "1.8"))
+    elif os.getenv("DAEMONBLACKFX_ORB_INDICES_ENABLED", "0").strip().lower() in ("1", "true", "on"):
         for k in ("US30", "NAS100", "US500"):
             if k in profiles:
                 profiles[k]["allowed_modes"] = ["RETEST", "MOMENTUM"]

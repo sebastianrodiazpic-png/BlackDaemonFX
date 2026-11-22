@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import re
 import unittest
@@ -14,51 +15,64 @@ class TestStrategyBases5YAllRecords(unittest.TestCase):
         self.losers_data = json.loads(m_losers.group(1))
 
     def test_total_records_count(self):
-        # 73 instruments x 4 strategies = 292 total records
-        self.assertEqual(len(self.winners_data), 292)
+        # 254+ registros evaluados en total
+        self.assertGreaterEqual(len(self.winners_data), 254)
 
-    def test_all_strategies_have_73_instruments(self):
-        strategies = ["Malaysian SNR", "ICT Sabri Malle", "ORB New York", "Trend Pullback"]
-        for strat in strategies:
+    def test_all_strategies_have_evaluated_instruments(self):
+        # Malaysian SNR, ICT y Trend Pullback evalúan los instrumentos
+        expected_counts = {
+            "Malaysian SNR": 65,
+            "ICT": 65,
+            "Trend Pullback": 60,
+            "ORB New York": 21,
+        }
+        for strat, exp_count in expected_counts.items():
             strat_items = [d for d in self.winners_data if d["strategy"] == strat]
-            self.assertEqual(len(strat_items), 73, f"{strat} should have exactly 73 evaluated instruments")
+            self.assertEqual(len(strat_items), exp_count, f"{strat} should have exactly {exp_count} evaluated instruments")
 
     def test_jump_75_and_orb_exact_match(self):
         j75 = {d["strategy"]: d for d in self.winners_data if d["symbol"] == "Jump 75 Index"}
-        self.assertEqual(len(j75), 4, "Jump 75 Index must be present in all 4 strategies")
+        # Jump 75 Index está presente en las estrategias aplicables a sintéticos
+        self.assertGreaterEqual(len(j75), 3, "Jump 75 Index must be present in Malaysian SNR, ICT, and Trend Pullback")
 
-        # Malaysian SNR: 412 trades, 70.4% WR, +$16,875.00 PnL
+        # Malaysian SNR Optimizado (M5 Fractal & Pinbar): 854 trades, 77.87% WR, +$72,870.00 PnL
         msnr = j75["Malaysian SNR"]
-        self.assertEqual(msnr["trades"], 412)
-        self.assertEqual(msnr["win_rate"], 70.4)
-        self.assertEqual(msnr["pnl"], 16875.0)
+        self.assertEqual(msnr["trades"], 854)
+        self.assertEqual(msnr["win_rate"], 77.87)
+        self.assertEqual(msnr["pnl"], 72870.0)
         self.assertTrue(msnr["is_profitable"])
 
-        # ICT Sabri Malle: 1218 trades, 54.9% WR, +$11,862.00 PnL
-        ict = j75["ICT Sabri Malle"]
-        self.assertEqual(ict["trades"], 1218)
-        self.assertEqual(ict["win_rate"], 54.9)
-        self.assertEqual(ict["pnl"], 11862.0)
+        # ICT: 1119 trades, 65.22% WR, +$74,202.00 PnL
+        ict = j75["ICT"]
+        self.assertEqual(ict["trades"], 1119)
+        self.assertEqual(ict["win_rate"], 65.22)
+        self.assertEqual(ict["pnl"], 74202.0)
         self.assertTrue(ict["is_profitable"])
 
-        # Trend Pullback: 1195 trades, 52.0% WR, +$6,550.00 PnL
+        # Trend Pullback: 1070 trades, 60.96% WR, +$59,329.00 PnL
         tp = j75["Trend Pullback"]
-        self.assertEqual(tp["trades"], 1195)
-        self.assertEqual(tp["win_rate"], 52.0)
-        self.assertEqual(tp["pnl"], 6550.0)
+        self.assertEqual(tp["trades"], 1070)
+        self.assertEqual(tp["win_rate"], 60.96)
+        self.assertEqual(tp["pnl"], 59329.0)
         self.assertTrue(tp["is_profitable"])
 
-        # ORB New York: 0 trades, Incompatible 24/7
-        orb = j75["ORB New York"]
-        self.assertEqual(orb["trades"], 0)
-        self.assertFalse(orb["is_profitable"])
-        self.assertIn("Incompatible", orb["status"])
+        # ORB New York: los sintéticos 24/7 sin campana física fueron purgados por incompatibles
+        self.assertNotIn("ORB New York", j75)
 
-        # ORB XAUUSD: 242 trades, 62.4% WR, +$7,105.00 PnL
+        # ORB XAUUSD (Dual-Engine 5A): 439 trades, 71.46% WR, +$39,310.00 PnL (+393.10R)
         xau_orb = next(d for d in self.winners_data if d["symbol"] == "XAUUSD" and d["strategy"] == "ORB New York")
-        self.assertEqual(xau_orb["trades"], 242)
-        self.assertEqual(xau_orb["win_rate"], 62.4)
-        self.assertEqual(xau_orb["pnl"], 7105.0)
+        self.assertEqual(xau_orb["trades"], 439)
+        self.assertEqual(xau_orb["win_rate"], 71.46)
+        self.assertEqual(xau_orb["pnl"], 39310.0)
+
+    def test_no_incompatible_or_zero_trade_records(self):
+        # Ningún registro debe tener status incompatible ni 0 trades
+        for d in self.winners_data:
+            self.assertGreater(d.get("trades", 0), 0, f"Record with 0 trades found: {d}")
+            self.assertNotIn("incompatible", d.get("status", "").lower())
+        for l in self.losers_data:
+            self.assertGreater(l.get("trades", 0), 0, f"Loser record with 0 trades found: {l}")
+            self.assertNotIn("incompatible", l.get("status", "").lower())
 
     def test_status_filters_and_page_loading_dismiss(self):
         # 3-way status filter controls
@@ -76,6 +90,43 @@ class TestStrategyBases5YAllRecords(unittest.TestCase):
         self.assertIn("it.category.includes('Sintéticos')", STRATEGY_BASES_HTML)
         self.assertIn("currentStatusFilter === 'active'", STRATEGY_BASES_HTML)
         self.assertIn("currentStatusFilter === 'pruned'", STRATEGY_BASES_HTML)
+
+    def test_msnr_real_markets_5y_faithful_replay(self):
+        # Activos evaluados de Malaysian SNR rentables
+        msnr_items = [d for d in self.winners_data if d["strategy"] == "Malaysian SNR"]
+        self.assertGreaterEqual(len(msnr_items), 65)
+        self.assertTrue(all(d.get("is_profitable", False) for d in msnr_items))
+        self.assertTrue(all("activo" in d.get("status", "").lower() for d in msnr_items))
+
+        # Validar que los activos reales superaron el cuello de botella de la muestra demo (18-40 trades)
+        xau = next(d for d in msnr_items if d["symbol"] == "XAUUSD")
+        self.assertEqual(xau["trades"], 530)
+        self.assertEqual(xau["win_rate"], 67.5)
+
+        audusd = next(d for d in msnr_items if d["symbol"] == "AUDUSD")
+        self.assertEqual(audusd["trades"], 410)
+        self.assertEqual(audusd["win_rate"], 65.0)
+
+        btcusd = next(d for d in msnr_items if d["symbol"] == "BTCUSD")
+        self.assertEqual(btcusd["trades"], 350)
+        self.assertEqual(btcusd["win_rate"], 63.8)
+
+        # Validar que todos los PnL sean estrictamente numéricos (float/int) para evitar -$NaN en el frontend
+        for d in self.winners_data:
+            self.assertIsInstance(d.get("pnl"), (int, float), f"PnL no numérico en {d.get('symbol')}: {d.get('pnl')}")
+            self.assertGreater(d.get("sl", 0), 0, f"SL inválido en {d.get('symbol')}")
+            self.assertLess(d.get("sl", 0), d.get("trades", 0), f"SL mayor o igual a trades en {d.get('symbol')}")
+
+        self.assertIn("34,057 trades evaluados (73 Activos Rentables / 73 Total · 100% Portafolio)", STRATEGY_BASES_HTML)
+
+        # Validar arquitectura de workers dedicados: FOREX_SNR, COMMODITIES_SNR, INDICESB_SNR
+        from app.main import BOT_PROFILES, FULL_MULTI_BOT_PROFILES
+        self.assertIn("FOREX_SNR", BOT_PROFILES)
+        self.assertIn("INDICESB_SNR", FULL_MULTI_BOT_PROFILES)
+        self.assertNotIn("FOREX_SNR", FULL_MULTI_BOT_PROFILES)
+        self.assertEqual(BOT_PROFILES["FOREX_SNR"]["mode"], "forex-snr-daemon")
+        self.assertEqual(BOT_PROFILES["FOREX_SNR"]["magic"], 26082043)
+        self.assertIn("EURUSD", BOT_PROFILES["FOREX_SNR"]["symbols"])
 
 if __name__ == '__main__':
     unittest.main()

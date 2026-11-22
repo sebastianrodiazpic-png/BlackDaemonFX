@@ -4,7 +4,7 @@ tools/run_multistrategy_5y_replay.py
 Replay cuantitativo multianual fiel de 5 AÑOS (1825 días) para las 4 Estrategias Oficiales:
 1. Malaysian SNR (MSNR)
 2. New York ORB (ORB)
-3. ICT Sabri Malle (ICT)
+3. ICT (ICT)
 4. Trend Pullback H1/M15 (TREND_PULLBACK)
 
 Cobertura:
@@ -284,7 +284,7 @@ class MultiStrategy5YReplayRunner:
             except Exception as e:
                 logger.warning("Error leyendo simulacion_orb_mejoras_5y.csv: %s", e)
 
-        # ICT Sabri Malle 5Y
+        # ICT 5Y
         ict_file = self.data_dir / "simulacion_ict_mejoras_5y.csv"
         if ict_file.exists():
             try:

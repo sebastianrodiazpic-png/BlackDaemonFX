@@ -88,7 +88,7 @@ metrics_block = """      // Métricas por pestaña
           be: "1,140",
           sl: "3,951",
           profit: "+794.9 R (+$79,490 USD)",
-          badge: "ICT Sabri Malle (>50% Win Rate)",
+          badge: "ICT (>50% Win Rate)",
           bars: { tp1: 54.8, tp2: 32.5, tp3: 16.6, tp4: 8.2, be: 13.0, sl: 45.2 }
         },
         trend_pullback: {

@@ -19,12 +19,12 @@ def test_skip_disabled_worker_processes_by_default(monkeypatch):
 
     repo = SimpleNamespace(open_trades=lambda source="DEMO": [])
 
-    for disabled_prof in ("FOREX_2", "FOREX_3", "FOREX_4", "VOLATILITY_2", "VOLATILITY_3", "VOLATILITY_4", "GOLD", "DRIFT", "FLIP", "TREND_PULLBACK"):
+    for disabled_prof in ("GOLD", "DRIFT", "FLIP", "TREND_PULLBACK"):
         skip, reason = main_mod._should_skip_disabled_worker_process(disabled_prof, repo)
         assert skip is True, f"{disabled_prof} debería omitirse cuando no tiene posiciones abiertas"
         assert reason
 
-    for active_prof in ("BOOM", "CRASH", "VOLATILITY_1", "STEP", "JUMP", "ORB", "MALAYSIAN_SNR", "RSI2", "CARRY"):
+    for active_prof in ("BOOM", "CRASH", "VOLATILITY_1", "STEP", "JUMP", "ORB", "MALAYSIAN_SNR", "RSI2", "CARRY", "FOREX_1", "FOREX_2", "FOREX_3", "FOREX_4"):
         skip, reason = main_mod._should_skip_disabled_worker_process(active_prof, repo)
         assert skip is False and reason is None
 

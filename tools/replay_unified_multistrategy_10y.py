@@ -3,7 +3,7 @@ tools/replay_unified_multistrategy_10y.py
 =========================================
 Marco de Investigación y Replay Causal Unificado para las 4 Estrategias de BlackDaemonFx:
 1. Malaysian SNR (MSNR)
-2. ICT Sabri Malle
+2. ICT
 3. New York ORB
 4. Gold Quarters
 

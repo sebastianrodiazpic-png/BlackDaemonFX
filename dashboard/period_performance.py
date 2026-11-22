@@ -365,7 +365,15 @@ def build_monthly_daily_performance(
                 "classification": first_row.get("classification"),
                 "pnl_percent": round((net_pnl / base_balance) * 100.0, 2) if base_balance > 0 else 0.0,
                 # Datos completos de auditoría técnica
-                "confirmation_decision": entry_audit.get("decision") or first_row.get("confirmation_decision"),
+                "confirmation_decision": (
+                    "ICT_CONFIRMED"
+                    if str(entry_audit.get("decision") or first_row.get("confirmation_decision") or "").upper() in ("ICT_SABRI_MALLE_CONFIRMED", "ICT_CONFIRMED")
+                    else (
+                        str(entry_audit.get("decision") or first_row.get("confirmation_decision")).replace("ICT_SABRI_MALLE", "ICT").replace("ICT SABRI MALLE", "ICT")
+                        if (entry_audit.get("decision") or first_row.get("confirmation_decision"))
+                        else None
+                    )
+                ),
                 "confirmation_score": entry_audit.get("score") if entry_audit.get("score") is not None else first_row.get("confirmation_score"),
                 "passed_confirmations": entry_audit.get("passed") or first_row.get("passed_confirmations") or [],
                 "missing_confirmations": entry_audit.get("missing") or first_row.get("missing_confirmations") or [],

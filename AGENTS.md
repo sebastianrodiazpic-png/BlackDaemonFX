@@ -6,3 +6,4 @@ Las instrucciones completas están en `CLAUDE.md`. Resumen obligatorio:
 2. Documenta cada cambio en ese registro (entrada nueva arriba del historial, con evidencia, ficheros, interruptores y tests).
 3. Rentabilidad primero; valida con replay fiel; todo cambio configurable y con tests; sin reiniciar daemons ni commit sin permiso.
 4. Responde en español.
+5. Reinicios congelados durante la sesión: un único reinicio al día en la ventana 21:00–23:00 UTC (regla 7 del registro).

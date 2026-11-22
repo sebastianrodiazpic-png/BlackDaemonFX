@@ -14,6 +14,7 @@ Identifica cuatro regímenes principales:
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -48,6 +49,10 @@ class MarketRegimeConfig:
     forex_strict_filter: bool = True
     # Si no hay suficientes velas, no bloquear operativas
     min_candles_required: int = 30
+    # Pilar 1 (18-nov-2026): Centinela Especializado por Clase de Activo (Commodities, Crypto, Indices, Synthetics, Forex)
+    asset_class_adaptive_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_SENTINEL_ASSET_CLASS_ADAPTIVE", "1").strip().lower() not in ("0", "false", "off")
+    )
 
 
 @dataclass
@@ -207,6 +212,36 @@ def compute_regime_metrics(
     )
 
 
+def detect_asset_class(symbol: str) -> str:
+    """Clasifica el símbolo en una de 5 clases de activo:
+    - COMMODITY: Oro, Plata, Petróleo (XAU, XAG, US Oil, Brent, WTI).
+    - CRYPTO: BTC, ETH, SOL, LTC, XRP, etc.
+    - INDEX: Índices bursátiles reales (US Tech 100, Wall Street 30, US SP 500, Germany 40, etc.).
+    - SYNTHETIC: Índices sintéticos de Deriv (Boom, Crash, Volatility, Step, Jump, Flip, Dex, 1s, Hz).
+    - FOREX: Pares de divisas tradicionales (EURUSD, GBPJPY, etc.).
+    """
+    s = (symbol or "").upper().replace(" ", "").replace("_", "")
+
+    # 1. Metales y Commodities
+    if any(k in s for k in ("XAU", "XAG", "GOLD", "SILVER", "USOIL", "BRENT", "WTI", "OIL")):
+        return "COMMODITY"
+
+    # 2. Criptoactivos
+    if any(k in s for k in ("BTC", "ETH", "SOL", "LTC", "XRP", "CRYPTO")):
+        return "CRYPTO"
+
+    # 3. Índices Bursátiles Reales
+    if any(k in s for k in ("USTECH", "WALLSTREET", "USSP500", "US500", "US30", "NAS100", "GERMANY40", "GER40", "UK100", "JP225", "SPX")):
+        return "INDEX"
+
+    # 4. Sintéticos de Deriv
+    if any(k in s for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP", "DEX", "VOLSWITCH", "1S", "HZ", "INDEX")):
+        return "SYNTHETIC"
+
+    # 5. Forex tradicional
+    return "FOREX"
+
+
 def classify_market_regime(
     metrics: MarketRegimeMetrics,
     symbol: str = "",
@@ -216,19 +251,53 @@ def classify_market_regime(
     cfg = config or MarketRegimeConfig()
     sym = (symbol or "").upper()
 
-    # Detección de activos Forex y Sintéticos
-    is_forex = any(pair in sym for pair in ("EUR", "USD", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF")) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"))
-    is_synthetic = any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP", "1S", "HZ", "INDEX")) or not is_forex
-
-    # En sintéticos de Deriv, la micro-volatilidad y mechas son intrínsecas a las cotizaciones deterministas 24/7.
-    # Suavizamos los umbrales de Whipsaw y Choppiness en un 20-25% para evitar bloquear tendencias legítimas,
-    # mientras mantenemos la protección estricta en Forex y Oro.
-    wick_noise_thresh = cfg.wick_noise_threshold * 1.25 if is_synthetic else cfg.wick_noise_threshold
-    atr_spike_thresh = cfg.atr_spike_threshold * 1.20 if is_synthetic else cfg.atr_spike_threshold
-    whip_extreme_thresh = 0.78 if is_synthetic else 0.70
-    chop_extreme_thresh = 76.0 if is_synthetic else 72.0
-    chop_toxic_thresh = (cfg.choppiness_toxic_threshold + 6.0) if is_synthetic else cfg.choppiness_toxic_threshold
-    adx_toxic_thresh = (cfg.adx_toxic_threshold - 3.0) if is_synthetic else cfg.adx_toxic_threshold
+    if getattr(cfg, "asset_class_adaptive_enabled", True):
+        asset_class = detect_asset_class(sym)
+        if asset_class == "SYNTHETIC":
+            wick_noise_thresh = cfg.wick_noise_threshold * 1.25  # 0.50
+            atr_spike_thresh = cfg.atr_spike_threshold * 1.20   # 2.64
+            whip_extreme_thresh = 0.78
+            chop_extreme_thresh = 76.0
+            chop_toxic_thresh = cfg.choppiness_toxic_threshold + 6.0  # 67.8
+            adx_toxic_thresh = max(10.0, cfg.adx_toxic_threshold - 3.0)  # 15.0
+        elif asset_class == "COMMODITY":
+            wick_noise_thresh = 0.52
+            atr_spike_thresh = cfg.atr_spike_threshold * 1.15   # 2.53
+            whip_extreme_thresh = 0.75
+            chop_extreme_thresh = 74.0
+            chop_toxic_thresh = cfg.choppiness_toxic_threshold + 4.2  # 66.0
+            adx_toxic_thresh = max(10.0, cfg.adx_toxic_threshold - 2.0)  # 16.0
+        elif asset_class == "CRYPTO":
+            wick_noise_thresh = float(os.getenv("DAEMONBLACKFX_SENTINEL_CRYPTO_WICK_THRESHOLD", "0.62"))
+            atr_spike_thresh = cfg.atr_spike_threshold * 1.30   # 2.86
+            whip_extreme_thresh = 0.82
+            chop_extreme_thresh = 78.0
+            chop_toxic_thresh = cfg.choppiness_toxic_threshold + 6.0  # 67.8
+            adx_toxic_thresh = max(8.0, cfg.adx_toxic_threshold - 6.0)  # 12.0
+        elif asset_class == "INDEX":
+            wick_noise_thresh = float(os.getenv("DAEMONBLACKFX_SENTINEL_INDEX_WICK_THRESHOLD", "0.60"))
+            atr_spike_thresh = cfg.atr_spike_threshold * 1.20   # 2.64
+            whip_extreme_thresh = 0.82
+            chop_extreme_thresh = 76.0
+            chop_toxic_thresh = cfg.choppiness_toxic_threshold + 5.0  # 66.8
+            adx_toxic_thresh = max(8.0, cfg.adx_toxic_threshold - 6.0)  # 12.0
+        else:  # FOREX
+            wick_noise_thresh = cfg.wick_noise_threshold       # 0.40
+            atr_spike_thresh = cfg.atr_spike_threshold         # 2.20
+            whip_extreme_thresh = 0.70
+            chop_extreme_thresh = 72.0
+            chop_toxic_thresh = cfg.choppiness_toxic_threshold  # 61.8
+            adx_toxic_thresh = cfg.adx_toxic_threshold         # 18.0
+    else:
+        # Fallback defensivo a clasificación legada
+        is_forex = any(pair in sym for pair in ("EUR", "USD", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF")) and not any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP"))
+        is_synthetic = any(k in sym for k in ("BOOM", "CRASH", "VOLATILITY", "STEP", "JUMP", "FLIP", "1S", "HZ", "INDEX")) or not is_forex
+        wick_noise_thresh = cfg.wick_noise_threshold * 1.25 if is_synthetic else cfg.wick_noise_threshold
+        atr_spike_thresh = cfg.atr_spike_threshold * 1.20 if is_synthetic else cfg.atr_spike_threshold
+        whip_extreme_thresh = 0.78 if is_synthetic else 0.70
+        chop_extreme_thresh = 76.0 if is_synthetic else 72.0
+        chop_toxic_thresh = (cfg.choppiness_toxic_threshold + 6.0) if is_synthetic else cfg.choppiness_toxic_threshold
+        adx_toxic_thresh = (cfg.adx_toxic_threshold - 3.0) if is_synthetic else cfg.adx_toxic_threshold
 
     # Criterios de TOXIC_NOISE
     # 1. Congestión caótica (Choppiness muy alto o alta congestión con ruido de mechas)
@@ -338,8 +407,12 @@ class MarketRegimeSentinel:
         df_h1: pd.DataFrame | None,
         current_spread: float | None = None,
         baseline_spread: float | None = None,
+        has_institutional_confluence: bool = False,
     ) -> MarketRegimeDecision:
-        """Determina si el símbolo es operable bajo las condiciones actuales de régimen."""
+        """Determina si el símbolo es operable bajo las condiciones actuales de régimen.
+        
+        Permite override institucional (Desplazamiento FVG o Absorción) ante ruido/whipsaw transitorio.
+        """
         now_iso = datetime.now(timezone.utc).isoformat()
 
         if not self.config.enabled or self.config.mode == MODE_OFF:
@@ -375,9 +448,20 @@ class MarketRegimeSentinel:
         classification = classify_market_regime(metrics, symbol=symbol, config=self.config)
 
         # Regla de veto en modo FILTER
+        override_enabled = os.getenv("DAEMONBLACKFX_SENTINEL_INSTITUTIONAL_OVERRIDE", "1").strip().lower() not in ("0", "false", "off")
+        can_override = (
+            override_enabled
+            and has_institutional_confluence
+            and classification.primary_factor != "SPREAD_STRESS_SPIKE"
+        )
+
         if self.config.mode == MODE_FILTER and classification.is_toxic:
-            allowed = False
-            reason = f"MARKET_REGIME_TOXIC_BLOCKED:{classification.primary_factor}"
+            if can_override:
+                allowed = True
+                reason = f"MARKET_REGIME_OVERRIDDEN_INSTITUTIONAL_EXPANSION:{classification.primary_factor}"
+            else:
+                allowed = False
+                reason = f"MARKET_REGIME_TOXIC_BLOCKED:{classification.primary_factor}"
         else:
             allowed = True
             reason = (

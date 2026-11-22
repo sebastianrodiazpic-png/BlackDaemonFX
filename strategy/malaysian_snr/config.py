@@ -1,4 +1,4 @@
-﻿"""Configuración de la Estrategia Malaysian SNR.
+"""Configuración de la Estrategia Malaysian SNR.
 
 Los replays heredados no validan rentabilidad de la versión causal actual.
 - Escenario 1 permanece deshabilitado por defecto.
@@ -34,7 +34,7 @@ class MalaysianSNRConfig:
     breaker_pair_mode: str = os.getenv("DAEMONBLACKFX_MSNR_BREAKER_PAIR_MODE", "off").strip().lower()
     breaker_pair_min_body_ratio: float = .50
     breaker_pair_min_displacement_atr: float = .50
-    retest_pinbar_mode: str = os.getenv("DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE", "off").strip().lower()
+    retest_pinbar_mode: str = os.getenv("DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE", "live").strip().lower()
     retest_pinbar_min_wick_ratio: float = .55
     retest_pinbar_min_close_ratio: float = .75
     session_policy: str = 'legacy_utc'
@@ -56,7 +56,7 @@ class MalaysianSNRConfig:
     max_entry_distance_atr: float = 0.50
     obstacle_buffer_atr: float = 0.10
     qm_swing_radius: int = 2
-    retest_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES", os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW", "360")))
+    retest_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW_MINUTES", os.getenv("DAEMONBLACKFX_MSNR_RETEST_WINDOW", "720")))
     entry_execution_grace_seconds: int = 60
     retest_recovery_bars: int = int(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_BARS", "4"))
     confirmation_tolerance_bars: int = int(os.getenv("DAEMONBLACKFX_MSNR_CONFIRMATION_TOLERANCE_BARS", "2"))
@@ -72,7 +72,7 @@ class MalaysianSNRConfig:
     enable_strict_fresh_filter: bool = True       # Consumidos bloqueados; una visita admite excepción reforzada configurable
     enable_session_killzones_filter: bool = True   # Solo operar Londres (07:00-11:00 UTC) y NY (12:30-17:00 UTC) en activos no sintéticos
     enable_daily_storyline_filter: bool = True     # Confluencia con sesgo macro D1
-    enable_synthetic_daily_storyline_filter: bool = os.getenv("DAEMONBLACKFX_MSNR_STORYLINE_FILTER", "1").strip().lower() in ("1", "true", "on")  # Sesgo macro D1/H4 Alchemist
+    enable_synthetic_daily_storyline_filter: bool = os.getenv("DAEMONBLACKFX_MSNR_STORYLINE_FILTER", "0").strip().lower() in ("1", "true", "on")  # Sesgo macro D1/H4 Alchemist (0 por defecto en sintéticos 24/7)
     enable_d1_storyline_levels: bool = True        # Storyline A/V de D1 para detección de Key Levels macro contrarios
     enable_crt_sweep_rejection: bool = True        # Candle Range Theory (CRT): M15 exige barrido de mecha + absorción de cierre
     enable_quasimodo_pattern: bool = True          # Patrón Quasimodo estructural de swing (Left Shoulder retest)
@@ -81,7 +81,7 @@ class MalaysianSNRConfig:
     enable_structural_freshness: bool = os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_FRESHNESS", "1").strip().lower() in ("1", "true", "on")
     structural_max_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_STRUCTURAL_MAX_MINUTES", "720"))
     retest_contact_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_CONTACT_BUFFER_ATR", "0.15"))
-    dynamic_retest_buffer_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER", "0").strip().lower() in ("1", "true", "on")  # Buffer dinámico ATR H1 (0.20 ATR)
+    dynamic_retest_buffer_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER", "1").strip().lower() in ("1", "true", "on")  # Buffer dinámico ATR H1 (0.20 ATR) activado
     dynamic_retest_buffer_atr: float = float(os.getenv("DAEMONBLACKFX_MSNR_DYNAMIC_BUFFER_ATR", "0.20"))  # Tolerancia dinámica de 0.20 ATR H1
     min_sl_atr_h1: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_SL_ATR_H1", "0.0"))  # Piso estructural opcional de SL en sintéticos
     max_fakeout_penetration_atr: float = 0.60      # Penetración máxima permitida en Fakeout Trap (0.60 ATR)
@@ -96,12 +96,14 @@ class MalaysianSNRConfig:
     enable_obstacle_awareness: bool = True         # Ajuste dinámico de TP2 al detectar Key Level contrario intermedio
     min_obstacle_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR", "2.0"))  # Clearance mínimo exigido hacia el obstáculo D1 opuesto (>= 2.0R base; 1.2R con DAEMONBLACKFX_MSNR_MIN_OBSTACLE_RR=1.2)
     direct_touch_require_absorption: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECT_TOUCH_ABSORPTION", "1").strip().lower() in ("1", "true", "on")
+    direct_touch_min_absorption_wick: float = float(os.getenv("DAEMONBLACKFX_MSNR_ABSORPTION_WICK_RATIO", "0.40"))
     directional_asymmetry_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_DIRECTIONAL_ASYMMETRY", "1").strip().lower() in ("1", "true", "on")
     jump_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_JUMP_BUY_ONLY", "").split(",") if s.strip())
     step_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_STEP_SELL_ONLY", "").split(",") if s.strip())
     crash_sell_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_CRASH_SELL_ONLY", "Crash 500 Index").split(",") if s.strip())
     boom_buy_only_symbols: tuple = tuple(s.strip() for s in os.getenv("DAEMONBLACKFX_MSNR_BOOM_BUY_ONLY", "Boom 500 Index,Boom 900 Index,Boom 1000 Index").split(",") if s.strip())
-    step_min_adx: float = float(os.getenv("DAEMONBLACKFX_MSNR_STEP_MIN_ADX", "25.0"))
+    step_min_adx: float = float(os.getenv("DAEMONBLACKFX_MSNR_STEP_MIN_ADX", "12.0"))
+    step_require_adx: bool = os.getenv("DAEMONBLACKFX_MSNR_STEP_REQUIRE_ADX", "0").strip().lower() in ("1", "true", "on")
     enable_midnight_guard: bool = os.getenv("DAEMONBLACKFX_MSNR_MIDNIGHT_GUARD", "1").strip().lower() in ("1", "true", "on")
     midnight_guard_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_MIDNIGHT_GUARD_MINUTES", "15"))
     max_level_touches: int = int(os.getenv("DAEMONBLACKFX_MSNR_MAX_LEVEL_TOUCHES", "1"))
@@ -137,7 +139,7 @@ class MalaysianSNRConfig:
     history_min_h1: int = 28
     history_min_d1: int = 30
     history_max_request: int = 320
-    m5_confirmation_mode: str = 'off'
+    m5_confirmation_mode: str = os.getenv("DAEMONBLACKFX_MSNR_M5_MODE", "live").strip().lower()
     recovery_window_minutes: int = int(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_WINDOW_MINUTES", "60"))
     recovery_min_body_ratio: float = float(os.getenv("DAEMONBLACKFX_MSNR_RECOVERY_MIN_BODY_RATIO", "0.25"))
     h4_neutral_fallback_mode: str = 'off'
@@ -177,19 +179,17 @@ class MalaysianSNRConfig:
     # Variante C2 (Staging): Tope de Stop Loss en unidades ATR (<= 1.2 en Forex/Metales, <= 1.5 en Sintéticos y Wall Street 30)
     min_adx: float = 30.0
     # Solo sintéticos: los mercados reales tienen expectativa negativa en el replay fiel de 2 años.
-    synthetics_only: bool = False
+    synthetics_only: bool = True
     # Mercados reales en PRUEBA DEMO (25-oct-2026, decisión del usuario). Replay fiel 3 años con spread de ticks: elegir
     # con el pasado los instrumentos de bajo coste (spread/SL mediano <= 2 %) fue positivo en los 3 saltos (+0,104 /
     # +0,079 / +0,112 R/op, no concluyente). Estos símbolos pasan aunque synthetics_only sea True, usan los ajustes POR
     # DEFECTO (los de la base, con Breaker Pair y Pinbar en live, perdían en Forex) y la sesión `real_market_session_policy`.
+    # NOTA ARQUITECTURA (10-nov-2026): En vivo, los workers dedicados FOREX_SNR (44 activos), COMMODITIES_SNR (10 activos)
+    # e INDICESB_SNR (4 activos) inyectan su universo completo desde config/ict_instrument_policy.py.
     real_market_symbols: tuple = tuple(s.strip() for s in os.getenv(
         "DAEMONBLACKFX_MSNR_REAL_SYMBOLS",
-        # Auditoría 05-nov-2026: Mercados reales y pares Forex con Win Rate > 50.0% y R neto > 0 (incluyendo USDCHF, AUDCAD, AUDUSD, Germany 40 y versiones micro)
-        "CADCHF,CADCHFmicro,EURGBP,EURGBPmicro,CADJPY,CADJPYmicro,USDJPY,USDJPYmicro,GBPUSD,GBPUSDmicro,"
-        "GBPJPY,GBPJPYmicro,EURAUD,EURAUDmicro,AUDJPY,AUDJPYmicro,GBPCHF,GBPCHFmicro,CHFJPY,CHFJPYmicro,"
-        "USDCAD,USDCADmicro,EURUSD,EURUSDmicro,EURJPY,EURJPYmicro,EURCAD,EURCADmicro,USDCHF,USDCHFmicro,"
-        "AUDCAD,AUDCADmicro,AUDUSD,AUDUSDmicro,Germany 40,UK Brent Oil,ETHUSD,ETHUSDmicro,"
-        "BTCUSD,BTCUSDmicro,XAUUSD,XAUUSDmicro,XAUEUR,XAUEURmicro,US Oil,US Tech 100,US SP 500,Wall Street 30"
+        "Germany 40,XAUUSD,USDJPY,GBPUSD,EURUSD,"
+        "NZDUSD,GBPCAD,AUDUSD,CADCHF,EURGBP,GBPCHF,CADJPY,GBPJPY,CHFJPY"
     ).split(",") if s.strip())
     real_markets_enabled: bool = os.getenv("DAEMONBLACKFX_MSNR_REAL_MARKETS", "demo_test").strip().lower() not in ("off", "0", "false")
     real_market_default_settings: bool = True
@@ -202,8 +202,8 @@ class MalaysianSNRConfig:
     # Los forex añadidos por acierto > 47 % (25-oct-2026) se midieron en Londres + NY: también usan legacy_utc.
     real_market_session_overrides: str = os.getenv(
         "DAEMONBLACKFX_MSNR_REAL_SESSION_OVERRIDES",
-        "NZDUSD:legacy_utc,GBPCAD:legacy_utc,CADCHF:legacy_utc,"
-        "EURGBP:legacy_utc,GBPCHF:legacy_utc,CADJPY:legacy_utc,GBPJPY:legacy_utc").strip()
+        "EURUSD:legacy_utc,NZDUSD:legacy_utc,GBPCAD:legacy_utc,AUDUSD:legacy_utc,CADCHF:legacy_utc,"
+        "EURGBP:legacy_utc,GBPCHF:legacy_utc,CADJPY:legacy_utc,GBPJPY:legacy_utc,CHFJPY:legacy_utc").strip()
     # Escenario H4→H1 (strategy/malaysian_snr/h4h1_confirmation.py). El motor lo activa según
     # DAEMONBLACKFX_MSNR_H4H1 (demo_test = solo DEMO); runner a 2R como en el replay.
     enable_h4h1_confirmation: bool = False
@@ -241,6 +241,8 @@ class MalaysianSNRConfig:
             self.breaker_pair_mode = os.environ["DAEMONBLACKFX_MSNR_BREAKER_PAIR_MODE"].strip().lower()
         if "DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE" in os.environ:
             self.retest_pinbar_mode = os.environ["DAEMONBLACKFX_MSNR_RETEST_PINBAR_MODE"].strip().lower()
+        if "DAEMONBLACKFX_MSNR_M5_MODE" in os.environ:
+            self.m5_confirmation_mode = os.environ["DAEMONBLACKFX_MSNR_M5_MODE"].strip().lower()
         if "DAEMONBLACKFX_MSNR_AV_ENTRY_MODE" in os.environ:
             self.av_entry_mode = os.environ["DAEMONBLACKFX_MSNR_AV_ENTRY_MODE"].strip().lower()
         if "DAEMONBLACKFX_MSNR_ROLE_FLIP_MODE" in os.environ:

@@ -1,7 +1,7 @@
 """SNR research catalogue. Membership alone never enables execution."""
 FAMILIES = {
     'synthetics': (
-        'Step Index', 'Step Index 200', 'Step Index 400', 'Step Index 500',
+        'Step Index', 'Step Index 200', 'Step Index 300', 'Step Index 400', 'Step Index 500',
         'Jump 10 Index', 'Jump 25 Index', 'Jump 50 Index', 'Jump 75 Index', 'Jump 100 Index',
         'Volatility 5 Index', 'Volatility 10 Index', 'Volatility 15 Index', 'Volatility 25 Index',
         'Volatility 50 Index', 'Volatility 75 Index', 'Volatility 100 Index',
@@ -10,7 +10,9 @@ FAMILIES = {
         'Vol over Boom 550', 'Vol over Crash 550', 'VolSwitch High Vol Index',
         'High Frequency Vol 50 Index', 'High Frequency Vol 100 Index',
         'Boom 300 Index', 'Boom 500 Index', 'Boom 600 Index', 'Boom 900 Index', 'Boom 1000 Index',
-        'Crash 300 Index', 'Crash 500 Index', 'Crash 600 Index', 'Crash 900 Index', 'Crash 1000 Index'),
+        'Volatility Boom 400 Index', 'Volatility Boom 750 Index',
+        'Crash 300 Index', 'Crash 500 Index', 'Crash 600 Index', 'Crash 900 Index', 'Crash 1000 Index',
+        'Volatility Crash 400 Index', 'Volatility Crash 550 Index', 'Volatility Crash 750 Index'),
     'forex': ('EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'AUDUSD',
         'AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'CADCHF', 'CADJPY', 'CHFJPY',
         'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD',
@@ -27,6 +29,18 @@ RECOVERY_SYMBOLS = ('Crash 500 Index', 'Step Index 500', 'Volatility 10 Index',
 
 def canonical_symbol(symbol):
     return str(symbol).strip().removesuffix('micro')
+
+
+def is_synthetic_symbol(symbol) -> bool:
+    """True para índices sintéticos 24/7 de Deriv; False para Forex, Metales, Índices bursátiles, Cripto y Materias Primas."""
+    name = canonical_symbol(symbol)
+    if name in FAMILIES['synthetics']:
+        return True
+    s = name.lower()
+    if any(k in s for k in ('volatility', 'boom', 'crash', 'step', 'jump', 'vol over', 'volswitch', 'high frequency vol', 'dex', 'drift', 'flip')):
+        return True
+    return False
+
 
 
 def symbol_mode(settings, symbol, base_symbols=()):

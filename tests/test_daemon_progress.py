@@ -23,7 +23,7 @@ def test_process_symbols_reports_each_symbol_immediately():
     engine = Engine(
         provider=SimpleNamespace(),
         repository=Repo(),
-        config=LiveTradingConfig(execution_enabled=False),
+        config=LiveTradingConfig(execution_enabled=False, concurrent_scan_workers=1),
         executor=SimpleNamespace(),
     )
 
@@ -50,7 +50,7 @@ def test_process_symbols_reports_each_symbol_immediately():
 def test_symbol_permission_error_preserves_diagnostics_and_continues(monkeypatch):
     engine = Engine(
         provider=SimpleNamespace(), repository=Repo(),
-        config=LiveTradingConfig(execution_enabled=False), executor=SimpleNamespace(),
+        config=LiveTradingConfig(execution_enabled=False, concurrent_scan_workers=1), executor=SimpleNamespace(),
     )
     def process(symbol, **kwargs):
         if symbol == "A":

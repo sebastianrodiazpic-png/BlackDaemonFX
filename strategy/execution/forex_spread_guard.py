@@ -36,7 +36,7 @@ class ForexSpreadGuard:
         if item.get('session') != session:
             item.update(session=session, stable_count=0, last_stable_at=None)
         previous = item.get('observed_at')
-        if previous and (now-datetime.fromisoformat(previous)).total_seconds()>45:
+        if previous and (now-datetime.fromisoformat(previous)).total_seconds()>95:
             item['stable_count']=0
         item.update(observed_at=now.isoformat(), quote=dict(quote))
         valid = quote.get('spread_status') == 'AVAILABLE' and quote.get('spread_source') == 'MT5_EXECUTION'

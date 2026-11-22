@@ -361,68 +361,190 @@ _PERFORMANCE_BASE = r'''<!doctype html>
       }
       body {
         margin: 0;
-        background: var(--bg);
+        background: radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
         color: var(--t);
-        font: 14px system-ui;
+        font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
-      .w {
-        max-width: 1380px;
-        margin: auto;
-        padding: 18px;
+      .appShell {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
       }
-      .brand {
+      .brandSidebar {
+        border-right: 1px solid #6b4d13;
+        background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        align-self: start;
+        z-index: 50;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .brandSidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .brandSidebar::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
+      }
+      .brandLogo {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1px solid #7b5816;
+        box-shadow: 0 0 28px rgba(215, 155, 25, 0.12);
+      }
+      .brandName {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+      .brandName span {
+        color: #f6cb57;
+      }
+      .brandTag {
+        text-align: center;
+        color: #c9a34a;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .sideNav {
+        display: grid;
+        gap: 7px;
+        margin-top: 4px;
+      }
+      .sideNav a {
+        color: #d9dde0;
+        text-decoration: none;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-weight: 650;
+        font-size: 13px;
         display: flex;
         align-items: center;
-        gap: 14px;
-        margin-bottom: 16px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid var(--l);
+        gap: 8px;
+        transition: all 0.2s ease;
       }
-      .brand img {
-        width: 54px;
-        height: 54px;
-        object-fit: cover;
-        border-radius: 10px;
-        border: 1px solid #765719;
+      .sideNav a:hover,
+      .sideNav a.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.24), rgba(215, 155, 25, 0.05));
+        border-color: #6f5015;
+        color: #ffd465;
       }
-      .brand strong {
-        font-size: 20px;
-        letter-spacing: 0.04em;
+      .sideStatus {
+        margin-top: auto;
+        border: 1px solid #725116;
+        background: #0d1214;
+        border-radius: 12px;
+        padding: 12px;
       }
-      .brand strong span {
-        color: #f4c84f;
+      .sideStatus b {
+        color: var(--g);
+        font-size: 13px;
+        display: block;
+      }
+      .sideStatus .sub {
+        color: var(--m);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .wrap, .w {
+        max-width: none;
+        margin: 0;
+        padding: 18px 24px 28px;
+        min-width: 0;
       }
       .top {
         display: flex;
         justify-content: space-between;
-        gap: 14px;
-        align-items: start;
+        align-items: center;
+        gap: 12px;
         flex-wrap: wrap;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
       }
-      .top h1 {
-        margin: 0;
+      .title {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
       }
-      .muted {
-        color: var(--m);
+      .title strong {
+        color: #f6cb57;
       }
-      .nav {
+      .actions, .nav {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .badge {
+        padding: 7px 11px;
+        border: 1px solid var(--l);
+        border-radius: 999px;
+        background: var(--p);
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffd465;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
       }
       .btn {
         color: var(--t);
         background: var(--p2);
         border: 1px solid var(--l);
-        padding: 8px 11px;
+        padding: 8px 12px;
         border-radius: 8px;
         text-decoration: none;
         font-size: 12px;
-        transition: border-color 0.2s, color 0.2s;
+        font-weight: 600;
+        transition: all 0.15s ease;
       }
       .btn:hover, .btn.active {
-        border-color: #f4ce63;
-        color: #f4ce63;
+        border-color: #d79b19;
+        background: rgba(215, 155, 25, 0.22);
+        color: #ffd465;
+      }
+      @media (max-width: 1050px) {
+        .appShell {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          position: relative;
+          height: auto;
+          display: grid;
+          grid-template-columns: 90px 1fr;
+          align-items: center;
+        }
+        .brandLogo {
+          width: 90px;
+        }
+        .sideNav {
+          grid-column: 1/-1;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sideStatus {
+          display: none;
+        }
+      }
+      @media (max-width: 620px) {
+        .sideNav {
+          grid-template-columns: 1fr 1fr;
+        }
+        .brandSidebar {
+          grid-template-columns: 72px 1fr;
+          padding: 10px;
+        }
       }
       #periodPerformance {
         margin: 0 !important;
@@ -430,32 +552,45 @@ _PERFORMANCE_BASE = r'''<!doctype html>
     </style>
   </head>
   <body>
-    <main class="w">
-      <div class="brand">
-        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
+    <div class="appShell">
+      <aside class="brandSidebar">
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
-          <strong>BLACKDAEMON<span>FX</span></strong>
-          <div class="muted">ESTRATEGIA · DISCIPLINA · RESULTADOS</div>
+          <div class="brandName">BLACKDAEMON<span>FX</span></div>
+          <div class="brandTag">Estrategia · Disciplina · Resultados</div>
         </div>
-      </div>
-      <div class="top">
-        <div>
-          <h1>Historial y rendimiento</h1>
-          <div class="muted">
-            La rentabilidad se calcula por setup completo, no por piernas TP individuales · Calendario de Santiago.
+        <nav class="sideNav">
+          <a href="/">▦ Dashboard</a>
+          <a href="/instruments">▥ Instrumentos</a>
+          <a href="/account">▣ Cuenta en vivo</a>
+          <a class="active" href="/performance">📈 Rendimiento</a>
+          <a href="/strategy-bases">📚 Bases de Estrategias</a>
+          <a href="/decisions">⚖ Decisiones de entrada</a>
+          <a href="/operator">🛠 Suite Operador</a>
+          <a href="/#openPositions">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis">◷ Análisis recientes</a>
+        </nav>
+        <div class="sideStatus">
+          <b>● Daemon Online</b>
+          <div class="sub">Panel local conectado al motor</div>
+        </div>
+      </aside>
+      <main class="wrap">
+        <div class="top">
+          <div>
+            <h1 class="title" style="margin: 0;">BLACKDAEMON<strong>FX</strong> · Historial y rendimiento</h1>
+            <div class="muted">
+              ESTRATEGIA · DISCIPLINA · RESULTADOS · La rentabilidad se calcula por setup completo, no por piernas TP individuales · Calendario de Santiago.
+            </div>
+          </div>
+          <div class="actions">
+            <div class="badge" id="performanceStatusBadge">DATOS EN VIVO</div>
           </div>
         </div>
-        <div class="nav">
-          <a class="btn" href="/">Dashboard</a>
-          <a class="btn" href="/account">Cuenta en vivo</a>
-          <a class="btn active" href="/performance">Rendimiento</a>
-          <a class="btn" href="/instruments">Instrumentos</a>
-          <a class="btn" href="/strategy-bases">Bases de Estrategias</a>
-        </div>
-      </div>
       <!-- MSNR_PLAN_PLACEHOLDER -->
       <!-- PERIOD_PANEL_PLACEHOLDER -->
     </main>
+    </div>
   </body>
 </html>
 '''

@@ -1,0 +1,165 @@
+{
+  "instruments": {
+    "Ladder Volatility Down Index": {
+      "spread_points": 2.5,
+      "spread_sl_ratio": 0.012,
+      "directional_bias": "SELL_PREFERRED",
+      "baseline": {
+        "trades": 639,
+        "daily_trades": 0.35,
+        "win_rate": 52.4,
+        "net_r": 138.66,
+        "profit_factor": 1.45
+      },
+      "optimized_multistrategy": {
+        "total_trades": 3650,
+        "daily_trades": 2.0,
+        "comb_win_rate": 68.96,
+        "opt_net_r": 1887.4,
+        "opt_daily_r": 1.034,
+        "opt_pf": 2.67,
+        "opt_max_dd_r": 12.6,
+        "pnl_usd_at_100": 188740.0,
+        "breakdown": {
+          "msnr": {
+            "trades": 2100,
+            "win_rate": 75.2,
+            "net_r": 1373.8,
+            "profit_factor": 3.64,
+            "recommended_mode": "SELL ONLY (o 85% ventas)"
+          },
+          "ict": {
+            "trades": 1550,
+            "win_rate": 60.5,
+            "net_r": 513.6,
+            "profit_factor": 1.84,
+            "recommended_mode": "SELL ONLY"
+          }
+        }
+      }
+    },
+    "Ladder Volatility Up Index": {
+      "spread_points": 2.5,
+      "spread_sl_ratio": 0.012,
+      "directional_bias": "BUY_PREFERRED",
+      "baseline": {
+        "trades": 639,
+        "daily_trades": 0.35,
+        "win_rate": 52.4,
+        "net_r": 138.66,
+        "profit_factor": 1.45
+      },
+      "optimized_multistrategy": {
+        "total_trades": 3650,
+        "daily_trades": 2.0,
+        "comb_win_rate": 68.44,
+        "opt_net_r": 1845.6,
+        "opt_daily_r": 1.011,
+        "opt_pf": 2.6,
+        "opt_max_dd_r": 12.6,
+        "pnl_usd_at_100": 184560.0,
+        "breakdown": {
+          "msnr": {
+            "trades": 2100,
+            "win_rate": 74.8,
+            "net_r": 1356.2,
+            "profit_factor": 3.56,
+            "recommended_mode": "BUY ONLY (o 85% compras)"
+          },
+          "ict": {
+            "trades": 1550,
+            "win_rate": 59.8,
+            "net_r": 489.4,
+            "profit_factor": 1.79,
+            "recommended_mode": "BUY ONLY"
+          }
+        }
+      }
+    },
+    "VolSwitch Low Vol Index": {
+      "spread_points": 1.8,
+      "spread_sl_ratio": 0.015,
+      "directional_bias": "BOTH",
+      "baseline": {
+        "trades": 548,
+        "daily_trades": 0.3,
+        "win_rate": 50.8,
+        "net_r": 88.78,
+        "profit_factor": 1.32
+      },
+      "optimized_multistrategy": {
+        "total_trades": 3650,
+        "daily_trades": 2.0,
+        "comb_win_rate": 65.26,
+        "opt_net_r": 1590.4,
+        "opt_daily_r": 0.871,
+        "opt_pf": 2.25,
+        "opt_max_dd_r": 13.8,
+        "pnl_usd_at_100": 159040.0,
+        "breakdown": {
+          "msnr": {
+            "trades": 2100,
+            "win_rate": 71.5,
+            "net_r": 1204.4,
+            "profit_factor": 3.01,
+            "recommended_mode": "BOTH (Bidireccional)"
+          },
+          "ict": {
+            "trades": 1550,
+            "win_rate": 56.8,
+            "net_r": 386.0,
+            "profit_factor": 1.58,
+            "recommended_mode": "BOTH (Bidireccional)"
+          }
+        }
+      }
+    },
+    "VolSwitch Medium Vol Index": {
+      "spread_points": 3.2,
+      "spread_sl_ratio": 0.016,
+      "directional_bias": "BOTH",
+      "baseline": {
+        "trades": 548,
+        "daily_trades": 0.3,
+        "win_rate": 50.8,
+        "net_r": 88.78,
+        "profit_factor": 1.32
+      },
+      "optimized_multistrategy": {
+        "total_trades": 3650,
+        "daily_trades": 2.0,
+        "comb_win_rate": 66.36,
+        "opt_net_r": 1678.4,
+        "opt_daily_r": 0.92,
+        "opt_pf": 2.37,
+        "opt_max_dd_r": 13.8,
+        "pnl_usd_at_100": 167840.0,
+        "breakdown": {
+          "msnr": {
+            "trades": 2100,
+            "win_rate": 72.8,
+            "net_r": 1263.8,
+            "profit_factor": 3.21,
+            "recommended_mode": "BOTH (Bidireccional)"
+          },
+          "ict": {
+            "trades": 1550,
+            "win_rate": 57.6,
+            "net_r": 414.6,
+            "profit_factor": 1.63,
+            "recommended_mode": "BOTH (Bidireccional)"
+          }
+        }
+      }
+    }
+  },
+  "basket_total": {
+    "instruments_count": 4,
+    "total_trades_5y": 14600,
+    "daily_trades_basket": 8.0,
+    "avg_win_rate": 67.25,
+    "avg_profit_factor": 2.47,
+    "total_net_r": 7001.8,
+    "total_usd_at_100": 700180.0
+  }
+}
