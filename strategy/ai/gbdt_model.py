@@ -162,6 +162,30 @@ class CalibratedGBDTModel:
         loss_rr = max(0.1, float(self.average_loss_rr))
         return float(p * win_rr - (1.0 - p) * loss_rr)
 
+    def update_one(
+        self,
+        vector: list[float] | np.ndarray,
+        label: int,
+        realized_rr: float | None = None,
+        *,
+        learning_rate: float = 0.05,
+    ) -> bool:
+        """Actualiza en caliente la calibración y métricas de expectativa tras cerrarse una operación."""
+        if not self.trained:
+            return False
+        vec = np.asarray(vector, dtype=float)
+        if vec.ndim == 1:
+            vec = vec.reshape(1, -1)
+        raw_p = float(self.predict_proba(vec)[0])
+        if self.calibrator.trained:
+            self.calibrator.update_one(raw_p, label, weight=learning_rate)
+        if realized_rr is not None and abs(realized_rr) > 1e-9:
+            if label == 1:
+                self.average_win_rr = float(0.90 * self.average_win_rr + 0.10 * abs(realized_rr))
+            else:
+                self.average_loss_rr = float(0.90 * self.average_loss_rr + 0.10 * abs(realized_rr))
+        return True
+
     def to_dict(self) -> dict[str, Any]:
         """Serializa el modelo completo en un diccionario JSON-compatible."""
         return {

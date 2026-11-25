@@ -1118,7 +1118,9 @@ class ICTSabriMalleStrategy:
                 mitigation_entry_price = curr_close
             stop_loss = sweep_peak + spread
             micro_stop_applied = False
-            if is_synthetic and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
+            # Blindaje anti-slippage Jump: los índices Jump saltan por ticks y no toleran micro-stops M15
+            is_jump = "jump" in str(symbol).lower()
+            if is_synthetic and not is_jump and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
                 buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
                 min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
                 m15_extreme = float(eval_df["high"].iloc[-4:].max())
@@ -1181,7 +1183,9 @@ class ICTSabriMalleStrategy:
                 mitigation_entry_price = curr_close
             stop_loss = sweep_peak - spread
             micro_stop_applied = False
-            if is_synthetic and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
+            # Blindaje anti-slippage Jump: los índices Jump saltan por ticks y no toleran micro-stops M15
+            is_jump = "jump" in str(symbol).lower()
+            if is_synthetic and not is_jump and getattr(self.config, "enable_m15_micro_stop", True) and len(eval_df) >= 3:
                 buffer_dist = float(getattr(self.config, "m15_micro_stop_buffer_atr", 0.10)) * curr_atr
                 min_risk_floor = float(getattr(self.config, "m15_micro_stop_min_risk_atr", 0.20)) * curr_atr
                 m15_extreme = float(eval_df["low"].iloc[-4:].min())

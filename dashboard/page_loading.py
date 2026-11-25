@@ -8,10 +8,10 @@ LOADING_UI = r'''
     left: 0;
     height: 3px;
     width: 0%;
-    background: linear-gradient(90deg, #53a7ff, #f5bd36);
+    background: linear-gradient(90deg, #d79b19, #ffd465);
     z-index: 10001;
     transition: width 0.25s ease-out, opacity 0.3s ease;
-    box-shadow: 0 0 10px rgba(83, 167, 255, 0.7);
+    box-shadow: 0 0 12px rgba(245, 189, 54, 0.7);
     pointer-events: none;
   }
   #pageLoadingBar.active {
@@ -34,13 +34,13 @@ LOADING_UI = r'''
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(13, 24, 34, 0.95);
-    border: 1px solid #233647;
+    background: rgba(10, 14, 16, 0.96);
+    border: 1px solid #5b4514;
     border-radius: 12px;
     padding: 10px 16px;
-    color: #e9f1f7;
-    font: 13px system-ui;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    color: #f5f5f2;
+    font: 13px system-ui, -apple-system, sans-serif;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(215, 155, 25, 0.12);
     backdrop-filter: blur(8px);
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: auto;
@@ -52,8 +52,8 @@ LOADING_UI = r'''
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid #233647;
-    border-top-color: #53a7ff;
+    border: 2px solid #3a2b0c;
+    border-top-color: #f5bd36;
     border-radius: 50%;
     animation: pageSpin 0.8s linear infinite;
     flex-shrink: 0;
@@ -74,15 +74,17 @@ LOADING_UI = r'''
   #pageLoading button {
     margin-left: 6px;
     padding: 4px 10px;
-    background: #122231;
-    color: #e9f1f7;
-    border: 1px solid #536879;
+    background: #10161a;
+    color: #ffd465;
+    border: 1px solid #5b4514;
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;
+    transition: all 0.15s ease;
   }
   #pageLoading button:hover {
-    background: #1d354d;
+    background: rgba(215, 155, 25, 0.2);
+    border-color: #d79b19;
   }
 </style>
 <div id="pageLoadingBar"></div>

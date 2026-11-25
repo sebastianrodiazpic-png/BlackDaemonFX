@@ -16,6 +16,7 @@ Vinculaciones:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,7 @@ class SymbolDirectionPolicy:
 
     Attributes:
         symbol: nombre tal como se recibio.
-        category: `boom`, `crash` u `other`.
+        category: `boom`, `crash`, `ladder_down`, `ladder_up` u `other`.
         allowed_direction: `BUY`, `SELL` o `None` si no hay restriccion.
         reason: codigo que se propaga a los diagnosticos.
     """
@@ -36,7 +37,7 @@ class SymbolDirectionPolicy:
 
 
 def classify_synthetic_symbol(symbol: str) -> str:
-    """Clasifica el simbolo por su nombre en `boom`, `crash` u `other`.
+    """Clasifica el simbolo por su nombre en `boom`, `crash`, `ladder_down`, `ladder_up` u `other`.
 
     Exige exclusividad ('boom' sin 'crash' y viceversa) para que un nombre que
     contuviera ambos terminos no se clasificara mal y acabara autorizando una
@@ -47,14 +48,23 @@ def classify_synthetic_symbol(symbol: str) -> str:
         return 'boom'
     if 'crash' in name and 'boom' not in name:
         return 'crash'
+    if 'ladder' in name and 'down' in name and 'up' not in name:
+        return 'ladder_down'
+    if 'ladder' in name and 'up' in name and 'down' not in name:
+        return 'ladder_up'
+    if 'jump' in name:
+        return 'jump'
     return 'other'
 
 
 def get_symbol_direction_policy(symbol: str) -> SymbolDirectionPolicy:
     """Devuelve la politica del simbolo.
 
-    Boom -> solo BUY (`BOOM_BUY_ONLY`), Crash -> solo SELL
-    (`CRASH_SELL_ONLY`), cualquier otro -> sin restriccion.
+    Boom -> solo BUY (`BOOM_BUY_ONLY`), Crash -> solo SELL (`CRASH_SELL_ONLY`),
+    Jump -> solo BUY (`JUMP_BUY_ONLY`, controlable con DAEMONBLACKFX_JUMP_BUY_ONLY=1),
+    Ladder Down -> solo SELL (`LADDER_DOWN_SELL_ONLY`), Ladder Up -> solo BUY
+    (`LADDER_UP_BUY_ONLY`, controlables con DAEMONBLACKFX_LADDER_DIRECTION_POLICY=1),
+    cualquier otro -> sin restriccion.
     """
     category = classify_synthetic_symbol(symbol)
     if category == 'boom':
@@ -66,6 +76,29 @@ def get_symbol_direction_policy(symbol: str) -> SymbolDirectionPolicy:
         return SymbolDirectionPolicy(
             symbol=str(symbol), category=category, allowed_direction='SELL',
             reason='CRASH_SELL_ONLY',
+        )
+    jump_buy_only = (
+        os.getenv("DAEMONBLACKFX_JUMP_BUY_ONLY", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    if jump_buy_only and category == 'jump':
+        return SymbolDirectionPolicy(
+            symbol=str(symbol), category=category, allowed_direction='BUY',
+            reason='JUMP_BUY_ONLY',
+        )
+    ladder_enabled = (
+        os.getenv("DAEMONBLACKFX_LADDER_DIRECTION_POLICY", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    if ladder_enabled and category == 'ladder_down':
+        return SymbolDirectionPolicy(
+            symbol=str(symbol), category=category, allowed_direction='SELL',
+            reason='LADDER_DOWN_SELL_ONLY',
+        )
+    if ladder_enabled and category == 'ladder_up':
+        return SymbolDirectionPolicy(
+            symbol=str(symbol), category=category, allowed_direction='BUY',
+            reason='LADDER_UP_BUY_ONLY',
         )
     return SymbolDirectionPolicy(
         symbol=str(symbol), category=category, allowed_direction=None,

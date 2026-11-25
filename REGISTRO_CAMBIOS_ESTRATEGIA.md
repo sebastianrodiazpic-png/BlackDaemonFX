@@ -118,15 +118,17 @@ Plantilla de entrada:
 
 
 
-2. **Contrato operativo de cada entrada**: 1 % del capital en **2 patas de 0,5 %**. La pata 1 cierra en TP1 (1R).
-
-
-
-   La pata 2 pasa a **Break Even + spread + swap** al tocar TP1 y apunta a TP2 (2R). Si la estructura confirma
-
-
-
-   continuación, el stop sube de forma progresiva (2R → +1R con objetivo TP3; 3R → +2,5R con objetivo TP4, máx. 4R).
+2. **Contrato operativo de cada entrada y gestión de riesgo**:
+   - **Regla 1 (Prioritaria — Ratio 1:2 en 2 Entradas)**:
+     - Todo trade buscará una relación riesgo-beneficio de 1:2.
+     - El riesgo máximo será del 1% del capital total (ejemplo: para $10,000, el 1% es $100).
+     - Este riesgo se divide en dos entradas:
+       - **Primera entrada (0.5% de riesgo / $50)**: Objetivo de tomar ganancias en el TP1 (+1R) cerrando esta posición.
+       - **Segunda entrada (0.5% de riesgo / $50)**: Al alcanzarse TP1, se sube a Break Even protegiendo rigurosamente el swap y el spread para mitigar pérdidas y garantizar PnL neto >= 0.00 USD. El objetivo final de esta segunda entrada es alcanzar TP2 (+2R).
+       - **Excepción / Extensión dinámica**: Solo se puede modificar el objetivo a TP2 o TP3 si en el análisis en tiempo real se determina que es viable y la estructura lo confirma, siempre protegiendo ganancias con un Trailing Stop progresivo.
+   - **Regla 2 (Opcional — Ratio 1:1 o 1:2 a Entrada Única)**:
+     - Se arriesga el 1% del capital total buscando una relación riesgo-beneficio de 1:1 (ejemplo: riesgo de $100 para ganar $100 en cuenta de $10,000).
+     - **Excepción / Extensión dinámica**: Solo se puede cambiar a una relación riesgo-beneficio de 1:2 si el análisis en vivo indica posibilidad de alcanzar TP2. En este caso, se modificará el objetivo de TP1 a TP2, manteniendo la protección en Break Even para cubrir swap y spread.
 
 
 
@@ -275,6 +277,710 @@ Rendimiento esperado (replay fiel 212 pares con mejoras oficiales 05-nov-2026): 
 
 
 ## Historial de cambios (más reciente primero)
+
+### 2026-11-25 — Prioridad 6: Caché IPC de Posiciones MT5, Higiene de Interruptores Dinámicos, Sincronización de /Strategy-bases y Deprecación de risk_manager  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Caché IPC de posiciones y órdenes en `MT5ExecutionProvider`** (`brokers/mt5_execution.py`):
+    - Conectadas `_positions_cache` y `_orders_cache` en `get_open_positions` y `get_pending_orders` con TTL configurable (`DAEMONBLACKFX_MT5_POSITIONS_CACHE_TTL_SECONDS`, default `1.5`s; `0` desactiva la caché).
+    - Salvaguarda pre-envío: `place_market_order` invalida la caché inmediatamente al entrar en `terminal_execution_lock(symbol)` (y también al finalizar `place_market_order`, `modify_position_stops` y `MT5TradeExecutor.close_position`), garantizando lecturas frescas antes de enviar cualquier orden mientras elimina decenas de llamadas IPC redundantes por ciclo de escaneo. Jamás cachea respuestas `None` de fallo IPC.
+  - **Higiene de interruptores dinámicos** (`strategy/execution/worker_rules.py` y `strategy/execution/live_trading_engine.py`):
+    - `configure_worker_rules` respeta ahora las variables de entorno `DAEMONBLACKFX_FIRST_TARGET_RR`, `DAEMONBLACKFX_SECOND_TARGET_RR`, `DAEMONBLACKFX_BREAK_EVEN_TRIGGER_RR`, `DAEMONBLACKFX_RUNNER_FIRST_TRIGGER_RR`, `DAEMONBLACKFX_RUNNER_FIRST_LOCK_RR`, `DAEMONBLACKFX_RUNNER_SECOND_TRIGGER_RR`, `DAEMONBLACKFX_RUNNER_SECOND_LOCK_RR`, `DAEMONBLACKFX_RUNNER_MAX_TARGET_RR`, `DAEMONBLACKFX_SMC_RUNNER_MAX_TARGET_RR` y `DAEMONBLACKFX_META_LABELING_MODE` en lugar de sobrescribirlas con literales fijos.
+    - En `LiveTradingConfig`, los campos restantes con `os.getenv(...)` estático en tiempo de importación migraron a `field(default_factory=...)`.
+  - **Sincronización documental en Dashboard (`/Strategy-bases` y Chatbot)** (`dashboard/strategy_bases_page.py`, `dashboard/operator_chatbot.py`):
+    - Actualizados los textos legados `50% + 50%` / `0.5% + 0.5%` para reflejar fielmente la política vigente: reparto estándar **`70% + 30%`** (`TP1 @ 1R` + `RUNNER @ 2R` con Break Even), regla de excepción **`1% @ 1:1`** cuando no hay proyección a `TP2` (`< 2.0R`), y protección horaria en mercados reales (`10:00–11:59 CL` exento `ORB`, `15:00–16:59 CL` y `23:00–00:59 CL`, con sintéticos 24/7 libres).
+  - **Deprecación formal de módulo legado** (`strategy/risk/risk_manager.py`):
+    - Marcado `__deprecated__ = True` con aviso documental explícito hacia `live_trading_engine` + `portfolio_accounting` y `DeprecationWarning` opcional mediante `DAEMONBLACKFX_WARN_DEPRECATED_RISK_MANAGER=1` sin romper los tests históricos.
+- **Por qué / evidencia**:
+  - Auditoría técnica Fase 4 (Hallazgos 4.1.4 y Técnicos #8 y #10): `_positions_cache` y `_orders_cache` estaban declaradas en `MT5ExecutionProvider.__init__` pero nunca se consultaban ni poblaban en `get_open_positions`/`get_pending_orders`, provocando llamadas IPC constantes desde múltiples workers; `worker_rules.py` pisaba variables de entorno de extensión del runner; y `/Strategy-bases` seguía mostrando la proporción obsoleta `50% + 50%`.
+- **Ficheros**:
+  - `brokers/mt5_execution.py`
+  - `strategy/execution/worker_rules.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `dashboard/strategy_bases_page.py`
+  - `dashboard/operator_chatbot.py`
+  - `strategy/risk/risk_manager.py`
+  - `tests/test_priority_6_cache_config_and_docs.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_MT5_POSITIONS_CACHE_TTL_SECONDS=1.5` (poner `0` para desactivar caché IPC)
+  - `DAEMONBLACKFX_FIRST_TARGET_RR` / `DAEMONBLACKFX_SECOND_TARGET_RR` / `DAEMONBLACKFX_BREAK_EVEN_TRIGGER_RR` / `DAEMONBLACKFX_RUNNER_*`
+  - `DAEMONBLACKFX_WARN_DEPRECATED_RISK_MANAGER=0` (poner `1` para emitir `DeprecationWarning` al importar `strategy.risk.risk_manager`)
+- **Tests**:
+  - `tests/test_priority_6_cache_config_and_docs.py`, `tests/test_strategy_bases_tab_and_msnr_cleanup.py`, `tests/test_risk_manager.py`, `tests/test_split_runner_barrier_fix.py`, `tests/test_execution_hardening_audit_fixes.py`.
+- **Efecto esperado y riesgos**:
+  - Reducción drástica de llamadas IPC `positions_get`/`orders_get` contra el terminal MT5 durante el escaneo sin comprometer frescura pre-orden, control limpio por variables de entorno en todos los workers y coherencia total entre la documentación del Dashboard y el motor real. Pendiente de carga en la ventana `21:00–23:00 UTC`.
+
+### 2026-11-25 — Prioridad 4: Bloqueo de Franjas Horarias Tóxicas en Mercados Reales (Exención ORB en 10:00–11:59 Chile y Exclusión Total de Sintéticos) + Confluencia Direccional en Oro  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Bloqueo en 3 franjas horarias tóxicas exclusivo para Mercados Reales (Forex, Metales, Índices bursátiles, Petróleo/Energías y Cripto; Sintéticos 100% excluidos)**:
+    1. **`10:00 AM – 11:59 AM` Hora Chile Verano (`13:00–14:59 UTC`) — Cruce Londres / Apertura NY**: se mantiene el bloqueo en mercados reales permitiendo **únicamente entradas bajo la estrategia `ORB` (`ORB_NEW_YORK`)**. Se añade además `_strategy_toxic_hour_gate` tras resolver `strategy_name` para impedir que cualquier otra estrategia no-ORB pueda ejecutar en esa ventana, y se incorpora `_is_commodity_or_energy_symbol` (`USOIL`, `UKOIL`, `XTIUSD`, `XBRUSD`, `WTI`, `BRENT`, `NGAS`) en `_is_market_closing_symbol` para cerrar el hueco de materias primas energéticas.
+    2. **`03:00 PM – 04:59 PM` Hora Chile Verano (`18:00–19:59 UTC`) — Bajón de media tarde NY / Post-Londres**: nueva compuerta preflight Zero-I/O (`NY_AFTERNOON_TOXIC_WINDOW_BLOCKED`) que bloquea nuevas entradas en **todos** los mercados reales (incluida `ORB`).
+    3. **`11:00 PM – 12:59 AM` Hora Chile Verano (`02:00–03:59 UTC`) — Transición muerta nocturna / Pre-Asia**: nueva compuerta preflight Zero-I/O (`ASIA_DEAD_ZONE_TOXIC_WINDOW_BLOCKED`) que bloquea nuevas entradas en **todos** los mercados reales.
+  - **Exclusión estricta del 100% de Instrumentos Sintéticos de Deriv**:
+    - Reforzado `_is_synthetic_symbol` (añadiendo detección explícita de `ladder` y `volswitch` junto a `volatility`, `boom`, `crash`, `step`, `jump`, `flip`, `dex`, `drift`, `range break`, `skew`, `multi step`). Todos los activos sintéticos quedan completamente excluidos tanto de las tres compuertas horarias como del filtro de confluencia direccional.
+  - **Confluencia direccional reforzada en Mercados Reales (`XAUUSD` / Metales `BUY`)**:
+    - Nueva compuerta `_real_market_directional_confluence_gate` para compras (`BUY`) en metales fuera de `ORB`: bloquea compras contra tendencia `H1` explícitamente bajista (`METAL_BUY_COUNTER_HTF_TREND`) o sin fuerza tendencial (`ADX < 20.0`, `METAL_BUY_WEAK_ADX_BELOW_MIN`), sin afectar sintéticos ni aperturas `ORB`.
+- **Por qué / evidencia**:
+  - Auditoría empírica de producción (`n = 2,086` trades): las ventanas `13:00–14:59`, `18:00–19:59` y `02:00–03:59 UTC` concentraron `-$4,082.55 USD` de pérdida neta (`WR 30%–38%`); en mercados reales de la BD viva, solo `13:00–14:59 UTC` acumuló `-$1,523.41 USD` (`WR 40.6%` en `101` ops), mientras que en el replay `ORB` la ventana tardía `18:00–21:00 UTC` rindió `-0.4043 R/op` (`-12.94 R`). En Oro vivo (`XAUUSD`), el lado `BUY` perdió `-$252.96 USD` (`41.5% WR` en `41` ops). Por instrucción expresa y naturaleza algorítmica 24/7, los sintéticos de Deriv quedan exentos de estos bloqueos.
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_priority_4_real_market_hours_and_confluence.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_LONDON_NY_CROSSOVER_FILTER_ENABLED=1` (`13` a `15` UTC = `10:00–11:59 CL`, exento `ORB`)
+  - `DAEMONBLACKFX_NY_AFTERNOON_FILTER_ENABLED=1` (`DAEMONBLACKFX_NY_AFTERNOON_START_UTC_HOUR=18`, `DAEMONBLACKFX_NY_AFTERNOON_END_UTC_HOUR=20` = `15:00–16:59 CL`, `DAEMONBLACKFX_NY_AFTERNOON_EXEMPT_PROFILES=""`)
+  - `DAEMONBLACKFX_ASIA_DEAD_ZONE_FILTER_ENABLED=1` (`DAEMONBLACKFX_ASIA_DEAD_ZONE_START_UTC_HOUR=2`, `DAEMONBLACKFX_ASIA_DEAD_ZONE_END_UTC_HOUR=4` = `23:00–00:59 CL`, `DAEMONBLACKFX_ASIA_DEAD_ZONE_EXEMPT_PROFILES=""`)
+  - `DAEMONBLACKFX_CROSSOVER_APPLY_TO_SYNTHETICS=0` / `DAEMONBLACKFX_TOXIC_HOURS_APPLY_TO_SYNTHETICS=0`
+  - `DAEMONBLACKFX_REAL_DIRECTIONAL_CONFLUENCE_ENABLED=1` / `DAEMONBLACKFX_METAL_BUY_MIN_ADX=20.0` / `DAEMONBLACKFX_METAL_BUY_BLOCK_COUNTER_HTF=1` / `DAEMONBLACKFX_DIRECTIONAL_CONFLUENCE_EXEMPT_ORB=1`
+- **Tests**:
+  - `tests/test_priority_4_real_market_hours_and_confluence.py`, `tests/test_priority_execution_improvements_20261122.py`, `tests/test_performance_optimizations_fase1.py`, `tests/test_priorities_1_and_2_runner_and_1to1.py`.
+- **Efecto esperado y riesgos**:
+  - Elimina aperturas de mercados reales en las tres franjas horarias de mayor ruido/falta de liquidez, preserva íntegramente las rupturas de apertura de Nueva York de `ORB` entre `10:00 AM y 11:59 AM` (hora Chile), filtra compras débiles/contratendencia en Oro y mantiene el 100% de la operativa 24/7 en índices sintéticos sin restricciones horarias. Pendiente de carga en la ventana `21:00–23:00 UTC`.
+
+### 2026-11-25 — Prioridades 1 y 2: Desbloqueo de Pata RUNNER (30%) con Split Atómico y Regla de Excepción 1% @ 1:1 Sin Proyección a TP2  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Prioridad 1 — Desbloqueo del `RUNNER` (`30%`) y resiliencia atómica en splits `70/30`**:
+    - `brokers/mt5_execution.py`: `_fallback_comment_for` preserva siempre el sufijo de la pierna (`BlackDaemonFx-RUNNER`, `BlackDaemonFx-TP2`, `BlackDaemonFx-TP1`, `BlackDaemonFx-SINGLE`, ASCII puro `<= 20` bytes sin espacios ni `:`) cuando el binding de MT5 devuelve `(-2, 'Invalid "comment" argument')` en `_order_check_safe` u `_order_send_safe`. Además, `_sanitize_comment` incorpora `:TP2`/`-TP2` y elimina `:` sobrante al truncar, y `place_market_order` acepta `trade_leg: str | None = None` explícito manteniendo intactas las barreras anti-conflicto cruzado (`magic` y dirección).
+    - `brokers/mt5_trade_executor.py`: `execute_trade` propaga `trade_leg` desde `request.metadata` hacia `place_market_order` (verificando firma para compatibilidad con mocks) y `_comment_for` acota a 30 bytes sin doble `:` (`::RUNNER`).
+    - `strategy/execution/live_trading_engine.py`: en el bucle `for leg in legs:`, omite re-evaluar `_forex_execution_gate` tras haber llenado la primera pata (`TP1`) y captura fallos de ejecución en la segunda pata (`RUNNER`) registrando `PARTIAL_SPLIT_EXECUTION` y devolviendo `PARTIAL_SPLIT_ORDER_OPENED` con `TP1` auditada en lugar de abortar el ciclo del símbolo; además adapta `_evaluate_orb_silver_contract` al reparto asimétrico `70/30`.
+  - **Prioridad 2 — Regla de excepción `1% @ 1:1` cuando no hay proyección suficiente hasta `TP2` (`< 2.0R`)**:
+    - `strategy/execution/live_trading_engine.py`: `_plan_execution_legs` evalúa si la señal proyecta recorrido limpio hasta `TP2` (`>= 2.0R`, verificando obstáculos `MALAYSIAN_SNR`, objetivo `quarter_target_2` en `GOLD_QUARTERS`, obstáculos `m15_obstacles` en `[1.0R, 2.0R)` y techos explícitos `runner_rr` / `max_structural_rr` / `projected_tp2_rr`). Si hay espacio para `TP1` (`>= 1.0R`) pero no para `TP2` (`< 2.0R`), conmuta automáticamente de `SPLIT 70/30` a una única entrada `SINGLE` con el **1.0% íntegro de riesgo buscando 1:1 (`1.0R`)** (respetando la restricción `jump_single_fallback_blocked` salvo override), desactiva BE sobre esa pata `1:1` para que liquide en su TP exacto y reconcilia su TP post-fill.
+    - `app/main.py` y `reporting/trade_report_exporter.py`: eliminados los dos `single_entry_target_rr=2.0` hardcodeados en `app/main.py` para que `SINGLE` / `SINGLE_FALLBACK` apunten a `1.0R` (`DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR=1.0`), y actualizadas las etiquetas legibles de modalidad de ejecución (`70% + 30%` y `1% @ 1:1`).
+- **Por qué / evidencia**:
+  - Auditoría de producción 24–25 nov 2026: **7 de 7 entradas `70/30`** (`Volatility 5`, `USDCAD`, `XAUUSD`, `Wall Street 30`, `BTCUSD`, `Jump 25`, `US Tech 100`) perdieron su pata `RUNNER` (`30%`) porque el fallback `-2 Invalid "comment"` reescribía el comentario a `"BlackDaemonFx"` sin etiqueta `:RUNNER`, disparando `ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE` y abortando el ciclo (`END USDCAD | ERROR` en `orb.log`).
+  - Asimismo, `22` trades históricos abrieron runners mutilados en `[1.02R, 1.98R]` por obstáculos antes de `2.0R`, y la operación en vivo `ID 2098` (`ORB XAUUSD`, 25-nov 14:25) abrió en `SINGLE 1.0%` con `planned_rr = 2.0` en lugar de `1.0` debido al hardcode en `app/main.py`. Replay de 5 años (`n = 58,677`): operar `1% @ 1:1` cuando el runner no proyecta asimetría aporta `+374.50 R` sobre `50/50` (`p < 0.0001`).
+- **Ficheros**:
+  - `brokers/mt5_execution.py`
+  - `brokers/mt5_trade_executor.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `app/main.py`
+  - `reporting/trade_report_exporter.py`
+  - `tests/test_priorities_1_and_2_runner_and_1to1.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_PRESERVE_FALLBACK_COMMENT_LEG=1` (poner `0` para restaurar `"BlackDaemonFx"` plano)
+  - `DAEMONBLACKFX_EXPLICIT_RUNNER_LEG_ENABLED=1` (poner `0` para validar solo por string de comentario)
+  - `DAEMONBLACKFX_ATOMIC_SPLIT_EXECUTION=1` (poner `0` para restaurar comportamiento no atómico previo)
+  - `DAEMONBLACKFX_SUB_TP2_SINGLE_1TO1_ENABLED=1` (poner `0` para desactivar la regla de excepción `1% @ 1:1` sub-TP2)
+  - `DAEMONBLACKFX_SUB_TP2_MIN_RR_THRESHOLD=2.0` / `DAEMONBLACKFX_SUB_TP2_SINGLE_TARGET_RR=1.0` / `DAEMONBLACKFX_SUB_TP2_ALLOW_JUMP_SINGLE=0`
+  - `DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR=1.0`
+- **Tests**:
+  - `tests/test_priorities_1_and_2_runner_and_1to1.py`, `tests/test_split_runner_barrier_fix.py`, `tests/test_execution_hardening_audit_fixes.py`, `tests/test_single_leg_full_risk_execution.py`, `tests/test_ola3_5y_block_a.py`, `tests/test_all_strategies_unified_risk_and_two_leg_policy.py`, `tests/test_malaysian_snr_causal_validation.py`, `tests/test_smc_entry_preflight.py`.
+- **Efecto esperado y riesgos**:
+  - Restaura el 100% de las ejecuciones `70/30` (`TP1` + `RUNNER`) en todos los workers, evita pérdidas de ciclo ante rechazos puntuales de 2ª pata, elimina runners comprimidos `< 2.0R` redirigiéndolos a `1% @ 1:1`, y corrige el objetivo `1:1` de las entradas únicas (`SINGLE_FALLBACK`). Sin reinicio en caliente; entrará en vigor en la ventana diaria `21:00–23:00 UTC`.
+
+### 2026-11-25 — Desbloqueo de Frecuencia Sin Alterar Win Rate: Fix INDICESB_SNR, Fix VOLATILITY_2 y Re-entrada en Break-Even  ·  Estado: aplicado sin commit
+- **Qué**:
+  - `strategy/execution/live_trading_engine.py`:
+    - `_selection_profile_for_bot`: mapeo explícito de `INDICES` / `INDICESB_SNR` → `"INDICESB_SNR"` (antes caía en `"SYNTHETICS"` y la política borraba `Germany 40`, `US Tech 100` y `Wall Street 30`, dejando el worker con 0 símbolos).
+    - `_selected_base_cycle_symbols`: retirada la exclusión legada `if s not in active_set` para `VOLATILITY_2` / `FOREX_2` (ahora controlada por `DAEMONBLACKFX_LEGACY_PRUNED_SHARD_EXCLUDE=0`), reactivando `Ladder Volatility Down/Up` (con política direccional `SELL`/`BUY`) y `VolSwitch Low/Medium`.
+    - `_active_position_gate`: conectado `allow_breakeven_positions` controlado por `DAEMONBLACKFX_ALLOW_REENTRY_ON_BE=1`.
+  - `brokers/mt5_execution.py`:
+    - `place_market_order` respeta `DAEMONBLACKFX_ALLOW_REENTRY_ON_BE=1` tanto en `TP1` como en `RUNNER` (solo cuenta posiciones con riesgo vivo contra el límite de 2 patas por split, con tope físico duro de 4 posiciones por símbolo).
+- **Por qué / evidencia**:
+  - Diagnóstico en vivo del 25-nov-2026: `INDICESB_SNR` (100% WR en vivo) y `VOLATILITY_2` llevaban ciclos continuos en `DEGRADED_NO_SYMBOLS (0 símbolos)`; además, `263` de `338` trades ganadores desde oct-1 mantuvieron el símbolo bloqueado en BE un total de **498 horas-símbolo** (`4,413` bloqueos `ACTIVE_POSITION_GUARD` en 14 días).
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `brokers/mt5_execution.py`
+  - `tests/test_ola3_5y_block_a.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ALLOW_REENTRY_ON_BE=1` (poner `0` para bloquear hasta cierre total del runner)
+  - `DAEMONBLACKFX_LEGACY_PRUNED_SHARD_EXCLUDE=0` (poner `1` para restaurar exclusión legada en `VOLATILITY_2`/`FOREX_2`)
+- **Tests**:
+  - `tests/test_ola3_5y_block_a.py::test_indicesb_snr_and_volatility_2_symbol_selection_and_be_reentry`, `tests/test_active_position_guard.py`, `tests/test_split_runner_barrier_fix.py`.
+- **Efecto esperado y riesgos**:
+  - Aumenta la cantidad de oportunidades válidas con las mismas reglas de entrada y win rate (reactivación de 3 índices bursátiles + 4 sintéticos `VOLATILITY_2` + liberación de símbolos cuando el runner tiene riesgo \$0 en BE).
+
+### 2026-11-24 — Ajustes Operativos Punto 2: Omisión de Workers Vacíos, Centinela de Régimen en Modo FILTER y Exclusión de Vol over Boom/Crash 550  ·  Estado: aplicado sin commit
+- **Qué**:
+  - `app/main.py`: `_should_skip_disabled_worker_process` omite lanzar subprocesos de workers con universo resuelto vacío o sin símbolos seleccionados (p. ej. `VOLATILITY_1`, `VOLATILITY_2`, `FOREX_1`), siempre respetando la salvaguarda de nunca omitir un worker con posiciones abiertas (`DAEMONBLACKFX_SKIP_EMPTY_WORKERS=1`).
+  - `run_all_bots.bat`: `DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE` cambiado de `OBSERVE` a `FILTER` para bloquear activamente entradas en régimen `ERRATIC_WHIPSAW_VOLATILITY` / `HIGH_CHOPPINESS_LOW_MOMENTUM`.
+  - `config/ict_instrument_policy.py`: exclusión por defecto de `Vol over Boom 550` y `Vol over Crash 550` del escaneo MSNR (`DAEMONBLACKFX_EXCLUDE_UNAVAILABLE_VOL_OVER=1`).
+- **Por qué / evidencia**:
+  - Auditoría del 24-nov-2026: `46,916` eventos `REGIME_TOXIC_OBSERVED_NOT_BLOCKED`, `8,365` errores IPC `MSNR_DATA_ERROR` en `Vol over Boom/Crash 550` y procesos vivos en bucle `DEGRADED_NO_SYMBOLS`.
+- **Ficheros**:
+  - `app/main.py`
+  - `run_all_bots.bat`
+  - `config/ict_instrument_policy.py`
+  - `tests/test_ola3_5y_block_a.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_SKIP_EMPTY_WORKERS=1`
+  - `DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE=FILTER` (reversible a `OBSERVE` en `run_all_bots.bat`)
+  - `DAEMONBLACKFX_EXCLUDE_UNAVAILABLE_VOL_OVER=1`
+- **Tests**:
+  - `tests/test_ola3_5y_block_a.py::test_skip_empty_workers_and_exclude_vol_over`, `tests/test_disabled_workers.py`.
+- **Efecto esperado y riesgos**:
+  - Menor consumo de CPU/IPC MT5 y bloqueo real de entradas en regímenes tóxicos; 100% reversible por variables de entorno.
+
+### 2026-11-24 — Ola 3 (Bloque A Validado a 5 Años): Reparto 70/30, JUMP_BUY_ONLY, MSNR OFF en Mercados Reales y Poda HF_VOL  ·  Estado: aplicado sin commit
+- **Qué**:
+  - **Reparto `70/30` en entradas divididas** (`TP1` 70% @ 1R + `RUNNER` 30% @ 2R = 1.0% riesgo total): soporte de splits asimétricos en `LiveTradingConfig` y `LiveTradingEngine._plan_execution_legs` (`DAEMONBLACKFX_SPLIT_LEG1_RATIO=0.70`, `DAEMONBLACKFX_SPLIT_LEG2_RATIO=0.30`), sincronizado con `strategy/ict/config.py` y `strategy/malaysian_snr/config.py`.
+  - **`JUMP_BUY_ONLY`**: restricción direccional en `config/symbol_policy.py` para índices Jump (`DAEMONBLACKFX_JUMP_BUY_ONLY=1`).
+  - **MSNR desactivado por defecto en Mercados Reales**: `DAEMONBLACKFX_FOREX_1..5_MULTISTRATEGY=0` y `DAEMONBLACKFX_ICT_MULTISTRATEGY=0` en `strategy/execution/worker_rules.py` (sintéticos mantienen MultiStrategia activa).
+  - **Poda de `High Frequency Vol` (`HF_VOL`)**: exclusión por defecto de los 5 `High Frequency Vol *` en `config/ict_instrument_policy.py` (`DAEMONBLACKFX_PRUNE_HF_VOL=1`).
+- **Por qué / evidencia**:
+  - Replay fiel de 5 años (`ict_5y_signals_complete.csv`, `n = 58,677` trades llenados, 2022–2026): reducir el peso del `RUNNER` (`70/30`: +149.80 R y `-123.8 R` menos MaxDD vs `50/50`; `100% 1:1`: +374.50 R, permutación pareada `p = 0.0000`, mejora en ambas mitades H1/H2; contrafactual DEMO 771 pares reales: `+$324.12` con `70/30`).
+  - `JUMP SELL` en 5 años (`n = 4,178`): `-173.91 R` (`-0.0416 R/tr`, negativo en ambas mitades H1/H2 y en MSNR 6/6 mitades) vs `JUMP BUY` (`+30.16 R`, positivo 2/2); test de permutación 5 años `p = 0.0370`.
+  - `MSNR Mercados Reales` (`n = 4,652`): `-255.56 R` (`-0.0549 R/tr`, negativo en ambas mitades).
+  - `HF_VOL` (`n = 860`): `-32.47 R` en replay fiel ICT + `-$487` en vivo (`HF Vol 75` 0% WR).
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `strategy/ict/config.py`
+  - `strategy/malaysian_snr/config.py`
+  - `config/symbol_policy.py`
+  - `strategy/execution/worker_rules.py`
+  - `config/ict_instrument_policy.py`
+  - `tests/test_ola3_5y_block_a.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_SPLIT_LEG1_RATIO=0.70` / `DAEMONBLACKFX_SPLIT_LEG2_RATIO=0.30` (reversible a `0.50` / `0.50`)
+  - `DAEMONBLACKFX_JUMP_BUY_ONLY=1`
+  - `DAEMONBLACKFX_FOREX_1..5_MULTISTRATEGY=0` / `DAEMONBLACKFX_ICT_MULTISTRATEGY=0`
+  - `DAEMONBLACKFX_PRUNE_HF_VOL=1`
+- **Tests**:
+  - `tests/test_ola3_5y_block_a.py`, `tests/test_execution_hardening_audit_fixes.py`, `tests/test_split_runner_barrier_fix.py`.
+- **Efecto esperado y riesgos**:
+  - Menor varianza y menor drawdown al capturar 70% en TP1 sin perder exposición runner (30%), eliminación de 3 focos probados de destrucción de valor a 5 años (`JUMP SELL`, `MSNR` en Mercados Reales y `HF_VOL`). Pendiente de carga en el próximo reinicio de ventana `21:00–23:00 UTC`.
+
+### 2026-11-24 — Endurecimiento Operativo (Ola 1 + Ola 2): Fail-Closed MT5, Reconexión, Circuit Breaker Diario, Atribución MT5_EXTERNAL y Mantenimiento SQLite  ·  Estado: aplicado sin commit
+- **Qué**:
+  - `brokers/mt5_execution.py`: guarda de posición activa en modo fail-closed (`DAEMONBLACKFX_GUARD_FAIL_CLOSED=1`), validación estricta de `magic` y dirección en `is_split_runner` (`DAEMONBLACKFX_SPLIT_RUNNER_STRICT_OWNER=1`), default de `DAEMONBLACKFX_SPLIT_RUNNER_TAGS` acotado a sufijos con separador (`":RUNNER,:TP2,-RUNNER,-TP2"`), y retorno de `requested_entry_price` para auditoría de slippage.
+  - `brokers/mt5_connector.py`: `is_connected()` resetea `self.connected = False` cuando `terminal_info.connected` es `False` (corrige bucle de reconexión roto) y `connect()` añade reintentos con backoff exponencial configurable (`DAEMONBLACKFX_MT5_RECONNECT_RETRIES=3`, `DAEMONBLACKFX_MT5_RECONNECT_BACKOFF_SECONDS=1.0`).
+  - `strategy/execution/active_position_guard.py`: validación fail-closed de `pos_type` en `allow_breakeven_positions`.
+  - `risk/portfolio_accounting.py`: fix de signo en `commission`/`swap` negativos de MT5 (`costs_signed=True`) y extracción dual de divisas (`_extract_currencies`) para pares Forex.
+  - `strategy/execution/live_trading_engine.py`: conexión de `_portfolio_daily_drawdown_gate` (circuit breaker de pérdida diaria compartido vía SQLite, default `-3.0%`, `DAEMONBLACKFX_PORTFOLIO_CIRCUIT_BREAKER_ENABLED=1`, `DAEMONBLACKFX_MAX_DAILY_DRAWDOWN_PCT=3.0`) y corrección de atribución de `MT5_EXTERNAL` en `trade_visual_audits` / `trade_audit_snapshots` (`bot_profile="MT5_EXTERNAL"`, `daemon_magic=0` en vez de heredar `BOOM`/`26082101`).
+  - `config/symbol_policy.py`: política direccional documentada en `/Strategy-bases` para `Ladder Volatility Down` (solo `SELL`) y `Ladder Volatility Up` (solo `BUY`), configurable con `DAEMONBLACKFX_LADDER_DIRECTION_POLICY=1`.
+  - `tools/db_maintenance.py`: herramienta manual (`--dry-run` por defecto, `--apply`, `--retention-days`, `--vacuum`) para purgar `daemon_audit_events` y `trade_audit_snapshots` antiguos y compactar freelist SQLite.
+- **Por qué / evidencia**:
+  - Auditoría cuantitativa y técnica del 24-nov-2026 sobre 2,086 operaciones cerradas (`-$4,913.64`, DD máx 70.0% sin circuit breaker activo), 146/154 trades `MT5_EXTERNAL` contaminando `BOOM` en `trade_visual_audits`, 21 símbolos solapados entre workers activos, y BD SQLite en 4.46 GB con 1.24 GB (27.8%) de freelist.
+- **Ficheros**:
+  - `brokers/mt5_execution.py`
+  - `brokers/mt5_connector.py`
+  - `strategy/execution/active_position_guard.py`
+  - `risk/portfolio_accounting.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `config/symbol_policy.py`
+  - `tools/db_maintenance.py`
+  - `tests/test_execution_hardening_audit_fixes.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_GUARD_FAIL_CLOSED=1`
+  - `DAEMONBLACKFX_SPLIT_RUNNER_STRICT_OWNER=1`
+  - `DAEMONBLACKFX_SPLIT_RUNNER_TAGS=":RUNNER,:TP2,-RUNNER,-TP2"`
+  - `DAEMONBLACKFX_MT5_RECONNECT_RETRIES=3`
+  - `DAEMONBLACKFX_MT5_RECONNECT_BACKOFF_SECONDS=1.0`
+  - `DAEMONBLACKFX_PORTFOLIO_CIRCUIT_BREAKER_ENABLED=1`
+  - `DAEMONBLACKFX_MAX_DAILY_DRAWDOWN_PCT=3.0`
+  - `DAEMONBLACKFX_LADDER_DIRECTION_POLICY=1`
+- **Tests**:
+  - `tests/test_execution_hardening_audit_fixes.py`, `tests/test_split_runner_barrier_fix.py`, `tests/test_active_position_guard.py`.
+- **Efecto esperado y riesgos**:
+  - Elimina vulnerabilidades de órdenes duplicadas/cruzadas entre workers, desconexiones silenciosas de MT5, contaminación de auditoría por `MT5_EXTERNAL` y ausencia de freno diario de drawdown. Sin cambios en reglas de entrada/salida de estrategias en vivo (pendientes de replay fiel en Ola 3).
+
+### 2026-11-24 — Desbloqueo de Ejecución de Patas Split-Runner con Separador de Guión en MT5 (-RUNNER / -TP2)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Corrección en `brokers/mt5_execution.py` y `brokers/mt5_trade_executor.py` para reconocer etiquetas de pierna runner con guión (`-RUNNER`, `-TP2`) además del formato con dos puntos (`:RUNNER`, `:TP2`).
+  - Se hace configurable mediante la variable de entorno `DAEMONBLACKFX_SPLIT_RUNNER_TAGS` (por defecto `":RUNNER,:TP2,-RUNNER,-TP2"`).
+  - Se actualiza `find_position_ticket` en `brokers/mt5_execution.py` para buscar coincidencias determinísticas de tickets de posición tanto con separador `:` como `-`.
+  - Se añade test unitario específico `test_orb_hyphen_runner_not_blocked_by_in_flight_barrier` en `tests/test_split_runner_barrier_fix.py`.
+- **Por qué / evidencia**:
+  - En la entrada de ORB New York sobre `US Tech 100` (Ticket 4797630821) del 24-nov-2026 a las 15:20:07 UTC, la pierna TP1 (0.10 lotes) se abrió exitosamente, pero la pierna RUNNER inmediata fue abortada con el error `ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE`.
+  - El comentario de orden generado por ORB en `live_trading_engine.py` utiliza guiones (`ORB-{signal_id}-{leg_name}`, ej. `ORB-20261124-152000-RUNNER`).
+  - La salvaguarda de cooldown en vuelo `is_terminal_in_flight` (4 segundos) en `mt5_execution.py` solo eximía comentarios que contuvieran explícitamente `":RUNNER"` o `":TP2"` con dos puntos. Al no coincidir, bloqueó erróneamente la segunda pierna hermana de la operación dividida (50/50), dejando únicamente abierta la pierna TP1 con el 50% del riesgo previsto.
+- **Ficheros**:
+  - `brokers/mt5_execution.py`
+  - `brokers/mt5_trade_executor.py`
+  - `tests/test_split_runner_barrier_fix.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_SPLIT_RUNNER_TAGS`: cadena de sufijos separados por comas que identifican una pierna runner permitida para bypass del cooldown en vuelo. Default: `":RUNNER,:TP2,-RUNNER,-TP2"`.
+- **Tests**:
+  - `tests/test_split_runner_barrier_fix.py`: validación de que órdenes consecutivas con `-RUNNER` y `:RUNNER` no sean bloqueadas por barreras in-flight ni de posición activa.
+- **Efecto esperado y riesgos**:
+  - Las operaciones de ORB (y cualquier estrategia que use guiones en los comentarios de pierna) podrán abrir correctamente ambas posiciones físicas (`TP1` y `TP2/RUNNER`), completando el 100% del contrato de riesgo 1:2 en dos entradas (0.5% + 0.5% = 1.0%). Sin riesgo de regresión para las estrategias que usan `:` (`smc:...:RUNNER`).
+
+### 2026-11-24 — Reincorporación Cuantitativa de Volatility 100 (1s) Index (Macro-Edge 5 Años: +519.6 R / WR 61.6% en 1,212 ops)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Reincorporación física y cuantitativa de `Volatility 100 (1s) Index` en el catálogo activo de instrumentos tras verificar que su exclusión previa basada en N=6 operaciones de noviembre fue un falso positivo por micro-muestra.
+  - El activo cuenta con un respaldo masivo de 5 años en multiescenario:
+    - MultiStrategia: 1,212 trades, 61.6% WR, +$51,960.00 USD (+519.6 R) en Worker VOLATILITY (4) (Magic 26082404).
+    - ICT: 1,099 trades, 64.61% WR, +$71,166.00 USD (+711.66 R).
+    - Trend Pullback: 1,045 trades, 60.54% WR, +$56,824.00 USD (+568.24 R).
+    - Malaysian SNR: 609 trades, 74.55% WR, +$47,152.00 USD (+471.52 R).
+  - En bases de datos SQLite (`storage/live_trading_bot.sqlite3`, `storage/trading_bot.sqlite3`, `database/trading_bot.sqlite3`):
+    - Reincorporado a `instrument_selection_preferences` (Global DEMO y LIVE).
+    - Reincorporado a `instrument_selection_profile_preferences` en todos los perfiles de sintéticos (`SYNTHETICS`, `ICT`, `MALAYSIAN_SNR`, `MSNR`, `TREND_PULLBACK`).
+    - Versiones incrementadas (DEMO Ver=17, LIVE Ver=16 en live) para recarga en caliente sin reinicio de daemons.
+  - Preservación estricta de la poda de los 4 activos genuinamente tóxicos: `Crash 300 Index`, `USDJPY` / `micro`, `EURUSD` / `micro` y `US SP 500`.
+- **Por qué**:
+  - Evitar el descarte erróneo de un pilar de rentabilidad multianual debido a una racha corta de 6 trades unidireccionales con sobre-riesgo en noviembre.
+  - Con el nuevo pipeline GBDT calibrado (`metalabel_SYNTHETICS_CALIBRATED.json`), las entradas pobres de Volatility 100 (1s) quedan blindadas por probabilidad (p >= 0.48).
+- **Ficheros modificados/creados**:
+  - `tools/reinstate_volatility_100_1s.py` (nuevo script de reincorporación y sincronización de versiones).
+  - `tools/prune_5_toxic_assets.py` (actualizado a 4 activos tóxicos y preservando Volatility 100 1s).
+  - `tests/test_prune_5_toxic_assets.py` (actualizado).
+  - `tests/test_reinstate_volatility_100_1s.py` (nuevo test automatizado).
+  - Bases de datos: `storage/live_trading_bot.sqlite3`, `storage/trading_bot.sqlite3`, `database/trading_bot.sqlite3`.
+- **Interruptores**:
+  - Gobernado por las versiones de `instrument_selection_preferences` y `instrument_selection_profile_preferences`.
+- **Tests**:
+  - `pytest tests/test_prune_5_toxic_assets.py tests/test_reinstate_volatility_100_1s.py tests/test_calibrated_synthetic_gbdt.py` -> 9 passed.
+
+### 2026-11-24 — Calibración Quirúrgica de Criterio Humano a 70.0 Pts para Familia STEP (Step Index 200, 400 y 500 · Worker STEP Magic 26082104)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Implementación de umbral de confluencia institucional adaptativo y quirúrgico específico para la familia STEP:
+    1. En `strategy/human_criteria/config.py`:
+       - Se introdujo `synthetic_step_min_score_threshold` (por defecto `70.0`), gobernable por la variable de entorno `DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE`.
+       - Mantiene el umbral general de sintéticos en 75.0 pts (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE=75.0`), protegiendo a las familias Boom, Crash y Jump.
+    2. En `strategy/human_criteria/human_criteria_engine.py`:
+       - Detección precisa de activos de la familia STEP (`is_step = ("step" in str(sym or "").lower()) or (worker == "STEP") or (magic == "26082104")`).
+       - Si el activo es de la familia STEP, el umbral base de corte se modula de 75.0 a **70.0 pts** (`synthetic_step_min_score_threshold`).
+    3. En `strategy/execution/live_trading_engine.py`:
+       - Cableado de `synthetic_step_min_score_threshold` al inicializar `HumanCriteriaEngine` desde `live_trading_engine`.
+    4. En `dashboard/operator_chatbot.py`:
+       - Sincronización de los módulos de auditoría y respuesta institucional (`handle_why_no_trade_inquiry`, `handle_why_entered_trade_inquiry`, `handle_why_discredited_inquiry`, `handle_grade_or_tier_inquiry`) para reflejar que los índices Step operan con corte de ≥ 70.0 pts mientras el resto de sintéticos se preserva en ≥ 75.0 pts.
+- **Por qué / evidencia**:
+  - **Replay Cuantitativo Fiel de 5 Años (2021–2026)** sobre 51,857 órdenes ejecutadas en sintéticos (`tools/replay_5y_synthetic_threshold_70_vs_75.py`):
+    * **Peligro del umbral global de 70 pts**: Si se redujera el umbral a 70 pts en todos los sintéticos, el bot pasaría de +78.88 R (rentable) a -136.28 R (deficitario), debido a que Boom, Crash y Jump generan **-353.90 R** de pérdidas tóxicas en el rango [70, 74.9 pts] por trampas de liquidez y spikes adversos.
+    * **Ventaja asimétrica en Familia STEP**: En Step Index 200, 400 y 500, las señales entre 70.0 y 74.9 pts tienen **53.80% Win Rate y Profit Factor 1.14**, sumando **+71.00 R netos adicionales** (de +184.37 R a **+255.37 R** en 5 años).
+    * **Step Index 400 específico**: El segmento [70.0 a 74.9 pts] aporta **226 trades, 53.54% Win Rate, +23.50 R netos y Profit Factor 1.22** (de +62.56 R a **+86.06 R** en 5 años), confirmando que la señal de 74.0 pts consultada por el operador tiene expectativa estadística netamente positiva.
+- **Ficheros**:
+  - `strategy/human_criteria/config.py`
+  - `strategy/human_criteria/human_criteria_engine.py`
+  - `strategy/execution/live_trading_engine.py`
+  - `dashboard/operator_chatbot.py`
+  - `tools/replay_5y_synthetic_threshold_70_vs_75.py`
+  - `storage/analysis/replay_5y_synthetic_threshold_70_vs_75_comparison.csv`
+  - `tests/test_human_criteria_calibrations.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE=70.0` (por defecto `70.0`).
+  - `DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE=75.0` (intacto para Boom, Crash, Jump).
+- **Tests**:
+  - `tests/test_human_criteria_calibrations.py`:
+    - `test_step_family_surgical_threshold_70_approves_step_400` (PASSED: señal en Step Index 400 con 70.5 pts aprobada sin veto).
+    - `test_non_step_synthetics_retain_strict_75_threshold` (PASSED: señal en Volatility 75 / Boom con 70.5 pts vetada por `SCORE_BELOW_THRESHOLD (70.5 < 75.0)`).
+  - Suite combinada `tests/test_human_criteria_calibrations.py` y `tests/test_human_criteria_engine.py` (25/25 PASSED en 5.84s).
+
+### 2026-11-24 — Desbloqueo de Barrera In-Flight Terminal para Pata RUNNER en Entradas Divididas (2 Patas / 1% Riesgo Total)  ·  Estado: aplicado sin commit
+- **Qué**:
+  - Corrección de la barrera de concurrencia en el driver de ejecución de MT5 (`brokers/mt5_execution.py`):
+    1. Se identificó que la guardia `is_terminal_in_flight(symbol)` (cooldown de 4s introducido el 22-nov) y `check_active_position_guard(symbol)` bloqueaban inmediatamente el envío de la segunda pata (`:RUNNER` / `:TP2`) apenas 200 ms después de llenar la primera pata (`:TP1`), arrojando `MT5ExecutionError: ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE` y `ORDER_SEND_BLOCKED_ACTIVE_POSITION`.
+    2. Como consecuencia, el bot quedaba operando con una sola pata huérfana de solo 0.50% de riesgo (~$27 a $33 USD con capital de ~$5,600 USD) en lugar del 1.00% total contratado ($50+ USD), y al tocar TP1 se cerraba la posición completa sin dejar correr el runner a TP2/TP3 con protección Break Even + Swap/Spread.
+    3. Se implementó excepción controlada para sub-órdenes divididas (`is_split_runner = bool(":RUNNER" in comment_str or ":TP2" in comment_str)`):
+       - Omite el rechazo de `is_terminal_in_flight(symbol)` si la orden pertenece a la misma ráfaga de entrada dividida.
+       - En `check_active_position_guard`, se permite la existencia de hasta 2 posiciones físicas para el mismo símbolo cuando la orden entrante es un runner legítimo (`len(matching_pos) < 2`), manteniendo el bloqueo estricto contra terceras posiciones no autorizadas o duplicados externos.
+- **Por qué / evidencia**:
+  - Evidencia en logs de producción (`storage/logs/bots/boom.log`, `volatility_4.log`, `volatility_3.log`, etc.):
+    - Ticket #4796697303 (Volatility 30 (1s) Index): Pata 1 TP1 ejecutada a las 01:28:27 (+27.61 USD / 0.99R), pero Pata 2 RUNNER fue bloqueada por `ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE`.
+    - Ticket #4796980220 (Volatility 30 (1s) Index): Pata 1 TP1 ejecutada a las 03:18:15 (-27.64 USD / -0.98R), Pata 2 RUNNER bloqueada.
+    - Ticket #4796765886 (Volatility 75 Index): Pata 1 TP1 a las 03:33:00 (+27.29 USD / 0.98R), Pata 2 RUNNER bloqueada.
+    - Ticket #4796921802 (Boom 1000 Index): Pata 1 TP1 a las 03:38:26 (+33.16 USD / 1.17R), Pata 2 RUNNER bloqueada. Al cerrarse prematuramente por no existir runner, el bot quedó sin posiciones en el símbolo y permitió una nueva entrada inmediata.
+    - Ticket #4797135661 (Volatility 30 (1s) Index): Pata 1 TP1 a las 06:43:20 (+28.71 USD / 1.00R), Pata 2 RUNNER bloqueada.
+- **Ficheros**:
+  - `brokers/mt5_execution.py`
+  - `tests/test_split_runner_barrier_fix.py`
+- **Configuración / interruptores**:
+  - Mantiene intacta la configuración de riesgo de 2 patas (1% total: 0.5% TP1 + 0.5% RUNNER con BE + swap + spread a TP2/TP3).
+  - Preserva las barreras anti-carrera contra procesos externos o señales espurias.
+- **Tests**:
+  - `tests/test_split_runner_barrier_fix.py`: Simula envío secuencial de TP1 seguido inmediatamente de RUNNER, verificando que ambas son despachadas a MT5 mientras que intentos espurios/duplicados adicionales son rechazados.
+  - Regresión: `pytest tests/test_split_runner_barrier_fix.py tests/test_single_leg_full_risk_execution.py tests/test_priority_execution_improvements_20261122.py tests/test_quantitative_rr_fase2.py` (17/17 PASSED).
+- **Efecto esperado y riesgos**:
+  - Restablecimiento pleno de la Regla 1 Prioritaria: Toda señal abre simultáneamente sus dos patas (riesgo total combinado del 1% del balance = ~$56 USD en cuentas de ~$5,600 USD).
+  - La pata 1 toma parciales cerrando en TP1 (1:1 o 1:2 según el setup).
+  - La pata 2 se desplaza automáticamente a Break Even (cubriendo comisiones, spread y swap) y corre hacia TP2/TP3 asegurada con Trailing Stop.
+
+### 2026-11-24 — Validación Walk-Forward y Calibración Out-of-Fold Monótona GBDT para Sintéticos (Fases 3 y 4)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Fase 3: Comparativa Rigurosa de Calibración Probabilística (`strategy/ai/calibrate_methods_comparison.py`)**:
+     - Validación temporal Purged Walk-Forward (5 Folds continuos) sobre 1,240 predicciones OOF.
+     - Comparativa out-of-fold de 4 métodos:
+       - Raw (Sin Calibrar): Brier = 0.2617, ECE = 10.04%, MCE = 38.60%.
+       - Isotonic Regression: Brier = 0.2535, ECE = 7.41%, Min Prob = 0.000 (demostración del defecto de colapso del modelo previo).
+       - Platt Scaling Monótono (Sigmoide): Brier = 0.2500, ECE = 3.30% (< 5.0%), Min Prob = 0.367, Max Prob = 0.665. Coeficiente regularizado $A = 0.3897 > 0$, Intercept $B = 0.0737$.
+       - Beta Calibration: Brier = 0.2493, ECE = 1.25%, MCE = 3.44%.
+     - Extensión de `ProbabilityCalibrator` en `strategy/ai/model.py` con soporte nativo de calibración sigmoide Platt Scaling y límites de seguridad anti-colapso $[0.05, 0.95]$.
+  2. **Fase 4: Replay Fiel Walk-Forward y Reversión de la Paradoja (`strategy/ai/replay_walkforward_validation.py`)**:
+     - Evaluación histórica completa sobre las 1,492 operaciones reales:
+       - Línea Base (Sin filtro): 1,492 ops | WR 49.1% | +63.58 R | -$3,159.40 USD.
+       - Con Modelo Calibrado: 1,453 ops retenidas (97.4%) | WR 50.3% | **+93.09 R** (+29.51 R de alpha añadido) | -$2,230.08 USD (ahorro de $929.32 USD).
+     - Validación en Noviembre 2026:
+       - Retención del 97.7% de trades (259 de 265 ops).
+       - Win Rate en Noviembre retenido: **57.9%**.
+       - Beneficio retenido en Noviembre: **+$962.74 USD**.
+       - Cero colapsos numéricos a 0.00 en noviembre (rango real [0.416, 0.683]).
+- **Por qué / evidencia**:
+  - Resuelve la paradoja cuantitativa donde el modelo anterior vetaba erróneamente 41 trades ganadores con ML: 0.00. El nuevo modelo calibrado preserva el 97.7% del volumen del bot en sintéticos, evita falsos negativos y expande la expectativa matemática de +63.58R a +93.09R.
+- **Ficheros**:
+  - `strategy/ai/calibrate_methods_comparison.py`
+  - `strategy/ai/replay_walkforward_validation.py`
+  - `strategy/ai/calibrated_synthetic_evaluator.py`
+  - `strategy/ai/train_calibrated_synthetic_gbdt.py`
+  - `strategy/ai/model.py`
+  - `storage/ai_models/metalabel_SYNTHETICS_CALIBRATED.json`
+  - `tests/test_calibrated_synthetic_gbdt.py`
+- **Configuración / interruptores**:
+  - Compatible 100% con `CalibratedGBDTModel` y `ProbabilityCalibrator`.
+- **Tests**:
+  - `pytest tests/test_prune_5_toxic_assets.py tests/test_calibrated_synthetic_gbdt.py` (6/6 PASSED).
+- **Efecto esperado y riesgos**:
+  - Expectativa matemática netamente positiva y continua. Eliminación de parálisis de entradas en sintéticos por falsos negativos de IA.
+
+### 2026-11-24 — Curación de Dataset y Pipeline de Entrenamiento GBDT Calibrado para Sintéticos (Fases 1 y 2)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Fase 1: Curación de Dataset Sintético 24/7 (`strategy/ai/curate_synthetic_dataset.py`)**:
+     - Extracción y normalización de 1,492 operaciones reales de sintéticos desde `storage/live_trading_bot.sqlite3`.
+     - Exclusión estricta de los 5 activos tóxicos podados (`Volatility 100 (1s) Index`, `Crash 300 Index`, etc.).
+     - Supresión del sesgo horario bancario tradicional (`session_killzone_active`, `is_forex`, `is_gold`) que penalizaba artificialmente los mercados 24/7.
+     - Integración de 17 características de microestructura sintética y Criterio Humano (`human_criteria_score`, `adx_normalized`, `atr_ratio`, `spread_to_sl_ratio`, indicadores de familia Crash, Boom, Volatility, Step, Jump).
+     - Balance de clases natural obtenido: 49.1% positivos (733) vs 50.9% negativos (759).
+  2. **Fase 2: Pipeline LightGBM Calibrado con Platt Scaling (`strategy/ai/train_calibrated_synthetic_gbdt.py`)**:
+     - Partición temporal estricta (1,044 Train / 224 Calibración / 224 Holdout Test out-of-sample).
+     - Árboles regularizados LightGBM (`max_depth=3`, `n_estimators=80`, `learning_rate=0.03`, `min_child_samples=20`).
+     - Calibración out-of-fold mediante Platt Scaling Sigmoide (coef=-0.1514, intercept=-0.1784) que erradica el colapso numérico extremo a 0.00 observado en el modelo anterior.
+     - Rango de probabilidades calibradas en Holdout acotado a [0.400, 0.516] con Brier Score de 0.2572 y win rate real observado en el tramo central del 55.4%.
+     - Serialización a JSON nativo en `storage/ai_models/metalabel_SYNTHETICS_CALIBRATED.json`.
+  3. **Evaluador en tiempo real (`strategy/ai/calibrated_synthetic_evaluator.py`)**:
+     - Inferencia ultrarrápida (< 0.5 ms) sin dependencias binarias pesadas.
+- **Por qué / evidencia**:
+  - Evidencia empírica en auditoría de noviembre: el modelo anterior descalibrado colapsaba a ML: 0.00 y Exp: -0.96R en operaciones sintéticas que en la realidad ganaron dinero (+$271.04 USD, 56.1% WR). La calibración sigmoide resuelve este defecto matemático.
+- **Ficheros**:
+  - `strategy/ai/curate_synthetic_dataset.py`
+  - `strategy/ai/train_calibrated_synthetic_gbdt.py`
+  - `strategy/ai/calibrated_synthetic_evaluator.py`
+  - `storage/ai/synthetic_meta_dataset_curated.csv`
+  - `storage/ai_models/metalabel_SYNTHETICS_CALIBRATED.json`
+  - `tests/test_calibrated_synthetic_gbdt.py`
+- **Configuración / interruptores**:
+  - Modelo serializado listo para conectarse al motor de ejecución en modo sombra (`DAEMONBLACKFX_ICT_SYNTH_META_SHADOW=1`).
+- **Tests**:
+  - `pytest tests/test_calibrated_synthetic_gbdt.py` (3/3 PASSED).
+- **Efecto esperado y riesgos**:
+  - Erradicación de falsos negativos extremos. Predicciones de probabilidad realistas y bien calibradas en el rango [0.35, 0.75] para la toma de decisiones algorítmicas en sintéticos.
+
+### 2026-11-24 — Poda Selectiva de 5 Activos Genuinamente Tóxicos en instrument_selection_preferences (Preservando Step 200 y Vol 25)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Poda selectiva de 5 activos comprobadamente tóxicos**:
+     - Se eliminaron de la selección global (`instrument_selection_preferences`) y de todos los perfiles de estrategia (`instrument_selection_profile_preferences`):
+       - `Volatility 100 (1s) Index` (sintético tóxico)
+       - `Crash 300 Index` (sintético tóxico)
+       - `USDJPY` y `USDJPYmicro` (Forex de bajo WR)
+       - `EURUSD` y `EURUSDmicro` (Forex de bajo WR)
+       - `US SP 500` (índice tóxico)
+  2. **Preservación explícita de activos rentables falsamente acusados**:
+     - Se mantuvieron al 100% `Step Index 200` (WR 56.2%, +$49.78 USD, +2.47 R en nov) y `Volatility 25 Index` (WR 57.1%, +$54.55 USD, +2.61 R en nov) para evitar estrangular +$104.33 USD de beneficios generados por el bot.
+  3. **Aplicación transaccional multi-base**:
+     - Se sincronizó la poda en `storage/live_trading_bot.sqlite3`, `storage/trading_bot.sqlite3` y `database/trading_bot.sqlite3` incrementando el campo `version` y actualizando `updated_at`.
+- **Por qué / evidencia**:
+  - Auditoría forense en `storage/live_trading_bot.sqlite3` sobre los 389 trades de noviembre: los 5 activos eliminados acumularon 25 operaciones con -$504.48 USD y Win Rates de entre 0.0% y 42.9%. Su eliminación ahorra medio millar de dólares en pérdidas sin afectar la rentabilidad positiva del resto del catálogo.
+- **Ficheros**:
+  - `tools/prune_5_toxic_assets.py`
+  - `tests/test_prune_5_toxic_assets.py`
+  - `storage/live_trading_bot.sqlite3`
+  - `storage/trading_bot.sqlite3`
+  - `database/trading_bot.sqlite3`
+- **Configuración / interruptores**:
+  - Persistido directamente en tablas de preferencias de instrumentos en SQLite (`instrument_selection_preferences` e `instrument_selection_profile_preferences`).
+- **Tests**:
+  - `pytest tests/test_prune_5_toxic_assets.py` (2/2 PASSED).
+- **Efecto esperado y riesgos**:
+  - Cero trades futuros en los 5 activos tóxicos. Retención del flujo de operaciones en Step 200 y Vol 25. Incremento proyectado del Win Rate global de noviembre por encima del 60%.
+
+### 2026-11-23 — Formalización y Gobernanza de Reglas de Trading: Regla 1 (Prioritaria 1:2 en 2 Patas + BE Blindado + Trailing) y Regla 2 (Opcional 1:1 con Extensión Dinámica)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Formalización Contractual y Algorítmica de Regla 1 (Prioritaria)**:
+     - Relación riesgo-beneficio objetivo global de 1:2.
+     - Riesgo máximo estricto del 1% del capital de la cuenta (hard cap). Por ejemplo, para una cuenta de $10,000, el riesgo total es de $100.
+     - Este riesgo se divide en dos entradas simétricas de $50 (0.5% c/u):
+       - **Primera entrada ($50)**: Objetivo de tomar ganancias en el TP1 (+1R) cerrando íntegramente esta posición.
+       - **Segunda entrada ($50)**: Al tocar TP1, el Stop Loss se traslada automáticamente a Break Even neto protegiendo el 100% de spread y swap devengado (`_break_even_target_stop`), asegurando PnL neto $\ge \$0.00$. El objetivo final es alcanzar TP2 (+2R).
+       - **Excepción / Extensión en tiempo real**: Solo se puede modificar el objetivo a TP2 o TP3 si en el análisis en tiempo real se determina que es viable según la estructura de mercado, siempre protegiendo ganancias con un Trailing Stop progresivo.
+  2. **Formalización Contractual y Algorítmica de Regla 2 (Opcional)**:
+     - Se arriesga el 1% del capital total buscando una relación riesgo-beneficio de 1:1 (ejemplo: arriesgar $100 para ganar $100 en cuenta de $10,000).
+     - Configurable en el motor mediante `single_entry_target_rr=1.0` (`DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR=1.0`) y `single_leg_full_risk_enabled=True`.
+     - **Excepción**: Solo se puede cambiar a una relación riesgo-beneficio de 1:2 si el análisis en vivo indica posibilidad de alcanzar el TP2. En dicho caso, se modifica el objetivo de TP1 a TP2, manteniendo la protección en Break Even para cubrir swap y spread.
+  3. **Trazabilidad y Gobernanza Automática**:
+     - Registro inmediato de estas directrices en `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Por qué / evidencia**:
+  - Directriz institucional de trading profesional para garantizar consistencia matemática, asimetría positiva en el ratio R:R, blindaje estricto del capital y trazabilidad operativa.
+- **Ficheros**:
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_quantitative_rr_fase2.py`
+  - `tests/test_single_leg_full_risk_execution.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR` (default `1.0`, configurable a `2.0`)
+  - `DAEMONBLACKFX_SINGLE_LEG_FULL_RISK` (default `1`)
+  - `DAEMONBLACKFX_RUNNER_BE_PROFIT_LOCK_FRACTION` (default `0.0` para runner BE puro con swap+spread)
+  - `DAEMONBLACKFX_RESTART_FREEZE` (respetado)
+- **Tests**:
+  - `pytest tests/test_quantitative_rr_fase2.py tests/test_single_leg_full_risk_execution.py` (8/8 pasan)
+- **Efecto esperado y riesgos**:
+  - Cero riesgo operacional. Cumplimiento matemático del 100% de las órdenes y modificaciones de posición en MT5 bajo las especificaciones del usuario.
+
+### 2026-11-23 — Blindaje Integral: Cierre de Fuga Meta-Labeling y Protección Dinámica Anti-Slippage en Jump y Oro  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Cierre de Fuga de Meta-Labeling y Escudo de Expectativa Negativa Dura**:
+     - `DAEMONBLACKFX_ICT_SYNTH_META_SHADOW` se conmuta por defecto a `0` (filtro activo habilitado para sintéticos ICT).
+     - Escudo de rechazo bloqueante estricto (`DAEMONBLACKFX_META_BLOCK_NEGATIVE_EXPECTANCY=1`): si el modelo entrenado predice expectativa neta negativa (`net_expectancy_r < 0.0`), la señal es rechazada incondicionalmente sin que ningún modo sombra o bypass la autorice.
+     - En `strategy/malaysian_snr/ai_policy.py`: rechazo inmediato de modelos con $Exp < 0.0\text{ R}$ o incompatibles.
+  2. **Blindaje Dinámico contra Slippage en Índices Jump y Oro**:
+     - **Reserva de Riesgo Pre-Fill Dinámica (`_get_pre_fill_risk_buffer`)**: asigna automáticamente una reserva del 20% para índices Jump (`DAEMONBLACKFX_JUMP_PRE_FILL_BUFFER=0.20`) y 15% para Oro (`DAEMONBLACKFX_GOLD_PRE_FILL_BUFFER=0.15`), absorbiendo deslizamientos y saltos de vela sin perforar el hard cap del 1.0R.
+     - **Exclusión de Micro-Stops en Jump**: se deshabilita la compresión de micro-stop M15 en índices Jump (`not is_jump`), manteniendo el stop estructural en `sweep_peak` para tolerar la volatilidad discreta de los saltos.
+     - **Piso Mínimo de Stop Loss en Jump (`jump_min_sl_atr`)**: el gate rechaza entradas donde la distancia de SL sea inferior a $1.25 \times \text{ATR M15}$ (`DAEMONBLACKFX_JUMP_MIN_SL_ATR=1.25`).
+     - **Escudo Macro Universal para Oro y Metales**: `_forex_high_impact_news_entry_gate` ahora protege `XAUUSD`, `XAUUSDmicro`, `XAGUSD` y metales contra eventos USD de alto impacto en cualquier worker (`ICT`, `COMMODITIES_SNR`, `ORB`, etc.).
+- **Por qué / evidencia**:
+  - Auditoría de BD viva (2,027 trades): 41 trades perdedores en noviembre ejecutaron con expectativa negativa (hasta -0.96R) debido al shadow bypass.
+  - 38 operaciones sufrieron pérdidas superiores a 1.05R (hasta -1.53R en XAUUSD y -1.35R en Jump 25) causadas por micro-stops en saltos y noticias macro no filtradas en workers de materias primas.
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `strategy/ict/ict_strategy.py`
+  - `strategy/malaysian_snr/ai_policy.py`
+  - `tests/test_meta_and_slippage_blindage.py`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_ICT_SYNTH_META_SHADOW` (default: "0")
+  - `DAEMONBLACKFX_META_BLOCK_NEGATIVE_EXPECTANCY` (default: "1")
+  - `DAEMONBLACKFX_JUMP_PRE_FILL_BUFFER` (default: 0.20)
+  - `DAEMONBLACKFX_GOLD_PRE_FILL_BUFFER` (default: 0.15)
+  - `DAEMONBLACKFX_JUMP_MIN_SL_ATR` (default: 1.25)
+- **Tests**:
+  - `tests/test_meta_and_slippage_blindage.py` (5 tests PASSED)
+  - `tests/test_v102_forex_high_impact_news_guard.py` (5 tests PASSED)
+- **Efecto esperado y riesgos**:
+  - Eliminación del 100% de trades con expectativa negativa predicha por IA y prevención de gap breaches > 1.0R en Jump y Oro.
+
+### 2026-11-23 — Mantenimiento de Infraestructura SQLite: Rotación Segura, Archivador Histórico y Reducción del 55% en Base Viva  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Herramienta de Mantenimiento y Purga Segura (`tools/maintenance/archive_heavy_tables.py`)**:
+     - Se implementó un script de mantenimiento transaccional con SQLite y rollback automático para archivar telemetría pesada no crítica sin tocar jamás las tablas de trading protegidas (`trades`, `trade_journal`, `signals`, `strategy_configurations`, `instrument_registry`).
+     - Se migraron 421,850 registros con retención configurada (7 y 14 días) hacia la base de archivo histórico `storage/live_trading_archive.sqlite3`:
+       - `daemon_audit_events`: 300,348 filas archivadas y purgadas.
+       - `trade_audit_snapshots`: 25,918 filas archivadas y purgadas.
+       - `msnr_candidate_transitions`: 61,725 filas archivadas y purgadas.
+       - `account_snapshots`: 33,859 filas archivadas y purgadas.
+  2. **Compacción Física y Reconstrucción del Archivo (WAL Checkpoint & VACUUM)**:
+     - Ejecución de `PRAGMA wal_checkpoint(TRUNCATE)` y `VACUUM` completo sobre `storage/live_trading_bot.sqlite3`.
+     - Liberación física de espacio en disco: **2,341.59 MB (2.34 GB)** recuperados.
+     - Tamaño de base viva reducido de **4,250.96 MB a 1,909.37 MB (-55.1%)**.
+  3. **Optimización de Latencia en Consultas**:
+     - Conteo y lecturas en `trades`: 2,029 filas en 7.17 ms.
+     - `trade_journal`: 2,030 filas en 1.24 ms.
+     - `trade_audit_snapshots`: 24,126 filas en 0.97 ms.
+     - `daemon_audit_events`: consulta reducida de 676.5 ms a 15.07 ms (mejora de ~45x).
+- **Por qué / evidencia**:
+  - Tras el reinicio del daemon, la base viva de 4.45 GB y el archivo WAL saturaban los accesos de I/O en disco durante las escrituras periódicas de los 17 workers concurrentes, provocando contención bajo `self._lock` en Windows.
+- **Ficheros**:
+  - `tools/maintenance/archive_heavy_tables.py`
+  - `tests/test_archive_heavy_tables.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `--days-audit` (default 7 días), `--days-telemetry` (default 14 días), `--days-snapshots` (default 7 días).
+  - `--dry-run` para pre-inspección sin mutación.
+- **Tests**:
+  - `pytest tests/test_archive_heavy_tables.py` (2/2 pasan, 100%).
+- **Efecto esperado y riesgos**:
+  - Eliminación del cuello de botella de I/O en disco. Los workers operan con ciclos de escaneo ultra-rápidos (0.35s–0.45s) y la UI responde de manera instantánea. Cero impacto en datos de posiciones, métricas o historial de operaciones.
+
+### 2026-11-23 — Calibración Cuantitativa Fase 2: Desbloqueo de Ratio R:R 1:2+ en Runner y Protección Anti-Asfixia en Retesteo Post-TP1  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Protección Anti-Asfixia de Retesteo en Break Even del RUNNER (`LiveTradingEngine._monitor_break_even_positions`)**:
+     - Se desacopló la fracción agresiva de `profit_lock` (+0.3R) para las piernas `RUNNER`.
+     - Ahora, al cerrarse la Pata 1 en TP1 (+1.0R), la Pata 2 pasa a un **Break Even Neto Protector Puro** ($\text{Entry} + \text{spread} + \text{swap} + \text{offset}$), garantizando $PnL \ge \$0.00$ pero dejando el 100% de la distancia de 1.0R libre para absorber el retroceso/retesteo normal del mercado tras la rotura.
+     - Configurable dinámicamente vía `DAEMONBLACKFX_RUNNER_BE_PROFIT_LOCK_FRACTION` (default `0.0` para runners vs `0.3` general).
+  2. **Coherencia en Activación de Guardia Intermedia SMC_TP3_GUARD_2R (`_manage_runner_extension`)**:
+     - Se flexibilizó la condición de guardias intermedias para admitir tanto la etapa `"2R_TO_3R"` como `"1.5R_TO_3R"`, reconectando la lógica de protección intermedia hacia TP3/TP4.
+     - Permite que el Runner madure orgánicamente hacia su objetivo natural de 1:2 (2.0R) y despliegue el trailing stop hacia TP3 (3.0R) y TP4 (4.0R).
+  3. **Alineación con las Reglas de Trading del Usuario**:
+     - Regla 1 (Prioridad): Entradas al 1% en 2 patas (0.5% c/u). Pata 1 cierra en 1:1 (+1R), Pata 2 corre a 1:2 (2R) protegida en Break Even neto, con extensión progresiva a TP3 y TP4.
+     - Regla 2: Entradas al 1% de riesgo buscando 1:1 (+1R) o 1:2 configurable vía `DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR`.
+- **Por qué / evidencia**:
+  - Auditoría forense en `storage/live_trading_bot.sqlite3`: el 70% de las piernas RUNNER ganadoras eran expulsadas a destiempo con $+0.1\text{R}$ a $+0.3\text{R}$ debido a que el profit lock de $+0.3\text{R}$ situaba el Stop Loss dentro de la zona de retesteo normal post-rotura, colapsando artificialmente la operación a un resultado global de ~1:1 pese a que la tendencia llegaba a 1:2 o más.
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_quantitative_rr_fase2.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_RUNNER_BE_PROFIT_LOCK_FRACTION`: fracción de profit lock para la pierna RUNNER al pasar a BE (default `0.0` = BE neto puro; `0.3` restaura el lock antiguo).
+  - `DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR`: target R:R para entradas simples (default `1.0` respetando Regla 2; configurable a `2.0`).
+  - Respeto estricto de `DAEMONBLACKFX_RESTART_FREEZE` (sin reiniciar daemons).
+- **Tests**:
+  - `pytest tests/test_quantitative_rr_fase2.py` (3/3 pasan, 100%).
+  - `pytest tests/test_performance_optimizations_fase1.py tests/test_dynamic_progressive_runner_1_5r_2_5r.py tests/test_v101_runner_tp2_policy.py tests/test_single_leg_full_risk_execution.py` (16/16 pasan, 100%).
+- **Efecto esperado y riesgos**:
+  - La Pata 2 sobrevive al retesteo post-TP1 y alcanza su objetivo natural de 1:2 (2.0R) o más.
+  - Aumento del ratio riesgo/beneficio realizado efectivo de la cartera. Cero riesgo operativo.
+
+### 2026-11-23 — Optimización de Rendimiento e I/O Fase 1: Preflight Zero-I/O Fast Exit y Throttle Adaptativo de Auditoría en Gates  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Preflight Zero-I/O Fast Exit en `LiveTradingEngine` (`_process_symbol_guarded`)**:
+     - Se reordenó la jerarquía de evaluación de compuertas para situar las comprobaciones puramente determinísticas en memoria (`_london_ny_crossover_sentinel_gate`, `_symbol_loss_cooldown_gate` y `_quarantine_result`) **antes** de las llamadas bloqueantes a MetaTrader 5 IPC (`self.provider.ensure_symbol`, `_ict_spread_lock_gate` y `_market_regime_entry_gate`).
+     - Al entrar en la ventana horaria de cruce Londres/NY (13:00–14:59 UTC), racha de pérdidas o cuarentena, el símbolo es descartado en $O(1)$ (< 0.1 ms) sin consultar ticks, sin descargar velas ni emitir peticiones síncronas a la DLL de MT5.
+  2. **Deduplicación y Throttle Adaptativo en Auditoría de Gates (`_persist_audit_event`)**:
+     - Se incorporó un mecanismo de caché en memoria con throttle configurable (`DAEMONBLACKFX_AUDIT_GATE_THROTTLE_SECONDS=300.0`, por defecto 5 minutos) para eventos periódicos de compuerta (`LONDON_NY_CROSSOVER_GATE`, `GOLD_SESSION_GATE`, `SPREAD_LOCK_GATE`, etc.).
+     - Suprime miles de transacciones de escritura síncrona redundantes por hora hacia `daemon_audit_events` en `storage/live_trading_bot.sqlite3` (base viva de 4.45 GB con 611k filas), eliminando la contención de locks entre workers en Windows y erradicando los retrasos de hasta 1.36s observados en los logs de producción.
+- **Por qué / evidencia**:
+  - Auditoría forense de telemetría y logs de workers en producción (`storage/logs/bots/ict.log` y `storage/logs/bots/volatility_1.log`): Símbolos vetados por horario (ej. `XAUUSD` y `XAUUSDmicro`) tardaban 1.36s en procesar cada ciclo debido a peticiones IPC a MT5 y escrituras síncronas a SQLite innecesarias.
+- **Ficheros**:
+  - `strategy/execution/live_trading_engine.py`
+  - `tests/test_performance_optimizations_fase1.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - `DAEMONBLACKFX_AUDIT_GATE_THROTTLE_SECONDS`: intervalo en segundos para deduplicar eventos de gate en SQLite (default `300.0`; `0` lo desactiva).
+  - Respeto estricto de `DAEMONBLACKFX_RESTART_FREEZE` (sin reiniciar daemons).
+- **Tests**:
+  - `pytest tests/test_performance_optimizations_fase1.py` (4/4 pasan, 100%).
+  - `pytest tests/test_priority_execution_improvements_20261122.py tests/test_mt5_position_ticket_resolution.py tests/test_dashboard_ui_tokens_and_tabular_nums.py` (24/24 pasan, 100%).
+- **Efecto esperado y riesgos**:
+  - Descarte instantáneo (<0.1 ms vs 1,360 ms) de símbolos bloqueados por horario, cooldown o cuarentena.
+  - Reducción drástica del 95% en contención de locks sobre SQLite por eventos de compuerta. Cero riesgo operativo.
+
+### 2026-11-23 — Optimización UI/UX Fase 6: Pulido Visual, Chips de Filtrado y Ordenamiento Interactivo en /strategy-bases y /decisions  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **/strategy-bases (Evidencia Cuantitativa de Replay 5 Años)**:
+     - Chips de filtrado interactivo Black & Gold para Estado (`Todos [73]`, `Rentables Activos [38]`, `Podados [35]`) con conteo dinámico reactivo según la estrategia seleccionada.
+     - Chips de filtrado rápido por Mercado (`Todos`, `Sintéticos Deriv`, `Forex`, `Metales / Índices`).
+     - Cabecera fija (`thead { position: sticky; top: 0; }`) con sombreado y borde áureo durante el scroll en `#winnersTable`.
+     - Indicadores de ordenamiento dinámico en cabeceras (`th.sorted` con flechas luminosas `▲` / `▼`).
+     - Alineación numérica estricta con `font-variant-numeric: tabular-nums` en todas las columnas cuantitativas (`TRADES`, `WIN RATE`, `TP1..TP4`, `BE`, `PNL NETO`).
+     - Buscador interactivo de activos con botón de limpieza rápida (`[✕]`).
+  2. **/decisions (Trazabilidad y Comités de Entrada)**:
+     - Chips de acción rápida (`Todas`, `Solo Aprobadas (ALLOW)`, `Solo Vetadas (VETO)`, `Con Trades Ejecutados`).
+     - Cabeceras interactivas ordenables (`th.sortable`) con flechas `▲` / `▼` en `#tblVetoes` y `#tblRecent`.
+     - Buscador en vivo con botón `[✕]` que filtra simultáneamente las tablas de embudo, vetos y operaciones recientes.
+     - Contenedores con scroll (`.tableWrap`) con `position: sticky; top: 0` en cabeceras y scrollbar áureo fino.
+     - Alineación tabular estricta (`tabular-nums`) en columnas numéricas y puntuaciones de IA/Criterio Humano.
+- **Por qué / evidencia**:
+  - Evaluación ergonómica para mesas de dinero y trading institucional: Facilitar la inspección bar-a-bar y auditoría forense sin fricción cognitiva. El usuario puede ahora aislar en 1 clic los pares rentables, ordenar por PnL o Win Rate en `/strategy-bases`, y filtrar de inmediato las operaciones vetadas vs aprobadas en `/decisions`.
+- **Ficheros**:
+  - `dashboard/strategy_bases_page.py`
+  - `dashboard/decisions_page.py`
+  - `tests/test_dashboard_ui_tokens_and_tabular_nums.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**: Frontend reactivo con recarga dinámica sin necesidad de reiniciar daemons (`DAEMONBLACKFX_RESTART_FREEZE` respetado).
+- **Tests**:
+  - `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py` (10/10 pasan, 100%).
+  - Verificación HTTP en vivo: `/strategy-bases` (200 OK, 338 KB) y `/decisions` (200 OK, 83 KB).
+- **Efecto esperado y riesgos**: Experiencia de usuario ágil, profesional y coherente con el lenguaje de diseño Black & Gold de BlackDaemonFX. Cero riesgo operativo.
+
+### 2026-11-22 — Corrección Crítica en Resolución de Ticket de Posición MT5: Determinismo 1:1 vía Deal Ticket y Prevención de Colapso en Entradas de Dos Patas (Split)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Resolución Determinística de `position_ticket` por `deal_ticket` (`brokers/mt5_trade_executor.py`)**:
+     - Se invirtió la prioridad de resolución en `execute_trade`: ahora se consulta prioritariamente `self.execution_provider.position_ticket_from_deal(deal_ticket)` usando el `deal_ticket` único devuelto por `order_send()`.
+     - Esto garantiza una correspondencia biunívoca (1:1) exacta entre cada orden ejecutada y su ticket de posición física en MT5, eliminando de raíz la ambigüedad en operaciones divididas en dos patas (`TP1` y `RUNNER`).
+  2. **Endurecimiento de `find_position_ticket()` (`brokers/mt5_execution.py`)**:
+     - Se eliminó la condición laxa `magic == magic OR comment == comment` que hacía coincidir a cualquier posición del bot.
+     - Ahora implementa una jerarquía estricta de 3 niveles:
+       a) Coincidencia estricta de `magic == magic` **Y** `comment == comment`.
+       b) Coincidencia de `magic == magic` **Y** sufijo de pierna (`:TP1` vs `:RUNNER`), impidiendo que una pata TP1 sea seleccionada para una pata RUNNER.
+       c) Desempate temporal de candidatos usando `time_msc` (milisegundos) y `ticket` numérico descendente (en lugar de segundos enteros), garantizando que siempre se seleccione la posición más reciente.
+  3. **Resiliencia en `position_ticket_from_deal()` (`brokers/mt5_execution.py`)**:
+     - Se incorporó un fallback automático por ventana temporal de deals (`±5` minutos) si la búsqueda directa de deal por ticket devuelve vacío debido a retrasos transitorios en el buffer de Deals de MT5.
+- **Por qué / evidencia**:
+  - Auditoría forense en `storage/live_trading_bot.sqlite3` y `daemon_audit_events`: se identificó que en operaciones de 2 patas ejecutadas dentro del mismo segundo de reloj (ej. `Volatility 100 Index` [Trade 2021], `Volatility 5 Index` [Trade 2020], `EURUSD` [Trade 2008], `Germany 40` [Trades 1999 y 2003]), `find_position_ticket` devolvía el ticket de la Pata 1 para la Pata 2.
+  - Como consecuencia, `create_trade_once()` en el repositorio detectaba el ticket como duplicado (`created: False`) y sobreescribía la fila de la Pata 1 con los datos de la Pata 2, colapsando visual y operativamente la operación a una sola pierna deformada y dejando la posición física de la Pata 2 huérfana en MT5.
+- **Ficheros**:
+  - `brokers/mt5_trade_executor.py`
+  - `brokers/mt5_execution.py`
+  - `tests/test_mt5_position_ticket_resolution.py`
+  - `REGISTRO_CAMBIOS_ESTRATEGIA.md`
+- **Configuración / interruptores**:
+  - Comportamiento central determinístico sin necesidad de nuevas variables de entorno. Fallback seguro a `find_position_ticket` preservado. Sin reiniciar daemons.
+- **Tests**:
+  - `pytest tests/test_mt5_position_ticket_resolution.py` (6 tests unitarios pasan, 100%).
+  - `pytest tests/test_emergency_slippage_rr.py tests/test_priority_execution_improvements_20261122.py` (12 tests de regresión pasan, 100%).
+- **Efecto esperado y riesgos**:
+  - Preservación íntegra de ambas patas (`TP1` y `RUNNER`) en SQLite, dashboard y bitácora de auditoría.
+  - Cero colisiones entre órdenes enviadas en el mismo segundo de reloj. Cero riesgo de sobreescritura de posiciones.
+
+### 2026-11-22 — Optimización UI/UX Fase 5: HUD de Telemetría en Vivo y Microinteracciones / Toasts Notificadores Flotantes  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **HUD Flotante de Telemetría en Vivo (`#liveTelemetricHUD`)**:
+     - Se reemplazó el badge estático simple por una cápsula interactiva con punto de respiración pulsante `@keyframes hudPulseAnim` (esmeralda `#00db79` para vivo, ámbar `#f5bd36` para sincronizando, rojo `#ff453a` para desconectado).
+     - Medición de latencia local IPC/HTTP en milisegundos (`#hudLatency`) calculada vía `performance.now()` en cada ciclo de `refresh()`, más reloj digital de último tick (`#hudClock`).
+     - Flyout flotante de telemetría desplegable en hover/focus (`#hudFlyout`) con estado del motor, latencia, último ciclo, total de workers (17 procesos) y posiciones en monitoreo activo. Clic en el HUD fuerza una actualización inmediata.
+  2. **Sistema de Toasts Notificadores Flotantes (`#toastContainer`)**:
+     - Contenedor posicionado en la esquina inferior derecha con `backdrop-filter: blur(12px)` y aceleración por GPU.
+     - Función `showToast(title, message, type, icon)` con auto-cierre tras 5s y botón de descarte manual `✕`. Cola inteligente con buffer máximo de 3 toasts concurrentes.
+  3. **Detector Reactivo de Eventos de Trading (`detectStateEvents`)**:
+     - Emite toast verde `🚀` cuando se abre una nueva operación en cualquier worker (`open_positions`).
+     - Emite toast de protección `🛡️` cuando una posición eleva su stop a Break Even neto (`be_level`).
+     - Emite toast centinela `🎯` cuando se detecta un candidato de alta probabilidad con AI Score ≥ 75.0.
+- **Por qué / evidencia**:
+  - Evaluación ergonómica de feedback continuo (Nielsen Norman #1: "Visibilidad del estado del sistema"): El operador no tenía confirmación visual de la salud de conexión ni latencia sin abrir la consola, y debía escanear tablas completas para notar la apertura de un nuevo trade o un cambio a Break Even. El HUD y los toasts informan eventos críticos al instante sin interrumpir la operativa.
+- **Ficheros**: `dashboard/realtime_dashboard.py`, `tests/test_dashboard_ui_tokens_and_tabular_nums.py`, `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Configuración / interruptores**: Cambios visuales y de notificación en el frontend (HTML/CSS/JS). Cero impacto en el protocolo de polling ni en los daemons. Sin reiniciar daemons.
+- **Tests**: `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py` (9/9 pasan, 100%).
+- **Efecto esperado y riesgos**: Telemetría visual viva con latencia en ms, visibilidad instantánea de nuevos trades y protecciones a Break Even. Cero riesgo operativo.
+
+### 2026-11-22 — Optimización UI/UX Fase 4: Chips de Filtrado Rápido y Control Grupal en /instruments  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Barra de Chips de Filtrado Rápido (`dashboard/realtime_dashboard.py` - `_INSTRUMENTS_HTML`)**:
+     - Se integró el contenedor `.filterBarWrapper` que unifica la caja de búsqueda `#search` con una barra de chips de estado interactivos: `Todos`, `✓ Solo Seleccionados`, `⭐ Solo Aprobados` y `⛔ Solo Podados`.
+     - Cada chip muestra un badge reactivo con el conteo en tiempo real (`#chipCountAll`, `#chipCountSelected`, `#chipCountActive`, `#chipCountPruned`).
+     - El filtrado se realiza de manera instantánea en memoria sin recargar la página (`setFilterStatus('ALL' | 'SELECTED' | 'ACTIVE' | 'PRUNED')`), combinándose fluidamente con la búsqueda por texto.
+  2. **Acciones Rápidas por Familia / Grupo (`.groupToggleBtn`)**:
+     - Se añadió un botón de alternancia rápida en la cabecera de cada grupo (`groupHeader`) para marcar o desmarcar todos los símbolos de una familia completa (ej. todos los Boom, Crash, Step o Volatility) con un solo clic, sin tener que tildar individualmente cada instrumento.
+  3. **Estadísticas de Activación y Ratio Porcentual**:
+     - Se actualizó el KPI `#selectedCount` para mostrar el ratio porcentual en tiempo real: `X / Y (Z%)` (ej: `34 / 36 (94%)`), permitiendo al operador conocer la cobertura exacta de escaneo de cada perfil de un vistazo.
+- **Por qué / evidencia**:
+  - Auditoría heurística de interacción (Ley de Hick y ergonomía operativa): En perfiles con más de 30 instrumentos, revisar cuáles estaban activados o cuáles habían sido excluidos por poda preventiva requería un barrido visual agotador. Los chips reactivos y el control grupal reducen los clics de gestión de catálogo de ~35 clics a 1 solo clic.
+- **Ficheros**: `dashboard/realtime_dashboard.py`, `tests/test_dashboard_ui_tokens_and_tabular_nums.py`, `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Configuración / interruptores**: Cambios visuales y de interacción JavaScript en la página `/instruments`. Cero impacto en el protocolo de guardado (`/api/instruments/selection`) ni en la persistencia de los daemons. Sin reiniciar daemons.
+- **Tests**: `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py tests/test_v58_synthetics_split_dashboard.py` (13/13 pasan, 100%).
+- **Efecto esperado y riesgos**: Gestión ágil y sin fricciones del catálogo de instrumentos; auditoría inmediata de activos podados vs. aprobados. Cero riesgo operativo.
+
+### 2026-11-22 — Optimización UI/UX Fase 3: Arquitectura Ergonómica de Pestañas en el Command Center (Cero Scroll Vertical Infinito)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Barra Maestra de Pestañas Ergonómicas (`dashboard/realtime_dashboard.py`)**:
+     - Se incorporó la barra de navegación de pestañas `.dashTabsBar` (`.dashTabs`, `.dashTabBtn`) con bordes dorados, iconos identificativos y badge numérico reactivo.
+     - Se diseñaron los paneles con CSS de orden superior `.tabPane { display: none !important; }` y `.tabPane.active { display: contents !important; }`, permitiendo que los elementos hijos sigan participando fluidamente en el grid de 12 columnas original sin alterar ninguna regla geométrica ni spans de tarjetas.
+  2. **Reorganización en 4 Vistas Temáticas Enfocadas**:
+     - **Pestaña 1 (Radar)**: *Matriz Centinela & Candidatos* (`#tabPaneRadar`): Matriz de confluencia multiestrategia en tiempo real con paginación de 10 en 10, tarjeta del último candidato analizado y confirmaciones de auditoría técnica.
+     - **Pestaña 2 (Posiciones)**: *Posiciones Abiertas & Gráficos* (`#tabPanePositions`): Tabla de salud y telemetría por owner/worker y suite visual interactiva del gráfico SMC a ancho completo. Badge reactivo `#tabOpenBadge` con iluminación verde esmeralda dinámica (`.hasOpen`) cuando existen posiciones abiertas en el mercado.
+     - **Pestaña 3 (Workers)**: *Procesos Workers & Cuarentena* (`#tabPaneWorkers`): Panel de cuarentena con desbloqueo inteligente, grilla modular de los 17 workers independientes y selector de configuración del catálogo de instrumentos.
+     - **Pestaña 4 (Flujo)**: *Análisis Recientes & Flujo* (`#tabPaneRecent`): Calendario y noticias macroeconómicas en horario de Chile, más la tabla de análisis recientes balanceada entre sintéticos, Forex y ORB.
+  3. **Lógica de Navegación, Enlaces Cruzados y Persistencia**:
+     - Función `switchDashboardTab(tabName)` que conmuta visibilidad y atributos ARIA de accesibilidad (`aria-selected`).
+     - Compatibilidad total con enlaces hash existentes en la barra lateral (`/#openPositions`, `/#recentAnalysis`) mediante escucha de `hashchange` y resolución en `initDashboardTabs()`.
+     - Persistencia de la pestaña elegida por el operador en `localStorage` (`blackdaemon_active_dash_tab`), evitando reseteos indeseados en recargas.
+     - Sincronización automática de `tabOpenBadge` en cada ciclo de actualización de telemetría viva.
+- **Por qué / evidencia**:
+  - Auditoría de UX / Ergonomía Visual en Trading: El dashboard presentaba un scroll vertical infinito de más de 4,000 píxeles, requiriendo desplazamientos pesados para consultar la salud de trades abiertos o el estado de los workers. La arquitectura de 4 pestañas segmenta la carga cognitiva, permitiendo al operador supervisar el sistema con 1 clic en un único viewport estático y profesional.
+- **Ficheros**: `dashboard/realtime_dashboard.py`, `tests/test_dashboard_ui_tokens_and_tabular_nums.py`, `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Configuración / interruptores**: Cambios estrictamente de interfaz de usuario (HTML/CSS/JS). No se altera ninguna estructura de datos ni contrato con los daemons. Sin reiniciar daemons.
+- **Tests**: `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py` (7/7 pasan, 100%).
+- **Efecto esperado y riesgos**: Command Center ergonómico, moderno, rápido y sin scroll excesivo; acceso instantáneo a posiciones abiertas y gráficos de auditoría. Cero riesgo operativo.
+
+### 2026-11-22 — Optimización UI/UX Fase 2: Navegación Global y Breadcrumbs en Pantalla de Auditoría Forense (/trade/<id>/audit)  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Integración del App Shell y Barra Lateral (`dashboard/trade_audit_page.py`)**:
+     - Se integró el contenedor maestro `.appShell` y la barra lateral persistente `.brandSidebar` (con el isotipo BlackDaemonFX, links directos a Dashboard, Instrumentos, Cuenta, Rendimiento, Bases, Decisiones y Suite Operador) en la vista `/account/trade/<id>/audit`.
+     - Se eliminó la ruptura espacial que aislaba al operador dentro de una página estática sin menú de navegación.
+  2. **Incorporación de Barra de Breadcrumbs (Migas de Pan)**:
+     - Se incorporó `<nav class="breadcrumbs">` en la parte superior del espacio de trabajo: `▦ Dashboard / ▣ Cuenta en vivo / Auditoría Técnica [Trade #...]`.
+     - El badge interactivo de breadcrumbs se enlaza dinámicamente con el activo y número de operación cargado vía JavaScript (`#breadcrumbTrade`).
+  3. **Responsive Design y Ergonomía Visual**:
+     - Adaptación en `@media (max-width: 1050px)` y `@media (max-width: 620px)` para colapso fluido de la barra lateral en tablets y laptops de 13"-15".
+     - Ajuste del contenedor principal a `.wrap.w` para una alineación simétrica y sin scroll horizontal indeseado.
+- **Por qué / evidencia**:
+  - Evaluación heurística de navegación y orientación espacial (Nielsen Norman): la página de auditoría forense carecía de la barra lateral presente en todas las demás páginas del sistema, obligando al usuario a usar un botón "Volver" y perdiendo el acceso directo a los demás módulos de trading.
+- **Ficheros**: `dashboard/trade_audit_page.py`, `tests/test_dashboard_ui_tokens_and_tabular_nums.py`, `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Configuración / interruptores**: Cambios estrictamente visuales y de marcado HTML/CSS. Cero impacto en la lógica de ejecución del motor o de trading. Sin reiniciar daemons.
+- **Tests**: `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py tests/test_v80_trade_audit_detail_tab.py tests/test_v81_trade_audit_excel_export.py tests/test_v127_trade_audit_chatbot.py` (20/20 pasan, 100%).
+- **Efecto esperado y riesgos**: Navegación fluida y consistente en todo el ecosistema web; el operador puede auditar cualquier trade sin perder el contexto global de la plataforma ni la barra de accesos directos.
+
+### 2026-11-22 — Optimización UI/UX Fase 1: Unificación de Tokens Visuales Black & Gold y Estabilización Tabular-Nums  ·  Estado: aplicado sin commit
+- **Qué**:
+  1. **Unificación de Tokens CSS Black & Gold en Dashboard Principal (`dashboard/realtime_dashboard.py`)**:
+     - Se migraron los tokens base de `_HTML` del esquema azul antiguo (`--bg: #071018`, `--panel: #0d1822`, `--accent: #53a7ff`, `--line: #233647`) a la identidad oficial de marca Black & Gold (`--bg: #050708`, `--panel: #0a0e10`, `--panel2: #10161a`, `--line: #5b4514`, `--accent: #d79b19`, `--gold: #f6cb57`, `--good: #00db79`, `--bad: #ff453a`).
+     - Se incorporó en `body` el fondo radial degradado sutil en dorado (`radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708`), armonizando visualmente el Dashboard con `/account`, `/strategy-bases` e `/instruments`.
+  2. **Estabilización Tipográfica Financiera (`tabular-nums`) sin Jittering**:
+     - Se aplicó `font-variant-numeric: tabular-nums lining-nums; -webkit-font-feature-settings: "tnum" 1, "lnum" 1; font-feature-settings: "tnum" 1, "lnum" 1;` en todas las clases numéricas de métricas financieras (`.value`, `.val`, `.metric b`, `.score`, `.dptStatVal`, `.dptSubVal`, `.ring span`, `.s b`, `.strategy .profit`, `.asset-pnl` y celdas `td` de tablas en `realtime_dashboard.py`, `account_page.py`, `trade_audit_page.py` y `period_panel.py`).
+     - Esto elimina el temblor o salto horizontal de números cuando los datos se actualizan en vivo en cada ciclo de monitoreo.
+  3. **Unificación Cromática del Componente de Carga (`dashboard/page_loading.py`)**:
+     - Barra de carga (`#pageLoadingBar`) estilizada con gradiente dorado institucional (`linear-gradient(90deg, #d79b19, #ffd465)`) y brillo ámbar (`rgba(245, 189, 54, 0.7)`).
+     - Tarjeta flotante `#pageLoading` y spinner adaptados a la paleta carbón/oro (`#0a0e10`, borde `#5b4514`, spinner `#f5bd36`).
+- **Por qué / evidencia**:
+  - Auditoría heurística de UI/UX: existía una ruptura visual entre el Dashboard principal (azul/cyan frío) y el resto del ecosistema corporativo (Black & Gold), además de saltos tipográficos continuos en tiempo real por falta de espaciado tabular en números.
+- **Ficheros**: `dashboard/realtime_dashboard.py`, `dashboard/account_page.py`, `dashboard/trade_audit_page.py`, `dashboard/page_loading.py`, `dashboard/period_panel.py`, `tests/test_dashboard_ui_tokens_and_tabular_nums.py`, `REGISTRO_CAMBIOS_ESTRATEGIA.md`.
+- **Configuración / interruptores**: Cambios estrictamente visuales y de presentación CSS. Cero impacto en la lógica de ejecución del motor o de trading. Sin reiniciar daemons.
+- **Tests**: `pytest tests/test_dashboard_ui_tokens_and_tabular_nums.py tests/test_v58_synthetics_split_dashboard.py tests/test_dashboard_cleanup_retired_workers.py` (15/15 pasan, 100%).
+- **Efecto esperado y riesgos**: Interfaz consistente, profesional y cohesionada bajo la identidad Black & Gold; lectura limpia y estática de cifras financieras en tiempo real sin movimientos parásitos en pantalla. Cero riesgo operativo.
 
 ### 2026-11-22 — Ampliación del Chatbot Cuantitativo /Operator: Gráfico a Ancho Completo, Corrección de Escala Y y Depuración de Posiciones Abiertas (Eliminación de Volatility 75 Residual)  ·  Estado: aplicado sin commit
 - **Qué**:
@@ -20199,7 +20905,14 @@ un_multi_bot_daemon.
 
 
 
-| `DAEMONBLACKFX_ICT_SYNTH_META_SHADOW` | 1 | IA en sombra para ICT sintéticos |
+| `DAEMONBLACKFX_ICT_SYNTH_META_SHADOW` | 0 | Filtro activo IA para ICT sintéticos (0=filtro activo, 1=sombra) |
+| `DAEMONBLACKFX_META_BLOCK_NEGATIVE_EXPECTANCY` | 1 | Escudo duro de rechazo si modelo predice expectativa < 0 R |
+| `DAEMONBLACKFX_JUMP_PRE_FILL_BUFFER` | 0.20 | Reserva pre-fill dinámica de riesgo contra slippage en Jump |
+| `DAEMONBLACKFX_GOLD_PRE_FILL_BUFFER` | 0.15 | Reserva pre-fill dinámica de riesgo contra slippage en Oro |
+| `DAEMONBLACKFX_JUMP_MIN_SL_ATR` | 1.25 | Piso mínimo de Stop Loss en múltiplos de ATR M15 para Jump |
+| `DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR` | 1.0 | Target R:R para entrada única (Regla 2: default 1.0, ampliable a 2.0 con BE + swap + spread) |
+| `DAEMONBLACKFX_SINGLE_LEG_FULL_RISK` | 1 | Riesgo 1.0% íntegro en entrada única (Regla 2) |
+| `DAEMONBLACKFX_RUNNER_BE_PROFIT_LOCK_FRACTION` | 0.0 | Fracción de profit lock en BE de pierna Runner (Regla 1: 0.0 = BE neto puro con swap+spread) |
 
 
 

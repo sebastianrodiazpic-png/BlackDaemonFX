@@ -1638,7 +1638,7 @@ def handle_synthetic_session_inquiry(user_msg: str) -> Dict[str, Any]:
         "Durante la sesión asiática reciente, **Jump 50 Index** gatilló y ejecutó su setup con precisión a las **05:25:10 UTC**, completando sus 2 patas contractuales y cerrando con **+$79.68 USD** de beneficio neto.\n\n"
         "🔍 **¿Por qué un sintético puede estar en ESPERA en este momento?**\n"
         "Si un índice sintético no está operando ahora, no es por la hora ni por killzones; se debe exclusivamente a **requisitos técnicos de microestructura M5**:\n"
-        "• Confluencia técnica requerida de **≥ 75.0 puntos** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`).\n"
+        "• Confluencia técnica requerida de **≥ 75.0 puntos** (o **≥ 70.0 puntos** en la familia Step: `DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE`).\n"
         "• Exigencia de desplazamiento institucional con ratio de cuerpo ≥ 50%.\n"
         "• Filtro anti-ruido: no operar en consolidación errática o *whipsaw*.\n\n"
         "*(En resumen: la máquina está escaneando los sintéticos a pleno rendimiento 24/7 en cualquier sesión sin ninguna restricción de Killzone)*."
@@ -1675,7 +1675,10 @@ def handle_why_no_trade_inquiry(symbol: Optional[str], user_msg: str) -> Tuple[s
         bias_info = detect_real_structural_bias(symbol)
         chart_data = build_chart_data_for_symbol(symbol, bias_info.get("direction", "BUY"))
         is_synth = any(k in symbol.lower() for k in ("volatility", "step", "crash", "boom", "jump", "dex"))
-        min_score = 75.0 if is_synth else 65.0
+        is_step = "step" in symbol.lower()
+        step_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE", "70.0"))
+        synth_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE", "75.0"))
+        min_score = step_min_score if is_step else (synth_min_score if is_synth else 65.0)
         lines.append(f"🛡️ **Auditoría de Inactividad / Espera en {symbol}:**\n")
         lines.append(
             f"El algoritmo BlackDaemonFX mantiene actualmente a **{symbol} en ESPERA ACTIVA** por las siguientes razones cuantitativas:\n\n"
@@ -1790,9 +1793,15 @@ def handle_why_entered_trade_inquiry(symbol: str, user_msg: str) -> Tuple[str, D
             "4. **Riesgo:** 1% total en 2 patas (TP1 1R + TP2 runner)."
         )
     elif is_synth:
+        sym_low = symbol.lower()
+        is_step = "step" in sym_low
+        step_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE", "70.0"))
+        synth_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE", "75.0"))
+        score_val = step_min_score if is_step else synth_min_score
+        env_var = "DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE" if is_step else "DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE"
         lines.append(
             "1. **Disponibilidad 24/7:** Índices matemáticos de Deriv sin afectación macro.\n"
-            "2. **Confluencia Estricta:** Score mínimo de **≥ 75.0 pts** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`).\n"
+            f"2. **Confluencia Estricta:** Score mínimo de **≥ {score_val:.1f} pts** (`{env_var}`).\n"
             "3. **Desplazamiento Institucional:** Ratio de cuerpo ≥ 50% en vela M5 y mitigación OTE (62%–79%).\n"
             "4. **Riesgo:** 1% total en 2 patas."
         )
@@ -1899,7 +1908,10 @@ def handle_why_discredited_inquiry(symbol: Optional[str], user_msg: str) -> Dict
 
         analysis = _get_symbol_recent_analysis(target_sym)
         is_synth = any(k in target_sym.lower() for k in ("volatility", "step", "crash", "boom", "jump", "dex"))
-        min_score = 75.0 if is_synth else 65.0
+        is_step = "step" in target_sym.lower()
+        step_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE", "70.0"))
+        synth_min_score = float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE", "75.0"))
+        min_score = step_min_score if is_step else (synth_min_score if is_synth else 65.0)
 
         lines.append(f"🛡️ **Auditoría Forense · Motivos de Desacreditación / Rechazo de Entrada en {target_sym}:**\n")
 
@@ -2075,7 +2087,7 @@ def handle_grade_or_tier_inquiry(user_msg: str) -> Dict[str, Any]:
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "El grado **B+** califica a un **Setup Bueno Superior con Confluencia Institucional Sólida**:\n"
         "• **Supera con holgura los filtros de admisión del bot:**\n"
-        "  - En **Índices Sintéticos** (Deriv): el umbral de corte mínimo es de **≥ 75.0 pts** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`). Un setup **B+ (≥ 80 pts)** supera por **+5 puntos** el corte exigido, considerándose una señal de **alta probabilidad**.\n"
+        "  - En **Índices Sintéticos** (Deriv): el umbral de corte mínimo es de **≥ 75.0 pts** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`), calibrado quirúrgicamente en **≥ 70.0 pts** para la **Familia STEP** (`DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE` · Step Index 200, 400 y 500). Un setup **B+ (≥ 80 pts)** supera por **+5 a +10 puntos** el corte exigido, considerándose una señal de **alta probabilidad**.\n"
         "  - En **Mercados Reales** (Forex / Oro / Índices): el umbral mínimo es de **≥ 65.0 pts**. Un setup **B+** está **+15 puntos** por encima del mínimo, confirmando confluencia robusta.\n"
         "• **Condiciones técnicas que cumple un setup B+:**\n"
         "  1. **Marea mayor favorable en H1/H4:** Sin sobreextensión respecto a la EMA 50 (< 2.5 ATRs).\n"
@@ -2409,7 +2421,7 @@ def handle_live_trades_inquiry(symbol: Optional[str], user_msg: str) -> Tuple[st
             lines.append(
                 f"\n⏱️ **Estado de Protección: EN DESARROLLO HACIA TP1 (1R):**\n"
                 f"   • Faltan **{dist_be:.2f} R** para alcanzar el nivel de toma parcial (+1R) y trasladar el Stop Loss a Break Even.\n"
-                f"   • **Gestión Contractual:** El riesgo permanece acotado al **1.0% contractual en 2 patas (0.5% + 0.5%)** con Stop Loss técnico inamovible."
+                f"   • **Gestión Contractual:** El riesgo permanece acotado al **1.0% contractual en 2 patas (70% TP1 + 30% RUNNER, o 1% @ 1:1 si no proyecta TP2)** con Stop Loss técnico inamovible."
             )
 
         lines.append(
@@ -2780,7 +2792,7 @@ def process_operator_chat_message(user_message: str, context_symbol: Optional[st
             "   • **Jump:** Escudo anti-salto y mitigación OTE en retroceso óptimo (62%–79%).\n"
             "   • **Step:** Validación de momentum H1 (`DX_H1 ≥ 28.0`) para evitar consolidaciones en fango.\n\n"
             "4. **Umbrales de Admisión y Grado Cuantitativo:**\n"
-            "   • **Sintéticos:** Umbral de corte estricto de **≥ 75.0 pts** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`).\n"
+            "   • **Sintéticos:** Umbral de corte estricto de **≥ 75.0 pts** (`DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE`), con calibración quirúrgica de **≥ 70.0 pts** en la familia **STEP** (`DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE` · Worker STEP Magic 26082104).\n"
             "   • **Mercados Reales:** Umbral de corte de **≥ 65.0 pts** (Grado A Élite: ≥ 80 pts | Grado B: ≥ 65 pts | Grado C: Descartada).\n\n"
             "5. **Blindaje Macro y Poda Preventiva:**\n"
             "   • Ventana de congelamiento pre y post noticia en Forex, Oro e Índices US, preservando trailing stops favorables sin degradar a BE plano.\n"

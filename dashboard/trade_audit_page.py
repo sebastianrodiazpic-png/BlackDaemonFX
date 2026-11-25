@@ -28,14 +28,155 @@ TRADE_AUDIT_HTML = r'''
       }
       body {
         margin: 0;
-        background: var(--bg);
+        background: radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
         color: var(--t);
-        font: 14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
-      .w {
-        max-width: 1600px;
-        margin: auto;
-        padding: 18px;
+      .appShell {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .brandSidebar {
+        border-right: 1px solid #6b4d13;
+        background: linear-gradient(180deg, #050708, #070b0d 65%, #090806);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        box-sizing: border-box;
+        align-self: start;
+        z-index: 50;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .brandSidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .brandSidebar::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
+      }
+      .brandLogo {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1px solid #7b5816;
+        box-shadow: 0 0 28px rgba(215, 155, 25, 0.12);
+      }
+      .brandName {
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+      .brandName span {
+        color: #f6cb57;
+      }
+      .brandTag {
+        text-align: center;
+        color: #c9a34a;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .sideNav {
+        display: grid;
+        gap: 7px;
+        margin-top: 4px;
+      }
+      .sideNav a {
+        color: #d9dde0;
+        text-decoration: none;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-weight: 650;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+      }
+      .sideNav a:hover,
+      .sideNav a.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.24), rgba(215, 155, 25, 0.05));
+        border-color: #6f5015;
+        color: #ffd465;
+      }
+      .sideStatus {
+        margin-top: auto;
+        border: 1px solid #725116;
+        background: #0d1214;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .sideStatus b {
+        color: var(--green);
+        font-size: 13px;
+        display: block;
+      }
+      .sideStatus .sub {
+        color: var(--m);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .wrap, .w {
+        max-width: none;
+        margin: 0;
+        padding: 18px 24px 28px;
+        min-width: 0;
+      }
+      /* Breadcrumbs de navegación */
+      .breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(91, 69, 20, 0.35);
+        color: var(--m);
+        flex-wrap: wrap;
+      }
+      .breadcrumbs a {
+        color: #c8d4dc;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+      .breadcrumbs a:hover {
+        color: var(--gold);
+      }
+      .breadcrumbs .sep {
+        color: #725116;
+        font-size: 11px;
+        user-select: none;
+      }
+      .breadcrumbs .current {
+        color: var(--gold);
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .breadcrumbs .tradeBadge {
+        background: rgba(245, 189, 54, 0.15);
+        border: 1px solid rgba(245, 189, 54, 0.35);
+        color: #ffd465;
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 750;
+        font-variant-numeric: tabular-nums;
       }
       .brand,
       .top,
@@ -160,6 +301,9 @@ TRADE_AUDIT_HTML = r'''
         font-weight: 850;
         margin-top: 6px;
         letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
       }
       .good {
         color: var(--green);
@@ -490,6 +634,37 @@ TRADE_AUDIT_HTML = r'''
           height: 470px;
         }
       }
+      @media (max-width: 1050px) {
+        .appShell {
+          grid-template-columns: 1fr;
+        }
+        .brandSidebar {
+          position: relative;
+          height: auto;
+          display: grid;
+          grid-template-columns: 90px 1fr;
+          align-items: center;
+        }
+        .brandLogo {
+          width: 90px;
+        }
+        .sideNav {
+          grid-column: 1/-1;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sideStatus {
+          display: none;
+        }
+      }
+      @media (max-width: 620px) {
+        .sideNav {
+          grid-template-columns: 1fr 1fr;
+        }
+        .brandSidebar {
+          grid-template-columns: 72px 1fr;
+          padding: 10px;
+        }
+      }
       @media (max-width: 480px) {
         .kpi {
           grid-column: 1/-1;
@@ -501,25 +676,50 @@ TRADE_AUDIT_HTML = r'''
     </style>
   </head>
   <body>
-    <main class="w">
-      <div class="brand">
-        <img src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo" />
+    <div class="appShell">
+      <aside class="brandSidebar">
+        <img class="brandLogo" src="/assets/blackdaemonfx_logo_v1.jpeg" alt="Logo BlackDaemonFX" />
         <div>
-          <b>BLACKDAEMON<span>FX</span></b>
-          <div class="muted">AUDITORÍA FORENSE · EVOLUCIÓN Y DECISIÓN TÉCNICA</div>
+          <div class="brandName">BLACKDAEMON<span>FX</span></div>
+          <div class="brandTag">Estrategia · Disciplina · Resultados</div>
         </div>
-      </div>
-      <div class="top">
-        <div>
-          <h1 id="title">Cargando trade…</h1>
-          <div id="subtitle" class="subtags"></div>
+        <nav class="sideNav">
+          <a href="/">▦ Dashboard</a>
+          <a href="/instruments">▥ Instrumentos</a>
+          <a class="active" href="/account">▣ Cuenta en vivo</a>
+          <a href="/performance">📈 Rendimiento</a>
+          <a href="/strategy-bases">📚 Bases de Estrategias</a>
+          <a href="/decisions">⚖ Decisiones de entrada</a>
+          <a href="/operator">🛠 Suite Operador</a>
+          <a href="/#openPositions">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis">◷ Análisis recientes</a>
+        </nav>
+        <div class="sideStatus">
+          <b>● Auditoría Forense</b>
+          <div class="sub">Trazabilidad técnica del trade</div>
         </div>
-        <div class="toolbar">
-          <a class="btn" id="excelBtn" href="#">Exportar Excel ↓</a>
-          <a class="btn" href="/account">← Volver a Cuenta</a>
-          <a class="btn" href="/">Panel Principal</a>
+      </aside>
+
+      <main class="wrap w">
+        <nav class="breadcrumbs" aria-label="Ruta de navegación">
+          <a href="/">▦ Dashboard</a>
+          <span class="sep">/</span>
+          <a href="/account">▣ Cuenta en vivo</a>
+          <span class="sep">/</span>
+          <span class="current">Auditoría Técnica <span class="tradeBadge" id="breadcrumbTrade">Trade #—</span></span>
+        </nav>
+
+        <div class="top">
+          <div>
+            <h1 id="title">Cargando trade…</h1>
+            <div id="subtitle" class="subtags"></div>
+          </div>
+          <div class="toolbar">
+            <a class="btn" id="excelBtn" href="#">Exportar Excel ↓</a>
+            <a class="btn" href="/account">← Volver al Historial</a>
+            <a class="btn" href="/">Panel Principal</a>
+          </div>
         </div>
-      </div>
       <section class="grid">
         <div class="card kpi">
           <div class="lab">Dirección operativa</div>
@@ -623,6 +823,7 @@ TRADE_AUDIT_HTML = r'''
         </div>
       </section>
     </main>
+    </div><!-- /.appShell -->
     <script>
       const $ = (x) => document.getElementById(x),
         esc = (v) =>
@@ -1383,6 +1584,9 @@ TRADE_AUDIT_HTML = r'''
         $('excelBtn').href = '/api'+location.pathname+'/excel';
         $('title').textContent =
           (t.instrument || 'Operación') + ' · Trade #' + (t.id ?? t.source_trade_id ?? '—');
+        if ($('breadcrumbTrade')) {
+          $('breadcrumbTrade').textContent = (t.instrument || 'Trade') + ' #' + (t.id ?? t.source_trade_id ?? '—');
+        }
 
         const entryDateStr = t.entry_time ? new Date(t.entry_time).toLocaleString('es-CL') : '—';
         const snapshotCount = s.length;

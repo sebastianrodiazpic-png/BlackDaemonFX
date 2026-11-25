@@ -9,6 +9,8 @@ Vinculaciones:
     - `app.main` lo instancia al arrancar.
 """
 
+import os
+import time
 import MetaTrader5 as mt5
 
 
@@ -23,37 +25,39 @@ class MT5Connector:
 
     def connect(self):
         """
-        Inicializa la conexión con MetaTrader 5.
+        Inicializa la conexión con MetaTrader 5 con reintentos configurables.
         """
-
-        if self.connected:
+        if self.connected and self.is_connected():
             return True
 
-        if not mt5.initialize():
+        retries = max(1, int(os.getenv("DAEMONBLACKFX_MT5_RECONNECT_RETRIES", "3")))
+        backoff = max(0.0, float(os.getenv("DAEMONBLACKFX_MT5_RECONNECT_BACKOFF_SECONDS", "1.0")))
+        last_error = None
 
-            error = mt5.last_error()
+        for attempt in range(1, retries + 1):
+            if not mt5.initialize():
+                last_error = mt5.last_error()
+                self.connected = False
+                if attempt < retries and backoff > 0:
+                    time.sleep(backoff * (2 ** (attempt - 1)))
+                continue
 
-            raise ConnectionError(
-                f"No se pudo inicializar MetaTrader 5. "
-                f"Error MT5: {error}"
-            )
+            account_info = mt5.account_info()
+            if account_info is None:
+                last_error = mt5.last_error()
+                mt5.shutdown()
+                self.connected = False
+                if attempt < retries and backoff > 0:
+                    time.sleep(backoff * (2 ** (attempt - 1)))
+                continue
 
-        account_info = mt5.account_info()
+            self.connected = True
+            return True
 
-        if account_info is None:
-
-            error = mt5.last_error()
-
-            mt5.shutdown()
-
-            raise ConnectionError(
-                f"MetaTrader 5 se inició, pero no hay "
-                f"una cuenta conectada. Error MT5: {error}"
-            )
-
-        self.connected = True
-
-        return True
+        raise ConnectionError(
+            f"No se pudo inicializar MetaTrader 5 tras {retries} intentos. "
+            f"Error MT5: {last_error}"
+        )
 
     def disconnect(self):
         """
@@ -78,13 +82,11 @@ class MT5Connector:
 
         terminal_info = mt5.terminal_info()
 
-        if terminal_info is None:
-
+        if terminal_info is None or not bool(getattr(terminal_info, "connected", False)):
             self.connected = False
-
             return False
 
-        return terminal_info.connected
+        return True
 
     def get_account_info(self):
         """

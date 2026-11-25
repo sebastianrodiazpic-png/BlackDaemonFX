@@ -272,7 +272,14 @@ class HumanCriteriaEngine:
             if is_msnr:
                 min_score_thresh = float(getattr(self.config, "malaysian_snr_min_score_threshold", 60.0))
             else:
-                base_synth_thresh = float(getattr(self.config, "synthetic_min_score_threshold", 75.0))
+                worker_name = str(signal.get("worker", "")).upper()
+                magic_num = str(signal.get("magic") or signal.get("magic_number") or "")
+                is_step = ("step" in str(sym or "").lower()) or (worker_name == "STEP") or (magic_num == "26082104")
+                if is_step:
+                    base_synth_thresh = float(getattr(self.config, "synthetic_step_min_score_threshold", 70.0))
+                else:
+                    base_synth_thresh = float(getattr(self.config, "synthetic_min_score_threshold", 75.0))
+
                 meta_label = signal.get("meta_label") or {}
                 ml_prob = float(meta_label.get("probability") or 0.0)
                 ml_exp = float(meta_label.get("net_expectancy_r") or 0.0)

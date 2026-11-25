@@ -82,9 +82,9 @@ class TradeReportExporter:
     }
 
     EXECUTION_MODE_LABELS = {
-        "SPLIT": "DOS ENTRADAS: 0,5% + 0,5%",
-        "SINGLE_FALLBACK": "ENTRADA ÚNICA ALTERNATIVA: HASTA 1%",
-        "SINGLE": "ENTRADA ÚNICA",
+        "SPLIT": "DOS ENTRADAS: 70% + 30%",
+        "SINGLE_FALLBACK": "ENTRADA ÚNICA ALTERNATIVA: HASTA 1% (1:1)",
+        "SINGLE": "ENTRADA ÚNICA: 1% @ 1:1",
     }
 
     def __init__(self, repository, output_path=None):

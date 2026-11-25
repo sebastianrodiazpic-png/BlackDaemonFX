@@ -280,6 +280,9 @@ class ProbabilityCalibrator:
 
     bin_edges: list[float] = field(default_factory=list)
     bin_values: list[float] = field(default_factory=list)
+    method: str = "ISOTONIC"
+    platt_coef: float = 1.0
+    platt_intercept: float = 0.0
     trained: bool = False
 
     def fit(
@@ -340,8 +343,23 @@ class ProbabilityCalibrator:
         return self
 
     def update_one(self, probability: float, label: int, *, weight: float = 0.05) -> bool:
-        """Actualiza suavemente la curva de calibración isotónica con una nueva muestra."""
-        if not self.trained or not self.bin_values or not self.bin_edges:
+        """Actualiza suavemente la curva de calibración con una nueva muestra."""
+        if not self.trained:
+            return False
+
+        if str(getattr(self, "method", "ISOTONIC")).upper() == "PLATT":
+            eps = 1e-5
+            val = float(np.clip(probability, 0.0, 1.0))
+            clipped = float(np.clip(val, eps, 1.0 - eps))
+            logit = float(np.log(clipped / (1.0 - clipped)))
+            cal_logit = float(self.platt_coef * logit + self.platt_intercept)
+            p_cal = float(1.0 / (1.0 + np.exp(-cal_logit)))
+            error = float(label) - p_cal
+            # Paso suave de SGD sobre el intercept manteniendo estabilidad
+            self.platt_intercept = float(self.platt_intercept + weight * error)
+            return True
+
+        if not self.bin_values or not self.bin_edges:
             return False
         prob = float(np.clip(probability, 0.0, 1.0))
         edges = self.bin_edges
@@ -358,16 +376,27 @@ class ProbabilityCalibrator:
         return True
 
     def calibrate(self, probability: float) -> float:
-        """Corrige una probabilidad cruda usando la curva aprendida con interpolación continua.
+        """Corrige una probabilidad cruda usando la curva aprendida con interpolación continua o Platt Scaling.
 
         Si el calibrador no está entrenado actúa como identidad (sólo recorta
-        al rango 0-1), de modo que el modelo sigue siendo utilizable.
+        al rango 0.05-0.95), de modo que el modelo sigue siendo utilizable.
 
         Returns:
-            Probabilidad calibrada continua entre 0 y 1.
+            Probabilidad calibrada continua sin colapsos numéricos.
         """
         value = float(np.clip(probability, 0.0, 1.0))
-        if not self.trained or not self.bin_values or not self.bin_edges or len(self.bin_values) < 2:
+        if not self.trained:
+            return value
+
+        if str(getattr(self, "method", "ISOTONIC")).upper() == "PLATT":
+            eps = 1e-5
+            clipped = float(np.clip(value, eps, 1.0 - eps))
+            logit = float(np.log(clipped / (1.0 - clipped)))
+            cal_logit = float(self.platt_coef * logit + self.platt_intercept)
+            cal_prob = float(1.0 / (1.0 + np.exp(-cal_logit)))
+            return float(np.clip(cal_prob, 0.05, 0.95))
+
+        if not self.bin_values or not self.bin_edges or len(self.bin_values) < 2:
             return value
         if max(self.bin_values) - min(self.bin_values) < 0.05:
             # Calibrador plano/degenerado: no discrimina, degrada a la probabilidad cruda
@@ -376,13 +405,18 @@ class ProbabilityCalibrator:
         centers = (edges[:-1] + edges[1:]) / 2.0
         x_pts = np.concatenate(([0.0], centers, [1.0]))
         y_pts = np.concatenate(([float(self.bin_values[0])], [float(v) for v in self.bin_values], [float(self.bin_values[-1])]))
-        return float(np.clip(np.interp(value, x_pts, y_pts), 0.0, 1.0))
+        # Evita colapso a 0.00 o 1.00 forzando límites realistas seguros
+        interpolated = float(np.interp(value, x_pts, y_pts))
+        return float(np.clip(interpolated, 0.05, 0.95))
 
     def to_dict(self) -> dict:
         """Serializa la curva de calibracion a un dict apto para JSON."""
         return {
             "bin_edges": list(self.bin_edges),
             "bin_values": list(self.bin_values),
+            "method": str(getattr(self, "method", "ISOTONIC")),
+            "platt_coef": float(getattr(self, "platt_coef", 1.0)),
+            "platt_intercept": float(getattr(self, "platt_intercept", 0.0)),
             "trained": bool(self.trained),
         }
 
@@ -393,6 +427,9 @@ class ProbabilityCalibrator:
         return cls(
             bin_edges=[float(v) for v in (payload.get("bin_edges") or [])],
             bin_values=[float(v) for v in (payload.get("bin_values") or [])],
+            method=str(payload.get("method") or "ISOTONIC"),
+            platt_coef=float(payload.get("platt_coef", 1.0)),
+            platt_intercept=float(payload.get("platt_intercept", 0.0)),
             trained=bool(payload.get("trained", False)),
         )
 

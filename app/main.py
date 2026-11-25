@@ -541,7 +541,7 @@ def run_demo_bot(
         malaysian_snr_enabled=(str(bot_profile).upper() in ("MALAYSIAN_SNR", "COMMODITIES_SNR", "INDICESB_SNR", "FOREX_SNR")),
         first_target_rr=1.0,
         second_target_rr=2.0,
-        single_entry_target_rr=2.0,
+        single_entry_target_rr=float(os.getenv("DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR", "1.0")),
 
         runner_extension_enabled=True,
         runner_extension_first_trigger_rr=2.0,
@@ -2362,7 +2362,7 @@ def run_unified_multibot_daemon(args, profiles=None):
                 forex_event_timeframe="M5",
                 first_target_rr=1.0,
                 second_target_rr=2.0,
-                single_entry_target_rr=2.0,
+                single_entry_target_rr=float(os.getenv("DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR", "1.0")),
                 runner_extension_enabled=True,
                 runner_extension_first_trigger_rr=2.0,
                 runner_extension_first_lock_rr=1.0,
@@ -2967,6 +2967,39 @@ def _should_skip_disabled_worker_process(profile: str, repo=None) -> tuple[bool,
         not in {"1", "true", "yes", "on"}
     ):
         reason = "FLIP_NO_PUBLISHED_SYMBOLS"
+    elif (
+        os.getenv("DAEMONBLACKFX_SKIP_EMPTY_WORKERS", "1").strip().lower()
+        not in {"0", "false", "no", "off"}
+    ):
+        spec = BOT_PROFILES.get(prof) or {}
+        base_symbols = spec.get("symbols")
+        if base_symbols is not None:
+            try:
+                from config.ict_instrument_policy import resolve_active_pruned_worker_universe
+                resolved = resolve_active_pruned_worker_universe(prof, base_symbols)
+            except Exception:
+                resolved = list(base_symbols)
+            if not resolved:
+                reason = "EMPTY_WORKER_UNIVERSE"
+            elif repo is not None:
+                sel_getter = getattr(repo, "get_selected_instruments_for_profile", None) or getattr(
+                    repo, "latest_instrument_selection_profile", None
+                )
+                if callable(sel_getter):
+                    try:
+                        sel_profile = _selection_profile_for_bot(prof)
+                        sel_raw = sel_getter(sel_profile, source="DEMO")
+                        sel_syms = (
+                            sel_raw.get("selected_symbols")
+                            if isinstance(sel_raw, dict)
+                            else sel_raw
+                        )
+                        if sel_syms:
+                            sel_set = {str(s).strip() for s in sel_syms if str(s).strip()}
+                            if sel_set and not any(str(s).strip() in sel_set for s in resolved):
+                                reason = "NO_SELECTED_SYMBOLS"
+                    except Exception:
+                        pass
 
     if not reason:
         return False, None

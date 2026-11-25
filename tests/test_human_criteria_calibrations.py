@@ -423,3 +423,95 @@ def test_high_conviction_override_unlocks_indices_signal():
     assert "SCORE_BELOW_THRESHOLD" not in dec.reason
 
 
+def test_step_family_surgical_threshold_70_approves_step_400():
+    """Valida la calibración quirúrgica para la familia STEP (Step Index 400, Worker STEP Magic 26082104) a 70.0 pts."""
+    cfg = HumanCriteriaConfig(
+        enabled=True,
+        mode=MODE_FILTER,
+        synthetic_min_score_threshold=75.0,
+        synthetic_step_min_score_threshold=70.0,
+        high_conviction_override_enabled=False,  # Desactivado para aislar el umbral base quirúrgico
+        spread_friction_veto_enabled=False,
+    )
+    engine = HumanCriteriaEngine(cfg)
+
+    # Simular velas donde el score resultante sea exactamente 70.5 pts
+    df_h1 = _build_candles(n=60, base=9000.0, trend=0.5, noise=0.2)
+    df_ltf = _build_candles(n=30, base=9025.0, trend=0.2, noise=0.2)
+    idx_ltf = len(df_ltf) - 1
+    df_ltf.loc[idx_ltf, "open"] = 9028.0
+    df_ltf.loc[idx_ltf, "close"] = 9031.0
+    df_ltf.loc[idx_ltf, "low"] = 9027.5
+    df_ltf.loc[idx_ltf, "high"] = 9032.0
+
+    signal_step = {
+        "strategy_name": "ICT",
+        "entry_price": 9031.0,
+        "stop_loss": 9021.0,
+        "take_profit": 9051.0,
+        "worker": "STEP",
+        "magic": 26082104,
+        "candle_body_ratio": 0.60,
+        "displacement_body_ratio": 0.55,
+    }
+
+    # current_spread = 1.5 produce score = 70.5 pts
+    dec = engine.evaluate_candidate(
+        symbol="Step Index 400",
+        direction="BUY",
+        signal=signal_step,
+        df_h1=df_h1,
+        df_ltf=df_ltf,
+        current_spread=1.5,
+    )
+    assert dec.score == 70.5
+    assert dec.allowed is True
+    assert "SCORE_BELOW_THRESHOLD" not in dec.reason
+
+
+def test_non_step_synthetics_retain_strict_75_threshold():
+    """Valida que los demás sintéticos (Boom, Crash, Jump, Volatility) mantienen el umbral estricto de 75.0 pts."""
+    cfg = HumanCriteriaConfig(
+        enabled=True,
+        mode=MODE_FILTER,
+        synthetic_min_score_threshold=75.0,
+        synthetic_step_min_score_threshold=70.0,
+        high_conviction_override_enabled=False,
+        spread_friction_veto_enabled=False,
+    )
+    engine = HumanCriteriaEngine(cfg)
+
+    df_h1 = _build_candles(n=60, base=9000.0, trend=0.5, noise=0.2)
+    df_ltf = _build_candles(n=30, base=9025.0, trend=0.2, noise=0.2)
+    idx_ltf = len(df_ltf) - 1
+    df_ltf.loc[idx_ltf, "open"] = 9028.0
+    df_ltf.loc[idx_ltf, "close"] = 9031.0
+    df_ltf.loc[idx_ltf, "low"] = 9027.5
+    df_ltf.loc[idx_ltf, "high"] = 9032.0
+
+    signal_vol = {
+        "strategy_name": "ICT",
+        "entry_price": 9031.0,
+        "stop_loss": 9021.0,
+        "take_profit": 9051.0,
+        "worker": "VOLATILITY",
+        "magic": 26082401,
+        "candle_body_ratio": 0.60,
+        "displacement_body_ratio": 0.55,
+    }
+
+    dec = engine.evaluate_candidate(
+        symbol="Volatility 75 Index",
+        direction="BUY",
+        signal=signal_vol,
+        df_h1=df_h1,
+        df_ltf=df_ltf,
+        current_spread=1.5,
+    )
+    # Volatility 75 con 70.5 pts debe ser bloqueado porque exige >= 75.0 pts
+    assert dec.score == 70.5
+    assert dec.allowed is False
+    assert "SCORE_BELOW_THRESHOLD (70.5 < 75.0)" in dec.reason
+
+
+

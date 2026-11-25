@@ -178,8 +178,8 @@ class ICTSabriMalleConfig:
     runner_rr: float = 2.0
     be_trigger_rr: float = 1.0
     be_trigger_rr_fast: float = 1.0  # Break-Even opcional a 1.0R (Video 9)
-    leg1_risk_ratio: float = 0.5
-    leg2_risk_ratio: float = 0.5
+    leg1_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SPLIT_LEG1_RATIO", "0.70"))
+    leg2_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SPLIT_LEG2_RATIO", "0.30"))
     min_body_ratio: float = 0.40
     
     # Sintéticos (Operativa 24/7 sin Killzones bancarias)

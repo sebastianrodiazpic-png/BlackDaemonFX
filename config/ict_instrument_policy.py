@@ -40,6 +40,16 @@ ALLOW_SELECTIVE_INSTRUMENT_ACTIVATION = (
 CONSOLIDATE_ACTIVE_PRUNED_WORKERS = (
     os.getenv("DAEMONBLACKFX_CONSOLIDATE_ACTIVE_PRUNED_WORKERS", "1").strip().lower() not in ("0", "false", "off")
 )
+PRUNE_HF_VOL_ENABLED = (
+    os.getenv("DAEMONBLACKFX_PRUNE_HF_VOL", "1").strip().lower() not in ("0", "false", "off")
+)
+HF_VOL_SYMBOLS = (
+    "High Frequency Vol 10 Index",
+    "High Frequency Vol 25 Index",
+    "High Frequency Vol 50 Index",
+    "High Frequency Vol 75 Index",
+    "High Frequency Vol 100 Index",
+)
 
 # Rescatados de Fase 1 tras replay fiel multianual 5 años con las 6 mejoras
 # (orden limitada virtual + tope spread/SL <= 2.0 % / 2.5 % + filtro ADX + asimetría direccional + piso SL ATR):
@@ -138,6 +148,8 @@ ICT_PHASE1_EXCLUDED = (
 
 def _keep(*symbols):
     blocked = (set(ICT_WR45_PRUNED) | set(ICT_PHASE1_EXCLUDED) | set(ICT_5Y_SYNTH_PRUNED) | set(ICT_5Y_MARKETS_PRUNED)) - set(ICT_5Y_RESCUED_SYNTHETICS)
+    if PRUNE_HF_VOL_ENABLED:
+        blocked |= set(HF_VOL_SYMBOLS)
     if not _UNPRUNE_SYNTHETICS:
         blocked |= {
             "Boom 500 Index",
@@ -345,13 +357,28 @@ MSNR_ELITE_SYNTHETICS = (
 MSNR_ELITE_BASKET_ENABLED = os.getenv("DAEMONBLACKFX_MSNR_ELITE_BASKET", "1").strip().lower() in ("1", "true", "on")
 
 
+UNAVAILABLE_VOL_OVER_SYMBOLS = (
+    "Vol over Boom 550",
+    "Vol over Crash 550",
+)
+
+
 def _malaysian_snr_synthetics() -> tuple:
     raw = os.getenv("DAEMONBLACKFX_MSNR_SYNTHETICS_ACTIVE", "").strip()
     if raw:
-        return tuple(s.strip() for s in raw.split(",") if s.strip())
-    if MSNR_ACIERTO47_ENABLED:
-        return MSNR_ACIERTO47_SYNTHETICS
-    return (*MSNR_ACTIVE, *MSNR_DEMO_TEST_SYMBOLS)
+        base = tuple(s.strip() for s in raw.split(",") if s.strip())
+    elif MSNR_ACIERTO47_ENABLED:
+        base = MSNR_ACIERTO47_SYNTHETICS
+    else:
+        base = (*MSNR_ACTIVE, *MSNR_DEMO_TEST_SYMBOLS)
+    exclude_vol_over = (
+        os.getenv("DAEMONBLACKFX_EXCLUDE_UNAVAILABLE_VOL_OVER", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    if exclude_vol_over:
+        blocked = set(UNAVAILABLE_VOL_OVER_SYMBOLS)
+        return tuple(s for s in base if s not in blocked)
+    return base
 
 
 MALAYSIAN_SNR_SYNTHETICS = _malaysian_snr_synthetics()
@@ -456,6 +483,8 @@ def resolve_active_pruned_worker_universe(bot_profile: str, candidate_symbols: l
     if wp == "VOLATILITY_4":
         return sorted(vol_1s_multistrat_targets, key=str.casefold)
     if wp == "VOLATILITY_1":
+        if os.getenv("DAEMONBLACKFX_PRUNE_HF_VOL", "1").strip().lower() not in ("0", "false", "off"):
+            return []
         return sorted(vol_hf_multistrat_targets, key=str.casefold)
     if wp == "VOLATILITY_2":
         return sorted(vol_special_multistrat_targets, key=str.casefold)

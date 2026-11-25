@@ -8,7 +8,7 @@ PANEL = r'''<style>
 #periodPerformance p{color:#aeb9bc;line-height:1.5;margin:4px 0}
 #periodPerformance .period-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}
 #periodPerformance .period-kpis div{padding:14px;border:1px solid #2a3337;border-radius:10px;background:#10161a}
-#periodPerformance .period-kpis b{display:block;font-size:22px;color:#f4ce63;margin-top:6px}
+#periodPerformance .period-kpis b{display:block;font-size:22px;color:#f4ce63;margin-top:6px;font-variant-numeric:tabular-nums lining-nums;-webkit-font-feature-settings:"tnum" 1,"lnum" 1;font-feature-settings:"tnum" 1,"lnum" 1}
 #perfMonths button[aria-pressed=true]{border:2px solid #f4ce63;color:#f4ce63}
 #perfMonths button{min-width:130px;text-align:left}
 #periodPerformance .perf-tabs{display:flex;gap:6px;border-bottom:1px solid #2a3337;margin:14px 0 16px}
@@ -22,7 +22,7 @@ PANEL = r'''<style>
 #periodPerformance .rank-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;margin-bottom:6px;border:1px solid #1e262a;border-radius:8px;background:#11181c;transition:border-color 0.2s, background 0.2s}
 #periodPerformance .rank-row:hover{border-color:#675321;background:#151e23}
 #periodPerformance .rank-row small{display:block;color:#8e9da2;font-size:11px;margin-top:2px}
-#periodPerformance .rank-row strong{white-space:nowrap;font-size:14px}
+#periodPerformance .rank-row strong{white-space:nowrap;font-size:14px;font-variant-numeric:tabular-nums lining-nums}
 
 /* Asset Card Row with Modal trigger */
 .asset-card{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;margin-bottom:7px;border:1px solid #1f2a30;border-radius:9px;background:#10171b;cursor:pointer;transition:all 0.2s ease}
@@ -34,7 +34,7 @@ PANEL = r'''<style>
 .asset-badge-untraded{font-size:10px;padding:2px 6px;border-radius:4px;background:#1c2429;color:#78888f;border:1px solid #2a343a}
 .asset-subtitle{font-size:11px;color:#8e9da2}
 .asset-metrics-box{text-align:right;white-space:nowrap}
-.asset-pnl{font-size:14px;font-weight:800;display:block}
+.asset-pnl{font-size:14px;font-weight:800;display:block;font-variant-numeric:tabular-nums lining-nums;-webkit-font-feature-settings:"tnum" 1,"lnum" 1;font-feature-settings:"tnum" 1,"lnum" 1}
 .asset-pnl.good{color:#34d399}
 .asset-pnl.bad{color:#f87171}
 .asset-pnl.zero{color:#94a3b8}

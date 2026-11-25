@@ -186,12 +186,20 @@ class PortfolioAccountingManager:
         gross_pnl: float,
         commission: float = 0.0,
         swap: float = 0.0,
+        costs_signed: bool = True,
     ) -> Optional[PositionMicrostructureRecord]:
-        """Cierra la posición y actualiza la contabilidad de saldo y comisiones."""
+        """Cierra la posición y actualiza la contabilidad de saldo y comisiones.
+
+        Con `costs_signed=True` (convención MT5), `commission` y `swap` llevan su signo real
+        (negativo = coste, positivo = abono) y se suman a `gross_pnl`.
+        """
         record = self.positions.pop(str(ticket), None)
-        self.realized_balance += float(gross_pnl) - float(commission) - float(swap)
-        self.commissions_paid += float(commission)
-        self.swap_paid += float(swap)
+        comm = float(commission)
+        swp = float(swap)
+        net_delta = float(gross_pnl) + comm + swp if costs_signed else float(gross_pnl) - comm - swp
+        self.realized_balance += net_delta
+        self.commissions_paid += abs(comm) if comm < 0 else comm
+        self.swap_paid += swp
         self._check_daily_reset()
         return record
 
@@ -222,14 +230,14 @@ class PortfolioAccountingManager:
                 f"({max_allowed_risk_amount:.2f})"
             )
 
-        # 2. Control de correlación de divisas
-        currency = self._extract_currency(symbol)
-        if currency:
+        # 2. Control de correlación de divisas (exposición dual en pares Forex, ej. EURUSD -> EUR y USD)
+        currencies = self._extract_currencies(symbol)
+        max_curr_amount = (self.realized_balance * self.limits.max_currency_risk_percent) / 100.0
+        for currency in sorted(currencies):
             currency_risk = sum(
                 p.initial_risk_amount for p in self.positions.values()
-                if self._extract_currency(p.symbol) == currency
+                if currency in self._extract_currencies(p.symbol)
             ) + float(planned_risk_amount)
-            max_curr_amount = (self.realized_balance * self.limits.max_currency_risk_percent) / 100.0
             if currency_risk > max_curr_amount:
                 return False, (
                     f"CURRENCY_EXPOSURE_LIMIT: Exposición en {currency} ({currency_risk:.2f}) "
@@ -238,21 +246,27 @@ class PortfolioAccountingManager:
 
         return True, None
 
-    def _extract_currency(self, symbol: str) -> Optional[str]:
-        """Extrae la divisa principal o clase de activo para control de correlación."""
+    def _extract_currencies(self, symbol: str) -> set[str]:
+        """Extrae todas las divisas o clases de activo expuestas por el símbolo."""
         s = str(symbol).upper()
-        if "USD" in s:
-            return "USD"
-        if "EUR" in s:
-            return "EUR"
-        if "GBP" in s:
-            return "GBP"
-        if "JPY" in s:
-            return "JPY"
+        found: set[str] = set()
+        for ccy in ("USD", "EUR", "GBP", "JPY", "CHF", "AUD", "NZD", "CAD"):
+            if ccy in s:
+                found.add(ccy)
         if "XAU" in s or "GOLD" in s:
-            return "GOLD"
+            found.add("GOLD")
+        if "XAG" in s or "SILVER" in s:
+            found.add("SILVER")
         if any(term in s for term in ("VOLATILITY", "CRASH", "BOOM", "STEP", "JUMP")):
-            return "DERIV_SYNTHETIC"
+            found.add("DERIV_SYNTHETIC")
+        return found
+
+    def _extract_currency(self, symbol: str) -> Optional[str]:
+        """Wrapper retrocompatible: devuelve la divisa/clase prioritaria del símbolo."""
+        currencies = self._extract_currencies(symbol)
+        for pref in ("USD", "EUR", "GBP", "JPY", "CHF", "AUD", "NZD", "CAD", "GOLD", "SILVER", "DERIV_SYNTHETIC"):
+            if pref in currencies:
+                return pref
         return None
 
     def snapshot(self) -> Dict[str, Any]:

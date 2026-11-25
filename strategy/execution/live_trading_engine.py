@@ -272,9 +272,19 @@ class LiveTradingConfig:
     max_total_open_positions: int | None = None
     max_open_positions_per_symbol: int = 2
 
-    # Gestión 50/50 del riesgo de una operación lógica (0.5% por pierna, 1.0% total).
+    # Gestión configurable del riesgo en 2 piernas (por defecto 70/30 validado a 5 años: 0.70% TP1 + 0.30% RUNNER = 1.0% total).
+    # Reversible a 50/50 mediante DAEMONBLACKFX_SPLIT_LEG1_RATIO=0.50 y DAEMONBLACKFX_SPLIT_LEG2_RATIO=0.50.
     split_entries_enabled: bool = True
-    split_entry_risk_fraction: float = 0.50
+    split_entry_risk_fraction: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_SPLIT_LEG1_RATIO", "0.70"))
+    )
+    split_runner_risk_fraction: float | None = field(
+        default_factory=lambda: (
+            float(os.getenv("DAEMONBLACKFX_SPLIT_LEG2_RATIO"))
+            if os.getenv("DAEMONBLACKFX_SPLIT_LEG2_RATIO") not in (None, "")
+            else None
+        )
+    )
     first_target_rr: float = 1.0
     second_target_rr: float = 2.0
     volatility_first_target_rr: float = 1.0
@@ -283,9 +293,28 @@ class LiveTradingConfig:
     # se arriesga el 1.0% íntegro (1R) para buscar el 1.0% (+1R), optimizando la expectativa matemática.
     # DAEMONBLACKFX_SINGLE_LEG_FULL_RISK=0 restaura el sub-riesgo fraccional previo.
     single_entry_fallback_enabled: bool = True
-    single_entry_target_rr: float = float(os.getenv("DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR", "1.0"))
+    single_entry_target_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_SINGLE_ENTRY_TARGET_RR", "1.0"))
+    )
     single_leg_full_risk_enabled: bool = field(
         default_factory=lambda: os.getenv("DAEMONBLACKFX_SINGLE_LEG_FULL_RISK", "1").strip().lower() not in ("0", "false", "off")
+    )
+    # Prioridad 1: atomicidad y resiliencia en ejecución split (no cortar entre TP1 y RUNNER ni abortar ciclo si TP1 llenó).
+    atomic_split_execution_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ATOMIC_SPLIT_EXECUTION", "1").strip().lower() not in ("0", "false", "off", "no")
+    )
+    # Prioridad 2: regla de excepción 1% @ 1:1 cuando el análisis estructural/cuantitativo no proyecta recorrido hasta TP2 (< 2.0R).
+    sub_tp2_single_1to1_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_SUB_TP2_SINGLE_1TO1_ENABLED", "1").strip().lower() not in ("0", "false", "off", "no")
+    )
+    sub_tp2_min_rr_threshold: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_SUB_TP2_MIN_RR_THRESHOLD", "2.0"))
+    )
+    sub_tp2_single_target_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_SUB_TP2_SINGLE_TARGET_RR", "1.0"))
+    )
+    sub_tp2_allow_jump_single: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_SUB_TP2_ALLOW_JUMP_SINGLE", "0").strip().lower() in ("1", "true", "on", "yes")
     )
 
     # Priorización y poda de activos de bajo rendimiento (Replay histórico y auditoría)
@@ -306,12 +335,24 @@ class LiveTradingConfig:
 
     # Los perfiles SMC sintéticos y forex permiten buscar TP3 o TP4 protegiendo ganancias de manera progresiva.
     runner_extension_enabled: bool = True
-    runner_extension_first_trigger_rr: float = float(os.getenv("DAEMONBLACKFX_RUNNER_FIRST_TRIGGER_RR", "1.5"))
-    runner_extension_first_lock_rr: float = float(os.getenv("DAEMONBLACKFX_RUNNER_FIRST_LOCK_RR", "1.5"))
-    runner_extension_second_trigger_rr: float = float(os.getenv("DAEMONBLACKFX_RUNNER_SECOND_TRIGGER_RR", "2.5"))
-    runner_extension_second_lock_rr: float = float(os.getenv("DAEMONBLACKFX_RUNNER_SECOND_LOCK_RR", "2.5"))
-    runner_extension_max_target_rr: float = float(os.getenv("DAEMONBLACKFX_RUNNER_MAX_TARGET_RR", "4.0"))
-    smc_runner_max_target_rr: float = float(os.getenv("DAEMONBLACKFX_SMC_RUNNER_MAX_TARGET_RR", "4.0"))
+    runner_extension_first_trigger_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_RUNNER_FIRST_TRIGGER_RR", "1.5"))
+    )
+    runner_extension_first_lock_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_RUNNER_FIRST_LOCK_RR", "1.5"))
+    )
+    runner_extension_second_trigger_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_RUNNER_SECOND_TRIGGER_RR", "2.5"))
+    )
+    runner_extension_second_lock_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_RUNNER_SECOND_LOCK_RR", "2.5"))
+    )
+    runner_extension_max_target_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_RUNNER_MAX_TARGET_RR", "4.0"))
+    )
+    smc_runner_max_target_rr: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_SMC_RUNNER_MAX_TARGET_RR", "4.0"))
+    )
     # Protección intermedia mientras busca TP3.
     smc_runner_tp3_guard_trigger_rr: float = 2.5
     smc_runner_tp3_guard_lock_rr: float = 2.0
@@ -363,9 +404,9 @@ class LiveTradingConfig:
     # SHADOW puntúa sin bloquear; FILTER exige probabilidad y expectativa neta.
     meta_labeling_enabled: bool = True
     # FILTER exige probabilidad y expectativa neta activa como guía y filtro de entradas
-    meta_labeling_mode: str = os.getenv(
-        "DAEMONBLACKFX_META_LABELING_MODE", "FILTER"
-    ).upper()
+    meta_labeling_mode: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_META_LABELING_MODE", "FILTER").upper()
+    )
     meta_labeling_min_probability: float = 0.47
     meta_labeling_min_probability_forex: float = 0.55
     meta_labeling_min_probability_gold: float = 0.55
@@ -375,19 +416,29 @@ class LiveTradingConfig:
     meta_labeling_max_signals_per_cycle: int = 1
     meta_labeling_model_directory: str = "storage/ai_models"
     meta_labeling_min_training_samples: int = 15
-    meta_labeling_model_type: str = os.getenv("DAEMONBLACKFX_META_MODEL_TYPE", "GBDT").upper()
+    meta_labeling_model_type: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_META_MODEL_TYPE", "GBDT").upper()
+    )
     market_regime_sentinel_enabled: bool = True
-    market_regime_sentinel_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_MODE", "FILTER").upper()
+    market_regime_sentinel_mode: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_MARKET_REGIME_MODE", "FILTER").upper()
+    )
     market_regime_forex_strict_filter: bool = True
     # Replay fiel ICT (28 sintéticos, límite + tope 2 %, 365 d): el centinela bloquea el 18 % de las señales y esas
     # rinden +0,067 R/t frente a +0,045 de las permitidas (ambas mitades positivas). Para ICT en sintéticos se
     # registra sin vetar (OBSERVE). FILTER restaura el veto; el resto de estrategias y mercados no cambia.
-    market_regime_ict_synthetic_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_ICT_SYNTH_MODE", "OBSERVE").strip().upper()
+    market_regime_ict_synthetic_mode: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_MARKET_REGIME_ICT_SYNTH_MODE", "OBSERVE").strip().upper()
+    )
     # ORB SWEEP: el centinela registra sin vetar, en prueba demo (24-oct-2026). Replay ampliado XAUUSD/BTCUSD/USDCAD:
     # sin centinela +0,202 R/op (mitades +0,180/+0,224, +45,5 R) frente a +0,132 con él (+19,2 R); permutación p 0,11
     # (no concluyente). Criterio fijado: 30 operaciones ORB que el centinela habría bloqueado, R/op > 0; si no, FILTER.
-    market_regime_orb_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_ORB_MODE", "OBSERVE").strip().upper()
-    market_regime_ict_real_mode: str = os.getenv("DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE", "OBSERVE").strip().upper()
+    market_regime_orb_mode: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_MARKET_REGIME_ORB_MODE", "OBSERVE").strip().upper()
+    )
+    market_regime_ict_real_mode: str = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_MARKET_REGIME_ICT_REAL_MODE", "OBSERVE").strip().upper()
+    )
     symbol_loss_cooldown_enabled: bool = True
     symbol_loss_cooldown_minutes: float = 60.0
     symbol_daily_strikes_enabled: bool = False
@@ -396,16 +447,77 @@ class LiveTradingConfig:
     # Auditoría empírica 2026-11-22: la superposición de apertura NY / cierre Londres concentra
     # pérdidas acumuladas de -$2,114.74 USD (40.7% WR) en Forex e Índices. Se bloquean nuevas
     # entradas durante esta ventana horaria excepto para perfiles/estrategias especializadas (ORB).
-    london_ny_crossover_filter_enabled: bool = (
-        os.getenv("DAEMONBLACKFX_LONDON_NY_CROSSOVER_FILTER_ENABLED", "1").strip().lower()
+    london_ny_crossover_filter_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_LONDON_NY_CROSSOVER_FILTER_ENABLED", "1").strip().lower()
         not in ("0", "false", "off", "no")
     )
-    london_ny_crossover_start_utc_hour: int = int(os.getenv("DAEMONBLACKFX_CROSSOVER_START_UTC_HOUR", "13"))
-    london_ny_crossover_end_utc_hour: int = int(os.getenv("DAEMONBLACKFX_CROSSOVER_END_UTC_HOUR", "15"))
+    london_ny_crossover_start_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_CROSSOVER_START_UTC_HOUR", "13"))
+    )
+    london_ny_crossover_end_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_CROSSOVER_END_UTC_HOUR", "15"))
+    )
     london_ny_crossover_exempt_profiles: tuple[str, ...] = ("ORB",)
-    london_ny_crossover_apply_to_synthetics: bool = (
-        os.getenv("DAEMONBLACKFX_CROSSOVER_APPLY_TO_SYNTHETICS", "0").strip().lower()
+    london_ny_crossover_apply_to_synthetics: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_CROSSOVER_APPLY_TO_SYNTHETICS", "0").strip().lower()
         in ("1", "true", "on", "yes")
+    )
+    # Prioridad 4: Ventanas horarias tóxicas adicionales exclusivas para Mercados Reales (Sintéticos 100% excluidos):
+    # - 18:00–19:59 UTC (15:00–16:59 Hora Chile Verano UTC-3): bajón de media tarde NY / post-cierre Londres (bloquea todas las estrategias reales, incluido ORB).
+    # - 02:00–03:59 UTC (23:00–00:59 Hora Chile Verano UTC-3): transición muerta nocturna / pre-Asia (bloquea todas las estrategias reales).
+    ny_afternoon_filter_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_NY_AFTERNOON_FILTER_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    ny_afternoon_start_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_NY_AFTERNOON_START_UTC_HOUR", "18"))
+    )
+    ny_afternoon_end_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_NY_AFTERNOON_END_UTC_HOUR", "20"))
+    )
+    ny_afternoon_exempt_profiles: tuple[str, ...] = field(
+        default_factory=lambda: tuple(
+            p.strip().upper()
+            for p in os.getenv("DAEMONBLACKFX_NY_AFTERNOON_EXEMPT_PROFILES", "").split(",")
+            if p.strip()
+        )
+    )
+    asia_dead_zone_filter_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_ASIA_DEAD_ZONE_FILTER_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    asia_dead_zone_start_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_ASIA_DEAD_ZONE_START_UTC_HOUR", "2"))
+    )
+    asia_dead_zone_end_utc_hour: int = field(
+        default_factory=lambda: int(os.getenv("DAEMONBLACKFX_ASIA_DEAD_ZONE_END_UTC_HOUR", "4"))
+    )
+    asia_dead_zone_exempt_profiles: tuple[str, ...] = field(
+        default_factory=lambda: tuple(
+            p.strip().upper()
+            for p in os.getenv("DAEMONBLACKFX_ASIA_DEAD_ZONE_EXEMPT_PROFILES", "").split(",")
+            if p.strip()
+        )
+    )
+    toxic_hours_apply_to_synthetics: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_TOXIC_HOURS_APPLY_TO_SYNTHETICS", "0").strip().lower()
+        in ("1", "true", "on", "yes")
+    )
+    # Prioridad 4: Confluencia direccional reforzada en mercados reales (XAUUSD / Metales BUY; Sintéticos 100% excluidos).
+    real_market_directional_confluence_enabled: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_REAL_DIRECTIONAL_CONFLUENCE_ENABLED", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    metal_buy_min_adx: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_METAL_BUY_MIN_ADX", "20.0"))
+    )
+    metal_buy_block_counter_htf: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_METAL_BUY_BLOCK_COUNTER_HTF", "1").strip().lower()
+        not in ("0", "false", "off", "no")
+    )
+    directional_confluence_exempt_orb: bool = field(
+        default_factory=lambda: os.getenv("DAEMONBLACKFX_DIRECTIONAL_CONFLUENCE_EXEMPT_ORB", "1").strip().lower()
+        not in ("0", "false", "off", "no")
     )
     step_min_adx: float = 25.0
     step_confirmation_timeframe: str = "M15"
@@ -738,9 +850,13 @@ class LiveTradingConfig:
     msnr_runner_max_target_rr: float = float(os.getenv("DAEMONBLACKFX_MSNR_RUNNER_MAX_RR", "4.0"))
     # Escaneo concurrente intra-worker: acelera el análisis de símbolos con pool de hilos I/O (1 = secuencial).
     concurrent_scan_workers: int = int(os.getenv("DAEMONBLACKFX_CONCURRENT_SCAN_WORKERS", "2"))
-    # ICT en sintéticos: el meta-etiquetado puntúa y registra pero no bloquea. El replay positivo (límite + tope 2%,
-    # +0.032 R/t) se midió sin este filtro; en vivo las rechazadas tenían el mismo acierto que las aceptadas.
-    ict_synthetic_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_ICT_SYNTH_META_SHADOW", "1").strip().lower() not in ("0", "false", "off")
+    # ICT en sintéticos: el meta-etiquetado puntúa y filtra activamente (0 = filtro activo, 1 = sombra).
+    # Se establece en 0 para evitar pérdidas de expectativa negativa demostradas en auditoría en vivo.
+    ict_synthetic_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_ICT_SYNTH_META_SHADOW", "0").strip().lower() in ("1", "true", "on")
+    # Blindaje dinámico contra slippage (reservas pre-fill para Jump y Oro)
+    jump_pre_fill_buffer: float = float(os.getenv("DAEMONBLACKFX_JUMP_PRE_FILL_BUFFER", "0.20"))
+    gold_pre_fill_buffer: float = float(os.getenv("DAEMONBLACKFX_GOLD_PRE_FILL_BUFFER", "0.15"))
+    jump_min_sl_atr: float = float(os.getenv("DAEMONBLACKFX_JUMP_MIN_SL_ATR", "1.25"))
     # Estrategias propias validadas en replay SIN meta-etiquetado (MSNR vídeos, NIGHT, DRIFT, RSI2): la IA puntúa y
     # registra pero no bloquea, también en mercados reales (22-oct-2026: bloqueaba NIGHT con PROBABILITY_BELOW_THRESHOLD).
     native_strategy_meta_label_shadow: bool = os.getenv("DAEMONBLACKFX_NATIVE_META_SHADOW", "1").strip().lower() not in ("0", "false", "off")
@@ -1274,6 +1390,7 @@ class LiveTradingEngine:
                 mode=str(getattr(self.config, "human_criteria_mode", "FILTER")),
                 min_score_threshold=float(getattr(self.config, "human_criteria_min_score", 65.0)),
                 synthetic_min_score_threshold=float(getattr(self.config, "human_criteria_synthetic_min_score", 75.0)),
+                synthetic_step_min_score_threshold=float(getattr(self.config, "human_criteria_step_min_score", 70.0)),
                 malaysian_snr_min_score_threshold=float(getattr(self.config, "human_criteria_msnr_min_score", 60.0)),
                 news_calendar_path=str(getattr(self.config, "forex_high_impact_news_calendar_path", "storage/dashboard/financial_news.json")),
             )
@@ -1283,6 +1400,70 @@ class LiveTradingEngine:
             repository=self.repository,
             source=self.config.source,
         )
+
+    def _portfolio_daily_drawdown_gate(self, symbol: str) -> dict | None:
+        """Circuit breaker de pérdida diaria de cartera compartido vía SQLite.
+
+        Bloquea nuevas entradas cuando el retorno diario realizado cae por debajo de
+        `-DAEMONBLACKFX_MAX_DAILY_DRAWDOWN_PCT` (por defecto -3.0%), manteniendo
+        intacta la gestión de posiciones ya abiertas (SL/TP/BE/trailing).
+        """
+        enabled = (
+            os.getenv("DAEMONBLACKFX_PORTFOLIO_CIRCUIT_BREAKER_ENABLED", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+        if not enabled:
+            return None
+        try:
+            max_daily_dd = abs(float(os.getenv("DAEMONBLACKFX_MAX_DAILY_DRAWDOWN_PCT", "3.0")))
+        except ValueError:
+            max_daily_dd = 3.0
+        if max_daily_dd <= 0:
+            return None
+
+        now_m = time.monotonic()
+        cached_at = float(getattr(self, "_portfolio_dd_cached_at", 0.0) or 0.0)
+        summary = getattr(self, "_portfolio_dd_summary_cache", None)
+        if summary is None or (now_m - cached_at) >= 5.0:
+            repo = getattr(self, "repository", None)
+            cfg = getattr(self, "config", None)
+            getter = getattr(repo, "get_daily_closed_trades_summary", None)
+            if not callable(getter) or cfg is None:
+                return None
+            try:
+                summary = getter(source=cfg.source) or {}
+            except Exception:
+                return None
+            self._portfolio_dd_summary_cache = summary
+            self._portfolio_dd_cached_at = now_m
+
+        daily_return_pct = float(summary.get("daily_return_pct") or 0.0)
+        if daily_return_pct <= -max_daily_dd:
+            today_pnl = float(summary.get("today_net_pnl") or 0.0)
+            reason = (
+                f"DAILY_DRAWDOWN_LIMIT_REACHED: retorno diario {daily_return_pct:.2f}% "
+                f"(${today_pnl:.2f}) <= -{max_daily_dd:.2f}%"
+            )
+            try:
+                self._persist_audit_event(
+                    "PORTFOLIO_CIRCUIT_BREAKER",
+                    instrument=symbol,
+                    action="PORTFOLIO_DAILY_DD_CIRCUIT_BREAKER_BLOCKED",
+                    reason=reason,
+                    payload={
+                        "daily_return_pct": daily_return_pct,
+                        "today_net_pnl": today_pnl,
+                        "max_daily_drawdown_pct": max_daily_dd,
+                    },
+                )
+            except Exception:
+                pass
+            return {
+                "symbol": symbol,
+                "action": "PORTFOLIO_DAILY_DD_CIRCUIT_BREAKER_BLOCKED",
+                "reason": reason,
+            }
+        return None
 
     def _cached_msnr_runtime_settings(self) -> dict:
         """Caché TTL de 5s para ajustes de runtime de MSNR (evita consultas redundantes a SQLite por símbolo)."""
@@ -1803,6 +1984,23 @@ class LiveTradingEngine:
                 self._idle_cycle_audit = (signature, now_mono)
             else:
                 self._idle_cycle_audit = None
+
+        # Optimización I/O (Fase 1 Informática): Throttle adaptativo para eventos de compuertas/gates periódicos.
+        # Evita miles de inserciones síncronas a SQLite durante ventanas horarias de bloqueo o enfriamiento.
+        if event_name.endswith("_GATE") or event_name in {
+            "LONDON_NY_CROSSOVER_GATE", "GOLD_SESSION_GATE", "SPREAD_LOCK_GATE", "MARKET_REGIME_GATE",
+        }:
+            gate_throttle_sec = float(os.getenv("DAEMONBLACKFX_AUDIT_GATE_THROTTLE_SECONDS", "300.0"))
+            if gate_throttle_sec > 0.0:
+                now_mono = time.monotonic()
+                gate_cache = dict(getattr(self, "_gate_audit_cache", {}) or {})
+                gate_sig = (event_name, str(instrument or ""), str(action or ""), str(reason or ""))
+                prev_gate = gate_cache.get(gate_sig)
+                if prev_gate is not None and (now_mono - float(prev_gate)) < gate_throttle_sec:
+                    return {"runtime_only": True, "sampled_out": True, "gate_throttled": True}
+                gate_cache[gate_sig] = now_mono
+                cutoff_gate = now_mono - max(gate_throttle_sec * 3.0, 900.0)
+                self._gate_audit_cache = {k: v for k, v in gate_cache.items() if float(v) >= cutoff_gate}
 
         if event_name == "SYMBOL_PROCESS_START":
             return {
@@ -2817,9 +3015,13 @@ class LiveTradingEngine:
         profile = str(self.config.bot_profile or "").upper()
         if not bool(self.config.forex_high_impact_news_guard_enabled):
             return None
+        sym_lower = str(symbol or "").lower()
+        is_gold_or_metals = any(m in sym_lower for m in ("xau", "gold", "xag", "silver")) or is_orb_gold_symbol(symbol)
         if profile.startswith("FOREX"):
             base, quote = self._forex_pair_currencies(symbol)
             affected_currencies = {base, quote} if base and quote else set()
+        elif is_gold_or_metals:
+            affected_currencies = {"USD", "EUR"} if "eur" in sym_lower else {"USD"}
         elif profile == "GOLD" and is_orb_eligible_symbol(symbol):
             affected_currencies = {"USD"}
         elif profile == "ORB" and is_orb_eligible_symbol(symbol):
@@ -2941,24 +3143,74 @@ class LiveTradingEngine:
         Estrategias especializadas en apertura de rango (ORB) quedan exentas.
         """
         cfg = getattr(self, "config", None)
-        if cfg is None or not bool(getattr(cfg, "london_ny_crossover_filter_enabled", True)):
+        if cfg is None:
             return None
 
-        # Exención de perfiles autorizados (ej. ORB)
+        # Exención exclusiva para perfiles autorizados (ORB) en 13:00–14:59 UTC (10:00–11:59 Chile).
+        # Nota: LiveTradingConfig.orb_enabled es True por defecto hasta pasar por configure_worker_rules,
+        # por lo que NUNCA debe eximir a perfiles no-ORB (ICT, GOLD, FOREX_*).
         bot_profile = str(getattr(cfg, "bot_profile", "") or "").upper()
         exempt_profiles = tuple(
             str(p).upper() for p in getattr(cfg, "london_ny_crossover_exempt_profiles", ("ORB",))
         )
-        if any(bot_profile.startswith(p) or bot_profile == p for p in exempt_profiles):
-            return None
-
-        # Exención si la estrategia es ORB en oro/plata
-        if bool(getattr(cfg, "orb_enabled", False)):
-            if is_orb_gold_symbol(symbol) or is_orb_silver_symbol(symbol):
-                return None
+        is_orb_profile = any(bot_profile.startswith(p) or bot_profile == p for p in exempt_profiles if p)
 
         # Verificar si aplica a sintéticos o solo a activos tradicionales
         apply_to_synthetics = bool(getattr(cfg, "london_ny_crossover_apply_to_synthetics", False))
+        is_synthetic = self._is_synthetic_symbol(symbol)
+        if not (is_synthetic and not apply_to_synthetics) and (is_synthetic or self._is_market_closing_symbol(symbol)):
+            current = now_utc or datetime.now(timezone.utc)
+            if current.tzinfo is None:
+                current = current.replace(tzinfo=timezone.utc)
+
+            if bool(getattr(cfg, "london_ny_crossover_filter_enabled", True)) and not is_orb_profile:
+                start_hour = int(getattr(cfg, "london_ny_crossover_start_utc_hour", 13))
+                end_hour = int(getattr(cfg, "london_ny_crossover_end_utc_hour", 15))
+                if self._hour_in_utc_window(current.hour, start_hour, end_hour):
+                    payload = {
+                        "symbol": str(symbol),
+                        "action": "LONDON_NY_CROSSOVER_FILTER_BLOCKED",
+                        "reason": f"LONDON_NY_CROSSOVER_HIGH_VOLATILITY_WINDOW_{current.hour:02d}:00_UTC",
+                        "crossover_window_utc": f"{start_hour:02d}:00-{end_hour:02d}:00",
+                        "current_time_utc": current.isoformat(),
+                    }
+                    if hasattr(self, "_persist_audit_event"):
+                        try:
+                            self._persist_audit_event(
+                                "LONDON_NY_CROSSOVER_GATE",
+                                instrument=str(symbol),
+                                action="FILTER_BLOCKED",
+                                reason=payload["reason"],
+                                payload=payload,
+                            )
+                        except Exception:
+                            pass
+                    return payload
+
+        # Evaluar también las franjas adicionales de mercados reales (18:00–19:59 UTC y 02:00–03:59 UTC, donde ORB NO está exento y Sintéticos siguen excluidos)
+        return self._real_market_toxic_hours_sentinel_gate(symbol, now_utc=now_utc)
+
+    @staticmethod
+    def _hour_in_utc_window(hour: int, start_hour: int, end_hour: int) -> bool:
+        """Comprueba pertenencia horaria UTC soportando rangos normales y cruces de medianoche."""
+        start_h = int(start_hour) % 24
+        end_h = int(end_hour) % 24
+        if start_h == end_h:
+            return False
+        if start_h < end_h:
+            return start_h <= int(hour) < end_h
+        return int(hour) >= start_h or int(hour) < end_h
+
+    def _real_market_toxic_hours_sentinel_gate(self, symbol: str, now_utc=None) -> dict | None:
+        """Compuerta horaria de Prioridad 4 para Mercados Reales (Sintéticos 100% excluidos):
+        - 18:00–19:59 UTC (15:00–16:59 Hora Chile Verano UTC-3): bajón de tarde NY / post-Londres (bloquea todas las estrategias reales, incluido ORB).
+        - 02:00–03:59 UTC (23:00–00:59 Hora Chile Verano UTC-3): transición muerta nocturna / pre-Asia.
+        """
+        cfg = getattr(self, "config", None)
+        if cfg is None:
+            return None
+
+        apply_to_synthetics = bool(getattr(cfg, "toxic_hours_apply_to_synthetics", False))
         is_synthetic = self._is_synthetic_symbol(symbol)
         if is_synthetic and not apply_to_synthetics:
             return None
@@ -2970,29 +3222,171 @@ class LiveTradingEngine:
         if current.tzinfo is None:
             current = current.replace(tzinfo=timezone.utc)
 
+        bot_profile = str(getattr(cfg, "bot_profile", "") or "").upper()
+
+        # 1) Ventana 18:00–19:59 UTC (03:00 PM – 04:59 PM Chile UTC-3)
+        if bool(getattr(cfg, "ny_afternoon_filter_enabled", True)):
+            aft_exempt = tuple(str(p).upper() for p in getattr(cfg, "ny_afternoon_exempt_profiles", ()))
+            if not any(bot_profile.startswith(p) or bot_profile == p for p in aft_exempt if p):
+                s_aft = int(getattr(cfg, "ny_afternoon_start_utc_hour", 18))
+                e_aft = int(getattr(cfg, "ny_afternoon_end_utc_hour", 20))
+                if self._hour_in_utc_window(current.hour, s_aft, e_aft):
+                    payload = {
+                        "symbol": str(symbol),
+                        "action": "NY_AFTERNOON_TOXIC_WINDOW_BLOCKED",
+                        "reason": f"NY_AFTERNOON_LOW_MOMENTUM_WINDOW_{current.hour:02d}:00_UTC",
+                        "toxic_window_utc": f"{s_aft:02d}:00-{e_aft:02d}:00",
+                        "current_time_utc": current.isoformat(),
+                    }
+                    if hasattr(self, "_persist_audit_event"):
+                        try:
+                            self._persist_audit_event(
+                                "TOXIC_HOURS_SENTINEL_GATE",
+                                instrument=str(symbol),
+                                action="FILTER_BLOCKED",
+                                reason=payload["reason"],
+                                payload=payload,
+                            )
+                        except Exception:
+                            pass
+                    return payload
+
+        # 2) Ventana 02:00–03:59 UTC (11:00 PM – 12:59 AM Chile UTC-3)
+        if bool(getattr(cfg, "asia_dead_zone_filter_enabled", True)):
+            asia_exempt = tuple(str(p).upper() for p in getattr(cfg, "asia_dead_zone_exempt_profiles", ()))
+            if not any(bot_profile.startswith(p) or bot_profile == p for p in asia_exempt if p):
+                s_asia = int(getattr(cfg, "asia_dead_zone_start_utc_hour", 2))
+                e_asia = int(getattr(cfg, "asia_dead_zone_end_utc_hour", 4))
+                if self._hour_in_utc_window(current.hour, s_asia, e_asia):
+                    payload = {
+                        "symbol": str(symbol),
+                        "action": "ASIA_DEAD_ZONE_TOXIC_WINDOW_BLOCKED",
+                        "reason": f"ASIA_DEAD_ZONE_LOW_LIQUIDITY_WINDOW_{current.hour:02d}:00_UTC",
+                        "toxic_window_utc": f"{s_asia:02d}:00-{e_asia:02d}:00",
+                        "current_time_utc": current.isoformat(),
+                    }
+                    if hasattr(self, "_persist_audit_event"):
+                        try:
+                            self._persist_audit_event(
+                                "TOXIC_HOURS_SENTINEL_GATE",
+                                instrument=str(symbol),
+                                action="FILTER_BLOCKED",
+                                reason=payload["reason"],
+                                payload=payload,
+                            )
+                        except Exception:
+                            pass
+                    return payload
+
+        return None
+
+    def _strategy_toxic_hour_gate(self, symbol: str, strategy_name: str, now_utc=None) -> dict | None:
+        """Defensa a nivel de estrategia para 13:00–14:59 UTC (10:00–11:59 Chile UTC-3):
+        garantiza que en activos reales durante esa franja ÚNICAMENTE pueda ejecutar la estrategia ORB.
+        """
+        cfg = getattr(self, "config", None)
+        if cfg is None or not bool(getattr(cfg, "london_ny_crossover_filter_enabled", True)):
+            return None
+
+        apply_to_synthetics = bool(getattr(cfg, "london_ny_crossover_apply_to_synthetics", False))
+        is_synthetic = self._is_synthetic_symbol(symbol)
+        if is_synthetic and not apply_to_synthetics:
+            return None
+        if not is_synthetic and not self._is_market_closing_symbol(symbol):
+            return None
+
+        current = now_utc or datetime.now(timezone.utc)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
+
         start_hour = int(getattr(cfg, "london_ny_crossover_start_utc_hour", 13))
         end_hour = int(getattr(cfg, "london_ny_crossover_end_utc_hour", 15))
+        if self._hour_in_utc_window(current.hour, start_hour, end_hour):
+            strat_u = str(strategy_name or "").strip().upper()
+            if strat_u not in {"ORB_NEW_YORK", "ORB"}:
+                return {
+                    "symbol": str(symbol),
+                    "strategy_name": strat_u,
+                    "action": "LONDON_NY_CROSSOVER_NON_ORB_STRATEGY_BLOCKED",
+                    "reason": f"ONLY_ORB_ALLOWED_DURING_{start_hour:02d}:00-{end_hour:02d}:00_UTC_GOT_{strat_u}",
+                    "crossover_window_utc": f"{start_hour:02d}:00-{end_hour:02d}:00",
+                    "current_time_utc": current.isoformat(),
+                }
+        return None
 
-        if start_hour <= current.hour < end_hour:
-            payload = {
-                "symbol": str(symbol),
-                "action": "LONDON_NY_CROSSOVER_FILTER_BLOCKED",
-                "reason": f"LONDON_NY_CROSSOVER_HIGH_VOLATILITY_WINDOW_{current.hour:02d}:00_UTC",
-                "crossover_window_utc": f"{start_hour:02d}:00-{end_hour:02d}:00",
-                "current_time_utc": current.isoformat(),
-            }
-            if hasattr(self, "_persist_audit_event"):
+    def _real_market_directional_confluence_gate(
+        self,
+        symbol: str,
+        direction: str,
+        signal: dict | None,
+        analysis: dict | None,
+        strategy_name: str,
+    ) -> dict | None:
+        """Filtro de confluencia direccional reforzada exclusivo para Mercados Reales (Sintéticos 100% excluidos).
+
+        En Metales (XAUUSD / XAUUSDmicro) para entradas BUY (históricamente débiles: 41.5% WR y -$252.96 USD),
+        exige ausencia de tendencia H1 bajista explícita y fuerza tendencial ADX >= metal_buy_min_adx (20.0),
+        manteniendo exenta a la estrategia ORB de apertura de Nueva York.
+        """
+        cfg = getattr(self, "config", None)
+        if cfg is None or not bool(getattr(cfg, "real_market_directional_confluence_enabled", True)):
+            return None
+
+        # Regla estricta: todos los instrumentos sintéticos quedan descartados de estos bloqueos
+        if self._is_synthetic_symbol(symbol):
+            return None
+
+        strat_u = str(strategy_name or "").strip().upper()
+        if bool(getattr(cfg, "directional_confluence_exempt_orb", True)) and strat_u in {"ORB_NEW_YORK", "ORB"}:
+            return None
+
+        dir_u = str(direction or "").strip().upper()
+        sig = signal or {}
+        ana = analysis or {}
+
+        if self._is_metal_symbol(symbol) and dir_u == "BUY":
+            if bool(getattr(cfg, "metal_buy_block_counter_htf", True)):
+                htf_ctx = sig.get("higher_timeframe_context") or ana.get("higher_timeframe_context") or {}
+                h1_trend = str(
+                    sig.get("h1_trend")
+                    or ana.get("h1_trend")
+                    or htf_ctx.get("h1_trend")
+                    or htf_ctx.get("trend")
+                    or ""
+                ).strip().upper()
+                if h1_trend in {"BEARISH", "DOWN", "DOWNTREND", "SELL"}:
+                    return {
+                        "symbol": str(symbol),
+                        "strategy_name": strat_u,
+                        "direction": dir_u,
+                        "action": "REAL_MARKET_DIRECTIONAL_CONFLUENCE_BLOCKED",
+                        "reason": f"METAL_BUY_COUNTER_HTF_TREND:{h1_trend}",
+                        "h1_trend": h1_trend,
+                    }
+
+            min_adx = float(getattr(cfg, "metal_buy_min_adx", 20.0))
+            raw_adx = (
+                sig.get("adx")
+                or sig.get("momentum_adx")
+                or ana.get("adx")
+                or (ana.get("market_snapshot") or {}).get("adx")
+                or (ana.get("structure_analysis") or {}).get("adx")
+            )
+            if raw_adx is not None:
                 try:
-                    self._persist_audit_event(
-                        "LONDON_NY_CROSSOVER_GATE",
-                        instrument=str(symbol),
-                        action="FILTER_BLOCKED",
-                        reason=payload["reason"],
-                        payload=payload,
-                    )
-                except Exception:
+                    adx_val = float(raw_adx)
+                    if math.isfinite(adx_val) and 0.0 < adx_val < min_adx:
+                        return {
+                            "symbol": str(symbol),
+                            "strategy_name": strat_u,
+                            "direction": dir_u,
+                            "action": "REAL_MARKET_DIRECTIONAL_CONFLUENCE_BLOCKED",
+                            "reason": f"METAL_BUY_WEAK_ADX_BELOW_MIN:{adx_val:.2f}<{min_adx:.1f}",
+                            "adx": adx_val,
+                            "min_adx": min_adx,
+                        }
+                except (TypeError, ValueError):
                     pass
-            return payload
 
         return None
 
@@ -3176,10 +3570,25 @@ class LiveTradingEngine:
             return {"action": "FOREX_NEWS_BREAK_EVEN_UNAVAILABLE", "error": "LIVE_TICK_OR_CONSTRAINTS_UNAVAILABLE"}
         spread = ask - bid
         extra = point * 2
+        preserve_trailing = os.getenv("DAEMONBLACKFX_NEWS_PRESERVE_TRAILING", "1").strip().lower() not in ("0", "false", "off")
         if direction == "BUY":
-            target, executable = max(float(current_sl), float(entry_price) + spread + extra), bid > float(entry_price) + spread + extra
+            net_break_even = round(float(entry_price) + spread + extra, digits)
+            if preserve_trailing and float(current_sl) >= net_break_even:
+                return {
+                    "action": "FOREX_NEWS_TRAILING_PRESERVED",
+                    "current_sl": float(current_sl),
+                    "net_break_even": net_break_even,
+                }
+            target, executable = net_break_even, bid > net_break_even
         elif direction == "SELL":
-            target, executable = min(float(current_sl), float(entry_price) - spread - extra), ask < float(entry_price) - spread - extra
+            net_break_even = round(float(entry_price) - spread - extra, digits)
+            if preserve_trailing and float(current_sl) <= net_break_even:
+                return {
+                    "action": "FOREX_NEWS_TRAILING_PRESERVED",
+                    "current_sl": float(current_sl),
+                    "net_break_even": net_break_even,
+                }
+            target, executable = net_break_even, ask < net_break_even
         else:
             return {"action": "FOREX_NEWS_BREAK_EVEN_UNAVAILABLE", "error": f"INVALID_DIRECTION:{direction}"}
         target = round(target, digits)
@@ -3202,7 +3611,8 @@ class LiveTradingEngine:
         metadata["break_even_activation_reason"] = "FOREX_HIGH_IMPACT_NEWS_NET_SPREAD"
         details = dict(trade.get("details") or {})
         details["metadata"] = metadata
-        self.repository.update_trade(int(trade["id"]), {"stop_loss": target, "details": details})
+        if getattr(self, "repository", None) is not None:
+            self.repository.update_trade(int(trade["id"]), {"stop_loss": target, "details": details})
         return {"action": "FOREX_NEWS_BREAK_EVEN_CONFIRMED", "break_even_price": target, "spread": spread}
 
     def _available_market_symbols(self, symbols):
@@ -4614,7 +5024,7 @@ class LiveTradingEngine:
         guard_stage = "SMC_TP3_GUARD_2R"
         if (
             not is_orb_runner
-            and "2R_TO_3R" in completed_stages
+            and any(s in completed_stages for s in ("2R_TO_3R", "1.5R_TO_3R"))
             and guard_stage not in completed_stages
             and current_rr + 1e-9 >= float(self.config.smc_runner_tp3_guard_trigger_rr)
             and current_rr < float(self.config.runner_extension_second_trigger_rr)
@@ -5750,6 +6160,11 @@ class LiveTradingEngine:
                 profit_lock_fraction = max(
                     0.0, float(self.config.break_even_profit_lock_rr_fraction or 0.0)
                 )
+                # Ajuste Cuantitativo Fase 2: Para piernas RUNNER, se evita estrangular el retroceso
+                # institucional post-TP1 con un profit-lock agresivo. Por defecto, BE neto protector puro (0.0R)
+                # permitiendo que la oscilación normal de mercado no expulse la posición antes de llegar a TP2 (2.0R).
+                if str(trade_leg).upper() == "RUNNER":
+                    profit_lock_fraction = float(os.getenv("DAEMONBLACKFX_RUNNER_BE_PROFIT_LOCK_FRACTION", "0.0"))
                 profit_lock_amount = (
                     float(initial_risk_snapshot) * profit_lock_fraction
                     if initial_risk_snapshot and initial_risk_snapshot > 0
@@ -6546,43 +6961,62 @@ class LiveTradingEngine:
             reserve = min(.25, max(0., float(self.config.pre_fill_risk_buffer)))
             split = bool(self.config.split_entries_enabled)
             fraction = float(self.config.split_entry_risk_fraction)
-            if split and abs(2 * fraction - 1) > 1e-9:
+            runner_fraction = (
+                float(self.config.split_runner_risk_fraction)
+                if getattr(self.config, "split_runner_risk_fraction", None) is not None
+                else round(1.0 - fraction, 6)
+            )
+            if split and (
+                not (0 < fraction < 1)
+                or not (0 < runner_fraction < 1)
+                or abs((fraction + runner_fraction) - 1.0) > 1e-9
+            ):
                 return {**result, "reason": "INVALID_SPLIT_RISK_CONFIGURATION"}
-            modes = [(2, fraction)] if split else [(1, 1.)]
+            modes = [(2, (fraction, runner_fraction))] if split else [(1, (1.0,))]
             if split and self.config.single_entry_fallback_enabled:
-                modes.append((1, 1.))
+                modes.append((1, (1.0,)))
             failures = []
-            for count, fraction in modes:
+            for count, leg_fractions in modes:
                 try:
-                    sizing = self.executor.calculate_volume(symbol, direction, buffered, stop, budget*fraction*(1-reserve))
-                    volume = float(sizing["volume"])
-                    actual = float(sizing["actual_risk_amount"])*count
-                    if not math.isfinite(actual) or not 0 < actual <= budget or not math.isfinite(volume) or volume <= 0:
+                    leg_sizings = [
+                        self.executor.calculate_volume(symbol, direction, buffered, stop, budget * lf * (1 - reserve))
+                        for lf in leg_fractions
+                    ]
+                    volumes = [float(s["volume"]) for s in leg_sizings]
+                    volume = volumes[0]
+                    actual = sum(float(s["actual_risk_amount"]) for s in leg_sizings)
+                    if not math.isfinite(actual) or not 0 < actual <= budget or any(not math.isfinite(v) or v <= 0 for v in volumes):
                         raise ValueError("RISK_ABOVE_CAP_OR_INVALID")
-                    spread = float(self.executor.calculate_risk_amount(symbol=symbol, direction=direction,
-                        volume=volume, entry_price=ask if direction=="BUY" else bid,
-                        stop_loss=bid if direction=="BUY" else ask)["actual_risk_amount"])*count
-                    margin = float(self.executor.calculate_margin_amount(symbol=symbol, direction=direction,
-                        volume=volume, entry_price=entry)["margin_required"])*count
+                    spread = sum(
+                        float(self.executor.calculate_risk_amount(symbol=symbol, direction=direction,
+                            volume=v, entry_price=ask if direction == "BUY" else bid,
+                            stop_loss=bid if direction == "BUY" else ask)["actual_risk_amount"])
+                        for v in volumes
+                    )
+                    margin = sum(
+                        float(self.executor.calculate_margin_amount(symbol=symbol, direction=direction,
+                            volume=v, entry_price=entry)["margin_required"])
+                        for v in volumes
+                    )
                     free_margin = float(account.get("free_margin", 0))
                     if not all(math.isfinite(x) and x >= 0 for x in (spread, margin, free_margin)):
                         raise ValueError("INVALID_COST_OR_MARGIN")
-                    margin_cap = min(free_margin, capital*float(self.config.max_margin_fraction)) if self.config.max_margin_fraction is not None else free_margin
+                    margin_cap = min(free_margin, capital * float(self.config.max_margin_fraction)) if self.config.max_margin_fraction is not None else free_margin
                     if margin > margin_cap:
                         raise ValueError("INSUFFICIENT_MARGIN")
                     # Check each existing target; the selector never moves SL/TP to fit a lot.
-                    targets = [float(self.config.first_target_rr), float(self.config.second_target_rr)] if count==2 else [float(self.config.single_entry_target_rr) if split else rr]
-                    for target_rr in targets:
-                        target = entry + (1 if direction=="BUY" else -1)*abs(entry-stop)*target_rr
-                        check = self.executor.check_market_order(symbol,direction,volume,stop,target,
-                            self.config.magic,"ORB-SILVER-CHECK",self.config.deviation)
+                    targets = [float(self.config.first_target_rr), float(self.config.second_target_rr)] if count == 2 else [float(self.config.single_entry_target_rr) if split else rr]
+                    for leg_vol, target_rr in zip(volumes, targets):
+                        target = entry + (1 if direction == "BUY" else -1) * abs(entry - stop) * target_rr
+                        check = self.executor.check_market_order(symbol, direction, leg_vol, stop, target,
+                            self.config.magic, "ORB-SILVER-CHECK", self.config.deviation)
                         if not check.get("valid"):
                             raise ValueError("MT5_ORDER_CHECK_REJECTED")
-                    return {**result,"viable":True,"reason":"VIABLE", "direction":direction,
-                        "capital_base":capital,"risk_base":self.config.risk_base,"risk_budget":budget,
-                        "actual_total_risk":actual,"actual_risk_percent":actual/capital*100,
-                        "volume_per_leg":volume,"legs":count,"spread_cost":spread,"margin_required":margin,
-                        "quote_time":str(quote_time),"failures":failures}
+                    return {**result, "viable": True, "reason": "VIABLE", "direction": direction,
+                        "capital_base": capital, "risk_base": self.config.risk_base, "risk_budget": budget,
+                        "actual_total_risk": actual, "actual_risk_percent": actual / capital * 100,
+                        "volume_per_leg": volume, "leg_volumes": volumes, "legs": count, "spread_cost": spread, "margin_required": margin,
+                        "quote_time": str(quote_time), "failures": failures}
                 except Exception as exc:
                     failures.append({"legs":count,"reason":str(exc)})
             return {**result,"reason":"NO_VIABLE_SIZING","failures":failures}
@@ -6686,6 +7120,18 @@ class LiveTradingEngine:
         )
         return any(k in raw for k in index_keys)
 
+    @staticmethod
+    def _is_commodity_or_energy_symbol(symbol: str) -> bool:
+        """Reconoce materias primas y energías reales (USOIL, UKOIL, XTIUSD, XBRUSD, WTI, BRENT, NGAS)."""
+        s = str(symbol or "").strip()
+        if not s:
+            return False
+        raw = "".join(ch for ch in s.upper() if ch.isalnum())
+        if any(synth in raw.lower() for synth in ("volatility", "volswitch", "ladder", "boom", "crash", "step", "jump", "flip", "vix", "dex", "drift", "rangebreak")):
+            return False
+        energy_keys = ("USOIL", "UKOIL", "XTIUSD", "XBRUSD", "WTI", "BRENT", "CRUDEOIL", "NGAS", "XPTUSD", "XPDUSD", "COPPER")
+        return raw == "CL" or raw == "USO" or any(k in raw for k in energy_keys)
+
     @classmethod
     def _is_synthetic_symbol(cls, symbol: str) -> bool:
         s = str(symbol or "").lower()
@@ -6695,6 +7141,8 @@ class LiveTradingEngine:
             or cls._is_boom_symbol(s)
             or cls._is_step_symbol(s)
             or cls._is_jump_symbol(s)
+            or "ladder" in s
+            or "volswitch" in s
             or "deriv" in s
             or "synthetic" in s
         ):
@@ -6706,10 +7154,16 @@ class LiveTradingEngine:
 
     @classmethod
     def _is_market_closing_symbol(cls, symbol: str) -> bool:
-        """Instrumentos financieros tradicionales sujetos a cierres diarios y de fin de semana."""
+        """Instrumentos financieros tradicionales sujetos a sesiones y cierres reales de mercado."""
         if cls._is_synthetic_symbol(symbol):
             return False
-        return cls._is_forex_symbol(symbol) or cls._is_crypto_symbol(symbol) or cls._is_metal_symbol(symbol) or cls._is_index_symbol(symbol)
+        return (
+            cls._is_forex_symbol(symbol)
+            or cls._is_crypto_symbol(symbol)
+            or cls._is_metal_symbol(symbol)
+            or cls._is_index_symbol(symbol)
+            or cls._is_commodity_or_energy_symbol(symbol)
+        )
 
     def _crypto_rollover_status(self, now_utc=None) -> dict:
         """Política de cierre y rollover para Crypto (15 minutos antes del cierre/rollover diario)."""
@@ -8042,6 +8496,19 @@ class LiveTradingEngine:
         return "jump" in str(symbol or "").lower()
 
     @staticmethod
+    def _is_gold_symbol(symbol: str) -> bool:
+        s = str(symbol or "").lower()
+        return "xau" in s or "gold" in s
+
+    def _get_pre_fill_risk_buffer(self, symbol: str) -> float:
+        """Calcula la reserva dinámica contra slippage según la volatilidad del activo."""
+        if self._is_jump_symbol(symbol):
+            return min(0.35, max(0.0, float(getattr(self.config, "jump_pre_fill_buffer", 0.20))))
+        if self._is_gold_symbol(symbol):
+            return min(0.30, max(0.0, float(getattr(self.config, "gold_pre_fill_buffer", 0.15))))
+        return min(0.25, max(0.0, float(getattr(self.config, "pre_fill_risk_buffer", 0.0))))
+
+    @staticmethod
     def _is_step_symbol(symbol: str) -> bool:
         return "step" in str(symbol or "").lower()
 
@@ -8703,6 +9170,23 @@ class LiveTradingEngine:
             except Exception:
                 pass
 
+        # Blindaje anti-slippage para saltos: distancia mínima de Stop Loss
+        min_sl_atr = float(getattr(self.config, "jump_min_sl_atr", 1.25))
+        sl_val = float(signal.get("stop_loss", 0.0) or 0.0)
+        entry_val = float(signal.get("entry_price", 0.0) or 0.0)
+        atr_val = float(signal.get("atr", 0.0) or (signal.get("orb_signal_atr", 0.0)) or 0.0)
+        if sl_val > 0 and entry_val > 0 and atr_val > 0:
+            sl_dist = abs(entry_val - sl_val)
+            min_safe_dist = min_sl_atr * atr_val
+            if sl_dist < min_safe_dist:
+                return {
+                    "symbol": str(symbol),
+                    "action": "JUMP_SL_DISTANCE_TOO_TIGHT_FOR_GAP_SAFETY",
+                    "reason": f"SL_DISTANCE_{sl_dist:.2f}_BELOW_SAFETY_FLOOR_{min_safe_dist:.2f}",
+                    "stop_distance": sl_dist,
+                    "min_required_distance": min_safe_dist,
+                }
+
         if not bool(self.config.jump_strict_filter_enabled):
             return None
 
@@ -9244,7 +9728,11 @@ class LiveTradingEngine:
         if executor is None or not hasattr(executor, 'get_open_positions'):
             return None
         from strategy.execution.active_position_guard import read_active_position_guard
-        guard = read_active_position_guard(symbol, executor)
+        allow_be = (
+            os.getenv("DAEMONBLACKFX_ALLOW_REENTRY_ON_BE", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+        guard = read_active_position_guard(symbol, executor, allow_breakeven_positions=allow_be)
         return None if guard['can_analyze'] else self._position_guard_result(symbol, guard)
 
     def process_symbol(self, symbol: str, sync_before_execution: bool = True):
@@ -9338,7 +9826,13 @@ class LiveTradingEngine:
         risk_fraction: float,
         silver_risk_cap: bool,
         build_plan,
+        runner_risk_fraction: float | None = None,
     ):
+        runner_fraction = (
+            float(runner_risk_fraction)
+            if runner_risk_fraction is not None
+            else round(1.0 - float(risk_fraction), 6)
+        )
         split_failure = None
         execution_mode = "SINGLE"
         if strategy_name == 'MALAYSIAN_SNR' and signal.get('setup_id'):
@@ -9362,31 +9856,50 @@ class LiveTradingEngine:
         is_forex_profile = str(self.config.bot_profile or "").upper().startswith("FOREX") or is_forex_symbol
         is_vol_profile = str(self.config.bot_profile or "").upper().startswith("VOLATILITY")
         is_volatility = self._is_volatility_symbol(exact_symbol) if callable(getattr(self, "_is_volatility_symbol", None)) else False
+        is_jump = self._is_jump_symbol(exact_symbol) if callable(getattr(self, "_is_jump_symbol", None)) else False
+        jump_single_fallback_blocked = (
+            is_jump
+            and bool(self.config.jump_strict_filter_enabled)
+            and not bool(self.config.jump_allow_single_fallback)
+        )
         if bool(self.config.split_entries_enabled):
+            sub_tp2_reason = None
+            sign = 1 if direction == "BUY" else -1
+            live_risk_abs = abs(float(entry) - float(sl))
+            min_tp2_rr = float(getattr(self.config, "sub_tp2_min_rr_threshold", 2.0))
             if is_forex_profile and is_forex_symbol and strategy_name != "MALAYSIAN_SNR":
                 eff_first_rr = float(self.config.first_target_rr)
                 eff_second_rr = float(self.config.second_target_rr)
+                if signal.get("runner_rr") is not None:
+                    eff_second_rr = min(eff_second_rr, float(signal["runner_rr"]))
                 forex_runner_target = max(
                     eff_second_rr,
                     float(getattr(self.config, "forex_runner_broker_safety_target_rr", 4.0)),
                 )
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, eff_second_rr, forex_runner_target),
+                    ("RUNNER", runner_fraction, eff_second_rr, forex_runner_target),
                 ]
+                projected_tp2_rr = eff_second_rr
             elif is_vol_profile and is_volatility and strategy_name != "MALAYSIAN_SNR":
                 eff_first_rr = float(self.config.volatility_first_target_rr)
                 eff_second_rr = float(self.config.volatility_second_target_rr)
+                if signal.get("runner_rr") is not None:
+                    eff_second_rr = min(eff_second_rr, float(signal["runner_rr"]))
                 # El runner nace siempre buscando 1:2 (eff_second_rr).
                 # La extensión progresiva a 1:3 y 1:4 se gestiona dinámicamente en vivo.
                 runner_target_rr = eff_second_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
+                    ("RUNNER", runner_fraction, eff_second_rr, runner_target_rr),
                 ]
+                projected_tp2_rr = eff_second_rr
             elif strategy_name == "GOLD_QUARTERS":
                 gq_tp1_rr = float(signal.get("risk_reward_ratio_tp1") or self.config.first_target_rr)
                 gq_tp2_rr = float(signal.get("risk_reward_ratio_tp2") or self.config.second_target_rr)
+                if signal.get("quarter_target_2") is not None and live_risk_abs > 0:
+                    q2_live_rr = sign * (float(signal["quarter_target_2"]) - float(entry)) / live_risk_abs
+                    gq_tp2_rr = min(gq_tp2_rr, q2_live_rr)
                 eff_first_rr = gq_tp1_rr
                 # Para GOLD_QUARTERS, el objetivo natural del runner es el Nivel de Cuarto 2 (gq_tp2_rr).
                 # Conservamos gq_tp2_rr como broker_target_rr para alcanzar el nivel exacto de cuartos
@@ -9394,26 +9907,31 @@ class LiveTradingEngine:
                 runner_target_rr = gq_tp2_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, gq_tp2_rr, runner_target_rr),
+                    ("RUNNER", runner_fraction, gq_tp2_rr, runner_target_rr),
                 ]
+                projected_tp2_rr = gq_tp2_rr
+                if projected_tp2_rr + 1e-6 < min_tp2_rr:
+                    sub_tp2_reason = "QUARTER_TP2_ROOM_BELOW_THRESHOLD"
             elif strategy_name == "MALAYSIAN_SNR":
                 msnr_tp1_rr = float(signal.get("tp1_rr") or getattr(self.config, "malaysian_snr_tp1_rr", self.config.first_target_rr))
                 msnr_runner_rr = float(signal.get("runner_rr") or getattr(self.config, "malaysian_snr_runner_rr", self.config.second_target_rr))
                 if signal.get("obstacle_level") and signal.get("tp2_price"):
-                    sign = 1 if direction == "BUY" else -1
                     live_risk = sign * (float(entry) - float(sl))
                     room = sign * (float(signal["tp2_price"]) - float(entry))
                     if live_risk <= 0 or room < msnr_tp1_rr * live_risk:
                         return None, {"code": "MSNR_OBSTACLE_BEFORE_MINIMUM_TP1"}, None, "SPLIT"
                     msnr_runner_rr = min(msnr_runner_rr, room / live_risk)
+                    if msnr_runner_rr + 1e-6 < min_tp2_rr:
+                        sub_tp2_reason = "MSNR_OBSTACLE_BEFORE_MINIMUM_TP2"
                 eff_first_rr = msnr_tp1_rr
                 eff_second_rr = msnr_runner_rr
                 # Preserve the structural ceiling selected by MSNR obstacle awareness.
                 runner_target_rr = eff_second_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
+                    ("RUNNER", runner_fraction, eff_second_rr, runner_target_rr),
                 ]
+                projected_tp2_rr = eff_second_rr
             elif strategy_name in {"ICT", "ICT_SABRI_MALLE", "DRIFT_BREAKOUT", "CONNORS_RSI2", "FX_CARRY", "TREND_PULLBACK"}:
                 ict_tp1_rr = float(signal.get("tp1_rr") or getattr(self.config, "first_target_rr", 2.0))
                 ict_runner_rr = float(signal.get("runner_rr") or getattr(self.config, "second_target_rr", 4.0))
@@ -9422,8 +9940,9 @@ class LiveTradingEngine:
                 runner_target_rr = eff_second_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, eff_second_rr, runner_target_rr),
+                    ("RUNNER", runner_fraction, eff_second_rr, runner_target_rr),
                 ]
+                projected_tp2_rr = eff_second_rr
             else:
                 eff_first_rr = float(self.config.first_target_rr)
                 eff_second_rr = float(self.config.second_target_rr)
@@ -9436,6 +9955,8 @@ class LiveTradingEngine:
                         context_runner_rr = 2.5
                     else:
                         context_runner_rr = max(2.0, eff_second_rr)
+                    if signal.get("runner_rr") is not None:
+                        context_runner_rr = min(context_runner_rr, float(signal["runner_rr"]))
                     if bool(self.config.runner_extension_enabled):
                         strategy_runner_max_rr = float(self.config.runner_extension_max_target_rr)
                         runner_target_rr = max(context_runner_rr, strategy_runner_max_rr)
@@ -9443,14 +9964,80 @@ class LiveTradingEngine:
                         runner_target_rr = context_runner_rr
                     runner_logical_rr = context_runner_rr
                 else:
-                    runner_logical_rr = eff_second_rr
-                    runner_target_rr = eff_second_rr
+                    runner_logical_rr = float(signal["runner_rr"]) if signal.get("runner_rr") is not None else eff_second_rr
+                    runner_target_rr = runner_logical_rr
                 split_specs = [
                     ("TP1", risk_fraction, eff_first_rr, eff_first_rr),
-                    ("RUNNER", risk_fraction, runner_logical_rr, runner_target_rr),
+                    ("RUNNER", runner_fraction, runner_logical_rr, runner_target_rr),
                 ]
-            legs, split_failure = build_plan(split_specs, "SPLIT")
-            execution_mode = "SPLIT"
+                projected_tp2_rr = runner_logical_rr
+
+            # Verificación transversal de proyección estructural hasta TP2 (Prioridad 2).
+            for cap_key in ("max_structural_rr", "projected_tp2_rr"):
+                if signal.get(cap_key) is not None:
+                    try:
+                        cap_val = float(signal[cap_key])
+                        if math.isfinite(cap_val):
+                            projected_tp2_rr = min(projected_tp2_rr, cap_val)
+                            if projected_tp2_rr + 1e-6 < min_tp2_rr and sub_tp2_reason is None:
+                                sub_tp2_reason = "STRUCTURAL_CEILING_BELOW_TP2"
+                    except (TypeError, ValueError):
+                        pass
+
+            if strategy_name != "MALAYSIAN_SNR" and signal.get("obstacle_level") is not None and signal.get("tp2_price") is not None and live_risk_abs > 0:
+                try:
+                    obs_room_rr = sign * (float(signal["tp2_price"]) - float(entry)) / live_risk_abs
+                    if math.isfinite(obs_room_rr):
+                        projected_tp2_rr = min(projected_tp2_rr, obs_room_rr)
+                        if projected_tp2_rr + 1e-6 < min_tp2_rr and sub_tp2_reason is None:
+                            sub_tp2_reason = "OBSTACLE_BEFORE_MINIMUM_TP2"
+                except (TypeError, ValueError):
+                    pass
+
+            m15_obs = signal.get("m15_obstacles")
+            if m15_obs and live_risk_abs > 0:
+                try:
+                    from strategy.smc.target_obstacles import target_path
+                    tp2_probe_price = float(entry) + sign * live_risk_abs * min_tp2_rr
+                    obs_path = target_path(entry, sl, tp2_probe_price, direction, m15_obs)
+                    obs_hits = [z for z in (obs_path.get("obstacles") or []) if z.get("distance_r") is not None]
+                    if obs_hits:
+                        nearest_r = float(obs_hits[0]["distance_r"])
+                        if (eff_first_rr - 1e-6) <= nearest_r < (min_tp2_rr - 1e-6):
+                            projected_tp2_rr = min(projected_tp2_rr, nearest_r)
+                            if sub_tp2_reason is None:
+                                sub_tp2_reason = "M15_OBSTACLE_BEFORE_TP2"
+                except Exception:
+                    pass
+
+            if projected_tp2_rr + 1e-6 < min_tp2_rr and sub_tp2_reason is None:
+                sub_tp2_reason = "SIGNAL_TP2_RR_BELOW_THRESHOLD"
+
+            if sub_tp2_reason is not None and bool(getattr(self.config, "sub_tp2_single_1to1_enabled", True)):
+                if projected_tp2_rr + 1e-6 < float(eff_first_rr):
+                    return None, {"code": sub_tp2_reason, "projected_tp2_rr": round(projected_tp2_rr, 4)}, None, "SPLIT"
+                if jump_single_fallback_blocked and not bool(getattr(self.config, "sub_tp2_allow_jump_single", False)):
+                    return None, {
+                        "code": sub_tp2_reason,
+                        "projected_tp2_rr": round(projected_tp2_rr, 4),
+                        "min_tp2_rr": min_tp2_rr,
+                    }, None, "SPLIT"
+                single_1to1_rr = float(getattr(self.config, "sub_tp2_single_target_rr", 1.0) or 1.0)
+                single_fraction = 1.0 if bool(getattr(self.config, "single_leg_full_risk_enabled", True)) else float(risk_fraction)
+                if isinstance(signal, dict):
+                    signal["sub_tp2_exception"] = {
+                        "applied": True,
+                        "reason": sub_tp2_reason,
+                        "projected_tp2_rr": round(projected_tp2_rr, 4),
+                        "min_tp2_rr": min_tp2_rr,
+                        "target_rr": single_1to1_rr,
+                        "risk_fraction": single_fraction,
+                    }
+                legs, split_failure = build_plan([("SINGLE", single_fraction, single_1to1_rr)], "SINGLE")
+                execution_mode = "SINGLE"
+            else:
+                legs, split_failure = build_plan(split_specs, "SPLIT")
+                execution_mode = "SPLIT"
         else:
             single_rr = (
                 float(getattr(self.config, "single_entry_target_rr", 1.0))
@@ -9459,12 +10046,6 @@ class LiveTradingEngine:
             )
             legs, split_failure = build_plan([("FULL", 1.0, single_rr)], "SINGLE")
 
-        is_jump = self._is_jump_symbol(exact_symbol) if callable(getattr(self, "_is_jump_symbol", None)) else False
-        jump_single_fallback_blocked = (
-            is_jump
-            and bool(self.config.jump_strict_filter_enabled)
-            and not bool(self.config.jump_allow_single_fallback)
-        )
         single_failure = None
         if (
             legs is None
@@ -9532,6 +10113,10 @@ class LiveTradingEngine:
             except Exception:
                 pass
 
+        dd_gate = self._portfolio_daily_drawdown_gate(exact_symbol)
+        if dd_gate is not None:
+            return dd_gate
+
         position_gate = self._active_position_gate(exact_symbol)
         if position_gate is not None:
             return position_gate
@@ -9554,16 +10139,9 @@ class LiveTradingEngine:
         if forex_news_gate is not None:
             return forex_news_gate
 
-        self.provider.ensure_symbol(exact_symbol)
-
-        spread_lock_gate = self._ict_spread_lock_gate(exact_symbol)
-        if spread_lock_gate is not None:
-            return spread_lock_gate
-
-        regime_gate = self._market_regime_entry_gate(exact_symbol)
-        if regime_gate is not None:
-            return regime_gate
-
+        # Optimización I/O (Fase 1 Informática - Preflight Zero-I/O Fast Exit):
+        # Evaluar compuertas determinísticas en memoria (Crossover horario, Cooldown de racha y Cuarentena)
+        # ANTES de llamar a MT5 IPC (ensure_symbol, ticks de spread o descarga de velas de régimen).
         crossover_gate = self._london_ny_crossover_sentinel_gate(exact_symbol)
         if crossover_gate is not None:
             return crossover_gate
@@ -9584,6 +10162,16 @@ class LiveTradingEngine:
                 ),
                 "quarantine": quarantined,
             }
+
+        self.provider.ensure_symbol(exact_symbol)
+
+        spread_lock_gate = self._ict_spread_lock_gate(exact_symbol)
+        if spread_lock_gate is not None:
+            return spread_lock_gate
+
+        regime_gate = self._market_regime_entry_gate(exact_symbol)
+        if regime_gate is not None:
+            return regime_gate
 
         # En ejecución real sincronizamos SQLite con MT5 antes del ciclo.
         # La llamada directa a process_symbol conserva la sincronización por compatibilidad.
@@ -9850,12 +10438,27 @@ class LiveTradingEngine:
         signal.setdefault("detected_at", datetime.now(timezone.utc).isoformat())
         from strategy.execution.worker_rules import stamp_confirmation_times
         stamp_confirmation_times(signal)
-        signal_id, _ = self._save_signal(exact_symbol, signal)
         strategy_name = str(
             signal.get("strategy_name")
             or analysis.get("strategy_name")
             or ("ICT" if str(self.config.bot_profile or "").upper() == "ICT" else "SMC")
         ).upper()
+
+        strategy_hour_gate = self._strategy_toxic_hour_gate(exact_symbol, strategy_name)
+        if strategy_hour_gate is not None:
+            if self.config.diagnostic_mode:
+                strategy_hour_gate["analysis"] = analysis
+            return strategy_hour_gate
+
+        dir_confluence_gate = self._real_market_directional_confluence_gate(
+            exact_symbol, direction, signal, analysis, strategy_name
+        )
+        if dir_confluence_gate is not None:
+            if self.config.diagnostic_mode:
+                dir_confluence_gate["analysis"] = analysis
+            return dir_confluence_gate
+
+        signal_id, _ = self._save_signal(exact_symbol, signal)
         strategy_version = str(signal.get("strategy_version") or analysis.get("strategy_version") or self.config.strategy_version)
         key = self._execution_key(exact_symbol, signal["entry_time"], direction,
                                   strategy_name=strategy_name, **(
@@ -9881,19 +10484,30 @@ class LiveTradingEngine:
             analysis=analysis,
             strategy_name=strategy_name,
         )
-        if (not meta_label.get("allowed", True)
-                and str(strategy_name or "").upper() in self._NATIVE_META_SHADOW_STRATEGIES
-                and bool(getattr(self.config, "native_strategy_meta_label_shadow", True))):
-            # Estrategias validadas sin la IA: sombra en cualquier tipo de símbolo.
-            meta_label = {**meta_label, "allowed": True, "shadow_override": "NATIVE_STRATEGY_META_SHADOW",
-                          "would_reject_reason": meta_label.get("reason")}
-        if (not meta_label.get("allowed", True)
-                and str(strategy_name or "").upper() in {"ICT", "ICT_SABRI_MALLE"}
-                and self._is_synthetic_symbol(exact_symbol)
-                and bool(getattr(self.config, "ict_synthetic_meta_label_shadow", False))):
-            # Modo sombra: se conserva la puntuación para aprendizaje, sin bloquear la entrada.
-            meta_label = {**meta_label, "allowed": True, "shadow_override": "ICT_SYNTHETIC_META_SHADOW",
-                          "would_reject_reason": meta_label.get("reason")}
+        # Escudo de Expectativa Negativa Dura: un modelo entrenado que prediga retorno esperado negativo
+        # bloquea la señal de forma concluyente, anulando cualquier modo sombra o bypass.
+        block_neg_exp = os.getenv("DAEMONBLACKFX_META_BLOCK_NEGATIVE_EXPECTANCY", "1").strip().lower() not in ("0", "false", "off")
+        ml_trained = bool(meta_label.get("trained", False))
+        ml_exp_r = float(meta_label.get("net_expectancy_r", 0.0) or 0.0)
+
+        if block_neg_exp and ml_trained and ml_exp_r < -1e-6:
+            meta_label["allowed"] = False
+            meta_label["reason"] = f"NEGATIVE_NET_EXPECTANCY_BLOCKED:{ml_exp_r:.3f}R"
+            meta_label.pop("shadow_override", None)
+        else:
+            if (not meta_label.get("allowed", True)
+                    and str(strategy_name or "").upper() in self._NATIVE_META_SHADOW_STRATEGIES
+                    and bool(getattr(self.config, "native_strategy_meta_label_shadow", True))):
+                # Estrategias validadas sin la IA: sombra en cualquier tipo de símbolo.
+                meta_label = {**meta_label, "allowed": True, "shadow_override": "NATIVE_STRATEGY_META_SHADOW",
+                              "would_reject_reason": meta_label.get("reason")}
+            if (not meta_label.get("allowed", True)
+                    and str(strategy_name or "").upper() in {"ICT", "ICT_SABRI_MALLE"}
+                    and self._is_synthetic_symbol(exact_symbol)
+                    and bool(getattr(self.config, "ict_synthetic_meta_label_shadow", False))):
+                # Modo sombra: se conserva la puntuación para aprendizaje, sin bloquear la entrada.
+                meta_label = {**meta_label, "allowed": True, "shadow_override": "ICT_SYNTHETIC_META_SHADOW",
+                              "would_reject_reason": meta_label.get("reason")}
         signal["meta_label"] = meta_label
         from strategy.ai.feature_extraction import FEATURE_NAMES, FEATURE_SCHEMA
         signal["entry_learning_snapshot"] = {
@@ -9933,6 +10547,13 @@ class LiveTradingEngine:
                     }
             except Exception:
                 pass
+
+        dd_gate = self._portfolio_daily_drawdown_gate(exact_symbol)
+        if dd_gate is not None:
+            dd_gate["execution_key"] = key
+            if self.config.diagnostic_mode:
+                dd_gate["analysis"] = analysis
+            return dd_gate
 
         if strategy_name == "ORB_NEW_YORK" and is_orb_silver_symbol(exact_symbol):
             silver_guard = self._orb_silver_open_guard(exact_symbol)
@@ -10147,12 +10768,22 @@ class LiveTradingEngine:
         is_volatility = any(k in sym_norm for k in ("VOLATILITY", "VOL"))
         is_vol_profile = str(self.config.bot_profile or "").upper().startswith("VOLATILITY")
         risk_fraction = float(self.config.split_entry_risk_fraction)
-        if bool(self.config.split_entries_enabled) and (not (0 < risk_fraction < 1) or abs((risk_fraction * 2.0) - 1.0) > 1e-9):
+        runner_risk_fraction = (
+            float(self.config.split_runner_risk_fraction)
+            if getattr(self.config, "split_runner_risk_fraction", None) is not None
+            else round(1.0 - risk_fraction, 6)
+        )
+        if bool(self.config.split_entries_enabled) and (
+            not (0 < risk_fraction < 1)
+            or not (0 < runner_risk_fraction < 1)
+            or abs((risk_fraction + runner_risk_fraction) - 1.0) > 1e-9
+        ):
             return {
                 "symbol": exact_symbol,
                 "action": "INVALID_SPLIT_RISK_CONFIGURATION", "analysis": analysis,
                 "reason": "LAS_DOS_ENTRADAS_DEBEN_SUMAR_EL_100_POR_CIENTO_DEL_RIESGO",
                 "split_entry_risk_fraction": risk_fraction,
+                "split_runner_risk_fraction": runner_risk_fraction,
             }
 
         risk_distance = abs(entry - sl)
@@ -10213,10 +10844,7 @@ class LiveTradingEngine:
                     }
                 leg_risk_amount = total_risk_amount * fraction
                 leg_risk_percent = total_risk_percent * fraction
-                pre_fill_buffer = min(
-                    0.25,
-                    max(0.0, float(self.config.pre_fill_risk_buffer)),
-                )
+                pre_fill_buffer = self._get_pre_fill_risk_buffer(exact_symbol)
                 sizing_risk_amount = leg_risk_amount * (1.0 - pre_fill_buffer)
                 leg_tp = (
                     entry + risk_distance * broker_target_rr
@@ -10373,6 +11001,7 @@ class LiveTradingEngine:
             signal=signal,
             total_risk_amount=total_risk_amount,
             risk_fraction=risk_fraction,
+            runner_risk_fraction=runner_risk_fraction,
             silver_risk_cap=silver_risk_cap,
             build_plan=build_plan,
         )
@@ -10488,10 +11117,11 @@ class LiveTradingEngine:
             "split_entries_enabled": bool(self.config.split_entries_enabled),
             "execution_mode": execution_mode,
             "execution_mode_es": {
-                "SPLIT": "DOS ENTRADAS: 0,5% + 0,5%",
-                "SINGLE_FALLBACK": "ENTRADA ÚNICA ALTERNATIVA: HASTA 1%",
-                "SINGLE": "ENTRADA ÚNICA",
+                "SPLIT": f"DOS ENTRADAS: {round(risk_fraction * 100):g}% + {round(runner_risk_fraction * 100):g}%",
+                "SINGLE_FALLBACK": "ENTRADA ÚNICA ALTERNATIVA: HASTA 1% (1:1)",
+                "SINGLE": "ENTRADA ÚNICA: 1% @ 1:1",
             }.get(execution_mode, execution_mode),
+            "sub_tp2_exception": signal.get("sub_tp2_exception"),
             "split_failure": split_failure if execution_mode == "SINGLE_FALLBACK" else None,
             "break_even_offset_points": int(self.config.break_even_offset_points),
             "break_even_trigger_rr": (
@@ -10555,6 +11185,8 @@ class LiveTradingEngine:
         # pero auditadas como una sola operación lógica de riesgo total <= 1%.
         if self.lifecycle_manager is not None:
             opened = []
+            partial_split_error = None
+            atomic_split = bool(getattr(self.config, "atomic_split_execution_enabled", True))
             for leg in legs:
                 execution_signal = {
                     "symbol": exact_symbol,
@@ -10590,6 +11222,7 @@ class LiveTradingEngine:
                     ),
                     "trade_leg": leg["name"],
                     "execution_mode": execution_mode,
+                    "sub_tp2_exception": signal.get("sub_tp2_exception"),
                     "signal_id": signal_id,
                     "risk_base": risk_base_name,
                     "risk_base_value": risk_base_value,
@@ -10605,7 +11238,14 @@ class LiveTradingEngine:
                     "actual_risk_amount": leg["actual_risk_amount"],
                     "initial_stop_loss": sl,
                     "exit_policy": "ORB_FIXED_SL_TP" if strategy_name == "ORB_NEW_YORK" else "STRATEGY_MANAGED",
-                    "break_even_enabled": bool(self.config.break_even_enabled) and strategy_name != "ORB_NEW_YORK",
+                    "break_even_enabled": (
+                        bool(self.config.break_even_enabled)
+                        and strategy_name != "ORB_NEW_YORK"
+                        and not (
+                            leg["name"] in {"SINGLE", "FULL"}
+                            and float(leg.get("target_rr", 1.0)) <= float(self.config.break_even_trigger_rr) + 1e-6
+                        )
+                    ),
                     "break_even_trigger_rr": (
                         float(signal.get("be_trigger_rr") or self.config.first_target_rr) if strategy_name == "MALAYSIAN_SNR"
                         else float(signal.get("be_trigger_rr") or self.config.break_even_trigger_rr) if (strategy_name in {"ICT", "ICT_SABRI_MALLE"} and not is_orb_gold_symbol(exact_symbol) and str(self.config.bot_profile).upper() != "GOLD")
@@ -10735,11 +11375,12 @@ class LiveTradingEngine:
                 # La notificación EXECUTION_FILLED persiste el trade dentro de
                 # execute_with_executor. El lock impide que el monitor importe
                 # el ticket MT5 durante la pequeña ventana entre fill y commit.
-                final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
-                if final_gate is not None:
-                    final_gate["opened_legs"] = [{"leg":x["leg"],"position_ticket":x["position_ticket"]} for x in opened]
-                    final_gate["partial_execution"] = bool(opened)
-                    return final_gate
+                if not (opened and atomic_split):
+                    final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
+                    if final_gate is not None:
+                        final_gate["opened_legs"] = [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened]
+                        final_gate["partial_execution"] = bool(opened)
+                        return final_gate
                 with self._execution_persistence_lock:
                     order_sent_at = datetime.now(timezone.utc).isoformat()
                     order_clock = time.monotonic()
@@ -10749,12 +11390,30 @@ class LiveTradingEngine:
                             volume=float(leg["sizing"]["volume"]),
                         )
                     except Exception as exc:
-                        if not str(exc).startswith("PRE_SEND_RR_BLOCKED"):
-                            raise
-                        return {**base, "action": "EXECUTABLE_RR_BLOCKED",
-                                "reason": str(exc), "failed_leg": leg["name"],
-                                "partial_execution": bool(opened),
-                                "opened_legs": [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened]}
+                        if str(exc).startswith("PRE_SEND_RR_BLOCKED"):
+                            return {**base, "action": "EXECUTABLE_RR_BLOCKED",
+                                    "reason": str(exc), "failed_leg": leg["name"],
+                                    "partial_execution": bool(opened),
+                                    "opened_legs": [{"leg": x["leg"], "position_ticket": x["position_ticket"]} for x in opened]}
+                        if opened and atomic_split:
+                            self._persist_audit_event(
+                                "PARTIAL_SPLIT_EXECUTION",
+                                instrument=exact_symbol,
+                                action="SPLIT_SECOND_LEG_FAILED",
+                                reason=str(exc),
+                                execution_key=leg["execution_key"],
+                                payload={
+                                    "failed_leg": leg["name"],
+                                    "error": str(exc),
+                                    "opened_legs": [
+                                        {"leg": x["leg"], "position_ticket": x["position_ticket"], "trade_id": x.get("trade_id")}
+                                        for x in opened
+                                    ],
+                                },
+                            )
+                            partial_split_error = {"failed_leg": leg["name"], "error": str(exc)}
+                            break
+                        raise
                     if lifecycle.execution_status == "FILLED":
                         self._mark_orb_session_after_fill(exact_symbol, signal)
 
@@ -10809,7 +11468,7 @@ class LiveTradingEngine:
                 modify_stops = getattr(trade_executor, "move_stop_loss", None)
                 targets_modified = False
                 if (
-                    leg.get("name") == "TP1"
+                    leg.get("name") in {"TP1", "SINGLE", "FULL"}
                     and callable(modify_stops)
                     and lifecycle.position_ticket
                     and fill_risk_distance > 0
@@ -11026,7 +11685,13 @@ class LiveTradingEngine:
 
             self._mark_orb_session_after_fill(exact_symbol, signal)
             return {
-                "action": "SPLIT_ORDER_OPENED" if execution_mode == "SPLIT" else "ORDER_OPENED",
+                "action": (
+                    "PARTIAL_SPLIT_ORDER_OPENED"
+                    if partial_split_error
+                    else ("SPLIT_ORDER_OPENED" if execution_mode == "SPLIT" else "ORDER_OPENED")
+                ),
+                "partial_execution": bool(partial_split_error),
+                "partial_split_error": partial_split_error,
                 "opened_legs": [
                     {**item, "lifecycle": item["lifecycle"].to_dict()} for item in opened
                 ],
@@ -11035,11 +11700,14 @@ class LiveTradingEngine:
 
         # Compatibilidad sin lifecycle_manager. También respeta las dos piernas.
         opened = []
+        partial_split_error = None
+        atomic_split = bool(getattr(self.config, "atomic_split_execution_enabled", True))
         for leg in legs:
-            final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
-            if final_gate is not None:
-                final_gate["partial_execution"] = bool(opened)
-                return final_gate
+            if not (opened and atomic_split):
+                final_gate = self._forex_execution_gate(exact_symbol, direction, sl, strategy_name=strategy_name)
+                if final_gate is not None:
+                    final_gate["partial_execution"] = bool(opened)
+                    return final_gate
             order_sent_at = datetime.now(timezone.utc).isoformat()
             order_clock = time.monotonic()
             try:
@@ -11054,10 +11722,21 @@ class LiveTradingEngine:
                     ),
                 )
             except Exception as exc:
-                if not str(exc).startswith("PRE_SEND_RR_BLOCKED"):
-                    raise
-                return {**base, "action": "EXECUTABLE_RR_BLOCKED", "reason": str(exc),
-                        "failed_leg": leg["name"], "partial_execution": bool(opened), "opened_legs": opened}
+                if str(exc).startswith("PRE_SEND_RR_BLOCKED"):
+                    return {**base, "action": "EXECUTABLE_RR_BLOCKED", "reason": str(exc),
+                            "failed_leg": leg["name"], "partial_execution": bool(opened), "opened_legs": opened}
+                if opened and atomic_split:
+                    self._persist_audit_event(
+                        "PARTIAL_SPLIT_EXECUTION",
+                        instrument=exact_symbol,
+                        action="SPLIT_SECOND_LEG_FAILED",
+                        reason=str(exc),
+                        execution_key=leg["execution_key"],
+                        payload={"failed_leg": leg["name"], "error": str(exc), "opened_legs": opened},
+                    )
+                    partial_split_error = {"failed_leg": leg["name"], "error": str(exc)}
+                    break
+                raise
             self._mark_orb_session_after_fill(exact_symbol, signal)
             filled_volume = float(placed.get("filled_volume") or (placed.get("request") or {}).get("volume") or leg["sizing"]["volume"])
             fill_received_at = datetime.now(timezone.utc).isoformat()
@@ -11830,6 +12509,7 @@ class LiveTradingEngine:
         """
         profile = str(bot_profile or "").upper()
         if profile == "TREND_PULLBACK": return "TREND_PULLBACK"
+        if profile in ("INDICES", "INDICESB_SNR"): return "INDICESB_SNR"
         if profile == "ICT": return "ICT"
         if profile == "MALAYSIAN_SNR": return "MALAYSIAN_SNR"
         if profile.startswith("FOREX"): return "FOREX"
@@ -11898,7 +12578,11 @@ class LiveTradingEngine:
             return symbols
         allow_selective = bot_prof in ("VOLATILITY_2", "FOREX_2") or bool(getattr(self.config, "allow_selective_pruned", False))
         filtered = sanitize_ict_selection(profile, symbols, allow_selective=allow_selective)
-        if bot_prof in ("VOLATILITY_2", "FOREX_2"):
+        legacy_pruned_exclude = (
+            os.getenv("DAEMONBLACKFX_LEGACY_PRUNED_SHARD_EXCLUDE", "0").strip().lower()
+            in ("1", "true", "on", "yes")
+        )
+        if legacy_pruned_exclude and bot_prof in ("VOLATILITY_2", "FOREX_2"):
             from config.ict_instrument_policy import ict_active_symbols
             active_set = set(ict_active_symbols(profile))
             filtered = [s for s in filtered if s not in active_set]
@@ -12290,12 +12974,19 @@ class LiveTradingEngine:
                 if view.get("strategy_name") == "MT5_OBSERVATION":
                     latest_market.update(current_price=view.get("observed_price"),
                         current_stop_loss=trade.get("stop_loss"),take_profit=trade.get("take_profit"))
+                trade_source = str(trade.get("source") or self.config.source).upper()
+                is_external_trade = (
+                    trade_source == "MT5_EXTERNAL"
+                    or trade.get("_audit_strategy_name") == "MT5_OBSERVATION"
+                )
+                audit_bot_profile = "MT5_EXTERNAL" if is_external_trade else str(self.config.bot_profile).upper()
+                audit_magic = 0 if is_external_trade else int(self.config.magic)
                 try:
                     writer(
                         int(trade_id),
                         instrument=symbol,
-                        bot_profile=str(self.config.bot_profile).upper(),
-                        daemon_magic=int(self.config.magic),
+                        bot_profile=audit_bot_profile,
+                        daemon_magic=audit_magic,
                         broker_position_ticket=trade.get("broker_position_ticket"),
                         latest_market=latest_market,
                         **({"entry_context":previous.get("entry_context"),
@@ -12322,8 +13013,8 @@ class LiveTradingEngine:
                             current_view=view,
                             market=latest_market,
                             visual_context=visual_context,
-                            bot_profile=str(self.config.bot_profile).upper(),
-                            daemon_magic=int(self.config.magic),
+                            bot_profile=audit_bot_profile,
+                            daemon_magic=audit_magic,
                             broker_position_ticket=trade.get("broker_position_ticket"),
                             source=trade.get("source") or self.config.source,
                             snapshot_at=view.get("evaluated_at"),

@@ -339,10 +339,22 @@ _DECISIONS_BASE = r'''<!doctype html>
       /* TABLES */
       .tableWrap {
         overflow-x: auto;
+        overflow-y: auto;
+        max-height: 620px;
         border-radius: 10px;
-        border: 1px solid rgba(91, 69, 20, 0.35);
+        border: 1px solid rgba(215, 155, 25, 0.25);
         width: 100%;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .tableWrap::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .tableWrap::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
       }
       table {
         width: 100%;
@@ -360,17 +372,70 @@ _DECISIONS_BASE = r'''<!doctype html>
         color: #d1d5db;
         font-weight: 650;
         font-size: 11px;
-        background: var(--p2);
+        background: #10161b;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         white-space: nowrap;
-        padding: 7px 8px;
+        padding: 8px 9px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 2px solid rgba(215, 155, 25, 0.4);
       }
-      tr:hover td { background: rgba(215, 155, 25, 0.03); }
+      th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.15s ease;
+      }
+      th.sortable:hover {
+        color: #ffd465;
+        background: #17212a;
+      }
+      th.sortable.sorted {
+        color: #ffd465;
+        background: #1a2530;
+        border-bottom-color: #ffd465;
+      }
+      .sort-arrow {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 10px;
+        opacity: 0.35;
+      }
+      th.sortable.sorted .sort-arrow {
+        opacity: 1;
+        color: #ffd465;
+      }
+      tr:hover td { background: rgba(215, 155, 25, 0.04); }
       td.n, th.n {
         text-align: right;
         font-variant-numeric: tabular-nums;
         font-family: Consolas, monospace;
+      }
+      .filterChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        cursor: pointer;
+        user-select: none;
+        padding: 5px 12px;
+        border-radius: 18px;
+        font-weight: 700;
+        border: 1px solid rgba(215, 155, 25, 0.25);
+        background: rgba(16, 22, 26, 0.8);
+        color: var(--m);
+        transition: all 0.2s ease;
+      }
+      .filterChip:hover {
+        border-color: rgba(215, 155, 25, 0.6);
+        color: #fff;
+      }
+      .filterChip.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.25), rgba(215, 155, 25, 0.08));
+        border-color: #ffd465;
+        color: #ffd465;
+        box-shadow: 0 0 10px rgba(215, 155, 25, 0.2);
       }
       #tblVetoes td:last-child {
         white-space: normal;
@@ -540,7 +605,16 @@ _DECISIONS_BASE = r'''<!doctype html>
             <div class="muted">Trazabilidad cuantitativa integral: qué evaluaron el Criterio Humano, la Confluencia Tripartita y la IA en cada señal.</div>
           </div>
           <div class="topActions">
-            <input type="text" id="filterInput" class="search-input" placeholder="🔍 Filtrar tablas en vivo..." oninput="filterTables(this.value)" />
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="filterInput" class="search-input" placeholder="🔍 Filtrar tablas en vivo..." oninput="filterTables(this.value)" style="padding-right: 28px;" />
+              <button
+                type="button"
+                id="btnClearFilter"
+                onclick="document.getElementById('filterInput').value=''; filterTables('');"
+                style="position: absolute; right: 6px; background: none; border: none; color: var(--m); font-size: 13px; cursor: pointer; padding: 2px; display: none;"
+                title="Limpiar filtro"
+              >✕</button>
+            </div>
             <label class="muted" style="font-size:12.5px; display:flex; align-items:center; gap:6px;">
               Ventana:
               <select id="days">
@@ -553,6 +627,15 @@ _DECISIONS_BASE = r'''<!doctype html>
             </label>
             <button id="reload" class="btnPrimary">🔄 Actualizar</button>
           </div>
+        </div>
+
+        <!-- QUICK FILTER CHIPS -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+          <span style="font-size: 11px; color: var(--m); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Filtro Rápido:</span>
+          <button type="button" class="filterChip active" id="chipDecAll" onclick="setDecisionFilter('all')">📋 Todas</button>
+          <button type="button" class="filterChip" id="chipDecAllow" onclick="setDecisionFilter('allow')">⚡ Solo Aprobadas (ALLOW)</button>
+          <button type="button" class="filterChip" id="chipDecVeto" onclick="setDecisionFilter('veto')">🛡 Solo Vetadas (VETO)</button>
+          <button type="button" class="filterChip" id="chipDecTrades" onclick="setDecisionFilter('trades')">🎯 Con Trades Ejecutados</button>
         </div>
 
         <!-- NOTA DE COBERTURA PARCIAL (SI APLICA) -->
@@ -672,12 +755,12 @@ _DECISIONS_BASE = r'''<!doctype html>
               <table id="tblVetoes">
                 <thead>
                   <tr>
-                    <th>Hora (UTC)</th>
-                    <th>Instrumento</th>
-                    <th>Comité</th>
-                    <th>Decisión</th>
-                    <th>Estrategia</th>
-                    <th>Causa / Diagnóstico Técnico</th>
+                    <th class="sortable" onclick="sortVetoes('time')">Hora (UTC)</th>
+                    <th class="sortable" onclick="sortVetoes('symbol')">Instrumento</th>
+                    <th class="sortable" onclick="sortVetoes('stage')">Comité</th>
+                    <th class="sortable" onclick="sortVetoes('action')">Decisión</th>
+                    <th class="sortable" onclick="sortVetoes('strategy')">Estrategia</th>
+                    <th class="sortable" onclick="sortVetoes('reason')">Causa / Diagnóstico Técnico</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -733,17 +816,17 @@ _DECISIONS_BASE = r'''<!doctype html>
               <table id="tblRecent">
                 <thead>
                   <tr>
-                    <th>Entrada (UTC)</th>
-                    <th>Instrumento</th>
-                    <th>Dir.</th>
-                    <th>Estrategia</th>
-                    <th class="n">Puntaje Humano</th>
-                    <th>Grado</th>
-                    <th>Tripartita</th>
-                    <th class="n">P(IA)</th>
-                    <th class="n">ADX Gate</th>
-                    <th>Estado</th>
-                    <th class="n">R Obtenido</th>
+                    <th class="sortable" onclick="sortRecent('entry_time')">Entrada (UTC)</th>
+                    <th class="sortable" onclick="sortRecent('symbol')">Instrumento</th>
+                    <th class="sortable" onclick="sortRecent('direction')">Dir.</th>
+                    <th class="sortable" onclick="sortRecent('strategy')">Estrategia</th>
+                    <th class="sortable n" onclick="sortRecent('hc_score')">Puntaje Humano</th>
+                    <th class="sortable" onclick="sortRecent('hc_grade')">Grado</th>
+                    <th class="sortable" onclick="sortRecent('tri_action')">Tripartita</th>
+                    <th class="sortable n" onclick="sortRecent('ai_probability')">P(IA)</th>
+                    <th class="sortable n" onclick="sortRecent('adx_used')">ADX Gate</th>
+                    <th class="sortable" onclick="sortRecent('status')">Estado</th>
+                    <th class="sortable n" onclick="sortRecent('realized_rr')">R Obtenido</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -1066,9 +1149,187 @@ _DECISIONS_BASE = r'''<!doctype html>
           }).join('') + '</tr>').join('') + '</tbody>';
       }
 
+      let cachedVetoes = [];
+      let cachedRecent = [];
+      let currentDecisionFilter = 'all'; // 'all', 'allow', 'veto', 'trades'
+      let vetoesSortCol = 'time';
+      let vetoesSortAsc = false;
+      let recentSortCol = 'entry_time';
+      let recentSortAsc = false;
+
+      function setDecisionFilter(mode) {
+        currentDecisionFilter = mode;
+        ['All', 'Allow', 'Veto', 'Trades'].forEach(k => {
+          const btn = document.getElementById('chipDec' + k);
+          if (btn) btn.classList.toggle('active', k.toLowerCase() === mode.toLowerCase());
+        });
+        renderVetoesTable();
+        renderRecentTable();
+      }
+
+      function sortVetoes(col) {
+        if (vetoesSortCol === col) {
+          vetoesSortAsc = !vetoesSortAsc;
+        } else {
+          vetoesSortCol = col;
+          vetoesSortAsc = false;
+        }
+        renderVetoesTable();
+      }
+
+      function sortRecent(col) {
+        if (recentSortCol === col) {
+          recentSortAsc = !recentSortAsc;
+        } else {
+          recentSortCol = col;
+          recentSortAsc = false;
+        }
+        renderRecentTable();
+      }
+
+      function renderVetoesTable() {
+        const tbody = document.querySelector('#tblVetoes tbody');
+        if (!tbody) return;
+        const q = (document.getElementById('filterInput')?.value || '').toLowerCase().trim();
+
+        let items = (cachedVetoes || []).slice();
+
+        if (currentDecisionFilter === 'allow') {
+          items = [];
+        } else if (currentDecisionFilter === 'trades') {
+          items = items.filter(v => v.execution_key || (v.reason && (v.reason.includes('TRADE') || v.reason.includes('POSITION'))));
+        }
+
+        if (q) {
+          items = items.filter(v => {
+            const h = humanizeAction(v.action);
+            const str = [v.time, v.symbol, v.stage, h.label, v.action, canonStrategy(v.strategy), v.reason].join(' ').toLowerCase();
+            return str.includes(q);
+          });
+        }
+
+        items.sort((a, b) => {
+          let vA = a[vetoesSortCol];
+          let vB = b[vetoesSortCol];
+          if (vA == null) return 1;
+          if (vB == null) return -1;
+          if (typeof vA === 'string') {
+            return vetoesSortAsc ? vA.localeCompare(vB, 'es', { numeric: true }) : vB.localeCompare(vA, 'es', { numeric: true });
+          }
+          return vetoesSortAsc ? (vA - vB) : (vB - vA);
+        });
+
+        // Actualizar indicadores visuales en thead
+        const headers = document.querySelectorAll('#tblVetoes thead th.sortable');
+        headers.forEach(th => {
+          const m = (th.getAttribute('onclick') || '').match(/sortVetoes\('([^']+)'\)/);
+          if (m) {
+            const col = m[1];
+            const isCur = (col === vetoesSortCol);
+            th.classList.toggle('sorted', isCur);
+            let arrow = th.querySelector('.sort-arrow');
+            if (!arrow) {
+              arrow = document.createElement('span');
+              arrow.className = 'sort-arrow';
+              th.appendChild(arrow);
+            }
+            arrow.textContent = isCur ? (vetoesSortAsc ? '▲' : '▼') : '↕';
+          }
+        });
+
+        tbody.innerHTML = items.length ? items.map(v => {
+          const h = humanizeAction(v.action);
+          return '<tr>' +
+            '<td style="white-space:nowrap;font-family:Consolas,monospace;font-size:11.5px;">' + esc(v.time) + '</td>' +
+            '<td><span class="badge badge-sub" style="font-family:Consolas,monospace;">' + esc(v.symbol) + '</span></td>' +
+            '<td><span class="badge badge-warn" style="font-size:10.5px;">' + esc(v.stage) + '</span></td>' +
+            '<td><span class="badge ' + h.cls + '">' + esc(h.label) + '</span></td>' +
+            '<td><span class="badge badge-purple" style="font-size:10.5px;">' + esc(canonStrategy(v.strategy)) + '</span></td>' +
+            '<td style="font-size:12px;">' + humanizeReason(v.reason) + '</td>' +
+          '</tr>';
+        }).join('') : '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px;">Sin vetos que coincidan con el filtro activo.</td></tr>';
+      }
+
+      function renderRecentTable() {
+        const tbody = document.querySelector('#tblRecent tbody');
+        if (!tbody) return;
+        const q = (document.getElementById('filterInput')?.value || '').toLowerCase().trim();
+
+        let items = (cachedRecent || []).slice();
+
+        if (currentDecisionFilter === 'veto') {
+          items = [];
+        }
+
+        if (q) {
+          items = items.filter(t => {
+            const triAct = humanizeAction(t.tri_action);
+            const str = [t.entry_time, t.symbol, t.direction, canonStrategy(t.strategy), t.hc_score, t.hc_grade, triAct.label, t.ai_probability, t.status, t.result].join(' ').toLowerCase();
+            return str.includes(q);
+          });
+        }
+
+        items.sort((a, b) => {
+          let vA = a[recentSortCol];
+          let vB = b[recentSortCol];
+          if (vA == null) return 1;
+          if (vB == null) return -1;
+          if (typeof vA === 'string') {
+            return recentSortAsc ? vA.localeCompare(vB, 'es', { numeric: true }) : vB.localeCompare(vA, 'es', { numeric: true });
+          }
+          return recentSortAsc ? (vA - vB) : (vB - vA);
+        });
+
+        // Actualizar indicadores visuales en thead
+        const headers = document.querySelectorAll('#tblRecent thead th.sortable');
+        headers.forEach(th => {
+          const m = (th.getAttribute('onclick') || '').match(/sortRecent\('([^']+)'\)/);
+          if (m) {
+            const col = m[1];
+            const isCur = (col === recentSortCol);
+            th.classList.toggle('sorted', isCur);
+            let arrow = th.querySelector('.sort-arrow');
+            if (!arrow) {
+              arrow = document.createElement('span');
+              arrow.className = 'sort-arrow';
+              th.appendChild(arrow);
+            }
+            arrow.textContent = isCur ? (recentSortAsc ? '▲' : '▼') : '↕';
+          }
+        });
+
+        tbody.innerHTML = items.length ? items.map(t => {
+          const dirCls = t.direction === 'BUY' ? 'ok' : 'bad';
+          const rVal = typeof t.realized_rr === 'number' ? t.realized_rr : null;
+          const rCls = rVal > 0 ? 'ok' : (rVal < 0 ? 'bad' : 'muted');
+          const st = String(t.result && t.result !== 'OPEN' ? t.result : t.status);
+          const stCls = st === 'WIN' ? 'badge-ok' : (st === 'LOSS' ? 'badge-high' : (st === 'OPEN' ? 'badge-sub' : 'badge-warn'));
+          const triAct = humanizeAction(t.tri_action);
+          const hc = t.hc_score != null ? t.hc_score : null;
+          const hcCls = hc >= 80 ? 'ok' : (hc >= 70 ? 'mid' : 'bad');
+
+          return '<tr>' +
+            '<td style="white-space:nowrap;font-family:Consolas,monospace;font-size:11.5px;">' + esc(t.entry_time) + '</td>' +
+            '<td><span class="badge badge-sub" style="font-family:Consolas,monospace;">' + esc(t.symbol) + '</span></td>' +
+            '<td><span class="badge ' + (t.direction === 'BUY' ? 'badge-ok' : 'badge-high') + '">' + esc(t.direction) + '</span></td>' +
+            '<td><span class="badge badge-purple" style="font-size:10.5px;">' + esc(canonStrategy(t.strategy)) + '</span></td>' +
+            '<td class="n"><b class="' + hcCls + '">' + fmt(t.hc_score, 1) + '</b></td>' +
+            '<td><span class="badge badge-warn" style="font-size:10px;">' + esc(t.hc_grade || '–') + '</span></td>' +
+            '<td><span class="badge ' + triAct.cls + '" style="font-size:10px;">' + esc(triAct.label) + '</span></td>' +
+            '<td class="n">' + fmt(t.ai_probability) + '</td>' +
+            '<td class="n">' + fmt(t.adx_used, 1) + '</td>' +
+            '<td><span class="badge ' + stCls + '">' + esc(st) + '</span></td>' +
+            '<td class="n ' + rCls + '"><b>' + (rVal > 0 ? '+' : '') + fmt(rVal) + (rVal != null ? ' R' : '') + '</b></td>' +
+          '</tr>';
+        }).join('') : '<tr><td colspan="11" class="muted" style="text-align:center;padding:18px;">Sin operaciones auditadas que coincidan con el filtro activo.</td></tr>';
+      }
+
       function filterTables(q) {
         q = (q || '').toLowerCase().trim();
-        const tables = ['#tblVetoes', '#tblRecent', '#tblActions', '#tblSyms'];
+        const btnClear = document.getElementById('btnClearFilter');
+        if (btnClear) btnClear.style.display = q ? 'block' : 'none';
+
+        const tables = ['#tblActions', '#tblSyms'];
         tables.forEach(sel => {
           const rows = document.querySelectorAll(sel + ' tbody tr');
           rows.forEach(r => {
@@ -1080,6 +1341,8 @@ _DECISIONS_BASE = r'''<!doctype html>
             }
           });
         });
+        renderVetoesTable();
+        renderRecentTable();
       }
 
       async function load() {
@@ -1195,17 +1458,8 @@ _DECISIONS_BASE = r'''<!doctype html>
           }).join('') : '<tr><td colspan="3" class="muted" style="text-align:center;padding:16px;">No se registraron vetos en este periodo.</td></tr>';
 
           // Recent Vetoes
-          document.querySelector('#tblVetoes tbody').innerHTML = (ev.recent_vetoes || []).map(v => {
-            const h = humanizeAction(v.action);
-            return '<tr>' +
-              '<td style="white-space:nowrap;font-family:Consolas,monospace;font-size:11.5px;">' + esc(v.time) + '</td>' +
-              '<td><span class="badge badge-sub" style="font-family:Consolas,monospace;">' + esc(v.symbol) + '</span></td>' +
-              '<td><span class="badge badge-warn" style="font-size:10.5px;">' + esc(v.stage) + '</span></td>' +
-              '<td><span class="badge ' + h.cls + '">' + esc(h.label) + '</span></td>' +
-              '<td><span class="badge badge-purple" style="font-size:10.5px;">' + esc(canonStrategy(v.strategy)) + '</span></td>' +
-              '<td style="font-size:12px;">' + humanizeReason(v.reason) + '</td>' +
-            '</tr>';
-          }).join('') || '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px;">Sin vetos recientes en la ventana seleccionada.</td></tr>';
+          cachedVetoes = ev.recent_vetoes || [];
+          renderVetoesTable();
 
           // Performance Tables
           statsTable(document.getElementById('tblHC'), tr.by_human_score, 'Rango Puntaje Humano');
@@ -1214,30 +1468,8 @@ _DECISIONS_BASE = r'''<!doctype html>
           statsTable(document.getElementById('tblTStrat'), stratStats, 'Estrategia');
 
           // Recent Operations
-          document.querySelector('#tblRecent tbody').innerHTML = (tr.recent || []).map(t => {
-            const dirCls = t.direction === 'BUY' ? 'ok' : 'bad';
-            const rVal = typeof t.realized_rr === 'number' ? t.realized_rr : null;
-            const rCls = rVal > 0 ? 'ok' : (rVal < 0 ? 'bad' : 'muted');
-            const st = String(t.result && t.result !== 'OPEN' ? t.result : t.status);
-            const stCls = st === 'WIN' ? 'badge-ok' : (st === 'LOSS' ? 'badge-high' : (st === 'OPEN' ? 'badge-sub' : 'badge-warn'));
-            const triAct = humanizeAction(t.tri_action);
-            const hc = t.hc_score != null ? t.hc_score : null;
-            const hcCls = hc >= 80 ? 'ok' : (hc >= 70 ? 'mid' : 'bad');
-
-            return '<tr>' +
-              '<td style="white-space:nowrap;font-family:Consolas,monospace;font-size:11.5px;">' + esc(t.entry_time) + '</td>' +
-              '<td><span class="badge badge-sub" style="font-family:Consolas,monospace;">' + esc(t.symbol) + '</span></td>' +
-              '<td><span class="badge ' + (t.direction === 'BUY' ? 'badge-ok' : 'badge-high') + '">' + esc(t.direction) + '</span></td>' +
-              '<td><span class="badge badge-purple" style="font-size:10.5px;">' + esc(canonStrategy(t.strategy)) + '</span></td>' +
-              '<td class="n"><b class="' + hcCls + '">' + fmt(t.hc_score, 1) + '</b></td>' +
-              '<td><span class="badge badge-warn" style="font-size:10px;">' + esc(t.hc_grade || '–') + '</span></td>' +
-              '<td><span class="badge ' + triAct.cls + '" style="font-size:10px;">' + esc(triAct.label) + '</span></td>' +
-              '<td class="n">' + fmt(t.ai_probability) + '</td>' +
-              '<td class="n">' + fmt(t.adx_used, 1) + '</td>' +
-              '<td><span class="badge ' + stCls + '">' + esc(st) + '</span></td>' +
-              '<td class="n ' + rCls + '"><b>' + (rVal > 0 ? '+' : '') + fmt(rVal) + (rVal != null ? ' R' : '') + '</b></td>' +
-            '</tr>';
-          }).join('') || '<tr><td colspan="11" class="muted" style="text-align:center;padding:18px;">Sin operaciones auditadas en esta ventana.</td></tr>';
+          cachedRecent = tr.recent || [];
+          renderRecentTable();
 
           // Stamp
           document.getElementById('stamp').innerHTML = `

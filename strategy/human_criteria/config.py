@@ -68,6 +68,12 @@ class HumanCriteriaConfig:
         default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_SYNTHETIC_MIN_SCORE", "75.0"))
     )
 
+    # Umbral de corte quirúrgico específico para índices de la familia STEP (Step Index 200, 400, 500 / Worker STEP Magic 26082104)
+    # Validado con Replay 5 años (+71.00R en familia Step y +23.50R en Step 400 con 53.54% WR y PF 1.22)
+    synthetic_step_min_score_threshold: float = field(
+        default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_STEP_MIN_SCORE", "70.0"))
+    )
+
     # Umbral de corte específico para Malaysian SNR (Score 0-100 para rebotes en S/R)
     malaysian_snr_min_score_threshold: float = field(
         default_factory=lambda: float(os.getenv("DAEMONBLACKFX_HUMAN_CRITERIA_MSNR_MIN_SCORE", "60.0"))

@@ -697,8 +697,10 @@ def test_msnr_phase1_reduced_risk_multiplier(monkeypatch, env_value, expected):
 
 
 def test_msnr_obstacle_awareness_rejects_room_under_2r():
-    """Verifica que si existe un obstáculo antes de 2.0R (ej. 1.58R como ocurrió en Jump 10),
-    el trade es rechazado con MSNR_OBSTACLE_BEFORE_MINIMUM_TP2 y jamás mutila el runner a < 2.0R.
+    """Verifica que si existe un obstáculo antes de 2.0R (ej. 1.58R como ocurrió en Jump 10):
+    1. Con regla de excepción sub-TP2 activa (default): jamás mutila el runner a < 2.0R; conmuta a 1 entrada 1% @ 1:1.
+    2. Si Jump tiene bloqueado el fallback a entrada única (jump_strict_filter_enabled=True, jump_allow_single_fallback=False),
+       rechaza con MSNR_OBSTACLE_BEFORE_MINIMUM_TP2.
     """
     engine = object.__new__(LiveTradingEngine)
     engine.config = LiveTradingConfig(
@@ -717,8 +719,6 @@ def test_msnr_obstacle_awareness_rejects_room_under_2r():
     # Escenario Jump 10: Entry 89797.72, SL 89921.54 (risk = 123.82), tp2_price at 1.58R (room = 195.6)
     entry = 89797.72
     sl = 89921.54
-    # Distancia de riesgo SELL: 89921.54 - 89797.72 = 123.82
-    # Obstáculo a 1.58R: 89797.72 - 1.58 * 123.82 = 89602.08
     signal_insufficient_room = {
         "tp1_rr": 1.0,
         "runner_rr": 2.0,
@@ -726,21 +726,41 @@ def test_msnr_obstacle_awareness_rejects_room_under_2r():
         "tp2_price": 89602.08,  # solo 1.58R de recorrido hacia TP2
     }
     legs, failure, single_failure, mode = engine._plan_execution_legs(
+        exact_symbol="Boom 1000 Index",
+        direction="SELL",
+        entry=entry,
+        sl=sl,
+        rr=2.0,
+        strategy_name="MALAYSIAN_SNR",
+        signal=dict(signal_insufficient_room),
+        total_risk_amount=37.40,
+        risk_fraction=0.50,
+        silver_risk_cap=False,
+        build_plan=build_plan,
+    )
+    assert failure is None
+    assert mode == "SINGLE"
+    assert legs == [("SINGLE", 1.0, 1.0)]
+
+    # En Jump con bloqueo estricto de entrada única, rechaza con MSNR_OBSTACLE_BEFORE_MINIMUM_TP2
+    engine.config.jump_strict_filter_enabled = True
+    engine.config.jump_allow_single_fallback = False
+    legs_jump, failure_jump, _, _ = engine._plan_execution_legs(
         exact_symbol="Jump 10 Index",
         direction="SELL",
         entry=entry,
         sl=sl,
         rr=2.0,
         strategy_name="MALAYSIAN_SNR",
-        signal=signal_insufficient_room,
+        signal=dict(signal_insufficient_room),
         total_risk_amount=37.40,
         risk_fraction=0.50,
         silver_risk_cap=False,
         build_plan=build_plan,
     )
-    assert legs is None
-    assert failure is not None
-    assert failure["code"] == "MSNR_OBSTACLE_BEFORE_MINIMUM_TP2"
+    assert legs_jump is None
+    assert failure_jump is not None
+    assert failure_jump["code"] == "MSNR_OBSTACLE_BEFORE_MINIMUM_TP2"
 
 
 def test_msnr_runner_broker_target_is_strictly_tp2_at_open():

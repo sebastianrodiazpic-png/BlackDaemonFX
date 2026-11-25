@@ -504,13 +504,12 @@ ACCOUNT_HTML = r'''
       }
 
       .val {
-
         font-size: 25px;
-
         font-weight: 800;
-
         margin-top: 5px;
-
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
       }
 
       .stats {
@@ -538,11 +537,11 @@ ACCOUNT_HTML = r'''
       }
 
       .s b {
-
         display: block;
-
         font-size: 19px;
-
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
       }
 
       .bar {
@@ -694,21 +693,19 @@ ACCOUNT_HTML = r'''
       }
 
       th,
+      td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #302914;
+        text-align: left;
+        vertical-align: top;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
 
       td {
-
-        padding: 10px 8px;
-
-        border-bottom: 1px solid #302914;
-
-        text-align: left;
-
-        vertical-align: top;
-
-        font-size: 12px;
-
-        overflow-wrap: anywhere;
-
+        font-variant-numeric: tabular-nums;
+        -webkit-font-feature-settings: "tnum" 1;
+        font-feature-settings: "tnum" 1;
       }
 
       th {

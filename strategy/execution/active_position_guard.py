@@ -47,8 +47,11 @@ def check_active_position_guard(symbol, mt5_positions, mt5_orders, allow_breakev
                     if sl <= 0 or open_price <= 0:
                         all_at_be = False
                         break
-                    # Para BUY: SL >= open_price. Para SELL: SL <= open_price
-                    if (('BUY' in pos_type or pos_type == '0') and sl < open_price) or (('SELL' in pos_type or pos_type == '1') and sl > open_price):
+                    # Para BUY: SL >= open_price. Para SELL: SL <= open_price.
+                    # Fail-closed si el tipo de posición no es reconocible.
+                    is_buy = ('BUY' in pos_type or pos_type == '0')
+                    is_sell = ('SELL' in pos_type or pos_type == '1')
+                    if (not is_buy and not is_sell) or (is_buy and sl < open_price) or (is_sell and sl > open_price):
                         all_at_be = False
                         break
                 if all_at_be:

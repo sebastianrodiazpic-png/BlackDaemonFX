@@ -1,19 +1,19 @@
 # 📊 REPORTE MATUTINO DE RENDIMIENTO Y AUDITORÍA INTEGRAL
 **DaemonBlackFx v116 Multi-Strategy Autonomous Trading System**
-**Fecha y Hora de Entrega:** 2026-11-21 09:00:34 (Hora de Chile / Santiago, UTC-3) | UTC: 2026-11-21 12:00:34
+**Fecha y Hora de Entrega:** 2026-11-25 09:15:44 (Hora de Chile / Santiago, UTC-3) | UTC: 2026-11-25 12:15:44
 
 ---
 
 ## 📌 1. RESUMEN EJECUTIVO & BALANCE FINANCIERO
 | Métrica | Valor Actual MT5 | Estado Operativo |
 | :--- | :--- | :--- |
-| **Balance de Cuenta** | **$5,192.37 USD** | Capital consolidado |
-| **Equidad en Vivo** | **$5,192.37 USD** | Flotante actual: `$+0.00 USD` |
-| **Margen Libre** | **$5,192.37 USD** | 99.4% disponibilidad |
-| **Operaciones Abiertas** | **0 posiciones** (0 pares divididos 1%) | Boom 600 BUY & Crash 500 SELL |
-| **Total Operaciones Históricas** | **2021 trades cerrados** | 390 Ganadoras / 474 Perdedoras |
-| **Tasa de Acierto Global (Win Rate)** | **48.0%** | Con nuevo split 1:1 TP1 proyectado a **>62%** |
-| **Ratio R:R Medio Realizado** | **0.02R** (Planificado: 1.95R) | Gestión Runner extendida |
+| **Balance de Cuenta** | **$5,818.59 USD** | Capital consolidado |
+| **Equidad en Vivo** | **$5,839.35 USD** | Flotante actual: `$+20.76 USD` |
+| **Margen Libre** | **$5,801.47 USD** | 99.4% disponibilidad |
+| **Operaciones Abiertas** | **3 posiciones** (1 pares divididos 1%) | Boom 600 BUY & Crash 500 SELL |
+| **Total Operaciones Históricas** | **2089 trades cerrados** | 390 Ganadoras / 474 Perdedoras |
+| **Tasa de Acierto Global (Win Rate)** | **48.5%** | Con nuevo split 1:1 TP1 proyectado a **>62%** |
+| **Ratio R:R Medio Realizado** | **0.03R** (Planificado: 1.92R) | Gestión Runner extendida |
 
 ---
 ## 🛡️ 2. MODO CENTINELA (MARKET REGIME SENTINEL & SYSTEM HEALTH)
@@ -22,35 +22,45 @@ El Modo Centinela actúa como escudo de preservación de capital, bloqueando reg
 ### 2.1 Estado de los Workers Multiproceso
 | Worker | Magic | Estado Runtime | PID | Ciclos | Símbolo Monitoreado | Última Acción / Motivo |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `BOOM` | `26082101` | `RUNNING_UNIFIED` | `6480` | 399 | Boom 900 Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
+| `BOOM` | `26082101` | `RUNNING` | `21068` | 1237 | Boom 900 Index | WAITING_ICT: WAITING_MSS_STRICT_CLOSE_ABOVE_RESISTANCE |
 | `COMMODITIES_SNR` | `26082041` | `RUNNING` | `22728` | 229 | XAUUSDmicro | WAITING_MALAYSIAN_SNR: SESSION_FILTER_OUTSIDE_KILLZONE |
-| `CRASH` | `26082102` | `RUNNING_UNIFIED` | `6480` | 397 | Crash 900 Index | WAITING_MALAYSIAN_SNR: Proceso Ãºnico MultiBot |
-| `FLIP` | `26082106` | `RUNNING_UNIFIED` | `6480` | 0 | N/A | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
+| `CRASH` | `26082102` | `RUNNING` | `27140` | 1239 | Crash 900 Index | SIGNALS_RANKED: RANKED_BY_NET_EXPECTANCY_AND_PROBABILITY |
+| `FLIP` | `26082106` | `DISABLED_BY_CONFIG` | `41988` | 0 | N/A | WORKER_PROCESS_SKIPPED_DISABLED: FLIP_NO_PUBLISHED_SYMBOLS |
 | `FOREX` | `26082027` | `SUPERSEDED` | `N/A` | 0 | N/A | REPLACED_BY_FOREX_SHARDS: v69: reemplazado por FOREX_1/FOREX_2/FOREX_3/ |
-| `FOREX_1` | `26082201` | `OUTSIDE_SESSION` | `6480` | 407 | NZDUSD | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-22T00:00:00+00 |
-| `FOREX_2` | `26082202` | `OUTSIDE_SESSION` | `6480` | 407 | EURUSDmicro | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-22T00:00:00+00 |
-| `FOREX_3` | `26082203` | `OUTSIDE_SESSION` | `6480` | 405 | EURUSD | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-22T00:00:00+00 |
-| `FOREX_4` | `26082204` | `OUTSIDE_SESSION` | `6480` | 405 | USDCHF | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-22T00:00:00+00 |
-| `FOREX_5` | `26082205` | `OUTSIDE_SESSION` | `6480` | 405 | GBPUSD | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-22T00:00:00+00 |
+| `FOREX_1` | `26082201` | `DISABLED_BY_CONFIG` | `29964` | 0 | NZDUSD | WORKER_PROCESS_SKIPPED_DISABLED: NO_SELECTED_SYMBOLS |
+| `FOREX_2` | `26082202` | `DISABLED_BY_CONFIG` | `6616` | 0 | AUDSGD | WORKER_PROCESS_SKIPPED_DISABLED: NO_SELECTED_SYMBOLS |
+| `FOREX_3` | `26082203` | `WAITING_NEW_M1_BAR` | `5116` | 1258 | EURUSDmicro | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `FOREX_4` | `26082204` | `WAITING_NEW_M1_BAR` | `42936` | 1257 | USDCHFmicro | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
+| `FOREX_5` | `26082205` | `RUNNING` | `3316` | 1258 | GBPUSDmicro | WAITING_ICT: OUTSIDE_INSTITUTIONAL_KILLZONE (NY Hour: 07:0 |
 | `FOREX_SNR` | `26082043` | `RUNNING` | `29316` | 0 | USDJPYmicro | STANDBY_MARKET_CLOSED: Mercado cerrado; reposo automático hasta Sund |
-| `ICT` | `26082032` | `RUNNING_UNIFIED` | `6480` | 398 | XAUUSD | WAITING_ICT: Proceso Ãºnico MultiBot |
-| `INDICESB_SNR` | `26082042` | `RUNNING_UNIFIED` | `6480` | 406 | Wall Street 30 | STANDBY_MARKET_CLOSED: Proceso Ãºnico MultiBot |
-| `JUMP` | `26082105` | `RUNNING_UNIFIED` | `6480` | 404 | Jump 75 Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
+| `ICT` | `26082032` | `RUNNING` | `25320` | 1258 | XAUUSDmicro | WAITING_ICT: OUTSIDE_INSTITUTIONAL_KILLZONE (NY Hour: 07:0 |
+| `INDICESB_SNR` | `26082042` | `DEGRADED_NO_SYMBOLS` | `20256` | 1260 | Wall Street 30 | EMPTY_CYCLE: El worker no tiene instrumentos seleccionados |
+| `JUMP` | `26082105` | `WAITING_NEW_M1_BAR` | `5872` | 1256 | Jump 75 Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
 | `MALAYSIAN_SNR` | `26082031` | `RUNNING` | `29740` | 77 | VolSwitch High Vol Index | WAITING_MALAYSIAN_SNR: NO_SETUP_CONFIRMED |
-| `ORB` | `26082028` | `OUTSIDE_SESSION` | `6480` | 401 | XAUUSD | WAITING_NEXT_EVENT: PrÃ³xima apertura UTC: 2026-11-23T14:30:00+00 |
-| `STEP` | `26082104` | `RUNNING_UNIFIED` | `6480` | 404 | Step Index 500 | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
+| `ORB` | `26082028` | `RUNNING` | `10504` | 1258 | XAUUSDmicro | WAITING_M5_BREAKOUT_RETEST: ULTIMA_SECUENCIA_M5_NO_TIENE_BREAKOUT_VALIDO |
+| `STEP` | `26082104` | `RUNNING` | `16092` | 1258 | Step Index 200 | WAITING_ICT: INSUFFICIENT_H1_ADX_REGIME (9.1 < 20.0) |
+| `STEP_2` | `26082406` | `RUNNING` | `7844` | 1256 | Step Index 300 | WAITING_ICT: WAITING_MSS_STRICT_CLOSE_BELOW_SUPPORT |
 | `TREND_PULLBACK` | `26082038` | `DISABLED_BY_CONFIG` | `30444` | 0 | VolSwitch High Vol Index | WORKER_PROCESS_SKIPPED_DISABLED: DAEMONBLACKFX_DISABLED_WORKERS |
 | `V53_PROBE` | `53000000` | `PROBE` | `N/A` | 0 | N/A | SCHEMA_CHECK: v116-deriv-annotated-trade-audit |
 | `VOLATILITY` | `26082103` | `SUPERSEDED` | `N/A` | 0 | N/A | REPLACED_BY_VOLATILITY_SHARDS: v99: reemplazado por VOLATILITY_1/2/3/4 |
-| `VOLATILITY_1` | `26082401` | `RUNNING_UNIFIED` | `6480` | 405 | High Frequency Vol 75 Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
-| `VOLATILITY_2` | `26082402` | `RUNNING_UNIFIED` | `6480` | 406 | VolSwitch Medium Vol Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
-| `VOLATILITY_3` | `26082403` | `RUNNING_UNIFIED` | `6480` | 403 | Volatility 90 Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
-| `VOLATILITY_4` | `26082404` | `RUNNING_UNIFIED` | `6480` | 402 | Volatility 90 (1s) Index | WAITING_NEXT_EVENT: Proceso Ãºnico MultiBot |
+| `VOLATILITY_1` | `26082401` | `DISABLED_BY_CONFIG` | `5080` | 0 | High Frequency Vol 75 Index | WORKER_PROCESS_SKIPPED_DISABLED: EMPTY_WORKER_UNIVERSE |
+| `VOLATILITY_2` | `26082402` | `DEGRADED_NO_SYMBOLS` | `32560` | 1260 | VolSwitch Medium Vol Index | EMPTY_CYCLE: El worker no tiene instrumentos seleccionados |
+| `VOLATILITY_3` | `26082403` | `RUNNING` | `40880` | 1227 | Volatility 90 Index | WAITING_ICT: WAITING_MSS_STRICT_CLOSE_ABOVE_RESISTANCE |
+| `VOLATILITY_4` | `26082404` | `WAITING_NEW_M1_BAR` | `24628` | 1251 | Volatility 90 (1s) Index | EVENT_SCHEDULER_WAIT: Instrumentos disponibles; esperando nueva vel |
 
 ### 2.2 Bloqueos de Regímenes Tóxicos por el Centinela (Últimas 24h)
-- *Sin bloqueos masivos registrados en la ventana.*
+- **MARKET_REGIME_TOXIC_BLOCKED:ERRATIC_WHIPSAW_VOLATILITY**: `7,925` intervenciones preventivas.
+- **MARKET_REGIME_TOXIC_BLOCKED:HIGH_CHOPPINESS_LOW_MOMENTUM**: `1,241` intervenciones preventivas.
 
 ### 2.3 Activos con Mayor Intervención del Escudo Centinela
+- **Step Index 1000**: `1,458` bloqueos preventivos por régimen no favorable.
+- **Step Index 2000**: `1,020` bloqueos preventivos por régimen no favorable.
+- **Step Index**: `776` bloqueos preventivos por régimen no favorable.
+- **Step Index 300**: `724` bloqueos preventivos por régimen no favorable.
+- **Step Index 1500**: `663` bloqueos preventivos por régimen no favorable.
+- **US Oil**: `473` bloqueos preventivos por régimen no favorable.
+- **UK Brent Oil**: `333` bloqueos preventivos por régimen no favorable.
+- **XAUUSDmicro**: `328` bloqueos preventivos por régimen no favorable.
 
 ---
 ## 🔍 3. MODO ANÁLISIS RECIENTES (EVALUACIÓN DE OPORTUNIDADES & FILTROS)
@@ -59,16 +69,16 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 3.1 Embudo de Descarte & Motivos de Rechazo (Últimas 24h)
 | Causa de Descarte / Filtro | Ocurrencias | Explicación Técnica |
 | :--- | :--- | :--- |
-| `WAITING_FIRST_RETEST` | **914** | Nivel identificado; esperando el primer retroceso técnico hacia la zona de valor. |
-| `LEVEL_CONSUMED` | **672** | Validación de confluencia técnica o filtro de seguridad. |
-| `SETUP_STRUCTURE_INVALIDATED` | **516** | El precio rompió el nivel con cuerpo de vela en lugar de respetarlo. |
-| `DIRECTION_POLICY_BLOCKED` | **336** | Validación de confluencia técnica o filtro de seguridad. |
-| `Filtro Activo de IA activado: Probabilid` | **316** | Validación de confluencia técnica o filtro de seguridad. |
-| `Fin de semana Índices Bursátiles (cierre` | **300** | Validación de confluencia técnica o filtro de seguridad. |
-| `RETEST_RECOVERY_EXPIRED` | **265** | Validación de confluencia técnica o filtro de seguridad. |
-| `RETEST_PENETRATION_TOO_DEEP` | **209** | Validación de confluencia técnica o filtro de seguridad. |
-| `Filtro Activo de IA activado: Probabilid` | **191** | Validación de confluencia técnica o filtro de seguridad. |
-| `CRYPTO_NO_NUEVAS_ENTRADAS_CERCA_DEL_CIER` | **182** | Validación de confluencia técnica o filtro de seguridad. |
+| `WAITING_MSS_STRICT_CLOSE_ABOVE_RESISTANC` | **1,365** | Validación de confluencia técnica o filtro de seguridad. |
+| `WAITING_MSS_STRICT_CLOSE_BELOW_SUPPORT` | **697** | Validación de confluencia técnica o filtro de seguridad. |
+| `NO_MACRO_H4_BIAS_ALIGNED` | **470** | La dirección M5/M15 no coincide con el sesgo estructural H4 del mercado institucional. |
+| `MARKET_REGIME_TOXIC_BLOCKED:ERRATIC_WHIP` | **450** | Volatilidad errática con mechas violentas detectada por ATR y Choppiness Index. |
+| `ICT_SPREAD_BLOCKED_SIGNAL_VIRTUAL_TRADE_` | **294** | Validación de confluencia técnica o filtro de seguridad. |
+| `ICT_CRYPTO_NEGATIVE_EXPECTANCY_REPLAY_2Y` | **219** | Validación de confluencia técnica o filtro de seguridad. |
+| `ENTRY_PRICE_DRIFT_TOO_LARGE` | **178** | Validación de confluencia técnica o filtro de seguridad. |
+| `MSNR_ENTRY_CONTEXT_CHANGED` | **153** | Validación de confluencia técnica o filtro de seguridad. |
+| `STEP_REQUIRES_M15_ADX_ABOVE_25` | **145** | Validación de confluencia técnica o filtro de seguridad. |
+| `NO_JUDAS_SWING_MANIPULATION_CONFIRMED` | **138** | No se observó el barrido de liquidez previo (manipulación Judas) exigido por la estrategia ICT. |
 
 ### 3.2 Estado de Candidatos en Memoria (Pipeline MSNR)
 - **Estado `WAITING`**: `13,942` candidatos.
@@ -101,6 +111,9 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 4.1 Operaciones Abiertas en Vivo (Con Nueva Operativa 1% Split Aplicada)
 | Ticket | Instrumento | Tipo | Lote | Entrada | Stop Loss | TP1 (+1.0R) | TP2 / Runner | Flotante | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `4798274011` | **Volatility 10 Index** | `SELL` | `2.46` | `4845.798` | `4861.328` | `4830.268` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
+| `4798199748` | **Boom 300 Index** | `BUY` | `2.08` | `465.406` | `446.515` | `484.297` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
+| `4798009296` | **Crash 500 Index** | `SELL` | `0.74` | `2735.264` | `2773.692` | `2696.836` | Trade 1 (TP1 1:1) | `$+0.00` | `OPEN` |
 
 > [!NOTE]
 > Ambas posiciones en Boom 600 y Crash 500 están correctamente sincronizadas en MT5 con el **1% de riesgo total por activo dividido en dos operaciones de 0.5% cada una**. La primera operación busca cerrar exactamente en +1.0R (1:1), momento en el cual la segunda operación se protege en Break Even para buscar correr hacia 2R, 3R o 4R.
@@ -108,30 +121,30 @@ Auditoría de por qué las señales analizadas en M15/M5/H1 entraron al mercado 
 ### 4.2 Historial de Últimas Operaciones Cerradas
 | Ticket | Instrumento | Tipo | Lote | R:R Plan | R:R Realizado | Net PnL | Motivo de Cierre | Apertura |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `4793980249` | Crash 500 Index | `SELL` | 0.82 | 1.0R | **-0.99R** | **$-25.88** | `mt5_sl` | 2026-11-21 00:40:43 |
-| `4793980278` | Crash 500 Index | `SELL` | 0.82 | 2.0R | **-0.99R** | **$-25.87** | `mt5_sl` | 2026-11-21 00:40:45 |
-| `4793989349` | Volatility 5 Index | `SELL` | 0.3 | 2.0R | **-0.83R** | **$-21.92** | `mt5_sl` | 2026-11-21 01:11:26 |
-| `4794007011` | Volatility 100 Index | `SELL` | 2.59 | 2.0R | **-0.98R** | **$-25.77** | `mt5_sl` | 2026-11-21 02:31:39 |
-| `4793657034` | Volatility 75 Index | `BUY` | 0.034 | 1.0R | **+0.06R** | **$+1.45** | `mt5_mobile` | 2026-11-20 17:31:39 |
-| `4793657042` | Volatility 75 Index | `BUY` | 0.034 | 2.0R | **+0.04R** | **$+0.98** | `mt5_mobile` | 2026-11-20 17:31:40 |
-| `4793674436` | Crash 1000 Index | `SELL` | 0.98 | 1.0R | **+0.05R** | **$+1.27** | `mt5_mobile` | 2026-11-20 17:46:03 |
-| `4793674506` | Crash 1000 Index | `SELL` | 0.98 | 2.0R | **+0.05R** | **$+1.29** | `mt5_mobile` | 2026-11-20 17:46:05 |
+| `4798111754` | Volatility 5 Index | `BUY` | 0.48 | 1.0R | **-0.85R** | **$-33.84** | `mt5_sl` | 2026-11-25 01:48:26 |
+| `4797767763` | US Oil | `BUY` | 38.0 | 1.0R | **-1.23R** | **$-35.19** | `mt5_sl` | 2026-11-24 17:30:13 |
+| `4797791424` | Volatility 90 (1s) Index | `BUY` | 0.15 | 2.0R | **+1.92R** | **$+106.69** | `mt5_tp` | 2026-11-24 17:54:33 |
+| `4797841603` | Step Index 1500 | `BUY` | 0.26 | 1.0R | **-0.92R** | **$-25.70** | `mt5_sl` | 2026-11-24 18:47:30 |
+| `4797981338` | High Frequency Vol 25 Index | `BUY` | 0.18 | 2.0R | **-0.94R** | **$-53.99** | `mt5_sl` | 2026-11-24 22:04:48 |
+| `4797885992` | Volatility 100 Index | `SELL` | 2.5 | 1.0R | **+0.98R** | **$+28.13** | `mt5_tp` | 2026-11-24 19:39:35 |
+| `4797767724` | UK Brent Oil | `BUY` | 77.0 | 1.0R | **+0.95R** | **$+26.72** | `mt5_tp` | 2026-11-24 17:30:12 |
+| `4797726898` | Volatility 75 (1s) Index | `SELL` | 0.791 | 1.0R | **+0.98R** | **$+27.94** | `mt5_tp` | 2026-11-24 16:46:27 |
 
 ### 4.3 Rendimiento Histórico por Instrumento (Top Activos)
 | Instrumento | Trades Totales | Tasa de Acierto (Win Rate) | R:R Promedio | Observación Estratégica |
 | :--- | :--- | :--- | :--- | :--- |
-| **Step Index 500** | 119 | **50.4%** | +0.07R | ⚖️ Equilibrado |
-| **Step Index 200** | 118 | **39.0%** | +1.02R | ⚠️ Requiere Calibración |
-| **XAUUSD** | 95 | **53.7%** | +0.11R | ⚖️ Equilibrado |
+| **Step Index 500** | 120 | **50.8%** | +0.07R | ⚖️ Equilibrado |
+| **Step Index 200** | 119 | **39.5%** | +0.96R | ⚠️ Requiere Calibración |
+| **XAUUSD** | 96 | **55.2%** | +0.14R | 🔥 Altamente Rentable |
 | **Volatility 25 Index** | 94 | **38.3%** | -0.24R | ⚠️ Requiere Calibración |
-| **Crash 500 Index** | 82 | **70.7%** | +0.44R | 🔥 Altamente Rentable |
-| **Volatility 10 Index** | 80 | **53.8%** | +0.05R | ⚖️ Equilibrado |
-| **Volatility 75 Index** | 72 | **51.4%** | -0.06R | ⚖️ Equilibrado |
-| **Jump 50 Index** | 69 | **49.3%** | -0.08R | ⚖️ Equilibrado |
+| **Crash 500 Index** | 84 | **69.0%** | +0.40R | 🔥 Altamente Rentable |
+| **Volatility 10 Index** | 83 | **54.2%** | +0.05R | ⚖️ Equilibrado |
+| **Volatility 75 Index** | 74 | **51.4%** | -0.06R | ⚖️ Equilibrado |
+| **Jump 50 Index** | 70 | **50.0%** | -0.07R | ⚖️ Equilibrado |
+| **Jump 25 Index** | 68 | **55.9%** | +0.07R | 🔥 Altamente Rentable |
 | **Jump 10 Index** | 67 | **49.3%** | -0.08R | ⚖️ Equilibrado |
-| **Jump 25 Index** | 67 | **56.7%** | +0.09R | 🔥 Altamente Rentable |
-| **Boom 500 Index** | 55 | **60.0%** | +0.27R | 🔥 Altamente Rentable |
-| **Step Index 400** | 55 | **45.5%** | -0.13R | ⚖️ Equilibrado |
+| **Step Index 400** | 62 | **48.4%** | -0.04R | ⚖️ Equilibrado |
+| **Boom 500 Index** | 56 | **60.7%** | +0.28R | 🔥 Altamente Rentable |
 
 ---
 ## 🤖 5. COMPORTAMIENTO DE LOS MODELOS DE IA (GBDT META-LABELING)
@@ -143,10 +156,10 @@ El sistema cuenta con un pipeline de Meta-Labeling basado en modelos Gradient Bo
 | `BOOM_ALL` | **19** | 31.6% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_ICT` | **375** | 37.1% | **75.0%** | `p >= 0.5` | `MODELO ENTRENADO Y ACTIVO` |
 | `BOOM_ICT_SABRI_MALLE` | **151** | 51.7% | **N/A** | `p >= 0.52` | `ENTRENADO` |
-| `BOOM_MALAYSIAN_SNR` | **254** | 47.9% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `BOOM_MALAYSIAN_SNR` | **263** | 53.8% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_MSNR_VIDEO` | **35** | 33.7% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_ORB_LONDON` | **20** | 35.0% | **N/A** | `p >= 0.52` | `ENTRENADO` |
-| `BOOM_ORB_NEW_YORK` | **37** | 56.6% | **N/A** | `p >= 0.52` | `ENTRENADO` |
+| `BOOM_ORB_NEW_YORK` | **39** | 60.8% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_SMC` | **19** | 31.6% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `BOOM_TREND_PULLBACK` | **36** | 16.4% | **N/A** | `p >= 0.52` | `ENTRENADO` |
 | `CRASH_ALL` | **332** | 42.2% | **N/A** | `p >= 0.52` | `ENTRENADO` |

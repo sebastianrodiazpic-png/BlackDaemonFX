@@ -1315,31 +1315,102 @@ _STRATEGY_BASES_BASE = r'''<!doctype html>
       }
 
     
+      .table-wrapper {
+        max-height: 720px;
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid rgba(215, 155, 25, 0.25);
+        border-radius: 10px;
+        background: #070c0e;
+        scrollbar-width: thin;
+        scrollbar-color: #3b2a0c transparent;
+      }
+      .table-wrapper::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .table-wrapper::-webkit-scrollbar-thumb {
+        background: #3b2a0c;
+        border-radius: 4px;
+      }
       #winnersTable {
         width: 100%;
         border-collapse: collapse;
       }
-      #winnersTable th {
-        background: #0f1720;
-        padding: 8px 6px;
+      #winnersTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #0c1318;
+        padding: 9px 8px;
         color: #f5bd36;
         font-size: 10.5px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        border-bottom: 1px solid rgba(91, 69, 20, 0.4);
+        border-bottom: 2px solid rgba(215, 155, 25, 0.5);
         white-space: nowrap;
         cursor: pointer;
         user-select: none;
+        transition: all 0.15s ease;
       }
-      #winnersTable th:hover {
+      #winnersTable thead th:hover {
+        color: #ffd465;
+        background: #141c23;
+      }
+      #winnersTable thead th.sorted {
+        color: #ffd465;
+        background: #17222c;
+        border-bottom-color: #ffd465;
+      }
+      #winnersTable thead th .sort-arrow {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 10px;
+        opacity: 0.35;
+        transition: opacity 0.15s ease;
+      }
+      #winnersTable thead th.sorted .sort-arrow {
+        opacity: 1;
         color: #ffd465;
       }
       #winnersTable td {
-        padding: 6px 6px;
+        padding: 7px 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         white-space: nowrap;
         font-size: 11.5px;
+      }
+      #winnersTable tr:hover td {
+        background: rgba(215, 155, 25, 0.04);
+      }
+      #winnersTable td.num, #winnersTable th.num {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      .filterChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        cursor: pointer;
+        user-select: none;
+        padding: 5px 12px;
+        border-radius: 18px;
+        font-weight: 700;
+        border: 1px solid rgba(215, 155, 25, 0.25);
+        background: rgba(16, 22, 26, 0.8);
+        color: var(--m);
+        transition: all 0.2s ease;
+      }
+      .filterChip:hover {
+        border-color: rgba(215, 155, 25, 0.6);
+        color: #fff;
+      }
+      .filterChip.active {
+        background: linear-gradient(90deg, rgba(215, 155, 25, 0.25), rgba(215, 155, 25, 0.08));
+        border-color: #ffd465;
+        color: #ffd465;
+        box-shadow: 0 0 10px rgba(215, 155, 25, 0.2);
       }
 
     </style>
@@ -1541,11 +1612,11 @@ __MSNR_SETTINGS_PANEL__
               <div class="daemon-card-inner">
                 <div class="daemon-card-head">
                   <div class="daemon-card-title">2️⃣ ASEGURAR GANANCIAS VS RATIOS IMPOSIBLES</div>
-                  <div class="daemon-card-badge">Fórmula Dual-Leg (50% + 50%)</div>
+                  <div class="daemon-card-badge">Fórmula Dual-Leg (70% + 30%) · Excepción 1% @ 1:1</div>
                 </div>
                 <div class="daemon-card-body">
                   <div class="daemon-card-bullet">• <strong>La Trampa de los Ratios Gigantes (1:5 a 1:10):</strong> Cuando intentas buscar 5 o 10 veces lo arriesgado con stops diminutos, la tasa de acierto cae al 13.1% y sufres rachas de 12 a 14 pérdidas seguidas, algo que quema cuentas rápidamente.</div>
-                  <div class="daemon-card-bullet">• <strong>Nuestra Fórmula de 2 Órdenes:</strong> La primera orden (50%) toma ganancias rápido en un ratio 1:1 (TP1) y pasa inmediatamente la segunda orden a Break-Even (cero riesgo) para buscar un 1:2 o 1:4. Esto sube el acierto al 63%-76% y elimina el estrés de que una operación ganadora se vuelva perdedora.</div>
+                  <div class="daemon-card-bullet">• <strong>Nuestra Fórmula Asimétrica (70% + 30%):</strong> La primera orden (70% del riesgo) toma ganancias en un ratio 1:1 (TP1) y pasa inmediatamente el Runner (30%) a Break-Even + spread para buscar el TP2 (1:2) o extensiones a 1:4. Si el análisis no proyecta recorrido limpio hasta TP2 (&lt; 2.0R), se ejecuta una única entrada con el <strong>1% @ 1:1</strong>.</div>
                 </div>
                 <div class="daemon-card-plate">
                   <div class="daemon-card-plate-text">BLACKDAEMON FX</div>
@@ -2201,11 +2272,11 @@ __MSNR_SETTINGS_PANEL__
 
         <div class="info-box">
 
-          <strong>💡 La Matemática de la Gestión Asimétrica Dual-Leg (2 Piernas) + Escalonamiento por Tiers:</strong>
+          <strong>💡 La Matemática de la Gestión Asimétrica Dual-Leg (70% + 30%) y Regla de Excepción (1% @ 1:1):</strong>
 
-          Al abrir cada oportunidad con dos piernas simultáneas (50% + 50% del riesgo del Tier: <strong>1.0% en Tier S</strong> para MSNR C2 e ICT GBDT ≥ 0.65, y <strong>0.5% en Tier A</strong> para ORB NY Sweep e ICT 0.55–0.64) y mover incondicionalmente la segunda pierna a 
+          Al abrir cada oportunidad con proyección a TP2 en dos piernas simultáneas (<strong>70% en TP1 @ 1:1</strong> + <strong>30% en RUNNER @ 1:2..1:4</strong>; si no existe recorrido estructural hasta TP2 se ejecuta <strong>1 entrada con el 1% @ 1:1</strong>) y mover incondicionalmente el Runner a 
 
-          <strong>Break-Even + spread</strong> en cuanto la primera toca TP1, las operaciones que retroceden después de TP1 cierran en <strong>ganancia neta (+0.5R)</strong>, manteniendo el Drawdown máximo del portafolio Tri-Motor en apenas <strong>3.37 R</strong>.
+          <strong>Break-Even + spread</strong> en cuanto la primera toca TP1, las operaciones que retroceden después de TP1 cierran en <strong>ganancia neta (+0.7R)</strong>. En mercados reales rige además protección horaria en <strong>10:00–11:59 CL</strong> (exento ORB), <strong>15:00–16:59 CL</strong> y <strong>23:00–00:59 CL</strong>, manteniendo los sintéticos libres 24/7.
 
         </div>
 
@@ -2230,67 +2301,47 @@ __MSNR_SETTINGS_PANEL__
         </div>
 
         <div class="table-controls" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-
-            <input
-
-              type="text"
-
-              id="winnersSearchInput"
-
-              class="search-box"
-
-              style="flex: 1; min-width: 280px;"
-
-              placeholder="🔍 Buscar activo (ej: Jump 75, Volatility 10, XAUUSD, Step 200, EURUSD...)"
-
-              oninput="renderWinnersTable()"
-
-            />
-
-            <div class="muted" style="font-size: 12px; font-weight: 600;" id="winnersCountLabel">
-
-              Mostrando instrumentos (Replay Fiel 5 Años)
-
+            <div style="position: relative; flex: 1; min-width: 280px; display: flex; align-items: center;">
+              <input
+                type="text"
+                id="winnersSearchInput"
+                class="search-box"
+                style="width: 100%; padding-right: 32px;"
+                placeholder="🔍 Buscar activo (ej: Jump 75, Volatility 10, XAUUSD, Step 200, EURUSD...)"
+                oninput="renderWinnersTable()"
+              />
+              <button
+                type="button"
+                id="btnClearWinnersSearch"
+                onclick="document.getElementById('winnersSearchInput').value=''; renderWinnersTable();"
+                style="position: absolute; right: 8px; background: none; border: none; color: var(--m); font-size: 14px; cursor: pointer; padding: 4px; display: none;"
+                title="Limpiar búsqueda"
+              >✕</button>
             </div>
-
+            <div class="muted" style="font-size: 12px; font-weight: 600;" id="winnersCountLabel">
+              Mostrando instrumentos (Replay Fiel 5 Años)
+            </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 2px 0;">
-
-            <span style="font-size: 11px; color: var(--m); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Filtro de Estado:</span>
-
-            <label id="lblFilterAll" style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #fff; cursor: pointer; user-select: none; background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; padding: 6px 14px; border-radius: 20px; transition: all 0.2s ease;">
-
-              <input type="radio" name="statusFilterRadio" id="statusFilterAll" value="all" checked onchange="changeStatusFilter('all')" style="accent-color: #38bdf8; width: 14px; height: 14px; cursor: pointer;" />
-
-              <span style="font-weight: 700;">📋 Ver todos los activos (Rentables + Podados)</span>
-
-            </label>
-
-            <label id="lblFilterActive" style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #9fa2a5; cursor: pointer; user-select: none; background: rgba(0, 219, 121, 0.05); border: 1px solid rgba(0, 219, 121, 0.2); padding: 6px 14px; border-radius: 20px; transition: all 0.2s ease;">
-
-              <input type="radio" name="statusFilterRadio" id="statusFilterActive" value="active" onchange="changeStatusFilter('active')" style="accent-color: #00db79; width: 14px; height: 14px; cursor: pointer;" />
-
-              <span style="font-weight: 700;">✓ Solo Activos Rentables</span>
-
-            </label>
-
-            <label id="lblFilterPruned" style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #9fa2a5; cursor: pointer; user-select: none; background: rgba(255, 69, 58, 0.05); border: 1px solid rgba(255, 69, 58, 0.2); padding: 6px 14px; border-radius: 20px; transition: all 0.2s ease;">
-
-              <input type="radio" name="statusFilterRadio" id="statusFilterPruned" value="pruned" onchange="changeStatusFilter('pruned')" style="accent-color: #ff453a; width: 14px; height: 14px; cursor: pointer;" />
-
-              <span style="font-weight: 700;">⛔ Solo Podados</span>
-
-            </label>
-
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 2px 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 11px; color: var(--m); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Estado:</span>
+              <button type="button" class="filterChip active" id="chipStateAll" onclick="changeStatusFilter('all')">📋 Todos <span id="cntAll" style="font-size:10px; opacity:0.8;">[73]</span></button>
+              <button type="button" class="filterChip" id="chipStateActive" onclick="changeStatusFilter('active')">✓ Rentables Activos <span id="cntActive" style="font-size:10px; opacity:0.8; color:#00db79;">[38]</span></button>
+              <button type="button" class="filterChip" id="chipStatePruned" onclick="changeStatusFilter('pruned')">⛔ Podados <span id="cntPruned" style="font-size:10px; opacity:0.8; color:#ff453a;">[35]</span></button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 11px; color: var(--m); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Mercado:</span>
+              <button type="button" class="filterChip active" id="chipCatAll" onclick="changeCategoryFilter('all')">Todos</button>
+              <button type="button" class="filterChip" id="chipCatDeriv" onclick="changeCategoryFilter('deriv')">Sintéticos Deriv</button>
+              <button type="button" class="filterChip" id="chipCatForex" onclick="changeCategoryFilter('forex')">Forex</button>
+              <button type="button" class="filterChip" id="chipCatMetals" onclick="changeCategoryFilter('metals')">Metales / Índices</button>
+            </div>
           </div>
-
         </div>
 
         <div class="table-wrapper">
-
           <table id="winnersTable">
             <thead>
               <tr>
@@ -2381,10 +2432,10 @@ __MSNR_SETTINGS_PANEL__
                 <!-- REGLA 4 -->
                 <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid var(--g); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
                   <div style="font-size: 11px; font-weight: 800; color: var(--g); text-transform: uppercase; margin-bottom: 3px;">
-                    ⚖️ Doble Orden (50% + 50%) a Riesgo Cero
+                    ⚖️ Doble Orden (70% + 30%) y Excepción 1% @ 1:1
                   </div>
                   <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
-                    La orden 1 cobra beneficio en 1:1 (TP1) y pasa inmediatamente la orden 2 a Break-Even + spread para buscar 1:2 o 1:4, eliminando rachas perdedoras y blindando la rentabilidad.
+                    La orden 1 (70%) cobra beneficio en 1:1 (TP1) y pasa inmediatamente el Runner (30%) a Break-Even + spread para buscar 1:2 o 1:4; si un obstáculo impide proyectar TP2, ejecuta una única orden con 1% @ 1:1.
                   </div>
                 </div>
 
@@ -2418,7 +2469,7 @@ __MSNR_SETTINGS_PANEL__
 
               <div class="daemon-card-body">
                 <div style="font-size: 12.5px; color: #e2e8f0; line-height: 1.6; margin-bottom: 14px;">
-                  Captura las dos aperturas más líquidas del mundo: <strong>Londres (08:00 BST / 03:00 NY) y Wall Street (09:30 a 11:30 NY)</strong>. Opera con doble gatillo: barrido de liquidez externa en trampas matutinas y retesteos limpios tras expansiones institucionales.
+                  Captura las dos aperturas más líquidas del mundo: <strong>Londres (08:00 BST / 03:00 NY) y Wall Street (09:30 a 11:30 NY, autorizada en la ventana 10:00–11:59 Chile)</strong>. Opera con doble gatillo: barrido de liquidez externa en trampas matutinas y retesteos limpios tras expansiones institucionales.
                 </div>
 
                 <!-- REGLA 1 -->
@@ -2444,10 +2495,10 @@ __MSNR_SETTINGS_PANEL__
                 <!-- REGLA 3 -->
                 <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid #f5bd36; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
                   <div style="font-size: 11px; font-weight: 800; color: #f5bd36; text-transform: uppercase; margin-bottom: 3px;">
-                    🎯 Ejecución 2 Piernas (0.5% + 0.5%) y Trailing Institucional
+                    🎯 Ejecución 2 Piernas (70% + 30%) y Excepción 1% @ 1:1
                   </div>
                   <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
-                    La Pierna 1 asegura beneficios en el objetivo inicial (1R a 1.5R) y mueve la Pierna 2 a Break-Even inmediato. La Pierna 2 cabalga la tendencia completa de la sesión hacia máximos/mínimos de Londres o Asia con trailing stop.
+                    La Pierna 1 (70%) asegura beneficios en TP1 (1:1) y mueve el Runner (30%) a Break-Even inmediato hacia TP2 (1:2) o trailing institucional; cuando no proyecta TP2 opera 1% @ 1:1.
                   </div>
                 </div>
 
@@ -8248,139 +8299,44 @@ __MSNR_SETTINGS_PANEL__
       let sortAsc = false;
 
       let currentStatusFilter = 'all'; // 'all', 'active', 'pruned'
+      let currentCategoryFilter = 'all'; // 'all', 'deriv', 'forex', 'metals'
 
       function changeStatusFilter(mode) {
-
         currentStatusFilter = mode;
-
-        const allRadio = document.getElementById('statusFilterAll');
-
-        const activeRadio = document.getElementById('statusFilterActive');
-
-        const prunedRadio = document.getElementById('statusFilterPruned');
-
-        if (allRadio && mode === 'all') allRadio.checked = true;
-
-        if (activeRadio && mode === 'active') activeRadio.checked = true;
-
-        if (prunedRadio && mode === 'pruned') prunedRadio.checked = true;
-
         updateStatusFilterPillsUI();
-
         renderWinnersTable();
+      }
 
+      function changeCategoryFilter(cat) {
+        currentCategoryFilter = cat;
+        ['All', 'Deriv', 'Forex', 'Metals'].forEach(k => {
+          const btn = document.getElementById('chipCat' + k);
+          if (btn) btn.classList.toggle('active', k.toLowerCase() === cat.toLowerCase());
+        });
+        renderWinnersTable();
       }
 
       function updateStatusFilterPillsUI() {
-
-        const lblAll = document.getElementById('lblFilterAll');
-
-        const lblActive = document.getElementById('lblFilterActive');
-
-        const lblPruned = document.getElementById('lblFilterPruned');
-
-        if (!lblAll || !lblActive || !lblPruned) return;
-
-        
-
-        if (currentStatusFilter === 'all') {
-
-          lblAll.style.background = 'rgba(56, 189, 248, 0.16)';
-
-          lblAll.style.borderColor = '#38bdf8';
-
-          lblAll.style.color = '#fff';
-
-          
-
-          lblActive.style.background = 'rgba(0, 219, 121, 0.05)';
-
-          lblActive.style.borderColor = 'rgba(0, 219, 121, 0.2)';
-
-          lblActive.style.color = '#9fa2a5';
-
-          
-
-          lblPruned.style.background = 'rgba(255, 69, 58, 0.05)';
-
-          lblPruned.style.borderColor = 'rgba(255, 69, 58, 0.2)';
-
-          lblPruned.style.color = '#9fa2a5';
-
-        } else if (currentStatusFilter === 'active') {
-
-          lblAll.style.background = 'rgba(56, 189, 248, 0.05)';
-
-          lblAll.style.borderColor = 'rgba(56, 189, 248, 0.2)';
-
-          lblAll.style.color = '#9fa2a5';
-
-          
-
-          lblActive.style.background = 'rgba(0, 219, 121, 0.16)';
-
-          lblActive.style.borderColor = '#00db79';
-
-          lblActive.style.color = '#fff';
-
-          
-
-          lblPruned.style.background = 'rgba(255, 69, 58, 0.05)';
-
-          lblPruned.style.borderColor = 'rgba(255, 69, 58, 0.2)';
-
-          lblPruned.style.color = '#9fa2a5';
-
-        } else if (currentStatusFilter === 'pruned') {
-
-          lblAll.style.background = 'rgba(56, 189, 248, 0.05)';
-
-          lblAll.style.borderColor = 'rgba(56, 189, 248, 0.2)';
-
-          lblAll.style.color = '#9fa2a5';
-
-          
-
-          lblActive.style.background = 'rgba(0, 219, 121, 0.05)';
-
-          lblActive.style.borderColor = 'rgba(0, 219, 121, 0.2)';
-
-          lblActive.style.color = '#9fa2a5';
-
-          
-
-          lblPruned.style.background = 'rgba(255, 69, 58, 0.16)';
-
-          lblPruned.style.borderColor = '#ff453a';
-
-          lblPruned.style.color = '#fff';
-
-        }
-
+        ['All', 'Active', 'Pruned'].forEach(k => {
+          const btn = document.getElementById('chipState' + k);
+          if (btn) btn.classList.toggle('active', k.toLowerCase() === currentStatusFilter.toLowerCase());
+        });
       }
 
       function setStrategyTab(tab) {
-
         currentTab = tab;
-
         currentStatusFilter = 'all';
-
-        // 1. Resetear selección de filtro visual a 'all'
-
-        const allRadio = document.getElementById('statusFilterAll');
-
-        if (allRadio) allRadio.checked = true;
-
+        currentCategoryFilter = 'all';
         updateStatusFilterPillsUI();
+        changeCategoryFilter('all');
 
-        // 2. Limpiar texto de búsqueda para ver todos los instrumentos de la pestaña por defecto
-
+        // Limpiar texto de búsqueda para ver todos los instrumentos de la pestaña por defecto
         const searchInput = document.getElementById('winnersSearchInput');
-
         if (searchInput) searchInput.value = '';
+        const btnClear = document.getElementById('btnClearWinnersSearch');
+        if (btnClear) btnClear.style.display = 'none';
 
-        // 3. Paneles específicos por estrategia
-
+        // Paneles específicos por estrategia
         const settingsCard = document.getElementById('msnrRuntimeSettings');
 
         if (settingsCard) {
@@ -8550,54 +8506,60 @@ __MSNR_SETTINGS_PANEL__
       }
 
       function renderWinnersTable() {
-
         const query = (document.getElementById('winnersSearchInput').value || '').toLowerCase().trim();
+        const btnClear = document.getElementById('btnClearWinnersSearch');
+        if (btnClear) btnClear.style.display = query ? 'block' : 'none';
 
-        let items = WINNERS_DATA.filter(it => {
-
+        // Conteo dinámico de activos según pestaña
+        const tabItems = WINNERS_DATA.filter(it => {
           if (currentTab === 'multistrategy' && it.strategy !== 'MultiStrategia') return false;
           if (currentTab === 'malaysian' && it.strategy !== 'Malaysian SNR') return false;
-
           if (currentTab === 'orb') {
-
             if (it.strategy !== 'ORB New York') return false;
-
-            // Eliminar sinteticos de Deriv incompatibles con la sesion New York (09:30 EST)
-
             if (it.trades === 0 || it.category.includes('Sintéticos') || it.symbol.includes('Volatility') || it.symbol.includes('Crash') || it.symbol.includes('Boom') || it.symbol.includes('Jump') || it.symbol.includes('Step') || it.symbol.includes('VolSwitch')) {
-
               return false;
-
             }
-
           }
-
           if (currentTab === 'ict' && it.strategy !== 'ICT') return false;
-
           if (currentTab === 'trend_pullback' && it.strategy !== 'Trend Pullback') return false;
+          return true;
+        });
 
-          
+        const cntAllEl = document.getElementById('cntAll');
+        const cntActiveEl = document.getElementById('cntActive');
+        const cntPrunedEl = document.getElementById('cntPruned');
+        if (cntAllEl) cntAllEl.textContent = `[${tabItems.length}]`;
+        if (cntActiveEl) cntActiveEl.textContent = `[${tabItems.filter(x => x.is_profitable).length}]`;
+        if (cntPrunedEl) cntPrunedEl.textContent = `[${tabItems.filter(x => !x.is_profitable).length}]`;
 
+        let items = tabItems.filter(it => {
           // Filtros de estado por cada pestaña
-
           if (currentStatusFilter === 'active' && !it.is_profitable) return false;
-
           if (currentStatusFilter === 'pruned' && it.is_profitable) return false;
 
+          // Filtro de mercado / categoría
+          if (currentCategoryFilter === 'deriv') {
+            const cat = (it.category || '').toLowerCase();
+            const sym = (it.symbol || '').toLowerCase();
+            const isDeriv = cat.includes('sintético') || cat.includes('deriv') || sym.includes('volatility') || sym.includes('jump') || sym.includes('crash') || sym.includes('boom') || sym.includes('step') || sym.includes('dex') || sym.includes('range');
+            if (!isDeriv) return false;
+          } else if (currentCategoryFilter === 'forex') {
+            const cat = (it.category || '').toLowerCase();
+            if (!cat.includes('forex')) return false;
+          } else if (currentCategoryFilter === 'metals') {
+            const cat = (it.category || '').toLowerCase();
+            const isMetals = cat.includes('metal') || cat.includes('commod') || cat.includes('índice') || cat.includes('crypto');
+            if (!isMetals) return false;
+          }
+
           if (!query) return true;
-
           return it.symbol.toLowerCase().includes(query) ||
-
                  it.strategy.toLowerCase().includes(query) ||
-
                  it.category.toLowerCase().includes(query) ||
-
                  (it.status && it.status.toLowerCase().includes(query));
-
         });
 
         items.sort((a, b) => {
-
           if (sortCol === 'status') {
             if (a.is_profitable !== b.is_profitable) {
               return sortAsc ? (a.is_profitable ? 1 : -1) : (a.is_profitable ? -1 : 1);
@@ -8611,21 +8573,33 @@ __MSNR_SETTINGS_PANEL__
           }
 
           let vA = a[sortCol];
-
           let vB = b[sortCol];
-
           if (typeof vA === 'string') {
-
             return sortAsc ? vA.localeCompare(vB, 'es', { numeric: true }) : vB.localeCompare(vA, 'es', { numeric: true });
-
           }
-
           return sortAsc ? (vA - vB) : (vB - vA);
+        });
 
+        // Actualizar indicadores visuales de ordenamiento en cabeceras th
+        const headers = document.querySelectorAll('#winnersTable thead th');
+        headers.forEach(th => {
+          const onclickAttr = th.getAttribute('onclick') || '';
+          const match = onclickAttr.match(/sortWinners\('([^']+)'\)/);
+          if (match) {
+            const col = match[1];
+            const isCur = (col === sortCol);
+            th.classList.toggle('sorted', isCur);
+            let arrowSpan = th.querySelector('.sort-arrow');
+            if (!arrowSpan) {
+              arrowSpan = document.createElement('span');
+              arrowSpan.className = 'sort-arrow';
+              th.appendChild(arrowSpan);
+            }
+            arrowSpan.textContent = isCur ? (sortAsc ? '▲' : '▼') : '↕';
+          }
         });
 
         const tbody = document.getElementById('winnersTableBody');
-
         tbody.innerHTML = '';
 
         items.forEach((it, idx) => {

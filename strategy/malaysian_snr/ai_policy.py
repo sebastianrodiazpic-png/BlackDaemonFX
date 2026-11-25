@@ -113,11 +113,13 @@ def score_candidate(engine, symbol, signal, analysis, market, *, source, setting
                                          evaluated_at=datetime.now(timezone.utc).isoformat())
     if settings['ai_mode']=='off':
         allowed, shadow, reason = True, True, 'MSNR_AI_DISABLED'
+    elif model.trained and expectancy < -1e-6:
+        allowed, shadow, reason = False, False, f'MSNR_AI_NEGATIVE_EXPECTANCY_BLOCKED:{expectancy:.3f}R'
     elif settings['ai_mode']=='shadow':
         allowed, shadow, reason = True, True, 'MSNR_AI_OBSERVATION_ONLY'
     elif not check['compatible']:
-        allowed = settings['ai_incompatible_policy']=='observe' and str(source).upper()=='DEMO'
-        shadow, reason = True, 'MSNR_AI_INCOMPATIBLE_OBSERVATION_DEMO' if allowed else 'MSNR_AI_MODEL_INCOMPATIBLE'
+        allowed = settings.get('ai_incompatible_policy')=='observe' and str(source).upper()=='DEMO' and expectancy >= 0.0
+        shadow, reason = True, 'MSNR_AI_INCOMPATIBLE_OBSERVATION_DEMO' if allowed else ('MSNR_AI_INCOMPATIBLE_NEGATIVE_EXPECTANCY' if expectancy < 0.0 else 'MSNR_AI_MODEL_INCOMPATIBLE')
     elif probability + 1e-9 < thresholds['min_probability']:
         allowed, shadow, reason = False, False, 'PROBABILITY_BELOW_THRESHOLD'
     elif expectancy + 1e-9 < thresholds['min_net_expectancy_r']:

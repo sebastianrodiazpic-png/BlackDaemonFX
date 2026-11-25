@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import math
+import os
 import time
 
 import MetaTrader5 as mt5
@@ -560,6 +561,44 @@ class MT5ExecutionProvider:
         return price
 
     @staticmethod
+    def _extract_leg_tag(comment: str | None) -> str:
+        """Extrae la etiqueta canónica de pierna (RUNNER, TP2, TP1, SINGLE) si existe."""
+        if not comment:
+            return ""
+        upper = str(comment).strip().upper()
+        for sfx, canonical in (
+            (":RUNNER", "RUNNER"),
+            ("-RUNNER", "RUNNER"),
+            (":TP2", "TP2"),
+            ("-TP2", "TP2"),
+            (":TP1", "TP1"),
+            ("-TP1", "TP1"),
+            (":SINGLE", "SINGLE"),
+            ("-SINGLE", "SINGLE"),
+        ):
+            if upper.endswith(sfx) or sfx in upper:
+                return canonical
+        return ""
+
+    @classmethod
+    def _fallback_comment_for(cls, comment: str | None) -> str:
+        """Comentario mínimo ASCII alfanumérico seguro ante fallo `-2 Invalid comment` de MT5.
+
+        Preserva siempre la identidad de la pierna (`BlackDaemonFx-RUNNER`, etc.)
+        en <= 20 caracteres ASCII puros sin espacios ni dos puntos, evitando que
+        la barrera anti-duplicados bloquee la pata RUNNER del split 70/30.
+        """
+        preserve_leg = (
+            os.getenv("DAEMONBLACKFX_PRESERVE_FALLBACK_COMMENT_LEG", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+        if preserve_leg:
+            leg_tag = cls._extract_leg_tag(comment)
+            if leg_tag:
+                return f"BlackDaemonFx-{leg_tag}"
+        return "BlackDaemonFx"
+
+    @staticmethod
     def _sanitize_comment(comment: str | None, max_bytes: int = 30) -> str:
         """Normaliza el comentario para el binding de MetaTrader5.
 
@@ -573,9 +612,9 @@ class MT5ExecutionProvider:
         if not text:
             text = "BlackDaemonFx"
 
-        # Preservar siempre el sufijo de la pata si existe (:RUNNER, :TP1, -RUNNER, -TP1)
+        # Preservar siempre el sufijo de la pata si existe (:RUNNER, :TP2, :TP1, :SINGLE, -RUNNER, -TP2, -TP1, -SINGLE)
         leg_suffix = ""
-        for sfx in (":RUNNER", ":TP1", ":SINGLE", "-RUNNER", "-TP1", "-SINGLE"):
+        for sfx in (":RUNNER", ":TP2", ":TP1", ":SINGLE", "-RUNNER", "-TP2", "-TP1", "-SINGLE"):
             if text.upper().endswith(sfx):
                 leg_suffix = sfx
                 break
@@ -583,7 +622,8 @@ class MT5ExecutionProvider:
         limit = max(1, int(max_bytes))
         if leg_suffix and len(text) > limit:
             prefix_len = max(1, limit - len(leg_suffix))
-            text = f"{text[:prefix_len]}{leg_suffix}"
+            prefix = text[:prefix_len].rstrip(":")
+            text = f"{prefix}{leg_suffix}"
 
         encoded = text.encode("ascii", errors="ignore")[:limit]
         text = encoded.decode("ascii", errors="ignore").strip()
@@ -606,12 +646,11 @@ class MT5ExecutionProvider:
 
     def _order_check_safe(self, request: dict) -> tuple[object, dict, dict]:
         """Ejecuta order_check y, si el binding rechaza el comentario,
-        reintenta automáticamente con un comentario mínimo y seguro.
+        reintenta automáticamente con un comentario mínimo y seguro preservando la pata.
         """
+        raw_comment = request.get("comment")
         first_request = dict(request)
-        first_request["comment"] = self._sanitize_comment(
-            first_request.get("comment")
-        )
+        first_request["comment"] = self._sanitize_comment(raw_comment)
         check = mt5.order_check(first_request)
         last_error = mt5.last_error()
         diagnostic = {
@@ -621,13 +660,14 @@ class MT5ExecutionProvider:
         }
 
         if check is None and self._last_error_is_invalid_comment(last_error):
+            fallback_comment = self._fallback_comment_for(raw_comment or first_request.get("comment"))
             retry_request = dict(first_request)
-            retry_request["comment"] = "BlackDaemonFx"
+            retry_request["comment"] = fallback_comment
             check = mt5.order_check(retry_request)
             retry_error = mt5.last_error()
             diagnostic.update({
                 "comment_fallback_used": True,
-                "comment_fallback_value": "BlackDaemonFx",
+                "comment_fallback_value": fallback_comment,
                 "mt5_last_error_first": last_error,
                 "mt5_last_error": retry_error,
             })
@@ -636,11 +676,10 @@ class MT5ExecutionProvider:
         return check, first_request, diagnostic
 
     def _order_send_safe(self, request: dict) -> tuple[object, dict, dict]:
-        """Envía la orden y aplica el mismo fallback defensivo de comentario."""
+        """Envía la orden y aplica el mismo fallback defensivo de comentario preservando la pata."""
+        raw_comment = request.get("comment")
         first_request = dict(request)
-        first_request["comment"] = self._sanitize_comment(
-            first_request.get("comment")
-        )
+        first_request["comment"] = self._sanitize_comment(raw_comment)
         result = mt5.order_send(first_request)
         last_error = mt5.last_error()
         diagnostic = {
@@ -650,13 +689,14 @@ class MT5ExecutionProvider:
         }
 
         if result is None and self._last_error_is_invalid_comment(last_error):
+            fallback_comment = self._fallback_comment_for(raw_comment or first_request.get("comment"))
             retry_request = dict(first_request)
-            retry_request["comment"] = "BlackDaemonFx"
+            retry_request["comment"] = fallback_comment
             result = mt5.order_send(retry_request)
             retry_error = mt5.last_error()
             diagnostic.update({
                 "comment_fallback_used": True,
-                "comment_fallback_value": "BlackDaemonFx",
+                "comment_fallback_value": fallback_comment,
                 "mt5_last_error_first": last_error,
                 "mt5_last_error": retry_error,
             })
@@ -1363,6 +1403,7 @@ class MT5ExecutionProvider:
         deviation: int = 20,
         max_risk_amount: float | None = None,
         minimum_executable_rr: float | None = None,
+        trade_leg: str | None = None,
     ):
         """Abre una orden de mercado.
 
@@ -1436,6 +1477,7 @@ class MT5ExecutionProvider:
         self._validate_pre_send_risk(request, str(direction).upper(), max_risk_amount)
         executable_rr_audit = self._validate_executable_rr(request, direction, minimum_executable_rr)
 
+        from strategy.execution.symbol_counterpart import is_same_or_counterpart_symbol
         from strategy.execution.active_position_guard import (
             terminal_execution_lock,
             is_terminal_in_flight,
@@ -1443,29 +1485,128 @@ class MT5ExecutionProvider:
             check_active_position_guard,
         )
 
+        comment_str = str(request.get("comment") or "")
+        initial_comment_str = str(comment or "")
+        split_runner_tags = tuple(
+            x.strip().upper()
+            for x in os.getenv(
+                "DAEMONBLACKFX_SPLIT_RUNNER_TAGS",
+                ":RUNNER,:TP2,-RUNNER,-TP2",
+            ).split(",")
+            if x.strip()
+        )
+        explicit_runner_enabled = (
+            os.getenv("DAEMONBLACKFX_EXPLICIT_RUNNER_LEG_ENABLED", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+        explicit_leg = str(trade_leg or "").strip().upper()
+        is_split_runner = bool(
+            (explicit_runner_enabled and explicit_leg in {"RUNNER", "TP2"})
+            or any(tag in comment_str.upper() for tag in split_runner_tags)
+            or (explicit_runner_enabled and any(tag in initial_comment_str.upper() for tag in split_runner_tags))
+        )
+        strict_runner_owner = (
+            os.getenv("DAEMONBLACKFX_SPLIT_RUNNER_STRICT_OWNER", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+        guard_fail_closed = (
+            os.getenv("DAEMONBLACKFX_GUARD_FAIL_CLOSED", "1").strip().lower()
+            not in ("0", "false", "off", "no")
+        )
+
         with terminal_execution_lock(symbol) as lock_acquired:
             if not lock_acquired:
                 raise MT5ExecutionError(
                     f"TERMINAL_LOCK_TIMEOUT: No se pudo obtener el lock de ejecución MT5 para {symbol}"
                 )
+            # Forzar lectura fresca de MT5 dentro del lock antes de evaluar las guardas pre-envío.
+            self.invalidate_broker_cache()
 
-            if is_terminal_in_flight(symbol):
+            # Las entradas divididas autorizadas (pata RUNNER) se envían inmediatamente
+            # tras la pata TP1 en el mismo ciclo. No deben ser bloqueadas por el
+            # cooldown en vuelo de la pata TP1 hermana.
+            if not is_split_runner and is_terminal_in_flight(symbol):
                 raise MT5ExecutionError(
                     f"ORDER_SEND_BLOCKED_TERMINAL_DUPLICATE: {symbol} ya tiene una orden en vuelo reciente en el terminal"
                 )
 
+            allow_reentry_on_be = (
+                os.getenv("DAEMONBLACKFX_ALLOW_REENTRY_ON_BE", "1").strip().lower()
+                not in ("0", "false", "off", "no")
+            )
+
+            def _is_position_at_be(pos) -> bool:
+                raw_type = getattr(pos, "type", None)
+                raw_sl = getattr(pos, "sl", None)
+                raw_op = getattr(pos, "price_open", None)
+                if not isinstance(raw_sl, (int, float)) or not isinstance(raw_op, (int, float)):
+                    return False
+                sl_v = float(raw_sl)
+                op_v = float(raw_op)
+                if sl_v <= 0 or op_v <= 0:
+                    return False
+                pos_type = str(raw_type if raw_type is not None else "").upper()
+                is_buy = ("BUY" in pos_type or pos_type == "0")
+                is_sell = ("SELL" in pos_type or pos_type == "1")
+                if not is_buy and not is_sell:
+                    return False
+                return (is_buy and sl_v >= op_v) or (is_sell and sl_v <= op_v)
+
             try:
-                active_guard = check_active_position_guard(
-                    symbol, self.get_open_positions(), self.get_pending_orders()
-                )
-                if not active_guard.get("can_analyze", True):
-                    raise MT5ExecutionError(
-                        f"ORDER_SEND_BLOCKED_ACTIVE_POSITION: {symbol} ya tiene posición u orden activa ({active_guard.get('status')})"
+                if is_split_runner:
+                    # Para el RUNNER de una entrada dividida (70/30 o 50/50), se permite
+                    # coexistir con la pierna TP1 previamente abierta (máximo 2 posiciones con riesgo activo;
+                    # si DAEMONBLACKFX_ALLOW_REENTRY_ON_BE=1, posiciones previas ya en BE no bloquean, con tope duro de 4).
+                    matching_pos = [
+                        p for p in (self.get_open_positions() or [])
+                        if is_same_or_counterpart_symbol(symbol, getattr(p, "symbol", ""))
+                    ]
+                    matching_orders = [
+                        o for o in (self.get_pending_orders() or [])
+                        if is_same_or_counterpart_symbol(symbol, getattr(o, "symbol", ""))
+                    ]
+                    active_risk_pos = (
+                        [p for p in matching_pos if not _is_position_at_be(p)]
+                        if allow_reentry_on_be
+                        else matching_pos
                     )
+                    if len(active_risk_pos) >= 2 or len(matching_pos) >= 4 or len(matching_orders) > 0:
+                        raise MT5ExecutionError(
+                            f"ORDER_SEND_BLOCKED_ACTIVE_POSITION: {symbol} ya tiene {len(active_risk_pos)} posiciones con riesgo activo ({len(matching_pos)} totales) y {len(matching_orders)} órdenes"
+                        )
+                    if strict_runner_owner and len(active_risk_pos) == 1:
+                        existing = active_risk_pos[0]
+                        existing_magic = getattr(existing, "magic", None)
+                        existing_type = getattr(existing, "type", None)
+                        expected_type = 0 if str(direction).upper() == "BUY" else 1
+                        if existing_magic is not None and int(existing_magic) != int(magic):
+                            raise MT5ExecutionError(
+                                f"ORDER_SEND_BLOCKED_CROSS_WORKER_CONFLICT: {symbol} ya tiene posición "
+                                f"de otro worker (magic={existing_magic} != {int(magic)})"
+                            )
+                        if existing_type is not None and int(existing_type) != expected_type:
+                            raise MT5ExecutionError(
+                                f"ORDER_SEND_BLOCKED_CROSS_WORKER_CONFLICT: {symbol} ya tiene posición "
+                                f"en dirección opuesta (type={existing_type} != {expected_type})"
+                            )
+                else:
+                    active_guard = check_active_position_guard(
+                        symbol,
+                        self.get_open_positions(),
+                        self.get_pending_orders(),
+                        allow_breakeven_positions=allow_reentry_on_be,
+                    )
+                    if not active_guard.get("can_analyze", True):
+                        raise MT5ExecutionError(
+                            f"ORDER_SEND_BLOCKED_ACTIVE_POSITION: {symbol} ya tiene posición u orden activa ({active_guard.get('status')})"
+                        )
             except MT5ExecutionError:
                 raise
-            except Exception:
-                pass
+            except Exception as exc:
+                if guard_fail_closed:
+                    raise MT5ExecutionError(
+                        f"ORDER_SEND_BLOCKED_GUARD_ERROR: no se pudo verificar la guarda de posición activa para {symbol}: {exc}"
+                    ) from exc
 
             result, request, send_diagnostic = self._order_send_safe(request)
             if result is not None and self._is_order_send_success(result):
@@ -1499,6 +1640,7 @@ class MT5ExecutionProvider:
             "executable_rr_audit": executable_rr_audit,
             "filled_volume": float(getattr(result, "volume", 0.0) or request["volume"]),
             "request": request,
+            "requested_entry_price": float(request["price"]),
             "entry_price": float(
                 getattr(result, "price", 0.0)
                 or request["price"]
@@ -1600,6 +1742,15 @@ class MT5ExecutionProvider:
             "request": request,
         }
 
+    def _effective_cache_ttl_seconds(self) -> float:
+        raw = os.getenv("DAEMONBLACKFX_MT5_POSITIONS_CACHE_TTL_SECONDS")
+        if raw is not None and str(raw).strip() != "":
+            try:
+                return max(0.0, float(raw))
+            except ValueError:
+                pass
+        return max(0.0, float(getattr(self, "_cache_ttl_seconds", 1.5)))
+
     def invalidate_broker_cache(self):
         """Invalida la caché de posiciones y órdenes para forzar una lectura fresca."""
         self._positions_cache = None
@@ -1609,19 +1760,47 @@ class MT5ExecutionProvider:
 
     def get_open_positions(self, force_refresh: bool = False):
         """Unfiltered broker state for the entry guard; None is an error, not empty."""
+        ttl = self._effective_cache_ttl_seconds()
+        now_mono = time.monotonic()
+        if (
+            not force_refresh
+            and ttl > 0.0
+            and self._positions_cache is not None
+            and (now_mono - float(getattr(self, "_positions_cache_time", 0.0))) < ttl
+        ):
+            return list(self._positions_cache)
+
         self._ensure()
         rows = mt5.positions_get()
         if rows is None:
             raise MT5ExecutionError(f"positions_get failed: {mt5.last_error()}")
-        return list(rows)
+        cached = list(rows)
+        if ttl > 0.0:
+            self._positions_cache = cached
+            self._positions_cache_time = time.monotonic()
+        return list(cached)
 
     def get_pending_orders(self, force_refresh: bool = False):
         """Include manual orders and orders belonging to every worker/magic."""
+        ttl = self._effective_cache_ttl_seconds()
+        now_mono = time.monotonic()
+        if (
+            not force_refresh
+            and ttl > 0.0
+            and self._orders_cache is not None
+            and (now_mono - float(getattr(self, "_orders_cache_time", 0.0))) < ttl
+        ):
+            return list(self._orders_cache)
+
         self._ensure()
         rows = mt5.orders_get()
         if rows is None:
             raise MT5ExecutionError(f"orders_get failed: {mt5.last_error()}")
-        return list(rows)
+        cached = list(rows)
+        if ttl > 0.0:
+            self._orders_cache = cached
+            self._orders_cache_time = time.monotonic()
+        return list(cached)
 
     def list_open_positions(self, magic: int | None = None) -> list[dict]:
         """Devuelve un snapshot serializable de las posiciones abiertas de MT5.
@@ -1788,16 +1967,54 @@ class MT5ExecutionProvider:
             symbol=symbol
         ) or []
 
+        comment_str = str(comment or "")[:31]
+
+        # Prioridad 1: Coincidencia estricta de Magic Y Comentario exacto
+        if comment_str:
+            strict_candidates = [
+                position
+                for position in positions
+                if int(getattr(position, "magic", 0)) == int(magic)
+                and str(getattr(position, "comment", ""))[:31] == comment_str
+            ]
+            if strict_candidates:
+                strict_candidates.sort(
+                    key=lambda p: (
+                        getattr(p, "time_msc", 0) or (getattr(p, "time", 0) * 1000),
+                        int(getattr(p, "ticket", 0) or 0),
+                    ),
+                    reverse=True,
+                )
+                return int(strict_candidates[0].ticket)
+
+            # Prioridad 2: Coincidencia de Magic Y sufijo de pata (:TP1, -TP1, :RUNNER, -RUNNER, :TP2, -TP2)
+            is_runner = any(x in comment_str for x in (":RUNNER", ":TP2", "-RUNNER", "-TP2"))
+            is_tp1 = any(x in comment_str for x in (":TP1", "-TP1"))
+            if is_runner or is_tp1:
+                target_suffixes = (":RUNNER", "-RUNNER", ":TP2", "-TP2") if is_runner else (":TP1", "-TP1")
+                leg_candidates = [
+                    position
+                    for position in positions
+                    if int(getattr(position, "magic", 0)) == int(magic)
+                    and any(sfx in str(getattr(position, "comment", "")) for sfx in target_suffixes)
+                ]
+                if leg_candidates:
+                    leg_candidates.sort(
+                        key=lambda p: (
+                            getattr(p, "time_msc", 0) or (getattr(p, "time", 0) * 1000),
+                            int(getattr(p, "ticket", 0) or 0),
+                        ),
+                        reverse=True,
+                    )
+                    return int(leg_candidates[0].ticket)
+
+        # Prioridad 3: Coincidencia general de magic o comentario, ordenado por time_msc y ticket
         candidates = [
             position
             for position in positions
             if (
-                int(getattr(position, "magic", 0))
-                == int(magic)
-                or str(
-                    getattr(position, "comment", "")
-                )
-                == str(comment)[:31]
+                int(getattr(position, "magic", 0)) == int(magic)
+                or (comment_str and str(getattr(position, "comment", ""))[:31] == comment_str)
             )
         ]
 
@@ -1805,10 +2022,9 @@ class MT5ExecutionProvider:
             return None
 
         candidates.sort(
-            key=lambda position: getattr(
-                position,
-                "time",
-                0,
+            key=lambda position: (
+                getattr(position, "time_msc", 0) or (getattr(position, "time", 0) * 1000),
+                int(getattr(position, "ticket", 0) or 0),
             ),
             reverse=True,
         )
@@ -1837,6 +2053,19 @@ class MT5ExecutionProvider:
         ) or []
 
         if not rows:
+            try:
+                from datetime import datetime, timezone, timedelta
+                now = datetime.now(timezone.utc)
+                from_date = now - timedelta(minutes=5)
+                to_date = now + timedelta(minutes=5)
+                range_deals = mt5.history_deals_get(from_date, to_date) or []
+                for deal in range_deals:
+                    if int(getattr(deal, "ticket", 0) or 0) == int(deal_ticket):
+                        val = getattr(deal, "position_id", 0)
+                        if val:
+                            return int(val)
+            except Exception:
+                pass
             return None
 
         value = getattr(

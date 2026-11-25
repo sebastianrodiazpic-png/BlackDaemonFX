@@ -172,8 +172,8 @@ class MalaysianSNRConfig:
     
     # Gestión de riesgo
     risk_percent_total: float = 1.0  # 1% total de la cuenta
-    leg1_risk_ratio: float = 0.5     # 50% del riesgo (0.5%)
-    leg2_risk_ratio: float = 0.5     # 50% del riesgo (0.5%)
+    leg1_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SPLIT_LEG1_RATIO", "0.70"))     # 70% del riesgo (0.7%)
+    leg2_risk_ratio: float = float(os.getenv("DAEMONBLACKFX_SPLIT_LEG2_RATIO", "0.30"))     # 30% del riesgo (0.3%)
     be_spread_buffer_multiplier: float = 1.5
 
     # Variante C2 (Staging): Tope de Stop Loss en unidades ATR (<= 1.2 en Forex/Metales, <= 1.5 en Sintéticos y Wall Street 30)

@@ -1,23 +1,33 @@
-"""Gestor de riesgo SMC de alto nivel: límites de cuenta y validaciones.
+"""[DEPRECADO] Gestor de riesgo SMC legado de alto nivel.
 
-Reune sobre `position_sizing` y `money_management` las reglas de proteccion
-de la cuenta: riesgo maximo por operacion, perdida diaria, drawdown, rachas
-de perdidas consecutivas, numero de posiciones abiertas y riesgo agregado.
+AVISO DE DEPRECACIÓN FORMAL (2026-11-25):
+Este módulo (`strategy.risk.risk_manager`) está formalmente DEPRECADO y NO tiene
+consumidores en producción. Toda la gestión de riesgo en vivo, reparto 70/30,
+excepción 1% @ 1:1 sub-TP2, frenos de cartera y validación post-fill reside en:
+- `strategy.execution.live_trading_engine`
+- `brokers.mt5_execution`
+- `risk.portfolio_accounting`
 
-ESTADO: sin consumidores en produccion. El motor en vivo
-(`strategy.execution.live_trading_engine`) implementa su propio dimensionado
-y sus propios topes de riesgo, incluida la validacion posterior al fill. Este
-paquete se mantiene cubierto por tests y sirve de referencia, pero NO
-interviene en la operativa real.
-
-Vinculaciones:
-- Importa `strategy.risk.position_sizing` y `strategy.risk.money_management`.
-- Solo lo consumen `tests/test_risk_manager.py` y
-  `tests/test_risk_integration.py`.
+Se conserva únicamente por compatibilidad con tests históricos (`tests/test_risk_manager.py`,
+`tests/test_risk_integration.py`). Activar `DAEMONBLACKFX_WARN_DEPRECATED_RISK_MANAGER=1`
+emite un `DeprecationWarning` explícito al importar o invocar su API principal.
 """
 
+import os
+import warnings
 import pandas as pd
 import numpy as np
+
+__deprecated__ = True
+DEPRECATED_REPLACEMENT = "strategy.execution.live_trading_engine + risk.portfolio_accounting"
+
+if os.getenv("DAEMONBLACKFX_WARN_DEPRECATED_RISK_MANAGER", "0").strip().lower() in ("1", "true", "on", "yes"):
+    warnings.warn(
+        "strategy.risk.risk_manager está deprecado y no interviene en producción; "
+        "utilice strategy.execution.live_trading_engine y risk.portfolio_accounting.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 from strategy.risk.position_sizing import (
     calculate_position_size

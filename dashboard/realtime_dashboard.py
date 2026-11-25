@@ -18107,105 +18107,43 @@ _HTML = r'''
 
 
       :root {
-
-
-
         color-scheme: dark;
-
-
-
-        --bg: #071018;
-
-
-
-        --panel: #0d1822;
-
-
-
-        --panel2: #122231;
-
-
-
-        --text: #e9f1f7;
-
-
-
-        --muted: #8fa2b3;
-
-
-
-        --line: #233647;
-
-
-
-        --good: #31c48d;
-
-
-
-        --warn: #f5b942;
-
-
-
-        --bad: #ef6a6a;
-
-
-
-        --accent: #53a7ff;
-
-
-
+        --bg: #050708;
+        --panel: #0a0e10;
+        --panel2: #10161a;
+        --panel3: #151d22;
+        --text: #f5f5f2;
+        --muted: #9fa2a5;
+        --line: #5b4514;
+        --line-bright: #8a6820;
+        --good: #00db79;
+        --good-dim: rgba(0, 219, 121, 0.12);
+        --warn: #f5bd36;
+        --warn-dim: rgba(245, 189, 54, 0.12);
+        --bad: #ff453a;
+        --bad-dim: rgba(255, 69, 58, 0.12);
+        --accent: #d79b19;
+        --accent-dim: rgba(215, 155, 25, 0.12);
+        --gold: #f6cb57;
+        --gold2: #ffd465;
+        --font-mono-numbers: "JetBrains Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
       }
-
-
 
       * {
-
-
-
         box-sizing: border-box;
-
-
-
       }
 
-
-
       body {
-
-
-
         margin: 0;
-
-
-
-        background: var(--bg);
-
-
-
+        background: radial-gradient(circle at 78% 0, rgba(215, 155, 25, 0.08), transparent 28%), #050708;
         color: var(--text);
-
-
-
         font:
-
-
-
           14px/1.45 system-ui,
-
-
-
           -apple-system,
-
-
-
+          BlinkMacSystemFont,
           Segoe UI,
-
-
-
+          Roboto,
           sans-serif;
-
-
-
       }
 
 
@@ -18398,21 +18336,331 @@ _HTML = r'''
 
 
       .value {
-
-
-
         font-size: 24px;
-
-
-
         font-weight: 800;
-
-
-
         margin-top: 5px;
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+        letter-spacing: -0.01em;
+      }
 
+      .val,
+      .metric b,
+      .score,
+      .dptStatVal,
+      .dptSubVal,
+      .ring span,
+      td.num,
+      .financial-num {
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+        letter-spacing: -0.01em;
+      }
 
+      /* Barra de Pestañas Maestras del Dashboard */
+      .dashTabsBar {
+        grid-column: 1 / -1;
+        margin-top: 8px;
+        margin-bottom: 2px;
+        background: #080c10;
+        border: 1px solid rgba(91, 69, 20, 0.45);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(246, 203, 87, 0.05);
+      }
 
+      .dashTabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .dashTabBtn {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid transparent;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dashTabBtn .tabIcon {
+        font-size: 14px;
+      }
+
+      .dashTabBtn:hover {
+        background: rgba(215, 155, 25, 0.1);
+        color: var(--text);
+        border-color: rgba(91, 69, 20, 0.4);
+      }
+
+      .dashTabBtn.active {
+        background: linear-gradient(135deg, rgba(215, 155, 25, 0.22) 0%, rgba(215, 155, 25, 0.08) 100%);
+        color: #ffd465;
+        border-color: #ffd465;
+        box-shadow: 0 2px 10px rgba(215, 155, 25, 0.25);
+      }
+
+      .dashTabBadge {
+        background: #141c22;
+        border: 1px solid #283742;
+        color: #94a3b8;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 750;
+        font-variant-numeric: tabular-nums;
+        transition: all 0.2s ease;
+      }
+
+      .dashTabBtn.active .dashTabBadge {
+        background: rgba(245, 189, 54, 0.2);
+        border-color: rgba(245, 189, 54, 0.4);
+        color: #ffd465;
+      }
+
+      .dashTabBadge.hasOpen {
+        background: rgba(0, 219, 121, 0.2);
+        border-color: #00db79;
+        color: #00db79;
+        box-shadow: 0 0 8px rgba(0, 219, 121, 0.35);
+      }
+
+      /* Paneles de Pestañas con display: contents */
+      .tabPane {
+        display: none !important;
+      }
+
+      .tabPane.active {
+        display: contents !important;
+      }
+
+      /* HUD Flotante de Telemetría en Vivo */
+      .liveTelemetricHUD {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #080c10;
+        border: 1px solid rgba(91, 69, 20, 0.5);
+        border-radius: 999px;
+        padding: 5px 14px 5px 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(246, 203, 87, 0.08);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .liveTelemetricHUD:hover {
+        border-color: #ffd465;
+        box-shadow: 0 4px 20px rgba(215, 155, 25, 0.25);
+      }
+
+      .hudPulseDot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #00db79;
+        box-shadow: 0 0 8px #00db79;
+        animation: hudPulseAnim 2s infinite ease-in-out;
+        flex-shrink: 0;
+      }
+
+      .hudPulseDot.syncing {
+        background: #f5bd36;
+        box-shadow: 0 0 8px #f5bd36;
+      }
+
+      .hudPulseDot.offline {
+        background: #ff453a;
+        box-shadow: 0 0 8px #ff453a;
+        animation: none;
+      }
+
+      @keyframes hudPulseAnim {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.35); opacity: 0.6; }
+      }
+
+      .liveTelemetricHUD .badge {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        color: #f5f5f2 !important;
+        letter-spacing: 0.04em !important;
+      }
+
+      .hudDivider {
+        width: 1px;
+        height: 12px;
+        background: rgba(91, 69, 20, 0.5);
+      }
+
+      .hudLatency {
+        font-size: 11px;
+        font-weight: 750;
+        color: #ffd465;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hudClock {
+        font-size: 11px;
+        font-weight: 650;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Flyout de Telemetría en Hover */
+      .hudFlyout {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 270px;
+        background: #0a0e12;
+        border: 1px solid rgba(91, 69, 20, 0.6);
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(215, 155, 25, 0.15);
+        z-index: 9999;
+        pointer-events: none;
+        flex-direction: column;
+        gap: 8px;
+        text-align: left;
+      }
+
+      .liveTelemetricHUD:hover .hudFlyout,
+      .liveTelemetricHUD:focus-within .hudFlyout {
+        display: flex;
+        pointer-events: auto;
+      }
+
+      .hudFlyoutTitle {
+        font-size: 11px;
+        font-weight: 850;
+        color: #ffd465;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid rgba(91, 69, 20, 0.35);
+        padding-bottom: 6px;
+        margin-bottom: 2px;
+      }
+
+      .hudFlyoutRow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11.5px;
+        color: var(--muted);
+        gap: 10px;
+      }
+
+      .hudFlyoutRow b {
+        color: #f5f5f2;
+        font-weight: 750;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Sistema de Toasts Notificadores Flotantes */
+      .toastContainer {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 380px;
+        pointer-events: none;
+      }
+
+      .bdToast {
+        pointer-events: auto;
+        background: rgba(10, 14, 18, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(91, 69, 20, 0.6);
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(215, 155, 25, 0.15);
+        color: #f5f5f2;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        transform: translateX(120%);
+        opacity: 0;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+      }
+
+      .bdToast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      .bdToastIcon {
+        font-size: 18px;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .bdToastContent {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .bdToastTitle {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #ffd465;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .bdToastMessage {
+        font-size: 11.5px;
+        color: #d1d5db;
+        line-height: 1.4;
+      }
+
+      .bdToastClose {
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0 4px;
+        line-height: 1;
+        border-radius: 4px;
+        transition: color 0.15s ease;
+      }
+
+      .bdToastClose:hover {
+        color: #fff;
+      }
+
+      .bdToast.toastSuccess {
+        border-left: 3px solid #00db79;
+      }
+
+      .bdToast.toastInfo {
+        border-left: 3px solid #38bdf8;
+      }
+
+      .bdToast.toastWarn {
+        border-left: 3px solid #f5bd36;
       }
 
 
@@ -18682,29 +18930,17 @@ _HTML = r'''
 
 
       th,
-
-
+      td {
+        text-align: left;
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
 
       td {
-
-
-
-        text-align: left;
-
-
-
-        padding: 9px 8px;
-
-
-
-        border-bottom: 1px solid var(--line);
-
-
-
-        vertical-align: top;
-
-
-
+        font-variant-numeric: tabular-nums;
+        -webkit-font-feature-settings: "tnum" 1;
+        font-feature-settings: "tnum" 1;
       }
 
 
@@ -23605,8 +23841,8 @@ _HTML = r'''
           <a href="/strategy-bases">📚 Bases de Estrategias</a>
           <a href="/decisions">⚖ Decisiones de entrada</a>
           <a href="/operator">🛠 Suite Operador</a>
-          <a href="/#openPositions">◈ Posiciones abiertas</a>
-          <a href="/#recentAnalysis">◷ Análisis recientes</a>
+          <a href="/#openPositions" onclick="switchDashboardTab('positions');">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis" onclick="switchDashboardTab('recent');">◷ Análisis recientes</a>
         </nav>
         <div class="sideStatus">
           <b>● Daemon Online</b>
@@ -23629,7 +23865,39 @@ _HTML = r'''
             <div class="sub">ESTRATEGIA · DISCIPLINA · RESULTADOS · Control operativo en tiempo real · Conectado al motor</div>
           </div>
           <div class="actions">
-            <div class="badge" id="status">DATOS EN VIVO</div>
+            <div class="liveTelemetricHUD" id="liveTelemetricHUD" title="Click para forzar actualización inmediata" onclick="refresh();">
+              <div class="hudPulseDot" id="hudPulseDot"></div>
+              <div class="badge" id="status">DATOS EN VIVO</div>
+              <div class="hudDivider"></div>
+              <span class="hudLatency" id="hudLatency">-- ms</span>
+              <div class="hudDivider"></div>
+              <span class="hudClock" id="hudClock">--:--:--</span>
+
+              <!-- Flyout detallado en hover -->
+              <div class="hudFlyout" id="hudFlyout">
+                <div class="hudFlyoutTitle">Telemetría del Motor BlackDaemonFX</div>
+                <div class="hudFlyoutRow">
+                  <span>Estado del Motor:</span>
+                  <b id="hudFlyoutEngineStatus" style="color:#00db79;">● Conectado</b>
+                </div>
+                <div class="hudFlyoutRow">
+                  <span>Latencia Local:</span>
+                  <b id="hudFlyoutLatency" class="num" style="color:#ffd465;">-- ms</b>
+                </div>
+                <div class="hudFlyoutRow">
+                  <span>Último Ciclo:</span>
+                  <b id="hudFlyoutLastCycle">Esperando ciclo…</b>
+                </div>
+                <div class="hudFlyoutRow">
+                  <span>Workers Activos:</span>
+                  <b id="hudFlyoutWorkers" style="color:#38bdf8;">17 procesos</b>
+                </div>
+                <div class="hudFlyoutRow">
+                  <span>Posiciones Abiertas:</span>
+                  <b id="hudFlyoutPositions" class="num">0 operaciones</b>
+                </div>
+              </div>
+            </div>
           </div>
 
 
@@ -24147,25 +24415,30 @@ _HTML = r'''
 
 
                 </button>
-
-
-
               </div>
-
-
-
             </div>
-
-
-
           </div>
 
+          <!-- PESTAÑAS ERGONÓMICAS DEL DASHBOARD (COMMAND CENTER TABS) -->
+          <div class="dashTabsBar full">
+            <nav class="dashTabs" role="tablist" aria-label="Secciones del Dashboard">
+              <button type="button" class="dashTabBtn active" role="tab" aria-selected="true" id="btnTabRadar" onclick="switchDashboardTab('radar');">
+                <span class="tabIcon">📡</span> Matriz Centinela &amp; Candidatos
+              </button>
+              <button type="button" class="dashTabBtn" role="tab" aria-selected="false" id="btnTabPositions" onclick="switchDashboardTab('positions');">
+                <span class="tabIcon">◈</span> Posiciones Abiertas &amp; Gráficos <span class="dashTabBadge" id="tabOpenBadge">0</span>
+              </button>
+              <button type="button" class="dashTabBtn" role="tab" aria-selected="false" id="btnTabWorkers" onclick="switchDashboardTab('workers');">
+                <span class="tabIcon">⚙</span> Procesos Workers &amp; Cuarentena
+              </button>
+              <button type="button" class="dashTabBtn" role="tab" aria-selected="false" id="btnTabRecent" onclick="switchDashboardTab('recent');">
+                <span class="tabIcon">◷</span> Análisis Recientes &amp; Flujo
+              </button>
+            </nav>
+          </div>
 
-
-
-
-
-
+          <!-- PESTAÑA 1: RADAR CENTINELA & CANDIDATOS -->
+          <div class="tabPane active" id="tabPaneRadar">
           <div class="card full" id="confluenceMatrixCard">
 
 
@@ -24243,135 +24516,7 @@ _HTML = r'''
               </div>
             </div>
 
-
-
           </div>
-
-
-
-          <div class="card full">
-
-
-
-            <div class="label">Instrumentos en cuarentena</div>
-
-
-
-            <div class="sub">
-
-
-
-              Bloqueos para nuevas entradas · la liberación sigue las reglas del motor de riesgo.
-
-
-
-            </div>
-
-
-
-            <div id="quarantinePanel">Cargando cuarentena…</div>
-
-
-
-          </div>
-
-
-
-          <div class="card full">
-
-
-
-            <div class="label">Procesos</div>
-
-
-
-            <div class="sub">
-
-
-
-              Cada tarjeta representa un worker independiente y su ciclo real persistido en
-
-
-
-              SQLAlchemy.
-
-
-
-            </div>
-
-
-
-            <div class="workerGrid" id="workerGrid">
-
-
-
-              <div class="empty">Esperando estado de los workers…</div>
-
-
-
-            </div>
-
-
-
-          </div>
-
-
-
-          <div class="card full">
-
-
-
-            <div class="selectorHead">
-
-
-
-              <div>
-
-
-
-                <div class="label">Configuración de instrumentos</div>
-
-
-
-                <div class="sub">
-
-
-
-                  La selección para nuevas entradas fue separada del dashboard operativo.
-
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-              <div class="actions">
-
-
-
-                <a class="btn primary" href="/instruments">Administrar instrumentos</a>
-
-
-
-              </div>
-
-
-
-            </div>
-
-
-
-            <div class="selectionMsg" id="selectionSummary">Cargando selección actual…</div>
-
-
-
-          </div>
-
-
 
           <div class="card wide">
 
@@ -24530,6 +24675,14 @@ _HTML = r'''
 
 
           </div>
+
+          </div><!-- /#tabPaneRadar -->
+
+
+
+          <!-- PESTAÑA 2: POSICIONES ABIERTAS & GRÁFICOS -->
+
+          <div class="tabPane" id="tabPanePositions">
 
 
 
@@ -25215,6 +25368,62 @@ _HTML = r'''
 
           </div>
 
+          </div><!-- /#tabPanePositions -->
+
+
+
+          <!-- PESTAÑA 3: PROCESOS WORKERS & CUARENTENA -->
+
+          <div class="tabPane" id="tabPaneWorkers">
+
+            <div class="card full">
+
+              <div class="label">Instrumentos en cuarentena</div>
+
+              <div class="sub">Bloqueos para nuevas entradas · la liberación sigue las reglas del motor de riesgo.</div>
+
+              <div id="quarantinePanel">Cargando cuarentena…</div>
+
+            </div>
+
+            <div class="card full">
+
+              <div class="label">Procesos</div>
+
+              <div class="sub">Cada tarjeta representa un worker independiente y su ciclo real persistido en SQLAlchemy.</div>
+
+              <div class="workerGrid" id="workerGrid"><div class="empty">Esperando estado de los workers…</div></div>
+
+            </div>
+
+            <div class="card full">
+
+              <div class="selectorHead">
+
+                <div>
+
+                  <div class="label">Configuración de instrumentos</div>
+
+                  <div class="sub">La selección para nuevas entradas fue separada del dashboard operativo.</div>
+
+                </div>
+
+                <div class="actions"><a class="btn primary" href="/instruments">Administrar instrumentos</a></div>
+
+              </div>
+
+              <div class="selectionMsg" id="selectionSummary">Cargando selección actual…</div>
+
+            </div>
+
+          </div><!-- /#tabPaneWorkers -->
+
+
+
+          <!-- PESTAÑA 4: ANÁLISIS RECIENTES & FLUJO -->
+
+          <div class="tabPane" id="tabPaneRecent">
+
 
 
           <div class="card full" id="financialNews">
@@ -25367,6 +25576,8 @@ _HTML = r'''
 
           </div>
 
+          </div><!-- /#tabPaneRecent -->
+
 
 
         </div>
@@ -25398,6 +25609,57 @@ _HTML = r'''
 
 
             );
+
+          /* Control de Pestañas Ergonómicas del Dashboard */
+          function switchDashboardTab(tabName) {
+            const tabs = ['radar', 'positions', 'workers', 'recent'];
+            if (!tabs.includes(tabName)) tabName = 'radar';
+
+            tabs.forEach(t => {
+              const cap = t.charAt(0).toUpperCase() + t.slice(1);
+              const pane = $('tabPane' + cap);
+              const btn = $('btnTab' + cap);
+              if (pane) {
+                if (t === tabName) {
+                  pane.classList.add('active');
+                } else {
+                  pane.classList.remove('active');
+                }
+              }
+              if (btn) {
+                if (t === tabName) {
+                  btn.classList.add('active');
+                  btn.setAttribute('aria-selected', 'true');
+                } else {
+                  btn.classList.remove('active');
+                  btn.setAttribute('aria-selected', 'false');
+                }
+              }
+            });
+            try {
+              localStorage.setItem('blackdaemon_active_dash_tab', tabName);
+            } catch (e) {}
+          }
+
+          function initDashboardTabs() {
+            const hash = (window.location.hash || '').toLowerCase();
+            let initialTab = 'radar';
+            if (hash.includes('position')) {
+              initialTab = 'positions';
+            } else if (hash.includes('worker') || hash.includes('proceso') || hash.includes('cuarentena')) {
+              initialTab = 'workers';
+            } else if (hash.includes('recent') || hash.includes('analisis') || hash.includes('noticia') || hash.includes('agenda')) {
+              initialTab = 'recent';
+            } else {
+              try {
+                const saved = localStorage.getItem('blackdaemon_active_dash_tab');
+                if (saved && ['radar', 'positions', 'workers', 'recent'].includes(saved)) {
+                  initialTab = saved;
+                }
+              } catch (e) {}
+            }
+            switchDashboardTab(initialTab);
+          }
 
           function formatStrategyOrigin(orig) {
             if (!orig) return '';
@@ -32814,7 +33076,17 @@ _HTML = r'''
 
 
 
-            $('openCount').textContent = (s.open_positions || []).length;
+            const _numOpen = (s.open_positions || []).length;
+            $('openCount').textContent = _numOpen;
+            const _tabBadge = $('tabOpenBadge');
+            if (_tabBadge) {
+              _tabBadge.textContent = _numOpen;
+              if (_numOpen > 0) {
+                _tabBadge.classList.add('hasOpen');
+              } else {
+                _tabBadge.classList.remove('hasOpen');
+              }
+            }
 
 
 
@@ -33022,87 +33294,174 @@ _HTML = r'''
 
 
 
-          let refreshBusy = false;
+          /* Sistema de Toasts Notificadores Flotantes */
+          function showToast(title, message, type = 'info', icon = '🔔', durationMs = 5000) {
+            const container = $('toastContainer');
+            if (!container) return;
 
+            const toast = document.createElement('div');
+            toast.className = `bdToast ${type === 'success' ? 'toastSuccess' : type === 'warn' ? 'toastWarn' : 'toastInfo'}`;
 
+            toast.innerHTML = `
+              <div class="bdToastIcon">${icon}</div>
+              <div class="bdToastContent">
+                <div class="bdToastTitle">
+                  <span>${esc(title)}</span>
+                  <button type="button" class="bdToastClose" onclick="this.closest('.bdToast').remove();">✕</button>
+                </div>
+                <div class="bdToastMessage">${esc(message)}</div>
+              </div>
+            `;
 
-          async function refresh() {
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
 
-
-
-            if(document.hidden||refreshBusy)return;
-
-
-
-            refreshBusy = true;
-
-
-
-            const controller = new AbortController(),
-
-
-
-              timeout = setTimeout(() => controller.abort(), 30000);
-
-
-
-            try {
-
-
-
-              const r = await fetch('/api/state?ts='+Date.now(), {
-
-
-
-                cache: 'no-store',
-
-
-
-                signal: controller.signal,
-
-
-
-              });
-
-
-
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-
-
-
-              render(await r.json());
-
-
-
-              pageLoading.done();
-
-
-
-            } catch (e) {
-              $('status').textContent = 'SIN CONEXIÓN';
-              $('status').title = 'Dashboard sin conexión: ' + e.message;
-              $('status').style.borderColor = 'rgba(239, 68, 68, 0.5)';
-              $('status').style.color = '#f87171';
-              pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
-
-
-
-            } finally {
-
-
-
-              clearTimeout(timeout);
-
-
-
-              refreshBusy = false;
-
-
-
+            while (container.children.length > 3) {
+              container.removeChild(container.firstChild);
             }
 
+            setTimeout(() => {
+              if (toast.parentNode) {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+              }
+            }, durationMs);
+          }
 
+          let _lastKnownOpenTickets = new Set();
+          let _lastBeTickets = new Set();
+          let _lastCandKey = '';
+          let _isFirstTelemetryCycle = true;
 
+          function detectStateEvents(s) {
+            if (!s) return;
+            const currentOpen = s.open_positions || [];
+            const currentTickets = new Set(currentOpen.map(p => p.ticket || p.id || p.symbol));
+
+            if (!_isFirstTelemetryCycle) {
+              // Detectar nuevas posiciones abiertas
+              currentOpen.forEach(p => {
+                const t = p.ticket || p.id || p.symbol;
+                if (!_lastKnownOpenTickets.has(t)) {
+                  showToast(
+                    'Nueva Posición Abierta',
+                    `${p.symbol || 'Instrumento'} (${p.direction || 'BUY'}) operado por ${p.bot_profile || 'Worker'}`,
+                    'success',
+                    '🚀'
+                  );
+                }
+                // Detectar Break Even
+                if (p.be_level && !_lastBeTickets.has(t)) {
+                  showToast(
+                    'Break Even Confirmado',
+                    `${p.symbol || 'Instrumento'}: stop protegido a Break Even sin riesgo.`,
+                    'success',
+                    '🛡️'
+                  );
+                  _lastBeTickets.add(t);
+                }
+              });
+
+              // Detectar candidato centinela de alto score
+              const cand = (s.top_candidates && s.top_candidates[0]) || s.candidate;
+              if (cand && cand.score >= 75) {
+                const candKey = `${cand.symbol}_${cand.score}_${cand.action}`;
+                if (candKey !== _lastCandKey) {
+                  showToast(
+                    'Candidato Centinela Detectado',
+                    `${cand.symbol} (${cand.action || 'ENTRY'}) con AI Score ${Math.round(cand.score)}/100`,
+                    'info',
+                    '🎯'
+                  );
+                  _lastCandKey = candKey;
+                }
+              }
+            }
+
+            _lastKnownOpenTickets = currentTickets;
+            _isFirstTelemetryCycle = false;
+          }
+
+          let refreshBusy = false;
+
+          async function refresh() {
+            if (document.hidden || refreshBusy) return;
+            refreshBusy = true;
+
+            const pulse = $('hudPulseDot');
+            if (pulse) pulse.className = 'hudPulseDot syncing';
+
+            const t0 = performance.now();
+            const controller = new AbortController(),
+              timeout = setTimeout(() => controller.abort(), 30000);
+
+            try {
+              const r = await fetch('/api/state?ts=' + Date.now(), {
+                cache: 'no-store',
+                signal: controller.signal,
+              });
+
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              const latencyMs = Math.round(performance.now() - t0);
+              const data = await r.json();
+
+              // Actualización de HUD y Flyout
+              if (pulse) pulse.className = 'hudPulseDot';
+              const latEl = $('hudLatency');
+              if (latEl) latEl.textContent = latencyMs + ' ms';
+              const clockEl = $('hudClock');
+              if (clockEl) {
+                const d = new Date();
+                clockEl.textContent = d.toTimeString().split(' ')[0];
+              }
+
+              const stat = $('status');
+              if (stat) {
+                stat.textContent = 'DATOS EN VIVO';
+                stat.style.color = '#f5f5f2';
+                stat.title = `Conexión activa · Latencia: ${latencyMs} ms`;
+              }
+
+              const fLat = $('hudFlyoutLatency');
+              if (fLat) fLat.textContent = latencyMs + ' ms';
+              const fEng = $('hudFlyoutEngineStatus');
+              if (fEng) {
+                fEng.textContent = '● Conectado';
+                fEng.style.color = '#00db79';
+              }
+              const fCyc = $('hudFlyoutLastCycle');
+              if (fCyc) fCyc.textContent = (data.current_cycle || data.cycle_id || 'Activo');
+              const fPos = $('hudFlyoutPositions');
+              if (fPos) {
+                const numPos = (data.open_positions || []).length;
+                fPos.textContent = numPos + (numPos === 1 ? ' operación' : ' operaciones');
+              }
+
+              detectStateEvents(data);
+              render(data);
+              pageLoading.done();
+
+            } catch (e) {
+              if (pulse) pulse.className = 'hudPulseDot offline';
+              const stat = $('status');
+              if (stat) {
+                stat.textContent = 'SIN CONEXIÓN';
+                stat.title = 'Dashboard sin conexión: ' + e.message;
+                stat.style.color = '#ff453a';
+              }
+              const latEl = $('hudLatency');
+              if (latEl) latEl.textContent = 'ERR';
+              const fEng = $('hudFlyoutEngineStatus');
+              if (fEng) {
+                fEng.textContent = '✕ Desconectado';
+                fEng.style.color = '#ff453a';
+              }
+              pageLoading.fail('No se pudieron cargar los datos. Intenta nuevamente.');
+
+            } finally {
+              clearTimeout(timeout);
+              refreshBusy = false;
+            }
           }
 
 
@@ -33273,6 +33632,15 @@ _HTML = r'''
 
           updateChartViewerButtons();
 
+          initDashboardTabs();
+          window.addEventListener('hashchange', () => {
+            const h = (window.location.hash || '').toLowerCase();
+            if (h.includes('position')) switchDashboardTab('positions');
+            else if (h.includes('worker') || h.includes('proceso') || h.includes('cuarentena')) switchDashboardTab('workers');
+            else if (h.includes('recent') || h.includes('analisis') || h.includes('noticia') || h.includes('agenda')) switchDashboardTab('recent');
+            else if (h.includes('radar')) switchDashboardTab('radar');
+          });
+
 
 
           refresh();
@@ -33298,6 +33666,9 @@ _HTML = r'''
         </script>
 
 
+
+        <!-- Contenedor flotante para Notificaciones / Toasts -->
+        <div id="toastContainer" class="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
       </main>
 
@@ -33725,26 +34096,117 @@ _INSTRUMENTS_HTML = r'''
         font-size: 18px;
         font-weight: 850;
         line-height: 1.2;
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
       }
 
-      /* Barra de búsqueda */
-      .search {
-        width: 100%;
-        max-width: 400px;
+      .badge, .tag, td, th {
+        font-variant-numeric: tabular-nums lining-nums;
+        -webkit-font-feature-settings: "tnum" 1, "lnum" 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+      }
+
+      /* Barra de búsqueda y Chips de Filtro Rápido */
+      .filterBarWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 14px;
         background: #080c10;
         border: 1px solid rgba(91, 69, 20, 0.45);
+        border-radius: 12px;
+        padding: 8px 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      }
+
+      .search {
+        width: 100%;
+        max-width: 320px;
+        background: #0a0e12;
+        border: 1px solid rgba(91, 69, 20, 0.5);
         color: #f5f5f2;
-        border-radius: 9px;
-        padding: 9px 14px;
-        font-size: 13px;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 12.5px;
         transition: all 0.2s ease;
       }
 
       .search:focus {
         outline: none;
         border-color: #ffd465;
-        box-shadow: 0 0 14px rgba(215, 155, 25, 0.25);
-        background: #0a0f14;
+        box-shadow: 0 0 12px rgba(215, 155, 25, 0.25);
+        background: #0f141a;
+      }
+
+      .filterChips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .filterChip {
+        background: #0e1318;
+        border: 1px solid rgba(91, 69, 20, 0.4);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .filterChip:hover {
+        background: rgba(215, 155, 25, 0.1);
+        color: var(--text);
+        border-color: rgba(215, 155, 25, 0.5);
+      }
+
+      .filterChip.active {
+        background: linear-gradient(135deg, rgba(215, 155, 25, 0.25) 0%, rgba(215, 155, 25, 0.08) 100%);
+        color: #ffd465;
+        border-color: #ffd465;
+        box-shadow: 0 0 10px rgba(215, 155, 25, 0.25);
+      }
+
+      .filterChip .chipCount {
+        font-size: 10.5px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .filterChip.active .chipCount {
+        background: rgba(215, 155, 25, 0.25);
+        color: #ffd465;
+      }
+
+      .groupToggleBtn {
+        background: rgba(215, 155, 25, 0.08);
+        border: 1px solid rgba(91, 69, 20, 0.45);
+        color: #ffd465;
+        border-radius: 6px;
+        padding: 2.5px 8px;
+        font-size: 10px;
+        font-weight: 750;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+
+      .groupToggleBtn:hover {
+        background: rgba(215, 155, 25, 0.2);
+        border-color: #ffd465;
+        color: #fff;
+        box-shadow: 0 0 8px rgba(215, 155, 25, 0.25);
       }
 
       /* Grilla de grupos de instrumentos */
@@ -33998,8 +34460,8 @@ _INSTRUMENTS_HTML = r'''
           <a href="/strategy-bases">📚 Bases de Estrategias</a>
           <a href="/decisions">⚖ Decisiones de entrada</a>
           <a href="/operator">🛠 Suite Operador</a>
-          <a href="/#openPositions">◈ Posiciones abiertas</a>
-          <a href="/#recentAnalysis">◷ Análisis recientes</a>
+          <a href="/#openPositions" onclick="switchDashboardTab('positions');">◈ Posiciones abiertas</a>
+          <a href="/#recentAnalysis" onclick="switchDashboardTab('recent');">◷ Análisis recientes</a>
         </nav>
         <div class="sideStatus">
           <b>● Daemon Online</b>
@@ -34096,37 +34558,49 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        <div style="margin-top: 12px">
-
-
+        <div class="filterBarWrapper">
 
           <input
 
-
-
             id="search"
-
-
 
             class="search"
 
-
-
             type="search"
 
-
-
-            placeholder="Buscar instrumento…"
-
-
+            placeholder="🔍 Buscar instrumento por nombre…"
 
             aria-label="Buscar instrumento"
 
-
-
           />
 
+          <div class="filterChips" id="filterChips">
 
+            <button type="button" class="filterChip active" data-filter="ALL" onclick="setFilterStatus('ALL')">
+
+              Todos <span class="chipCount" id="chipCountAll">0</span>
+
+            </button>
+
+            <button type="button" class="filterChip" data-filter="SELECTED" onclick="setFilterStatus('SELECTED')">
+
+              ✓ Solo Seleccionados <span class="chipCount" id="chipCountSelected">0</span>
+
+            </button>
+
+            <button type="button" class="filterChip" data-filter="ACTIVE" onclick="setFilterStatus('ACTIVE')">
+
+              ⭐ Solo Aprobados <span class="chipCount" id="chipCountActive">0</span>
+
+            </button>
+
+            <button type="button" class="filterChip" data-filter="PRUNED" onclick="setFilterStatus('PRUNED')">
+
+              ⛔ Solo Podados <span class="chipCount" id="chipCountPruned">0</span>
+
+            </button>
+
+          </div>
 
         </div>
 
@@ -34212,7 +34686,35 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        activeProfile = 'SYNTHETICS';
+        activeProfile = 'SYNTHETICS',
+
+
+
+        filterStatus = 'ALL';
+
+      function setFilterStatus(status) {
+        filterStatus = status;
+        document.querySelectorAll('.filterChip').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.filter === status);
+        });
+        if (state) render(state);
+      }
+
+      function toggleGroupSymbols(groupIdx) {
+        const groupSec = document.querySelector(`.group[data-group-index="${groupIdx}"]`);
+        if (!groupSec) return;
+        const cbs = groupSec.querySelectorAll('input[type="checkbox"][data-symbol]:not([disabled])');
+        if (!cbs.length) return;
+        const anyUnchecked = [...cbs].some((cb) => !cb.checked);
+        cbs.forEach((cb) => {
+          cb.checked = anyUnchecked;
+        });
+        dirty = true;
+        updateCount();
+        if (state) renderTabWorkers(state);
+        const groupLabel = groupSec.querySelector('.groupHeader h3 span')?.textContent || 'Familia';
+        $('msg').textContent = `${groupLabel}: ${anyUnchecked ? 'Todos activados' : 'Todos desactivados'}. Haz clic en Aplicar selección para persistir.`;
+      }
 
 
 
@@ -35057,6 +35559,10 @@ _INSTRUMENTS_HTML = r'''
 
 
 
+        const total = allInputs.length;
+
+
+
         const checkedCnt = allInputs.filter((x) => x.checked).length;
 
 
@@ -35065,11 +35571,19 @@ _INSTRUMENTS_HTML = r'''
 
 
 
-        $('selectedCount').textContent = checkedCnt;
+        const pct = total ? Math.round((checkedCnt / total) * 100) : 0;
+
+
+
+        $('selectedCount').textContent = total ? `${checkedCnt} / ${total} (${pct}%)` : checkedCnt;
 
 
 
         if ($('prunedOffCount')) $('prunedOffCount').textContent = prunedOffCnt;
+
+
+
+        if ($('chipCountSelected')) $('chipCountSelected').textContent = checkedCnt;
 
 
 
@@ -35269,6 +35783,17 @@ _INSTRUMENTS_HTML = r'''
 
 
 
+        const allProfileSymbols = gs.flatMap((g) => g.symbols || []);
+        const totalAll = allProfileSymbols.length;
+        const totalSelected = allProfileSymbols.filter((sym) => chosen.has(sym)).length;
+        const totalActive = allProfileSymbols.filter((sym) => prioritized.has(sym) || (!prunedInfo[sym] && prioritized.size === 0)).length;
+        const totalPruned = allProfileSymbols.filter((sym) => !prioritized.has(sym) && (Boolean(prunedInfo[sym]) || (prioritized.size > 0 && !prioritized.has(sym)))).length;
+
+        if ($('chipCountAll')) $('chipCountAll').textContent = totalAll;
+        if ($('chipCountSelected')) $('chipCountSelected').textContent = totalSelected;
+        if ($('chipCountActive')) $('chipCountActive').textContent = totalActive;
+        if ($('chipCountPruned')) $('chipCountPruned').textContent = totalPruned;
+
         const sortedGs = [...gs].sort((gA, gB) => {
           const hasActiveA = (gA.symbols || []).some(sym => prioritized.has(sym) || (!prunedInfo[sym] && prioritized.size === 0));
           const hasActiveB = (gB.symbols || []).some(sym => prioritized.has(sym) || (!prunedInfo[sym] && prioritized.size === 0));
@@ -35280,8 +35805,15 @@ _INSTRUMENTS_HTML = r'''
 
         $('grid').innerHTML =
           sortedGs
-            .map((g) => {
-              const items = (g.symbols || []).filter((x) => x.toLocaleLowerCase('es').includes(q));
+            .map((g, gIdx) => {
+              const items = (g.symbols || []).filter((x) => {
+                if (q && !x.toLocaleLowerCase('es').includes(q)) return false;
+                const isPruned = !prioritized.has(x) && (Boolean(prunedInfo[x]) || (prioritized.size > 0 && !prioritized.has(x)));
+                if (filterStatus === 'SELECTED') return chosen.has(x);
+                if (filterStatus === 'ACTIVE') return !isPruned;
+                if (filterStatus === 'PRUNED') return isPruned;
+                return true;
+              });
 
               // Ordenar por estado: primero ACTIVOS (✓ ACTIVO), luego PODADOS (⛔ PODADO) manteniendo diseño intacto
               items.sort((a, b) => {
@@ -35322,10 +35854,13 @@ _INSTRUMENTS_HTML = r'''
                         : '';
 
               return items.length
-                ? `<section class="group">
+                ? `<section class="group" data-group-index="${gIdx}">
                     <div class="groupHeader">
                       <h3><span>${esc(displayLabel)}</span> <span class="groupCount">(${items.length})</span></h3>
-                      ${stratTag}
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <button type="button" class="groupToggleBtn" onclick="toggleGroupSymbols(${gIdx})" title="Alternar todos los instrumentos de este grupo">Alternar</button>
+                        ${stratTag}
+                      </div>
                     </div>
                     <div class="groupItems">
                       ${items.map((sym) => {

@@ -93,6 +93,24 @@ class MT5TradeExecutor(TradeExecutor):
         self.execution_provider.assert_demo_account()
 
         comment = self._comment_for(request)
+        extra_kwargs: dict[str, object] = {}
+        if request.metadata and "pre_send_risk_cap" in request.metadata:
+            extra_kwargs["max_risk_amount"] = request.metadata["pre_send_risk_cap"]
+        if request.metadata and request.metadata.get("minimum_executable_rr") is not None:
+            extra_kwargs["minimum_executable_rr"] = request.metadata["minimum_executable_rr"]
+        trade_leg_meta = str((request.metadata or {}).get("trade_leg") or "").strip()
+        if trade_leg_meta:
+            try:
+                import inspect
+                sig = inspect.signature(self.execution_provider.place_market_order)
+                accepts_var_kw = any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+                )
+                if "trade_leg" in sig.parameters or accepts_var_kw:
+                    extra_kwargs["trade_leg"] = trade_leg_meta
+            except Exception:
+                pass
+
         placed = self.execution_provider.place_market_order(
             symbol=request.symbol,
             direction=request.direction,
@@ -102,22 +120,30 @@ class MT5TradeExecutor(TradeExecutor):
             magic=self.magic,
             comment=comment,
             deviation=self.deviation,
-            **({"max_risk_amount": request.metadata["pre_send_risk_cap"]}
-               if request.metadata and "pre_send_risk_cap" in request.metadata else {}),
-            **({"minimum_executable_rr": request.metadata["minimum_executable_rr"]}
-               if request.metadata.get("minimum_executable_rr") is not None else {}),
+            **extra_kwargs,
         )
 
-        position_ticket = (
-            self.execution_provider.find_position_ticket(
-                request.symbol,
-                self.magic,
-                comment,
-            )
-            or self.execution_provider.position_ticket_from_deal(
-                placed.get("deal_ticket")
-            )
-        )
+        # Resolución determinística del ticket de posición:
+        # Prioridad 1: position_ticket_from_deal(deal_ticket). Cada orden ejecutada en MT5 produce un deal_ticket
+        # único, cuyo position_id en el historial es 100% determinístico y elimina colisiones en split-entries (TP1 vs RUNNER).
+        position_ticket = None
+        deal_ticket = placed.get("deal_ticket")
+        ticket_from_deal = getattr(self.execution_provider, "position_ticket_from_deal", None)
+        if deal_ticket and callable(ticket_from_deal):
+            try:
+                position_ticket = ticket_from_deal(deal_ticket)
+            except Exception:
+                position_ticket = None
+
+        # Prioridad 2: Fallback vía find_position_ticket con coincidencia estricta de comentario/leg y time_msc
+        if position_ticket is None:
+            find_ticket = getattr(self.execution_provider, "find_position_ticket", None)
+            if callable(find_ticket):
+                position_ticket = find_ticket(
+                    request.symbol,
+                    self.magic,
+                    comment,
+                )
 
         if position_ticket is None:
             raise RuntimeError(
@@ -342,17 +368,20 @@ class MT5TradeExecutor(TradeExecutor):
         """
         raw = request.metadata.get("execution_key") if request.metadata else None
         trade_leg = request.metadata.get("trade_leg") if request.metadata else None
-        if not trade_leg and raw and (":TP1" in str(raw) or ":RUNNER" in str(raw)):
-            trade_leg = "RUNNER" if ":RUNNER" in str(raw) else "TP1"
+        if not trade_leg and raw and any(x in str(raw) for x in (":TP1", ":TP2", ":RUNNER", "-TP1", "-TP2", "-RUNNER")):
+            trade_leg = "RUNNER" if any(x in str(raw) for x in (":RUNNER", "-RUNNER", ":TP2", "-TP2")) else "TP1"
 
-        leg_suffix = f":{str(trade_leg).upper()}" if trade_leg and str(trade_leg).upper() in ("TP1", "RUNNER", "SINGLE") else ""
+        leg_upper = str(trade_leg).upper() if trade_leg else ""
+        leg_suffix = f":{leg_upper}" if leg_upper in ("TP1", "TP2", "RUNNER", "SINGLE") else ""
+        max_len = 30
         if raw:
             base = str(raw)
-            if leg_suffix and base.endswith(leg_suffix):
+            if leg_suffix and base.upper().endswith(leg_suffix):
                 base = base[:-len(leg_suffix)]
-            max_base = 31 - len(leg_suffix)
-            return f"{base[:max_base]}{leg_suffix}"
+            max_base = max(1, max_len - len(leg_suffix))
+            prefix = base[:max_base].rstrip(":")
+            return f"{prefix}{leg_suffix}"
 
-        max_base = 31 - len(leg_suffix)
-        base = f"smc:{request.symbol}:{request.direction}"[:max_base]
+        max_base = max(1, max_len - len(leg_suffix))
+        base = f"smc:{request.symbol}:{request.direction}"[:max_base].rstrip(":")
         return f"{base}{leg_suffix}"
